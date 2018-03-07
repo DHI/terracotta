@@ -5,6 +5,7 @@ from cachetools import LFUCache, cachedmethod
 import mercantile
 import rasterio
 from rasterio.warp import WarpedVRT
+from rasterio.warp import transform_bounds
 from rasterio.enums import Resampling
 
 
@@ -22,19 +23,21 @@ class TileStore:
         self.cache = LFUCache(cache_size)
         self.datasets = self._make_datasets(cfg_datasets)
 
-    def _make_datasets(self, cfg_sections):
+    def _make_datasets(self, cfg_datasets):
         """Build datasets from parsed config sections.
 
         Parameters
         ----------
-        cfg_sections: list of dict
+        cfg_datasets: list of dict
             Each dict represents a dataset config section"""
 
-        for cfg_ds in cfg_sections:
+        for cfg_ds in cfg_datasets:
             ds = {}
             ds['timestepped'] = cfg_ds['timestepped']
             file_params = self._parse_files(cfg_ds['path'], cfg_ds['timestepped'], cfg_ds['regex'])
             ds.update(file_params)
+            file_meta = self._get_file_meta(cfg_ds['path'])
+            ds.update(file_meta)
             self.datasets[cfg_ds['name']] = ds
 
     @staticmethod
@@ -70,6 +73,27 @@ class TileStore:
             file_info['filename'] = matches[0].group(0)
 
         return file_info
+
+    @staticmethod
+    def _get_file_meta(path):
+        """Pre-load and pre-compute needed file metadata.
+
+        Parameters
+        ----------
+        path: str
+            Path to the file.
+
+        Returns
+        -------
+        out: dict
+            Metadata."""
+
+        meta = {}
+        with rasterio.open(path) as src:
+            meta['wgs_bounds'] = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds),
+                                                  densify_pts=21)
+
+        return meta
 
     @cachedmethod(operator.attrgetter('cache'))
     def tile(self, tile_x, tile_y, tile_z, dataset, timestep=None, tilesize=256):
