@@ -1,13 +1,14 @@
 import operator
+import os
 
 from cachetools import LFUCache, cachedmethod
 import mercantile
 import rasterio
-from rasterio.warp import transform_bounds
+from rasterio.warp import WarpedVRT
 from rasterio.enums import Resampling
 
 
-DEFAULT_CACHE_SIZE = 256000000 # 256MB
+DEFAULT_CACHE_SIZE = 256000000  # 256MB
 
 
 class TileNotFoundError(Exception):
@@ -17,13 +18,63 @@ class TileNotFoundError(Exception):
 class TileStore:
     """Stores information about datasets and caches access to tiles."""
 
-    def __init__(self, datasets, cache_size=DEFAULT_CACHE_SIZE):
+    def __init__(self, cfg_datasets, cache_size=DEFAULT_CACHE_SIZE):
         self.cache = LFUCache(cache_size)
-        self.datasets = datasets
+        self.datasets = self._make_datasets(cfg_datasets)
+
+    def _make_datasets(self, cfg_sections):
+        """Build datasets from parsed config sections.
+
+        Parameters
+        ----------
+        cfg_sections: list of dict
+            Each dict represents a dataset config section"""
+
+        for cfg_ds in cfg_sections:
+            ds = {}
+            ds['timestepped'] = cfg_ds['timestepped']
+            file_params = self._parse_files(cfg_ds['path'], cfg_ds['timestepped'], cfg_ds['regex'])
+            ds.update(file_params)
+            self.datasets[cfg_ds['name']] = ds
+
+    @staticmethod
+    def _parse_files(path, timestepped, regex):
+        """Discover file(s) from `path` and build
+        file information dict.
+
+        Parameters
+        ----------
+        path: str
+            Path to GeoTiff file(s)
+        timestepped: Bool
+            If True, find multiple files. Assumes `regex` has a named 'timestamp' group.
+        regex: str
+            Compiled regex to match file(s). Matches timesteps on 'timestamp' group.
+        """
+
+        file_info = {}
+        files = os.listdir(path)
+        matches = filter(regex.match, files)
+        if not matches:
+            raise ValueError('no files matched {} in {}'.format(regex.pattern, path))
+        if timestepped:
+            file_info['timesteps'] = {}
+            for m in matches:
+                timestep = m.group('timestamp')
+                # Only support 1 file per timestep for now
+                assert timestep not in file_info['timesteps']
+                file_info['timesteps'][timestep] = m.group(0)
+        else:
+            # Only support 1 file per timestep for now
+            assert len(matches) == 1
+            file_info['filename'] = matches[0].group(0)
+
+        return file_info
 
     @cachedmethod(operator.attrgetter('cache'))
-    def tile(tile_x, tile_y, tile_z, dataset, timestep=None):
+    def tile(self, tile_x, tile_y, tile_z, dataset, timestep=None, tilesize=256):
         """Load a requested tile from source.
+
         Parameters
         ----------
         tile_x: int
@@ -56,6 +107,9 @@ class TileStore:
 
         mercator_tile = mercantile.Tile(x=tile_x, y=tile_y, z=tile_z)
         tile_bounds = mercantile.xy_bounds(mercator_tile)
+        tile = self._load_tile(fname, tile_bounds, tilesize)
+
+        return tile
 
     @staticmethod
     def _load_tile(path, bounds, tilesize):
@@ -77,10 +131,11 @@ class TileStore:
 
         try:
             with rasterio.open(path) as src:
-                with WarpedVRT(src, dst_crs='epsg:3857') as vrt:
+                with WarpedVRT(src,
+                               dst_crs='epsg:3857',
+                               resampling=Resampling.bilinear) as vrt:
                     window = vrt.window(*bounds)
-                    arr_transform = vrt.window_transform(window)
-                    arr = vrt.read(window=window)
+                    arr = vrt.read(window=window, out_shape=(tilesize, tilesize))
         except OSError:
             raise TileNotFoundError('error while reading file {}'.format(path))
 
@@ -88,7 +143,8 @@ class TileStore:
 
 
 def tile_exists(bounds, tile_z, tile_x, tile_y):
-    """Check if a mercatile tile is inside a given bounds
+    """Check if a mercatile tile is inside a given bounds.
+
     Parameters
     ----------
     bounds : list
@@ -99,6 +155,7 @@ def tile_exists(bounds, tile_z, tile_x, tile_y):
         Mercator tile Y index.
     z : int
         Mercator tile ZOOM level.
+
     Returns
     -------
     out : boolean
