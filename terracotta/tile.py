@@ -1,10 +1,11 @@
 import operator
 import os
 
-from cachetools import LFUCache, cachedmethod
+import numpy as np
 import mercantile
+from cachetools import LFUCache, cachedmethod
 import rasterio
-from rasterio.warp import WarpedVRT
+from rasterio.vrt import WarpedVRT
 from rasterio.warp import transform_bounds
 from rasterio.enums import Resampling
 
@@ -16,14 +17,23 @@ class TileNotFoundError(Exception):
     pass
 
 
+class TileOutOfBoundsError(Exception):
+    pass
+
+
+class DatasetNotFoundError(Exception):
+    pass
+
+
 class TileStore:
     """Stores information about datasets and caches access to tiles."""
 
     def __init__(self, cfg_datasets, cache_size=DEFAULT_CACHE_SIZE):
-        self.cache = LFUCache(cache_size)
-        self.datasets = self._make_datasets(cfg_datasets)
+        self._cache = LFUCache(cache_size)
+        self._datasets = self._make_datasets(cfg_datasets)
 
-    def _make_datasets(self, cfg_datasets):
+    @staticmethod
+    def _make_datasets(cfg_datasets):
         """Build datasets from parsed config sections.
 
         Parameters
@@ -31,14 +41,32 @@ class TileStore:
         cfg_datasets: list of dict
             Each dict represents a dataset config section"""
 
-        for cfg_ds in cfg_datasets:
+        datasets = {}
+        for ds_name in cfg_datasets.keys():
+            cfg_ds = cfg_datasets[ds_name]
             ds = {}
             ds['timestepped'] = cfg_ds['timestepped']
-            file_params = self._parse_files(cfg_ds['path'], cfg_ds['timestepped'], cfg_ds['regex'])
+            file_params = TileStore._parse_files(cfg_ds['path'],
+                                                 cfg_ds['timestepped'],
+                                                 cfg_ds['regex'])
             ds.update(file_params)
-            file_meta = self._get_file_meta(cfg_ds['path'])
-            ds.update(file_meta)
-            self.datasets[cfg_ds['name']] = ds
+            datasets[cfg_ds['name']] = ds
+        return datasets
+
+    def get_meta(self, dataset):
+        if dataset not in self._datasets:
+            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
+        return self._datasets[dataset]['meta'].copy()
+
+    def get_nodata(self, dataset):
+        if dataset not in self._datasets:
+            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
+        return self._datasets[dataset]['meta']['nodata']
+
+    def get_bounds(self, dataset):
+        if dataset not in self._datasets:
+            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
+        return self._datasets[dataset]['meta']['wgs_bounds']
 
     @staticmethod
     def _parse_files(path, timestepped, regex):
@@ -57,7 +85,8 @@ class TileStore:
 
         file_info = {}
         files = os.listdir(path)
-        matches = filter(regex.match, files)
+        matches = map(regex.match, files)
+        matches = [x for x in matches if x is not None]
         if not matches:
             raise ValueError('no files matched {} in {}'.format(regex.pattern, path))
         if timestepped:
@@ -72,11 +101,15 @@ class TileStore:
             assert len(matches) == 1
             file_info['filename'] = matches[0].group(0)
 
+        meta = TileStore._load_file_meta([m.group(0) for m in matches])
+        file_info['meta'] = meta
+
         return file_info
 
     @staticmethod
-    def _get_file_meta(path):
+    def _load_file_meta(files):
         """Pre-load and pre-compute needed file metadata.
+        Also validate that meta doesn't differ between timesteps.
 
         Parameters
         ----------
@@ -89,14 +122,26 @@ class TileStore:
             Metadata."""
 
         meta = {}
-        with rasterio.open(path) as src:
-            meta['wgs_bounds'] = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds),
-                                                  densify_pts=21)
+        first = True
+        for f in files:
+            with rasterio.open(f) as src:
+                data = src.read(1)
+                meta['wgs_bounds'] = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds),
+                                                      densify_pts=21)
+                meta['nodata'] = src.nodata
+                meta['range'] = (np.min(data), np.max(data))
+            if first:
+                first_meta = meta.copy()
+                first = False
+            if meta != first_meta:
+                diff = set(meta) - set(first_meta)
+                raise ValueError('{} does not match other files in: {}'.format(f, diff))
 
         return meta
 
-    @cachedmethod(operator.attrgetter('cache'))
-    def tile(self, tile_x, tile_y, tile_z, dataset, timestep=None, tilesize=256):
+    @cachedmethod(operator.attrgetter('_cache'))
+    def tile(self, tile_x, tile_y, tile_z, dataset,
+             timestep=None, tilesize=256, scale_contrast=False):
         """Load a requested tile from source.
 
         Parameters
@@ -110,7 +155,7 @@ class TileStore:
         """
 
         try:
-            dataset = self.datasets[dataset]
+            dataset = self._datasets[dataset]
         except KeyError:
             raise TileNotFoundError('no such dataset {}'.format(dataset))
 
@@ -126,12 +171,14 @@ class TileStore:
             fname = dataset['filename']
 
         if not tile_exists(dataset['wgs_bound'], tile_z, tile_x, tile_y):
-            raise TileNotFoundError('Tile {}/{}/{} is outside image bounds'
-                                    .format(tile_z, tile_x, tile_y))
+            raise TileOutOfBoundsError('Tile {}/{}/{} is outside image bounds'
+                                       .format(tile_z, tile_x, tile_y))
 
         mercator_tile = mercantile.Tile(x=tile_x, y=tile_y, z=tile_z)
         tile_bounds = mercantile.xy_bounds(mercator_tile)
         tile = self._load_tile(fname, tile_bounds, tilesize)
+        if contrast_stretch:
+            tile = contrast_stretch(tile, self._datasets[dataset]['range'])
 
         return tile
 
@@ -159,7 +206,7 @@ class TileStore:
                                dst_crs='epsg:3857',
                                resampling=Resampling.bilinear) as vrt:
                     window = vrt.window(*bounds)
-                    arr = vrt.read(window=window, out_shape=(tilesize, tilesize))
+                    arr = vrt.read(0, window=window, out_shape=(tilesize, tilesize))
         except OSError:
             raise TileNotFoundError('error while reading file {}'.format(path))
 
@@ -193,3 +240,23 @@ def tile_exists(bounds, tile_z, tile_x, tile_y):
         and (tile_x >= mintile.x) \
         and (tile_y <= maxtile.y + 1) \
         and (tile_y >= mintile.y)
+
+def contrast_stretch(tile, range):
+    """Scale the image to between 0 and 255.
+
+    Parameters
+    ----------
+    range: (int, int)
+        min and max value of input tile
+
+    Returns
+    -------
+    out: numpy array
+        input tile scaled to 0 - 255.
+    """
+
+    min, max = range
+    img = np.clip(tile, min, max) - min
+    img = img / np.float(max - min)
+    assert img.dtype == np.uint8
+    return img
