@@ -1,12 +1,10 @@
 import os
+import re
 import configparser
-from configparser import NoSectionError
 
 
-DEFAULT_OPTIONS = {
-   'max_cache_size': 256000000,  # 256MB
-   'timestepped': False
-}
+DEFAULT_CACHE_SIZE = 256000000
+DEFAULT_TIMESTEPPED = False
 
 
 def parse_cfg(cfg_path='./config.cfg'):
@@ -21,29 +19,46 @@ def parse_cfg(cfg_path='./config.cfg'):
     -------
     out: (options, datasets) tuple"""
 
-    cfg = configparser.ConfigParser(defaults=DEFAULT_OPTIONS)
+    cfg = configparser.ConfigParser()
     cfg.read(cfg_path)
 
-    # Validate options
+    # Get options
     options = {}
-    options['max_cache_size'] = cfg.getint('options', 'max_cache_size')
-
-    # Validate datasets
-    datasets = {}
     try:
-        datasets = cfg['datasets']
-        no_datasets = False
-    except NoSectionError:
-        no_datasets = True
-    if no_datasets or not datasets.sections():
-        raise ValueError('No datasets specified in config file')
+        cfg_options = cfg['options']
+    except KeyError:
+        # Dummy section
+        cfg.add_section('options')
+        cfg_options = cfg['options']
+    options['max_cache_size'] = cfg_options.getint('max_cache_size', fallback=DEFAULT_CACHE_SIZE)
 
-    for ds_name in datasets.sections():
+    # Assume remaining sections are datasets
+    cfg.remove_section('options')
+    if not cfg.sections():
+        raise ValueError('no datasets in config file')
+
+    datasets = {}
+    for ds_name in cfg.sections():
+        cfg_ds = cfg[ds_name]
         ds = {}
+        # Options that we have defaults for or that we know exist
         ds['name'] = ds_name
-        ds['timestepped'] = datasets.getboolean(ds_name, timestepped)
+        ds['timestepped'] = cfg_ds.getboolean('timestepped', fallback=DEFAULT_TIMESTEPPED)
+        # Options that must exist but don't have defaults
         try:
-            path = datasets.get(ds_name, 'path')
-            if not os.path.isdir(path) and os.access(path, os.R_OK):
-                raise ValueError('path {} in {} is not a readable directory'.format(path, ds_name))
+            path = cfg_ds['path']
+            reg_str = cfg_ds['regex']
+        except KeyError as e:
+            raise ValueError('Missing option {} in dataset {}'.format(e.args[0], ds_name))
+        # Validate option values
+        if not os.path.isdir(path) and os.access(path, os.R_OK):
+            raise ValueError('path {} in {} is not a readable directory'.format(path, ds_name))
+        reg = re.compile(reg_str)
+        if ds['timestepped'] and 'timestamp' not in reg.groupindex.keys:
+            raise ValueError('missing timestamp group in regex for timestepped dataset {}'
+                             .format(ds_name))
+        ds['regex'] = reg
+        ds['path'] = path
+        datasets[ds_name] = ds
 
+    return (options, datasets)
