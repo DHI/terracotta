@@ -237,6 +237,7 @@ def tile_exists(bounds, tile_z, tile_x, tile_y):
         and (tile_y <= maxtile.y + 1) \
         and (tile_y >= mintile.y)
 
+
 def contrast_stretch(tile, range):
     """Scale the image to between 0 and 255.
 
