@@ -2,20 +2,18 @@ from flask import Flask
 
 import terracotta
 import terracotta.config as config
-import terracotta.tile as tile
+from terracotta.tile_api import tile_api
 
 
 def create_app(cfg_file, debug=False):
     """Returns a Flask app"""
-    from terracotta.tile_api import tile_api
-    global tilestore
-
-    options, datasets = config.parse_cfg(cfg_file)
-    terracotta.tile_api.init_tilestore(datasets, options)
 
     new_app = Flask('terracotta')
     new_app.debug = debug
-    new_app.register_blueprint(tile_api)
+    new_app.register_blueprint(tile_api, url_prefix='/terracotta')
+
+    options, datasets = config.parse_cfg(cfg_file)
+    terracotta.tile_api.init(datasets, options['max_cache_size'])
 
     return new_app
 

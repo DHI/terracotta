@@ -4,7 +4,7 @@ from flask import Blueprint, current_app, abort, send_file
 import numpy as np
 from cachetools import LFUCache, cached
 
-import terracotta
+import terracotta.tile as tile
 from terracotta.tile import TileNotFoundError, TileOutOfBoundsError
 
 
@@ -23,8 +23,8 @@ def init(datasets, cache_size=DEFAULT_CACHE_SIZE):
     tilestore = tile.TileStore(datasets)
 
 
-@tile_api.route('/terracotta/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
-@tile_api.route('/terracotta/<dataset>/<timestep>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
+@tile_api.route('/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
+@tile_api.route('/<dataset>/<timestep>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
                 methods=['GET'])
 @cached(cache)
 def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
