@@ -2,23 +2,31 @@ from io import BytesIO
 
 from flask import Blueprint, current_app, abort, send_file
 import numpy as np
+from cachetools import LFUCache, cached
 
 import terracotta
 from terracotta.tile import TileNotFoundError, TileOutOfBoundsError
 
 
+DEFAULT_CACHE_SIZE = 1000000000  # 1GB
+
+
 tile_api = Blueprint('tile_api', __name__)
+cache = None
 tilestore = None
 
 
-def init_tilestore(datasets, options):
+def init(datasets, cache_size=DEFAULT_CACHE_SIZE):
+    global cache
     global tilestore
-    tilestore = terracotta.tile.TileStore(datasets, options['max_cache_size'])
+    cache = LFUCache(cache_size)
+    tilestore = tile.TileStore(datasets)
 
 
 @tile_api.route('/terracotta/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
 @tile_api.route('/terracotta/<dataset>/<timestep>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
                 methods=['GET'])
+@cached(cache)
 def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     """Respond to tile requests"""
 
