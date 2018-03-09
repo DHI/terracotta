@@ -136,7 +136,7 @@ class TileStore:
 
         return meta
 
-    def tile(self, tile_x, tile_y, tile_z, dataset,
+    def tile(self, tile_x, tile_y, tile_z, ds_name,
              timestep=None, tilesize=256, scale_contrast=False):
         """Load a requested tile from source.
 
@@ -151,18 +151,18 @@ class TileStore:
         """
 
         try:
-            dataset = self._datasets[dataset]
+            dataset = self._datasets[ds_name]
         except KeyError:
-            raise TileNotFoundError('no such dataset {}'.format(dataset))
+            raise TileNotFoundError('no such dataset {}'.format(ds_name))
 
         if not dataset['timestepped'] and timestep:
-            raise TileNotFoundError('dataset {} is not timestepped'.format(dataset))
+            raise TileNotFoundError('dataset {} is not timestepped'.format(ds_name))
 
         if timestep:
             try:
                 fname = dataset['timesteps'][timestep]
             except KeyError:
-                raise TileNotFoundError('no such timestep in dataset {}'.format(dataset))
+                raise TileNotFoundError('no such timestep in dataset {}'.format(ds_name))
         else:
             fname = dataset['filename']
 
