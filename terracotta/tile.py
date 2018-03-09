@@ -166,15 +166,15 @@ class TileStore:
         else:
             fname = dataset['filename']
 
-        if not tile_exists(dataset['wgs_bound'], tile_z, tile_x, tile_y):
+        if not tile_exists(dataset['meta']['wgs_bounds'], tile_z, tile_x, tile_y):
             raise TileOutOfBoundsError('Tile {}/{}/{} is outside image bounds'
                                        .format(tile_z, tile_x, tile_y))
 
         mercator_tile = mercantile.Tile(x=tile_x, y=tile_y, z=tile_z)
         tile_bounds = mercantile.xy_bounds(mercator_tile)
         tile = self._load_tile(fname, tile_bounds, tilesize)
-        if contrast_stretch:
-            tile = contrast_stretch(tile, self._datasets[dataset]['range'])
+        if scale_contrast:
+            tile = contrast_stretch(tile, self._datasets[ds_name]['meta']['range'])
 
         return tile
 
