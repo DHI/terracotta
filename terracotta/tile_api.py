@@ -32,7 +32,7 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     """Respond to tile requests"""
 
     try:
-        img = tilestore.tile(tile_x, tile_y, tile_z, dataset, timestep, scale_contrast=True)
+        img, alpha_mask = tilestore.tile(tile_x, tile_y, tile_z, dataset, timestep, scale_contrast=True)
     except TileNotFoundError:
         if current_app.debug:
             raise
@@ -40,8 +40,9 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     except TileOutOfBoundsError:
         nodata = tilestore.get_nodata(dataset)
         img = np.full((256, 256), nodata, dtype=np.uint8)
+        alpha_mask = np.zeros((256, 256), dtype=np.uint8)
 
-    img = array_to_img(img)
+    img = array_to_img(img, alpha_mask)
 
     sio = BytesIO()
     img.save(sio, 'png', compress_level=0)

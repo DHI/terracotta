@@ -170,13 +170,16 @@ class TileStore:
             raise TileOutOfBoundsError('Tile {}/{}/{} is outside image bounds'
                                        .format(tile_z, tile_x, tile_y))
 
+        nodata = self.get_nodata(ds_name)
         mercator_tile = mercantile.Tile(x=tile_x, y=tile_y, z=tile_z)
         tile_bounds = mercantile.xy_bounds(mercator_tile)
         tile = self._load_tile(fname, tile_bounds, tilesize)
+        alpha_mask = np.full((tilesize, tilesize), 255, np.uint8)
+        alpha_mask[tile == nodata] = 0
         if scale_contrast:
             tile = contrast_stretch(tile, self._datasets[ds_name]['meta']['range'])
 
-        return tile
+        return tile, alpha_mask
 
     @staticmethod
     def _load_tile(path, bounds, tilesize):
