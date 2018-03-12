@@ -259,5 +259,4 @@ def contrast_stretch(tile, range):
     tile = tile.astype(np.float32)
     tile *= 255.0 / np.float(max)
     tile = tile.astype(np.uint8)
-    print(np.mean(tile))
     return tile
