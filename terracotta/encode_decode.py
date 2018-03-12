@@ -4,7 +4,19 @@ from PIL import Image
 
 def array_to_img(arr, alpha_mask):
     """Convert Numpy array to png img.
-    Only single-band uin8 data supported for now."""
+    Only single-band uint8 data supported for now.
+    
+    Parameters
+    ----------
+    arr: numpy array
+        Image greyscale data.
+    alpha_mask: numpy array
+        Alpha values (0 transparent, 255 opaque).
+    
+    Returns
+    -------
+    out: PIL Image
+        greyscale with alpha image"""
 
     assert arr.ndim == 2
 
