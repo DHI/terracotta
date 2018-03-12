@@ -244,12 +244,12 @@ def tile_exists(bounds, tile_z, tile_x, tile_y):
         and (tile_y >= mintile.y)
 
 
-def contrast_stretch(tile, range):
+def contrast_stretch(tile, val_range):
     """Scale the image to between 0 and 255.
 
     Parameters
     ----------
-    range: (int, int)
+    val_range: (int, int)
         min and max value of input tile
 
     Returns
@@ -258,7 +258,7 @@ def contrast_stretch(tile, range):
         input tile scaled to 0 - 255.
     """
 
-    min, max = range
-    tile *= 255 // max
+    _, max_val = val_range
+    tile *= 255 // max_val
     tile = tile.astype(np.uint8)
     return tile
