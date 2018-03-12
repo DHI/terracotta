@@ -32,7 +32,8 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     """Respond to tile requests"""
 
     try:
-        img, alpha_mask = tilestore.tile(tile_x, tile_y, tile_z, dataset, timestep, scale_contrast=True)
+        img, alpha_mask = tilestore.tile(tile_x, tile_y, tile_z, dataset, timestep,
+                                         scale_contrast=True)
     except TileNotFoundError:
         if current_app.debug:
             raise
