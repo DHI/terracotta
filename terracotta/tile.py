@@ -50,10 +50,20 @@ class TileStore:
             datasets[cfg_ds['name']] = ds
         return datasets
 
+    def get_datasets(self):
+        return self._datasets.keys()
+
     def get_meta(self, dataset):
         if dataset not in self._datasets:
             raise DatasetNotFoundError('dataset {} not found'.format(dataset))
-        return self._datasets[dataset]['meta'].copy()
+        return self._datasets[dataset]['meta']
+
+    def get_timesteps(self, dataset):
+        if dataset not in self._datasets:
+            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
+        if not self._datasets[dataset]['timestepped']:
+            return []
+        return self._datasets[dataset]['timesteps'].keys()
 
     def get_nodata(self, dataset):
         if dataset not in self._datasets:
@@ -126,7 +136,7 @@ class TileStore:
                 meta['wgs_bounds'] = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds),
                                                       densify_pts=21)
                 meta['nodata'] = src.nodata
-                meta['range'] = (np.min(data), np.max(data))
+                meta['range'] = (int(np.min(data)), int(np.max(data)))
             if first:
                 first_meta = meta.copy()
                 first = False

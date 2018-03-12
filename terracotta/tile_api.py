@@ -1,11 +1,11 @@
 from io import BytesIO
 
-from flask import Blueprint, current_app, abort, send_file
+from flask import Blueprint, current_app, abort, send_file, jsonify
 import numpy as np
 from cachetools import LFUCache, cached
 
 import terracotta.tile as tile
-from terracotta.tile import TileNotFoundError, TileOutOfBoundsError
+from terracotta.tile import TileNotFoundError, TileOutOfBoundsError, DatasetNotFoundError
 from terracotta.encode_decode import array_to_img
 
 
@@ -50,3 +50,50 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     sio.seek(0)
 
     return send_file(sio, mimetype='image/png')
+
+
+@tile_api.route('/datasets', methods=['GET'])
+def get_datasets():
+    """Send back names of available datasets"""
+    datasets = list(tilestore.get_datasets())
+
+    return jsonify({'datasets': datasets})
+
+
+@tile_api.route('/meta/<dataset>', methods=['GET'])
+def get_meta(dataset):
+    """Send back dataset metadata as json"""
+    try:
+        meta = tilestore.get_meta(dataset)
+    except DatasetNotFoundError:
+        if current_app.debug:
+            raise
+        abort(404)
+
+    return jsonify(meta)
+
+
+@tile_api.route('/timesteps/<dataset>', methods=['GET'])
+def get_timesteps(dataset):
+    """Send back list of timesteps for dataset as json."""
+    try:
+        timesteps = sorted(tilestore.get_timesteps(dataset))
+    except DatasetNotFoundError:
+        if current_app.debug:
+            raise
+        abort(404)
+
+    return jsonify(timesteps)
+
+
+@tile_api.route('/bounds/<dataset>', methods=['GET'])
+def get_bounds(dataset):
+    """Send back WGS bounds of dataset"""
+    try:
+        bounds = tilestore.get_bounds(dataset)
+    except DatasetNotFoundError:
+        if current_app.debug:
+            raise
+        abort(404)
+
+    return jsonify(bounds)
