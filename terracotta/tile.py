@@ -202,7 +202,10 @@ class TileStore:
                                dst_crs='epsg:3857',
                                resampling=Resampling.bilinear) as vrt:
                     window = vrt.window(*bounds)
-                    arr = vrt.read(1, window=window, out_shape=(tilesize, tilesize))
+                    arr = vrt.read(1,
+                                   window=window,
+                                   out_shape=(tilesize, tilesize),
+                                   boundless=True)
         except OSError:
             raise TileNotFoundError('error while reading file {}'.format(path))
 
