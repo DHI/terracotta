@@ -270,6 +270,9 @@ def contrast_stretch(tile, val_range):
     """
 
     _, max_val = val_range
-    tile *= 255 // max_val
+    if max_val == 0:
+        tile[:] = 0
+    else:
+        tile *= 255 // max_val
     tile = tile.astype(np.uint8)
     return tile
