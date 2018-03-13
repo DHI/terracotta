@@ -8,9 +8,6 @@ from rasterio.warp import transform_bounds
 from rasterio.enums import Resampling
 
 
-DEFAULT_CACHE_SIZE = 256000000  # 256MB
-
-
 class TileNotFoundError(Exception):
     pass
 
