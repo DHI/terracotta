@@ -99,13 +99,13 @@ class TileStore:
                 timestep = m.group('timestamp')
                 # Only support 1 file per timestep for now
                 assert timestep not in file_info['timesteps']
-                file_info['timesteps'][timestep] = m.group(0)
+                file_info['timesteps'][timestep] = os.path.join(path, m.group(0))
         else:
             # Only support 1 file per timestep for now
             assert len(matches) == 1
-            file_info['filename'] = matches[0].group(0)
+            file_info['filename'] = os.path.join(path, matches[0].group(0))
 
-        meta = TileStore._load_file_meta([m.group(0) for m in matches])
+        meta = TileStore._load_file_meta([os.path.join(path, m.group(0)) for m in matches])
         file_info['meta'] = meta
 
         return file_info
