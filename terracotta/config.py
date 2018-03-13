@@ -54,7 +54,7 @@ def parse_cfg(cfg_path='./config.cfg'):
         if not os.path.isdir(path) and os.access(path, os.R_OK):
             raise ValueError('path {} in {} is not a readable directory'.format(path, ds_name))
         reg = re.compile(reg_str)
-        if ds['timestepped'] and 'timestamp' not in reg.groupindex.keys:
+        if ds['timestepped'] and 'timestamp' not in reg.groupindex.keys():
             raise ValueError('missing timestamp group in regex for timestepped dataset {}'
                              .format(ds_name))
         ds['regex'] = reg
