@@ -127,19 +127,23 @@ class TileStore:
 
         meta = {}
         first = True
+        data_min = float('inf')
+        data_max = float('-inf')
         for f in files:
             with rasterio.open(f) as src:
                 data = src.read(1)
                 meta['wgs_bounds'] = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds),
                                                       densify_pts=21)
                 meta['nodata'] = src.nodata
-                meta['range'] = (int(np.min(data)), int(np.max(data)))
+                data_min = min(data_min, np.min(data))
+                data_max = max(data_max, np.max(data))
             if first:
-                first_meta = meta.copy()
+                first_meta = set(meta)
                 first = False
-            if meta != first_meta:
-                diff = set(meta) - set(first_meta)
+            diff = set(meta) ^ first_meta
+            if diff:
                 raise ValueError('{} does not match other files in: {}'.format(f, diff))
+        meta['range'] = (data_min, data_max)
 
         return meta
 
