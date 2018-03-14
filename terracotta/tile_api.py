@@ -6,7 +6,7 @@ from cachetools import LFUCache, cached
 
 import terracotta.tile as tile
 from terracotta.tile import TileNotFoundError, TileOutOfBoundsError, DatasetNotFoundError
-from terracotta.encode_decode import array_to_img
+import terracotta.encode_decode as ed
 
 
 DEFAULT_CACHE_SIZE = 1000000000  # 1GB
@@ -32,8 +32,7 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     """Respond to tile requests"""
 
     try:
-        img, alpha_mask = tilestore.tile(tile_x, tile_y, tile_z, dataset, timestep,
-                                         scale_contrast=True)
+        img, alpha_mask = tilestore.tile(tile_x, tile_y, tile_z, dataset, timestep)
     except TileNotFoundError:
         if current_app.debug:
             raise
@@ -43,7 +42,9 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
         img = np.full((256, 256), nodata, dtype=np.uint8)
         alpha_mask = np.zeros((256, 256), dtype=np.uint8)
 
-    img = array_to_img(img, alpha_mask)
+    range = tilestore.get_meta(dataset)['range']
+    img = ed.contrast_stretch(img, range)
+    img = ed.array_to_img(img, alpha_mask)
 
     sio = BytesIO()
     img.save(sio, 'png', compress_level=0)

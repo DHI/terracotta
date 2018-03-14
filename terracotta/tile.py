@@ -148,7 +148,7 @@ class TileStore:
         return meta
 
     def tile(self, tile_x, tile_y, tile_z, ds_name,
-             timestep=None, tilesize=256, scale_contrast=False):
+             timestep=None, tilesize=256):
         """Load a requested tile from source.
 
         Parameters
@@ -181,14 +181,13 @@ class TileStore:
             raise TileOutOfBoundsError('Tile {}/{}/{} is outside image bounds'
                                        .format(tile_z, tile_x, tile_y))
 
-        nodata = self.get_nodata(ds_name)
         mercator_tile = mercantile.Tile(x=tile_x, y=tile_y, z=tile_z)
         tile_bounds = mercantile.xy_bounds(mercator_tile)
         tile = self._load_tile(fname, tile_bounds, tilesize)
+
+        nodata = self.get_nodata(ds_name)
         alpha_mask = np.full((tilesize, tilesize), 255, np.uint8)
         alpha_mask[tile == nodata] = 0
-        if scale_contrast:
-            tile = contrast_stretch(tile, self._datasets[ds_name]['meta']['range'])
 
         return tile, alpha_mask
 
@@ -253,26 +252,3 @@ def tile_exists(bounds, tile_z, tile_x, tile_y):
         and (tile_x >= mintile.x) \
         and (tile_y <= maxtile.y + 1) \
         and (tile_y >= mintile.y)
-
-
-def contrast_stretch(tile, val_range):
-    """Scale the image to between 0 and 255.
-
-    Parameters
-    ----------
-    val_range: (int, int)
-        min and max value of input tile
-
-    Returns
-    -------
-    out: numpy array
-        input tile scaled to 0 - 255.
-    """
-
-    _, max_val = val_range
-    if max_val == 0:
-        tile[:] = 0
-    else:
-        tile *= 255 // max_val
-    tile = tile.astype(np.uint8)
-    return tile

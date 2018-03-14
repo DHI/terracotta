@@ -30,3 +30,26 @@ def array_to_img(arr, alpha_mask):
     img = Image.fromarray(alpha_mask, mode='LA')
 
     return img
+
+
+def contrast_stretch(tile, val_range):
+    """Scale an image to between 0 and 255.
+
+    Parameters
+    ----------
+    val_range: (int, int)
+        min and max value of input tile
+
+    Returns
+    -------
+    out: numpy array
+        input tile scaled to 0 - 255.
+    """
+
+    _, max_val = val_range
+    if max_val == 0:
+        tile[:] = 0
+    else:
+        tile *= 255 // max_val
+    tile = tile.astype(np.uint8)
+    return tile
