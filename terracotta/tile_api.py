@@ -43,8 +43,9 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
         alpha_mask = np.zeros((256, 256), dtype=np.uint8)
 
     range = tilestore.get_meta(dataset)['range']
-    img = ed.contrast_stretch(img, range)
-    img = ed.array_to_img(img, alpha_mask)
+    # img = ed.contrast_stretch(img, range)
+    img = ed.img_cmap(img, range)
+    img = ed.array_to_img(img, alpha_mask=alpha_mask)
 
     sio = BytesIO()
     img.save(sio, 'png', compress_level=0)
