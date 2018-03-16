@@ -53,3 +53,32 @@ def contrast_stretch(tile, val_range):
         tile *= 255 // max_val
     tile = tile.astype(np.uint8)
     return tile
+
+
+def img_cmap(tile, range, cmap='inferno'):
+    """Maps input tile data to colormap.
+
+    Parameters
+    ----------
+    tile: numpy array
+        2d array of tile data
+    range: tuple of len(2)
+        (min, max) values to map from data to cmap.
+        tile values outside will be clamped to cmap min or max.
+    cmap: str
+        Name of matplotlib colormap to use.
+        https://matplotlib.org/examples/color/colormaps_reference.html
+
+    Returns
+    -------
+    out: numpy array
+        Numpy RGBA array
+
+    """
+
+    normalizer = matplotlib.colors.Normalize(vmin=range[0], vmax=range[1], clip=True)
+    mapper = cm.ScalarMappable(norm=normalizer, cmap=cmap)
+
+    rgba = mapper.to_rgba(tile, bytes=True, norm=True)
+
+    return rgba
