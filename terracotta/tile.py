@@ -144,7 +144,7 @@ class TileStore:
             diff = set(meta) ^ first_meta
             if diff:
                 raise ValueError('{} does not match other files in: {}'.format(f, diff))
-        meta['range'] = (data_min, data_max)
+        meta['range'] = (np.asscalar(data_min), np.asscalar(data_max))
 
         return meta
 
