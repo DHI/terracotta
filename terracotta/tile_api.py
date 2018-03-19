@@ -85,7 +85,7 @@ def get_timesteps(dataset):
             raise
         abort(404)
 
-    return jsonify(timesteps)
+    return jsonify({'timesteps': timesteps})
 
 
 @tile_api.route('/bounds/<dataset>', methods=['GET'])
