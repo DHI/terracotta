@@ -107,6 +107,7 @@ class TileStore:
 
         meta = TileStore._load_file_meta([os.path.join(path, m.group(0)) for m in matches])
         file_info['meta'] = meta
+        file_info['meta']['timestepped'] = timestepped
 
         return file_info
 
