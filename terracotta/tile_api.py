@@ -79,7 +79,7 @@ def get_meta(dataset):
 def get_timesteps(dataset):
     """Send back list of timesteps for dataset as json."""
     try:
-        timesteps = sorted(tilestore.get_timesteps(dataset))
+        timesteps = tilestore.get_timesteps(dataset)
     except DatasetNotFoundError:
         if current_app.debug:
             raise

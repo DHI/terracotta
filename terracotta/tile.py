@@ -60,7 +60,7 @@ class TileStore:
             raise DatasetNotFoundError('dataset {} not found'.format(dataset))
         if not self._datasets[dataset]['timestepped']:
             return []
-        return self._datasets[dataset]['timesteps'].keys()
+        return sorted(self._datasets[dataset]['timesteps'].keys())
 
     def get_nodata(self, dataset):
         if dataset not in self._datasets:
