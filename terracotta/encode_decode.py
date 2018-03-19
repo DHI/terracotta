@@ -22,6 +22,7 @@ def array_to_img(arr, alpha_mask=None):
     -------
     out: PIL Image"""
 
+    # TODO: Fix this messy logic
     if not arr.ndim > 1 and arr.ndim < 4:
         raise ValueError("Img must have 2 or 3 dimensions")
     if arr.ndim == 2:
