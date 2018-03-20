@@ -136,8 +136,8 @@ class TileStore:
                 meta['wgs_bounds'] = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds),
                                                       densify_pts=21)
                 meta['nodata'] = src.nodata
-                data_min = min(data_min, np.min(data))
-                data_max = max(data_max, np.max(data))
+                data_min = min(data_min, np.nanmin(data))
+                data_max = max(data_max, np.nanmax(data))
             if first:
                 first_meta = set(meta)
                 first = False
@@ -186,11 +186,36 @@ class TileStore:
         tile_bounds = mercantile.xy_bounds(mercator_tile)
         tile = self._load_tile(fname, tile_bounds, tilesize)
 
-        nodata = self.get_nodata(ds_name)
-        alpha_mask = np.full((tilesize, tilesize), 255, np.uint8)
-        alpha_mask[tile == nodata] = 0
+        alpha_mask = self._alpha_mask(tile, ds_name, tilesize)
 
         return tile, alpha_mask
+
+    def _alpha_mask(self, tile, ds_name, tilesize):
+        """Return alpha layer for tile, where nodata NaNs and Infs are transparent.
+        
+        Parameters
+        ----------
+        tile: np.array
+            The image tile.
+        ds_name: string
+            Internal name of the dataset.
+        tilesize: int
+            length of one side of tile
+        
+        Returns
+        -------
+        out: np.array of uint8
+            Array of alpha values"""
+
+        alpha_mask = np.full((tilesize, tilesize), 255, np.uint8)
+        nodata = self.get_nodata(ds_name)
+        alpha_mask[tile == nodata] = 0
+
+        # Also mask out other invalid values if float
+        if np.issubdtype(tile.dtype, np.floating):
+            alpha_mask[~np.isfinite(tile)] = 0
+
+        return alpha_mask
 
     @staticmethod
     def _load_tile(path, bounds, tilesize):
