@@ -9,15 +9,12 @@ from terracotta.tile import TileNotFoundError, TileOutOfBoundsError, DatasetNotF
 import terracotta.encode_decode as ed
 
 
-DEFAULT_CACHE_SIZE = 1000000000  # 1GB
-
-
 tile_api = Blueprint('tile_api', __name__)
 cache = None
 tilestore = None
 
 
-def init(datasets, cache_size=DEFAULT_CACHE_SIZE):
+def init(datasets, cache_size):
     global cache
     global tilestore
     cache = LFUCache(cache_size)
