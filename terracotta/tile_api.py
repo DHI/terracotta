@@ -43,8 +43,9 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
         alpha_mask = np.zeros((256, 256), dtype=np.uint8)
 
     range = tilestore.get_meta(dataset)['range']
-    img = ed.contrast_stretch(img, range)
-    img = ed.array_to_img(img, alpha_mask)
+    # img = ed.contrast_stretch(img, range)
+    img = ed.img_cmap(img, range)
+    img = ed.array_to_img(img, alpha_mask=alpha_mask)
 
     sio = BytesIO()
     img.save(sio, 'png', compress_level=0)
@@ -78,13 +79,13 @@ def get_meta(dataset):
 def get_timesteps(dataset):
     """Send back list of timesteps for dataset as json."""
     try:
-        timesteps = sorted(tilestore.get_timesteps(dataset))
+        timesteps = tilestore.get_timesteps(dataset)
     except DatasetNotFoundError:
         if current_app.debug:
             raise
         abort(404)
 
-    return jsonify(timesteps)
+    return jsonify({'timesteps': timesteps})
 
 
 @tile_api.route('/bounds/<dataset>', methods=['GET'])

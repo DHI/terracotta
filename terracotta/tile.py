@@ -60,7 +60,7 @@ class TileStore:
             raise DatasetNotFoundError('dataset {} not found'.format(dataset))
         if not self._datasets[dataset]['timestepped']:
             return []
-        return self._datasets[dataset]['timesteps'].keys()
+        return sorted(self._datasets[dataset]['timesteps'].keys())
 
     def get_nodata(self, dataset):
         if dataset not in self._datasets:
@@ -107,6 +107,7 @@ class TileStore:
 
         meta = TileStore._load_file_meta([os.path.join(path, m.group(0)) for m in matches])
         file_info['meta'] = meta
+        file_info['meta']['timestepped'] = timestepped
 
         return file_info
 
@@ -135,15 +136,15 @@ class TileStore:
                 meta['wgs_bounds'] = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds),
                                                       densify_pts=21)
                 meta['nodata'] = src.nodata
-                data_min = min(data_min, np.min(data))
-                data_max = max(data_max, np.max(data))
+                data_min = min(data_min, np.nanmin(data))
+                data_max = max(data_max, np.nanmax(data))
             if first:
                 first_meta = set(meta)
                 first = False
             diff = set(meta) ^ first_meta
             if diff:
                 raise ValueError('{} does not match other files in: {}'.format(f, diff))
-        meta['range'] = (data_min, data_max)
+        meta['range'] = (np.asscalar(data_min), np.asscalar(data_max))
 
         return meta
 
@@ -185,11 +186,36 @@ class TileStore:
         tile_bounds = mercantile.xy_bounds(mercator_tile)
         tile = self._load_tile(fname, tile_bounds, tilesize)
 
-        nodata = self.get_nodata(ds_name)
-        alpha_mask = np.full((tilesize, tilesize), 255, np.uint8)
-        alpha_mask[tile == nodata] = 0
+        alpha_mask = self._alpha_mask(tile, ds_name, tilesize)
 
         return tile, alpha_mask
+
+    def _alpha_mask(self, tile, ds_name, tilesize):
+        """Return alpha layer for tile, where nodata NaNs and Infs are transparent.
+        
+        Parameters
+        ----------
+        tile: np.array
+            The image tile.
+        ds_name: string
+            Internal name of the dataset.
+        tilesize: int
+            length of one side of tile
+        
+        Returns
+        -------
+        out: np.array of uint8
+            Array of alpha values"""
+
+        alpha_mask = np.full((tilesize, tilesize), 255, np.uint8)
+        nodata = self.get_nodata(ds_name)
+        alpha_mask[tile == nodata] = 0
+
+        # Also mask out other invalid values if float
+        if np.issubdtype(tile.dtype, np.floating):
+            alpha_mask[~np.isfinite(tile)] = 0
+
+        return alpha_mask
 
     @staticmethod
     def _load_tile(path, bounds, tilesize):
