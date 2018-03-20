@@ -57,7 +57,7 @@ HANDLERS = {}
 
 
 def register_vcs_handler(vcs, method):  # decorator
-    """Decorator to mark a method as the handler for a particular VCS."""
+    """Create decorator to mark a method as the handler of a VCS."""
     def decorate(f):
         """Store f in HANDLERS[vcs][method]."""
         if vcs not in HANDLERS:
@@ -205,14 +205,12 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
                     "full-revisionid": keywords["full"].strip(),
                     "dirty": False, "error": None,
                     "date": date}
-    # no suitable tags, so version is "0+unknown", but full hex is still there
+    # no suitable tags, fall back to unknwon + revision id
     if verbose:
         print("no suitable tags, using unknown + full revision id")
-    return {"version": "0+unknown",
+    return {"version": "unknown+%s" % keywords["full"].strip(),
             "full-revisionid": keywords["full"].strip(),
             "dirty": False, "error": "no suitable tags", "date": None}
-
-
 @register_vcs_handler("git", "pieces_from_vcs")
 def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
     """Get version from 'git describe' in the root of the source tree.
@@ -385,7 +383,7 @@ def render_pep440_old(pieces):
 
     The ".dev0" means dirty.
 
-    Eexceptions:
+    Exceptions:
     1: no tags. 0.postDISTANCE[.dev0]
     """
     if pieces["closest-tag"]:
