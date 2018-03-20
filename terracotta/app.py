@@ -24,3 +24,7 @@ def run_app(*args, **kwargs):
 
     app = create_app(*args, **kwargs)
     app.run()
+
+
+if __name__ == '__main__':
+    run_app('./config.cfg')
