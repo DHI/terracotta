@@ -5,12 +5,17 @@ import terracotta.config as config
 from terracotta.tile_api import tile_api
 
 
-def create_app(cfg_file, debug=False):
+def create_app(cfg_file, debug=False, profile=False):
     """Returns a Flask app"""
 
     new_app = Flask('terracotta')
     new_app.debug = debug
     new_app.register_blueprint(tile_api, url_prefix='/terracotta')
+
+    if profile:
+        from werkzeug.contrib.profiler import ProfilerMiddleware
+        new_app.config['PROFILE'] = True
+        new_app.wsgi_app = ProfilerMiddleware(new_app.wsgi_app, restrictions=[30])
 
     options, datasets = config.parse_cfg(cfg_file)
     terracotta.tile_api.init(datasets, options['max_cache_size'])
