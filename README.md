@@ -35,32 +35,6 @@ Datasets and other options are defined in Terracotta's config file.
 By default Terracotta looks for `config.cfg` in the current directory.
 If you are running Terracotta through its CLI, you can point to a config file by using `--cfg-file`.
 
-A Terracotta config file may have an optional `[options]` section and has one or more required dataset sections.
-The name of a dataset section defines the name of the dataset.
-
-Currently the `[options]` section only has one option:
-
-- max_cache_size
-Which defaults to 256MB.
-
-Each dataset section starts with a `[ds_name]` header, where `ds_name` will be the dataset name.
-Each section then have the following options:
-
-- `path`
-Path to the folder containing the dataset raster(s).
-Required.
-
-- `regex`
-Regex to match raster file(s) in the folder.
-Non-timestepped datasets must only match a single file.
-Required.
-
-- `timestepped`
-Boolean value, indicating whether the dataset is timestepped.
-If True, `regex` must have a [named group](https://docs.python.org/3/howto/regex.html#non-capturing-and-named-groups)
-called `timestamp`, which will be used to extract the timesteps from the raster filenames.
-Not required, defaults to False.
-
 ### Example configuration
 ```
 [options]
