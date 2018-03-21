@@ -63,7 +63,7 @@ def _parse_ds(ds_name, cfg):
     return ds
 
 
-def parse_cfg(cfg_path='./config.cfg'):
+def parse_cfg(cfg_path):
     """Parse and validate config file.
 
     Parameters
