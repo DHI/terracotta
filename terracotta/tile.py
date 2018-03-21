@@ -103,9 +103,9 @@ class TileStore:
         path: str
             Path to GeoTiff file(s)
         timestepped: Bool
-            If True, find multiple files. Assumes `regex` has a named 'timestamp' group.
+            If True, find multiple files. Assumes `regex` has a named 'timestep' group.
         regex: str
-            Compiled regex to match file(s). Matches timesteps on 'timestamp' group.
+            Compiled regex to match file(s). Matches timesteps on 'timestep' group.
         """
 
         file_info = {}
@@ -117,7 +117,7 @@ class TileStore:
         if timestepped:
             file_info['timesteps'] = {}
             for m in matches:
-                timestep = m.group('timestamp')
+                timestep = m.group('timestep')
                 # Only support 1 file per timestep for now
                 assert timestep not in file_info['timesteps']
                 file_info['timesteps'][timestep] = os.path.join(path, m.group(0))
