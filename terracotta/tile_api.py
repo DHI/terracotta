@@ -1,6 +1,6 @@
 from io import BytesIO
 
-from flask import Blueprint, current_app, abort, send_file, jsonify
+from flask import Blueprint, current_app, abort, send_file, jsonify, render_template
 import numpy as np
 from cachetools import LFUCache, cached
 
@@ -95,4 +95,11 @@ def get_bounds(dataset):
             raise
         abort(404)
 
-    return jsonify(bounds)
+    return jsonify({'wgs_bounds': bounds})
+
+
+@tile_api.route('/', methods=['GET'])
+def get_map():
+    if not current_app.debug:
+        abort(404)
+    return render_template('map.html')

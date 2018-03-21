@@ -7,6 +7,13 @@ DEFAULT_CACHE_SIZE = 256000000
 DEFAULT_TIMESTEPPED = False
 
 
+def default_cfg():
+    return {
+        'max_cache_size': DEFAULT_CACHE_SIZE,
+        'timestepped': DEFAULT_TIMESTEPPED
+    }
+
+
 def parse_cfg(cfg_path='./config.cfg'):
     """Parse and validate config file.
 

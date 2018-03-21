@@ -98,7 +98,7 @@ class TileStore:
             for m in matches:
                 timestep = m.group('timestamp')
                 # Only support 1 file per timestep for now
-                assert timestep not in file_info['timesteps']
+                assert timestep not in file_info['timesteps'], timestep
                 file_info['timesteps'][timestep] = os.path.join(path, m.group(0))
         else:
             # Only support 1 file per timestep for now
@@ -192,7 +192,7 @@ class TileStore:
 
     def _alpha_mask(self, tile, ds_name, tilesize):
         """Return alpha layer for tile, where nodata NaNs and Infs are transparent.
-        
+
         Parameters
         ----------
         tile: np.array
@@ -201,7 +201,7 @@ class TileStore:
             Internal name of the dataset.
         tilesize: int
             length of one side of tile
-        
+
         Returns
         -------
         out: np.array of uint8
