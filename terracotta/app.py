@@ -10,7 +10,7 @@ def create_app(cfg_file, debug=False):
 
     new_app = Flask('terracotta')
     new_app.debug = debug
-    new_app.register_blueprint(tile_api, url_prefix='/terracotta')
+    new_app.register_blueprint(tile_api, url_prefix='')
 
     options, datasets = config.parse_cfg(cfg_file)
     terracotta.tile_api.init(datasets, options['max_cache_size'])
