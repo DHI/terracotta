@@ -78,6 +78,13 @@ class TileStore:
     def get_bounds(self, dataset):
         return self._datasets[dataset]['meta']['wgs_bounds']
 
+    @_requires_dataset
+    def get_classes(self, dataset):
+        if self._datasets[dataset]['categorical']:
+            classes = self._datasets[dataset]['classes']
+        else:
+            val_range = self._datasets[dataset]
+
     @staticmethod
     def _parse_files(path, timestepped, regex):
         """Discover file(s) from `path` and build
