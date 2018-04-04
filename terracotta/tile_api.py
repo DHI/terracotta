@@ -96,3 +96,35 @@ def get_bounds(dataset):
         abort(404)
 
     return jsonify(bounds)
+
+
+@tile_api.route('/legend/<dataset>', methods=['GET'])
+def get_legend(dataset):
+    """Send back JSON of class names or min/max
+    with corresponding color as hex"""
+    try:
+        classes = tilestore.get_classes(dataset)
+    except DatasetNotFoundError:
+        if current_app.debug:
+            raise
+        abort(404)
+
+    # Converts rgb tuples to hex string
+    rgb_to_hex = lambda rgb: '#{:x}{:x}{:x}'.format(rgb[0], rgb[1], rgb[2])
+
+    val_range = tilestore.get_meta(dataset)['meta']['range']
+    names, vals = zip(*classes.items())
+
+    # Cmapper
+    normalizer = matplotlib.colors.Normalize(vmin=val_range[0], vmax=val_range[1], clip=True)
+    mapper = cm.ScalarMappable(norm=normalizer, cmap='inferno')
+
+    # Get val -> RGB from colormap
+    rgb = [mapper.to_rgba(x, bytes=True) for x in vals]
+    # Convert to hex
+    hex = [rgb_to_hex(x) for x in rgb]
+
+    names_hex = dict(zip(names, hex))
+    legend = dict(('legend', names_hex))
+
+    return jsonify(legend)
