@@ -11,7 +11,6 @@ DEFAULT_CATEGORICAL = False
 
 def _parse_classes(ds_name, cfg):
     cfg_ds = cfg[ds_name]
-    classes = {}
 
     try:
         class_names = [s.strip() for s in cfg_ds['class_names'].split(',')]
