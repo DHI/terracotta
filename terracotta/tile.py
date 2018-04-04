@@ -80,10 +80,14 @@ class TileStore:
 
     @_requires_dataset
     def get_classes(self, dataset):
+        val_range = self._datasets[dataset]['meta']['range']
+
         if self._datasets[dataset]['categorical']:
             classes = self._datasets[dataset]['classes']
         else:
-            val_range = self._datasets[dataset]
+            classes = dict(zip(('min', 'max'), val_range))
+
+        return classes
 
     @staticmethod
     def _parse_files(path, timestepped, regex):
