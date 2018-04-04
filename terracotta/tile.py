@@ -20,6 +20,16 @@ class DatasetNotFoundError(Exception):
     pass
 
 
+def _requires_dataset(func):
+    """Decorator for TileStore that checks if dataset exists in the TileStore
+    and throws a DatasetNotFoundError if it doesnt."""
+    def inner(self, dataset, *args, **kwargs):
+        if dataset not in self._datasets:
+            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
+        return func(self, dataset, *args, **kwargs)
+    return inner
+
+
 class TileStore:
     """Stores information about datasets and caches access to tiles."""
 
@@ -50,26 +60,22 @@ class TileStore:
     def get_datasets(self):
         return self._datasets.keys()
 
+    @_requires_dataset
     def get_meta(self, dataset):
-        if dataset not in self._datasets:
-            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
         return self._datasets[dataset]['meta']
 
+    @_requires_dataset
     def get_timesteps(self, dataset):
-        if dataset not in self._datasets:
-            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
         if not self._datasets[dataset]['timestepped']:
             return []
         return sorted(self._datasets[dataset]['timesteps'].keys())
 
+    @_requires_dataset
     def get_nodata(self, dataset):
-        if dataset not in self._datasets:
-            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
         return self._datasets[dataset]['meta']['nodata']
 
+    @_requires_dataset
     def get_bounds(self, dataset):
-        if dataset not in self._datasets:
-            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
         return self._datasets[dataset]['meta']['wgs_bounds']
 
     @staticmethod
