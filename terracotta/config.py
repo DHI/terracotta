@@ -46,7 +46,7 @@ def _parse_ds(ds_name, cfg):
         path = cfg_ds['path']
         reg_str = cfg_ds['regex']
     except KeyError as e:
-        raise ValueError('Missing option {} in dataset {}'.format(e.args[0], ds_name))
+        raise ValueError('Missing option {} for dataset {}'.format(e.args[0], ds_name))
 
     # Validate option values
     if not os.path.isdir(path) and os.access(path, os.R_OK):
