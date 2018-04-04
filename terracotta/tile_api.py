@@ -2,6 +2,8 @@ from io import BytesIO
 
 from flask import Blueprint, current_app, abort, send_file, jsonify
 import numpy as np
+import matplotlib
+import matplotlib.cm as cm
 from cachetools import LFUCache, cached
 
 import terracotta.tile as tile

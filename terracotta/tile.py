@@ -209,7 +209,7 @@ class TileStore:
 
     def _alpha_mask(self, tile, ds_name, tilesize):
         """Return alpha layer for tile, where nodata NaNs and Infs are transparent.
-        
+
         Parameters
         ----------
         tile: np.array
@@ -218,7 +218,7 @@ class TileStore:
             Internal name of the dataset.
         tilesize: int
             length of one side of tile
-        
+
         Returns
         -------
         out: np.array of uint8
