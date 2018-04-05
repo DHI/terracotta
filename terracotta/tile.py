@@ -22,7 +22,7 @@ class DatasetNotFoundError(Exception):
 
 def _requires_dataset(func):
     """Decorator for TileStore that checks if dataset exists in the TileStore
-    and throws a DatasetNotFoundError if it doesnt."""
+    and throws a DatasetNotFoundError if it doesn't."""
     def inner(self, dataset, *args, **kwargs):
         if dataset not in self._datasets:
             raise DatasetNotFoundError('dataset {} not found'.format(dataset))
