@@ -111,22 +111,17 @@ def get_legend(dataset):
             raise
         abort(404)
 
-    # Converts rgb tuples to hex string
-    rgb_to_hex = lambda rgb: '#{:x}{:x}{:x}'.format(rgb[0], rgb[1], rgb[2])
-
-    val_range = tilestore.get_meta(dataset)['meta']['range']
+    val_range = tilestore.get_meta(dataset)['range']
     names, vals = zip(*classes.items())
 
     # Cmapper
     normalizer = matplotlib.colors.Normalize(vmin=val_range[0], vmax=val_range[1], clip=True)
     mapper = cm.ScalarMappable(norm=normalizer, cmap='inferno')
 
-    # Get val -> RGB from colormap
-    rgb = [mapper.to_rgba(x, bytes=True) for x in vals]
-    # Convert to hex
-    hex = [rgb_to_hex(x) for x in rgb]
+    rgbs = [mapper.to_rgba(x, bytes=True) for x in vals]
+    hex = ['#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2]) for rgb in rgbs]
 
     names_hex = dict(zip(names, hex))
-    legend = dict(('legend', names_hex))
+    legend = {'legend': names_hex}
 
     return jsonify(legend)
