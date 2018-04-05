@@ -156,7 +156,6 @@ class TileStore:
                 data = src.read(1)
                 meta['wgs_bounds'] = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds),
                                                       densify_pts=21)
-                meta['nodata'] = src.nodata
                 data_min = min(data_min, np.nanmin(data))
                 data_max = max(data_max, np.nanmax(data))
             if first:
