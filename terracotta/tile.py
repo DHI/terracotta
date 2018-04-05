@@ -50,10 +50,14 @@ class TileStore:
             cfg_ds = cfg_datasets[ds_name]
             ds = {}
             ds['timestepped'] = cfg_ds['timestepped']
+            ds['categorical'] = cfg_ds['categorical']
+            if ds['categorical']:
+                ds['classes'] = cfg_ds['classes']
             file_params = TileStore._parse_files(cfg_ds['path'],
                                                  cfg_ds['timestepped'],
                                                  cfg_ds['regex'])
             ds.update(file_params)
+            ds['meta']['categorical'] = ds['categorical']
             datasets[cfg_ds['name']] = ds
         return datasets
 
