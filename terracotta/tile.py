@@ -57,6 +57,11 @@ class TileStore:
                                                  cfg_ds['timestepped'],
                                                  cfg_ds['regex'])
             ds.update(file_params)
+            ds['nodata'] = ds['meta']['nodata']
+
+            # non-finite values are not valid JSON
+            if not np.isfinite(ds['meta']['nodata']):
+                ds['meta']['nodata'] = str(ds['meta']['nodata'])
             ds['meta']['categorical'] = ds['categorical']
             datasets[cfg_ds['name']] = ds
         return datasets
@@ -76,7 +81,7 @@ class TileStore:
 
     @_requires_dataset
     def get_nodata(self, dataset):
-        return self._datasets[dataset]['meta']['nodata']
+        return self._datasets[dataset]['nodata']
 
     @_requires_dataset
     def get_bounds(self, dataset):
@@ -156,6 +161,7 @@ class TileStore:
                 data = src.read(1)
                 meta['wgs_bounds'] = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds),
                                                       densify_pts=21)
+                meta['nodata'] = src.nodata
                 data_min = min(data_min, np.nanmin(data))
                 data_max = max(data_max, np.nanmax(data))
             if first:
