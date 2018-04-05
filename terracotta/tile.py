@@ -20,6 +20,16 @@ class DatasetNotFoundError(Exception):
     pass
 
 
+def _requires_dataset(func):
+    """Decorator for TileStore that checks if dataset exists in the TileStore
+    and throws a DatasetNotFoundError if it doesn't."""
+    def inner(self, dataset, *args, **kwargs):
+        if dataset not in self._datasets:
+            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
+        return func(self, dataset, *args, **kwargs)
+    return inner
+
+
 class TileStore:
     """Stores information about datasets and caches access to tiles."""
 
@@ -40,37 +50,48 @@ class TileStore:
             cfg_ds = cfg_datasets[ds_name]
             ds = {}
             ds['timestepped'] = cfg_ds['timestepped']
+            ds['categorical'] = cfg_ds['categorical']
+            if ds['categorical']:
+                ds['classes'] = cfg_ds['classes']
             file_params = TileStore._parse_files(cfg_ds['path'],
                                                  cfg_ds['timestepped'],
                                                  cfg_ds['regex'])
             ds.update(file_params)
+            ds['meta']['categorical'] = ds['categorical']
             datasets[cfg_ds['name']] = ds
         return datasets
 
     def get_datasets(self):
         return self._datasets.keys()
 
+    @_requires_dataset
     def get_meta(self, dataset):
-        if dataset not in self._datasets:
-            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
         return self._datasets[dataset]['meta']
 
+    @_requires_dataset
     def get_timesteps(self, dataset):
-        if dataset not in self._datasets:
-            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
         if not self._datasets[dataset]['timestepped']:
             return []
         return sorted(self._datasets[dataset]['timesteps'].keys())
 
+    @_requires_dataset
     def get_nodata(self, dataset):
-        if dataset not in self._datasets:
-            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
         return self._datasets[dataset]['meta']['nodata']
 
+    @_requires_dataset
     def get_bounds(self, dataset):
-        if dataset not in self._datasets:
-            raise DatasetNotFoundError('dataset {} not found'.format(dataset))
         return self._datasets[dataset]['meta']['wgs_bounds']
+
+    @_requires_dataset
+    def get_classes(self, dataset):
+        val_range = self._datasets[dataset]['meta']['range']
+
+        if self._datasets[dataset]['categorical']:
+            classes = self._datasets[dataset]['classes']
+        else:
+            classes = dict(zip(('min', 'max'), val_range))
+
+        return classes
 
     @staticmethod
     def _parse_files(path, timestepped, regex):
@@ -135,7 +156,6 @@ class TileStore:
                 data = src.read(1)
                 meta['wgs_bounds'] = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds),
                                                       densify_pts=21)
-                meta['nodata'] = src.nodata
                 data_min = min(data_min, np.nanmin(data))
                 data_max = max(data_max, np.nanmax(data))
             if first:
@@ -192,7 +212,7 @@ class TileStore:
 
     def _alpha_mask(self, tile, ds_name, tilesize):
         """Return alpha layer for tile, where nodata NaNs and Infs are transparent.
-        
+
         Parameters
         ----------
         tile: np.array
@@ -201,7 +221,7 @@ class TileStore:
             Internal name of the dataset.
         tilesize: int
             length of one side of tile
-        
+
         Returns
         -------
         out: np.array of uint8

@@ -2,6 +2,8 @@ from io import BytesIO
 
 from flask import Blueprint, current_app, abort, send_file, jsonify
 import numpy as np
+import matplotlib
+import matplotlib.cm as cm
 from cachetools import LFUCache, cached
 
 import terracotta.tile as tile
@@ -96,3 +98,30 @@ def get_bounds(dataset):
         abort(404)
 
     return jsonify(bounds)
+
+
+@tile_api.route('/legend/<dataset>', methods=['GET'])
+def get_legend(dataset):
+    """Send back JSON of class names or min/max
+    with corresponding color as hex"""
+    try:
+        classes = tilestore.get_classes(dataset)
+    except DatasetNotFoundError:
+        if current_app.debug:
+            raise
+        abort(404)
+
+    val_range = tilestore.get_meta(dataset)['range']
+    names, vals = zip(*classes.items())
+
+    # Cmapper
+    normalizer = matplotlib.colors.Normalize(vmin=val_range[0], vmax=val_range[1], clip=True)
+    mapper = cm.ScalarMappable(norm=normalizer, cmap='inferno')
+
+    rgbs = [mapper.to_rgba(x, bytes=True) for x in vals]
+    hex = ['#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2]) for rgb in rgbs]
+
+    names_hex = dict(zip(names, hex))
+    legend = {'legend': names_hex}
+
+    return jsonify(legend)
