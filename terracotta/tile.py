@@ -189,6 +189,9 @@ class TileStore:
 
         if not dataset['timestepped'] and timestep:
             raise TileNotFoundError('dataset {} is not timestepped'.format(ds_name))
+        elif not timestep and dataset['timestepped']:
+            raise TileNotFoundError('dataset {} is timestepped, but no timestep provided'
+                                    .format(ds_name))
 
         if timestep:
             try:
