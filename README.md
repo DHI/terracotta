@@ -37,8 +37,8 @@ If `dataset` is not categorical, it returns the colors associated with the `min`
 ```json
 {
   "legend": {
-    "land": #00FF00,
-    "water": #0000FF,
+    "land": "#00FF00",
+    "water": "#0000FF",
   }
 }
 ```
