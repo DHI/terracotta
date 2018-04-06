@@ -51,8 +51,8 @@ def _parse_ds(ds_name, cfg):
     if not os.path.isdir(path) and os.access(path, os.R_OK):
         raise ValueError('path {} in {} is not a readable directory'.format(path, ds_name))
     reg = re.compile(reg_str)
-    if ds['timestepped'] and 'timestamp' not in reg.groupindex.keys():
-        raise ValueError('missing timestamp group in regex for timestepped dataset {}'
+    if ds['timestepped'] and 'timestep' not in reg.groupindex.keys():
+        raise ValueError('missing timestep group in regex for timestepped dataset {}'
                          .format(ds_name))
     if ds['categorical']:
         ds['classes'] = _parse_classes(ds_name, cfg)
