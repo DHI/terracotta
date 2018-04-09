@@ -23,8 +23,8 @@ def init(datasets, cache_size):
     tilestore = tile.TileStore(datasets)
 
 
-@tile_api.route('/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
-@tile_api.route('/<dataset>/<timestep>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
+@tile_api.route('/tile/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
+@tile_api.route('/tile/<dataset>/<timestep>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
                 methods=['GET'])
 @cached(cache)
 def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
