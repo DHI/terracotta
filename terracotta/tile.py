@@ -1,4 +1,5 @@
 import os
+import operator
 
 import numpy as np
 import mercantile
@@ -6,6 +7,7 @@ import rasterio
 from rasterio.vrt import WarpedVRT
 from rasterio.warp import transform_bounds
 from rasterio.enums import Resampling
+from cachetools import LFUCache, cachedmethod
 
 
 class TileNotFoundError(Exception):
@@ -33,8 +35,9 @@ def _requires_dataset(func):
 class TileStore:
     """Stores information about datasets and caches access to tiles."""
 
-    def __init__(self, cfg_datasets):
+    def __init__(self, cfg_datasets, cache_size):
         self._datasets = self._make_datasets(cfg_datasets)
+        self.cache = LFUCache(cache_size)
 
     @staticmethod
     def _make_datasets(cfg_datasets):
@@ -168,6 +171,7 @@ class TileStore:
 
         return meta
 
+    @cachedmethod(operator.attrgetter('cache'))
     def tile(self, tile_x, tile_y, tile_z, ds_name,
              timestep=None, tilesize=256):
         """Load a requested tile from source.

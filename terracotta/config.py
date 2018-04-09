@@ -86,7 +86,7 @@ def parse_cfg(cfg_path):
         # Dummy section
         cfg.add_section('options')
         cfg_options = cfg['options']
-    options['max_cache_size'] = cfg_options.getint('max_cache_size', fallback=DEFAULT_CACHE_SIZE)
+    options['tile_cache_size'] = cfg_options.getint('tile_cache_size', fallback=DEFAULT_CACHE_SIZE)
 
     # Assume remaining sections are datasets
     cfg.remove_section('options')
