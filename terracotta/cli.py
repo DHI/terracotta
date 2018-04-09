@@ -16,7 +16,7 @@ class ExpandedPath(click.Path):
 @click.command()
 @click.option('--debug', is_flag=True, default=False,
               help='Enable Flask debugging')
-@click.option('--cfg-file', type=ExpandedPath(exists=True), default='./config.cfg')
+@click.option('--cfg-file', '-c', type=ExpandedPath(exists=True), default='./config.cfg')
 def cli(debug, cfg_file):
     """Entry point of terracotta CLI"""
     app.run_app(cfg_file, debug)
