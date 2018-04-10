@@ -35,6 +35,17 @@ def _requires_dataset(func):
     return inner
 
 
+def _lazy_load(func):
+    """Decorator that computes dataset metadata lazily, whenever a decorated function
+    is called. Only computes metadata once for each dataset."""
+    def inner(self, dataset, *args, **kwargs):
+        if not self._datasets[dataset]['loaded']:
+            self._datasets[dataset]['meta'] = self._load_meta(dataset)
+            self._datasets[dataset]['loaded'] = True
+        return func(self, dataset, *args, **kwargs)
+    return inner
+
+
 class TileStore:
     """Stores information about datasets and caches access to tiles."""
 
@@ -68,6 +79,7 @@ class TileStore:
         return self._datasets.keys()
 
     @_requires_dataset
+    @_lazy_load
     def get_meta(self, dataset):
         return self._datasets[dataset]['meta']
 
@@ -78,14 +90,17 @@ class TileStore:
         return sorted(self._datasets[dataset]['timesteps'].keys())
 
     @_requires_dataset
+    @_lazy_load
     def get_nodata(self, dataset):
         return self._datasets[dataset]['meta']['nodata']
 
     @_requires_dataset
+    @_lazy_load
     def get_bounds(self, dataset):
         return self._datasets[dataset]['meta']['wgs_bounds']
 
     @_requires_dataset
+    @_lazy_load
     def get_classes(self, dataset):
         val_range = self._datasets[dataset]['meta']['range']
 
@@ -96,47 +111,7 @@ class TileStore:
 
         return classes
 
-    @staticmethod
-    def _parse_files(path, timestepped, regex):
-        """Discover file(s) from `path` and build
-        file information dict.
-
-        Parameters
-        ----------
-        path: str
-            Path to GeoTiff file(s)
-        timestepped: Bool
-            If True, find multiple files. Assumes `regex` has a named 'timestep' group.
-        regex: str
-            Compiled regex to match file(s). Matches timesteps on 'timestep' group.
-        """
-
-        file_info = {}
-        files = os.listdir(path)
-        matches = map(regex.match, files)
-        matches = [x for x in matches if x is not None]
-        if not matches:
-            raise ValueError('no files matched {} in {}'.format(regex.pattern, path))
-        if timestepped:
-            file_info['timesteps'] = {}
-            for m in matches:
-                timestep = m.group('timestep')
-                # Only support 1 file per timestep for now
-                assert timestep not in file_info['timesteps']
-                file_info['timesteps'][timestep] = os.path.join(path, m.group(0))
-        else:
-            # Only support 1 file per timestep for now
-            assert len(matches) == 1
-            file_info['filename'] = os.path.join(path, matches[0].group(0))
-
-        meta = TileStore._load_file_meta([os.path.join(path, m.group(0)) for m in matches])
-        file_info['meta'] = meta
-        file_info['meta']['timestepped'] = timestepped
-
-        return file_info
-
-    @staticmethod
-    def _load_file_meta(files):
+    def _load_meta(self, dataset):
         """Pre-load and pre-compute needed file metadata.
         Also validate that meta doesn't differ between timesteps.
 
@@ -150,6 +125,11 @@ class TileStore:
         out: dict
             Metadata."""
 
+        if self._datasets[dataset]['timestepped']:
+            files = self._datasets[dataset]['timesteps'].values()
+        else:
+            files = [self._datasets[dataset]['file']]
+
         meta = {}
         first = True
         data_min = float('inf')
@@ -159,6 +139,7 @@ class TileStore:
                 data = src.read(1)
                 meta['wgs_bounds'] = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds),
                                                       densify_pts=21)
+                meta['nodata'] = src.nodata
                 data_min = min(data_min, np.nanmin(data))
                 data_max = max(data_max, np.nanmax(data))
             if first:
@@ -168,10 +149,12 @@ class TileStore:
             if diff:
                 raise ValueError('{} does not match other files in: {}'.format(f, diff))
         meta['range'] = (np.asscalar(data_min), np.asscalar(data_max))
+        meta['timestepped'] = self._datasets[dataset]['timestepped']
 
         return meta
 
-    @cachedmethod(operator.attrgetter('cache'))
+    @_lazy_load
+    @cachedmethod(operator.attrgetter('_cache'))
     def tile(self, tile_x, tile_y, tile_z, ds_name,
              timestep=None, tilesize=256):
         """Load a requested tile from source.
