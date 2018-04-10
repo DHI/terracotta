@@ -31,7 +31,7 @@ def _parse_classes(ds_name, cfg):
     return dict(zip(class_names, class_vals))
 
 
-def _parse_ds(ds_name, cfg):
+def parse_ds(ds_name, cfg):
     cfg_ds = cfg[ds_name]
     ds = {}
 
@@ -57,14 +57,29 @@ def _parse_ds(ds_name, cfg):
     if ds['categorical']:
         ds['classes'] = _parse_classes(ds_name, cfg)
 
-    ds['regex'] = reg
-    ds['path'] = path
+    files = os.listdir(path)
+    matches = map(reg.match, files)
+    matches = [x for x in matches if x is not None]
+    if not matches:
+        raise ValueError('no files matched {} in {}'.format(reg.pattern, path))
+
+    # Only support 1 file per timestep for now
+    if not ds['timestepped']:
+        assert len(matches) == 1
+        ds['file'] = matches[0].group(0)
+    else:
+        ds['timesteps'] = {}
+        for m in matches:
+            timestep = m.group('timestep')
+            # Only support 1 file per timestep for now
+            assert timestep not in file_info['timesteps']
+            file_info['timesteps'][timestep] = os.path.join(path, m.group(0))
 
     return ds
 
 
-def parse_cfg(cfg_path):
-    """Parse and validate config file.
+def parse_options(cfg):
+    """Parse and validate options section of config file.
 
     Parameters
     ----------
@@ -73,7 +88,7 @@ def parse_cfg(cfg_path):
 
     Returns
     -------
-    out: (options, datasets) tuple"""
+    out: options dict"""
 
     cfg = configparser.ConfigParser()
     cfg.read(cfg_path)
@@ -88,13 +103,4 @@ def parse_cfg(cfg_path):
         cfg_options = cfg['options']
     options['tile_cache_size'] = cfg_options.getint('tile_cache_size', fallback=DEFAULT_CACHE_SIZE)
 
-    # Assume remaining sections are datasets
-    cfg.remove_section('options')
-    if not cfg.sections():
-        raise ValueError('no datasets in config file')
-
-    datasets = {}
-    for ds_name in cfg.sections():
-        datasets[ds_name] = _parse_ds(ds_name, cfg)
-
-    return (options, datasets)
+    return options

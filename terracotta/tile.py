@@ -1,5 +1,6 @@
 import os
 import operator
+import configparser
 
 import numpy as np
 import mercantile
@@ -8,6 +9,8 @@ from rasterio.vrt import WarpedVRT
 from rasterio.warp import transform_bounds
 from rasterio.enums import Resampling
 from cachetools import LFUCache, cachedmethod
+
+import config as cfg
 
 
 class TileNotFoundError(Exception):
@@ -35,12 +38,16 @@ def _requires_dataset(func):
 class TileStore:
     """Stores information about datasets and caches access to tiles."""
 
-    def __init__(self, cfg_datasets, cache_size):
-        self._datasets = self._make_datasets(cfg_datasets)
-        self.cache = LFUCache(cache_size)
+    def __init__(self, cfg_path):
+        cfg = configparser.ConfigParser()
+        cfg.read(cfg_path)
+        options = parse_options(cfg_file)
+
+        self._datasets = self._make_datasets(cfg)
+        self._cache = LFUCache(options['tile_cache_size'])
 
     @staticmethod
-    def _make_datasets(cfg_datasets):
+    def _make_datasets(cfg):
         """Build datasets from parsed config sections.
 
         Parameters
@@ -49,19 +56,12 @@ class TileStore:
             Each dict represents a dataset config section"""
 
         datasets = {}
-        for ds_name in cfg_datasets.keys():
-            cfg_ds = cfg_datasets[ds_name]
-            ds = {}
-            ds['timestepped'] = cfg_ds['timestepped']
-            ds['categorical'] = cfg_ds['categorical']
-            if ds['categorical']:
-                ds['classes'] = cfg_ds['classes']
-            file_params = TileStore._parse_files(cfg_ds['path'],
-                                                 cfg_ds['timestepped'],
-                                                 cfg_ds['regex'])
-            ds.update(file_params)
-            ds['meta']['categorical'] = ds['categorical']
-            datasets[cfg_ds['name']] = ds
+        cfg_datasets = cfg.sections()
+        cfg_datasets.remove('options')
+        for ds_name in cfg_datasets:
+            datasets[ds_name] = cfg.parse_ds(ds_name, cfg)
+            datasets[ds_name]['loaded'] = False
+
         return datasets
 
     def get_datasets(self):
