@@ -152,9 +152,10 @@ class TileStore:
 
         return meta
 
+    @_requires_dataset
     @_lazy_load
     @cachedmethod(operator.attrgetter('_cache'))
-    def tile(self, tile_x, tile_y, tile_z, ds_name,
+    def tile(self, dataset, tile_x, tile_y, tile_z,
              timestep=None, tilesize=256):
         """Load a requested tile from source.
 
@@ -168,26 +169,23 @@ class TileStore:
             Mercator tile ZOOM level.
         """
 
-        try:
-            dataset = self._datasets[ds_name]
-        except KeyError:
-            raise TileNotFoundError('no such dataset {}'.format(ds_name))
+        ds = self._datasets[dataset]
 
-        if not dataset['timestepped'] and timestep:
-            raise TileNotFoundError('dataset {} is not timestepped'.format(ds_name))
-        elif not timestep and dataset['timestepped']:
+        if not ds['timestepped'] and timestep:
+            raise TileNotFoundError('dataset {} is not timestepped'.format(dataset))
+        elif not timestep and ds['timestepped']:
             raise TileNotFoundError('dataset {} is timestepped, but no timestep provided'
-                                    .format(ds_name))
+                                    .format(dataset))
 
         if timestep:
             try:
-                fname = dataset['timesteps'][timestep]
+                fname = ds['timesteps'][timestep]
             except KeyError:
                 raise TileNotFoundError('no such timestep in dataset {}'.format(ds_name))
         else:
-            fname = dataset['filename']
+            fname = ds['file']
 
-        if not tile_exists(dataset['meta']['wgs_bounds'], tile_z, tile_x, tile_y):
+        if not tile_exists(ds['meta']['wgs_bounds'], tile_z, tile_x, tile_y):
             raise TileOutOfBoundsError('Tile {}/{}/{} is outside image bounds'
                                        .format(tile_z, tile_x, tile_y))
 
