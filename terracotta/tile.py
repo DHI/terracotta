@@ -4,6 +4,7 @@ import configparser
 import numpy as np
 import mercantile
 import rasterio
+from frozendict import frozendict
 from rasterio.vrt import WarpedVRT
 from rasterio.warp import transform_bounds
 from rasterio.enums import Resampling
@@ -148,7 +149,7 @@ class TileStore:
         meta['range'] = (np.asscalar(data_min), np.asscalar(data_max))
         meta['timestepped'] = self._datasets[dataset]['timestepped']
 
-        return meta
+        return frozendict(meta)
 
     @_requires_dataset
     @_lazy_load

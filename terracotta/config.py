@@ -2,6 +2,8 @@ import os
 import re
 from ast import literal_eval
 
+from frozendict import frozendict
+
 
 DEFAULT_CACHE_SIZE = 256000000
 DEFAULT_TIMESTEPPED = False
@@ -27,7 +29,7 @@ def _parse_classes(ds_name, cfg):
     # literal_eval converts x.y to float and x to int
     class_vals = [literal_eval(x) for x in class_vals]
 
-    return dict(zip(class_names, class_vals))
+    return frozendict(zip(class_names, class_vals))
 
 
 def parse_ds(ds_name, cfg):
