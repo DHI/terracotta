@@ -27,7 +27,7 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
 
     try:
         img, alpha_mask = tilestore.tile(tile_x, tile_y, tile_z, dataset, timestep)
-    except TileNotFoundError:
+    except (TileNotFoundError, DatasetNotFoundError):
         if current_app.debug:
             raise
         abort(404)
