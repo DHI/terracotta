@@ -10,7 +10,7 @@ from rasterio.warp import transform_bounds
 from rasterio.enums import Resampling
 from cachetools import LFUCache, cachedmethod
 
-import config
+import terracotta.config as config
 
 
 class TileNotFoundError(Exception):
