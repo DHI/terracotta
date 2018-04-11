@@ -38,9 +38,8 @@ def _lazy_load(func):
     """Decorator that computes dataset metadata lazily, whenever a decorated function
     is called. Only computes metadata once for each dataset."""
     def inner(self, dataset, *args, **kwargs):
-        if not self._datasets[dataset]['loaded']:
+        if 'meta' not in self._datasets[dataset]:
             self._datasets[dataset]['meta'] = self._load_meta(dataset)
-            self._datasets[dataset]['loaded'] = True
         return func(self, dataset, *args, **kwargs)
     return inner
 
@@ -70,7 +69,6 @@ class TileStore:
         cfg_datasets.remove('options')
         for ds_name in cfg_datasets:
             datasets[ds_name] = config.parse_ds(ds_name, cfg)
-            datasets[ds_name]['loaded'] = False
 
         return datasets
 
