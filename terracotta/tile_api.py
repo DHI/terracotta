@@ -14,9 +14,9 @@ tile_api = Blueprint('tile_api', __name__)
 tilestore = None
 
 
-def init(datasets, cache_size):
+def init(cfg_file):
     global tilestore
-    tilestore = tile.TileStore(datasets, cache_size)
+    tilestore = tile.TileStore(cfg_file)
 
 
 @tile_api.route('/tile/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
@@ -26,7 +26,7 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     """Respond to tile requests"""
 
     try:
-        img, alpha_mask = tilestore.tile(tile_x, tile_y, tile_z, dataset, timestep)
+        img, alpha_mask = tilestore.tile(dataset, tile_x, tile_y, tile_z, timestep)
     except (TileNotFoundError, DatasetNotFoundError):
         if current_app.debug:
             raise
