@@ -79,7 +79,7 @@ class TileStore:
     @_requires_dataset
     @_lazy_load
     def get_meta(self, dataset):
-        return self._datasets[dataset]['meta']
+        return dict(self._datasets[dataset]['meta'])
 
     @_requires_dataset
     def get_timesteps(self, dataset):
@@ -103,7 +103,7 @@ class TileStore:
         val_range = self._datasets[dataset]['meta']['range']
 
         if self._datasets[dataset]['categorical']:
-            classes = self._datasets[dataset]['classes']
+            classes = dict(self._datasets[dataset]['classes'])
         else:
             classes = dict(zip(('min', 'max'), val_range))
 
