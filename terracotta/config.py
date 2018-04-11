@@ -1,6 +1,5 @@
 import os
 import re
-import configparser
 from ast import literal_eval
 
 

@@ -1,7 +1,6 @@
 from flask import Flask
 
 import terracotta
-import terracotta.config as config
 from terracotta.tile_api import tile_api
 
 
