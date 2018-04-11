@@ -286,7 +286,4 @@ def tile_exists(bounds, tile_z, tile_x, tile_y):
     mintile = mercantile.tile(bounds[0], bounds[3], tile_z)
     maxtile = mercantile.tile(bounds[2], bounds[1], tile_z)
 
-    return (tile_x <= maxtile.x + 1) \
-        and (tile_x >= mintile.x) \
-        and (tile_y <= maxtile.y + 1) \
-        and (tile_y >= mintile.y)
+    return mintile.x <= tile_x <= maxtile.x + 1 and mintile.y <= tile_y <= maxtile.y + 1
