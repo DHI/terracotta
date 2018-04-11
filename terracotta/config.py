@@ -33,6 +33,20 @@ def _parse_classes(ds_name, cfg):
 
 
 def parse_ds(ds_name, cfg):
+    """Parses a config file dataset into an internal dataset representation.
+
+    Parameters
+    ----------
+    ds_name: str
+        Name of section in config file
+    cfg: ConfigParser
+        Instance of ConfigParser which has already been passed a config file
+
+    Returns
+    -------
+    dict
+        Dict of dataset information
+    """
     cfg_ds = cfg[ds_name]
     ds = {}
 
@@ -84,12 +98,14 @@ def parse_options(cfg):
 
     Parameters
     ----------
-    cfg_path: str
-        Path to config file.
+    cfg: ConfigParser
+        Instance of ConfigParser which has already been passed a config file
 
     Returns
     -------
-    out: options dict"""
+    dict
+        Dict mapping option name to value
+    """
 
     # Get options
     options = {}

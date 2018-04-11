@@ -110,18 +110,18 @@ class TileStore:
         return classes
 
     def _load_meta(self, dataset):
-        """Pre-load and pre-compute needed file metadata.
+        """ Compute dataset metadata
         Also validate that meta doesn't differ between timesteps.
 
         Parameters
         ----------
-        path: str
-            Path to the file.
+        dataset: str
+            Name of dataset
 
         Returns
         -------
-        out: dict
-            Metadata."""
+        dict
+            Metadata"""
 
         if self._datasets[dataset]['timestepped']:
             files = self._datasets[dataset]['timesteps'].values()
@@ -160,12 +160,18 @@ class TileStore:
 
         Parameters
         ----------
+        dataset: str
+            name of dataset
         tile_x: int
             Mercator tile X index.
         tile_y: int
             Mercator tile Y index.
         tile_z: int
             Mercator tile ZOOM level.
+        timestep: str
+            Timestep name if dataset is timestepped
+        tilesize: int
+            Size in pixels of returned tile image
         """
 
         ds = self._datasets[dataset]
