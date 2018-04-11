@@ -10,7 +10,7 @@ from rasterio.warp import transform_bounds
 from rasterio.enums import Resampling
 from cachetools import LFUCache, cachedmethod
 
-import config as cfg
+import config
 
 
 class TileNotFoundError(Exception):
@@ -52,7 +52,7 @@ class TileStore:
     def __init__(self, cfg_path):
         cfg = configparser.ConfigParser()
         cfg.read(cfg_path)
-        options = parse_options(cfg_file)
+        options = config.parse_options(cfg)
 
         self._datasets = self._make_datasets(cfg)
         self._cache = LFUCache(options['tile_cache_size'])
@@ -70,7 +70,7 @@ class TileStore:
         cfg_datasets = cfg.sections()
         cfg_datasets.remove('options')
         for ds_name in cfg_datasets:
-            datasets[ds_name] = cfg.parse_ds(ds_name, cfg)
+            datasets[ds_name] = config.parse_ds(ds_name, cfg)
             datasets[ds_name]['loaded'] = False
 
         return datasets

@@ -72,8 +72,8 @@ def parse_ds(ds_name, cfg):
         for m in matches:
             timestep = m.group('timestep')
             # Only support 1 file per timestep for now
-            assert timestep not in file_info['timesteps']
-            file_info['timesteps'][timestep] = os.path.join(path, m.group(0))
+            assert timestep not in ds['timesteps']
+            ds['timesteps'][timestep] = os.path.join(path, m.group(0))
 
     return ds
 
@@ -89,9 +89,6 @@ def parse_options(cfg):
     Returns
     -------
     out: options dict"""
-
-    cfg = configparser.ConfigParser()
-    cfg.read(cfg_path)
 
     # Get options
     options = {}
