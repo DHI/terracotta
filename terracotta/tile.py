@@ -179,7 +179,7 @@ class TileStore:
             try:
                 fname = ds['timesteps'][timestep]
             except KeyError:
-                raise TileNotFoundError('no such timestep in dataset {}'.format(ds_name))
+                raise TileNotFoundError('no such timestep in dataset {}'.format(dataset))
         else:
             fname = ds['file']
 
@@ -191,7 +191,7 @@ class TileStore:
         tile_bounds = mercantile.xy_bounds(mercator_tile)
         tile = self._load_tile(fname, tile_bounds, tilesize)
 
-        alpha_mask = self._alpha_mask(tile, ds_name, tilesize)
+        alpha_mask = self._alpha_mask(tile, dataset, tilesize)
 
         return tile, alpha_mask
 
