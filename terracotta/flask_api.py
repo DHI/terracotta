@@ -10,7 +10,7 @@ from terracotta.tile import TileNotFoundError, TileOutOfBoundsError, DatasetNotF
 import terracotta.encode_decode as ed
 
 
-tile_api = Blueprint('tile_api', __name__)
+flask_api = Blueprint('flask_api', __name__)
 tilestore = None
 
 
@@ -19,8 +19,8 @@ def init(cfg_file):
     tilestore = tile.TileStore(cfg_file)
 
 
-@tile_api.route('/tile/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
-@tile_api.route('/tile/<dataset>/<timestep>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
+@flask_api.route('/tile/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
+@flask_api.route('/tile/<dataset>/<timestep>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
                 methods=['GET'])
 def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     """Respond to tile requests"""
@@ -48,7 +48,7 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     return send_file(sio, mimetype='image/png')
 
 
-@tile_api.route('/datasets', methods=['GET'])
+@flask_api.route('/datasets', methods=['GET'])
 def get_datasets():
     """Send back names of available datasets"""
     datasets = list(tilestore.get_datasets())
@@ -56,7 +56,7 @@ def get_datasets():
     return jsonify({'datasets': datasets})
 
 
-@tile_api.route('/meta/<dataset>', methods=['GET'])
+@flask_api.route('/meta/<dataset>', methods=['GET'])
 def get_meta(dataset):
     """Send back dataset metadata as json"""
     try:
@@ -69,7 +69,7 @@ def get_meta(dataset):
     return jsonify(meta)
 
 
-@tile_api.route('/timesteps/<dataset>', methods=['GET'])
+@flask_api.route('/timesteps/<dataset>', methods=['GET'])
 def get_timesteps(dataset):
     """Send back list of timesteps for dataset as json."""
     try:
@@ -82,7 +82,7 @@ def get_timesteps(dataset):
     return jsonify({'timesteps': timesteps})
 
 
-@tile_api.route('/bounds/<dataset>', methods=['GET'])
+@flask_api.route('/bounds/<dataset>', methods=['GET'])
 def get_bounds(dataset):
     """Send back WGS bounds of dataset"""
     try:
@@ -95,7 +95,7 @@ def get_bounds(dataset):
     return jsonify(bounds)
 
 
-@tile_api.route('/legend/<dataset>', methods=['GET'])
+@flask_api.route('/legend/<dataset>', methods=['GET'])
 def get_legend(dataset):
     """Send back JSON of class names or min/max
     with corresponding color as hex"""

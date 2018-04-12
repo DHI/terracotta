@@ -1,7 +1,7 @@
 from flask import Flask
 
 import terracotta
-from terracotta.tile_api import tile_api
+from terracotta.flask_api import flask_api
 
 
 def create_app(cfg_file, debug=False):
@@ -9,9 +9,9 @@ def create_app(cfg_file, debug=False):
 
     new_app = Flask('terracotta')
     new_app.debug = debug
-    new_app.register_blueprint(tile_api, url_prefix='')
+    new_app.register_blueprint(flask_api, url_prefix='')
 
-    terracotta.tile_api.init(cfg_file)
+    terracotta.flask_api.init(cfg_file)
 
     return new_app
 
