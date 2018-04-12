@@ -1,11 +1,16 @@
-import os
+import operator
+import configparser
 
 import numpy as np
 import mercantile
 import rasterio
+from frozendict import frozendict
 from rasterio.vrt import WarpedVRT
 from rasterio.warp import transform_bounds
 from rasterio.enums import Resampling
+from cachetools import LFUCache, cachedmethod
+
+import terracotta.config as config
 
 
 class TileNotFoundError(Exception):
@@ -30,14 +35,29 @@ def _requires_dataset(func):
     return inner
 
 
+def _lazy_load(func):
+    """Decorator that computes dataset metadata lazily, whenever a decorated function
+    is called. Only computes metadata once for each dataset."""
+    def inner(self, dataset, *args, **kwargs):
+        if 'meta' not in self._datasets[dataset]:
+            self._datasets[dataset]['meta'] = self._load_meta(dataset)
+        return func(self, dataset, *args, **kwargs)
+    return inner
+
+
 class TileStore:
     """Stores information about datasets and caches access to tiles."""
 
-    def __init__(self, cfg_datasets):
-        self._datasets = self._make_datasets(cfg_datasets)
+    def __init__(self, cfg_path):
+        cfg = configparser.ConfigParser()
+        cfg.read(cfg_path)
+        options = config.parse_options(cfg)
+
+        self._datasets = self._make_datasets(cfg)
+        self._cache = LFUCache(options['tile_cache_size'])
 
     @staticmethod
-    def _make_datasets(cfg_datasets):
+    def _make_datasets(cfg):
         """Build datasets from parsed config sections.
 
         Parameters
@@ -46,32 +66,20 @@ class TileStore:
             Each dict represents a dataset config section"""
 
         datasets = {}
-        for ds_name in cfg_datasets.keys():
-            cfg_ds = cfg_datasets[ds_name]
-            ds = {}
-            ds['timestepped'] = cfg_ds['timestepped']
-            ds['categorical'] = cfg_ds['categorical']
-            if ds['categorical']:
-                ds['classes'] = cfg_ds['classes']
-            file_params = TileStore._parse_files(cfg_ds['path'],
-                                                 cfg_ds['timestepped'],
-                                                 cfg_ds['regex'])
-            ds.update(file_params)
-            ds['nodata'] = ds['meta']['nodata']
+        cfg_datasets = cfg.sections()
+        cfg_datasets.remove('options')
+        for ds_name in cfg_datasets:
+            datasets[ds_name] = config.parse_ds(ds_name, cfg)
 
-            # non-finite values are not valid JSON
-            if not np.isfinite(ds['meta']['nodata']):
-                ds['meta']['nodata'] = str(ds['meta']['nodata'])
-            ds['meta']['categorical'] = ds['categorical']
-            datasets[cfg_ds['name']] = ds
         return datasets
 
     def get_datasets(self):
         return self._datasets.keys()
 
     @_requires_dataset
+    @_lazy_load
     def get_meta(self, dataset):
-        return self._datasets[dataset]['meta']
+        return dict(self._datasets[dataset]['meta'])
 
     @_requires_dataset
     def get_timesteps(self, dataset):
@@ -80,77 +88,45 @@ class TileStore:
         return sorted(self._datasets[dataset]['timesteps'].keys())
 
     @_requires_dataset
+    @_lazy_load
     def get_nodata(self, dataset):
         return self._datasets[dataset]['nodata']
 
     @_requires_dataset
+    @_lazy_load
     def get_bounds(self, dataset):
         return self._datasets[dataset]['meta']['wgs_bounds']
 
     @_requires_dataset
+    @_lazy_load
     def get_classes(self, dataset):
         val_range = self._datasets[dataset]['meta']['range']
 
         if self._datasets[dataset]['categorical']:
-            classes = self._datasets[dataset]['classes']
+            classes = dict(self._datasets[dataset]['classes'])
         else:
             classes = dict(zip(('min', 'max'), val_range))
 
         return classes
 
-    @staticmethod
-    def _parse_files(path, timestepped, regex):
-        """Discover file(s) from `path` and build
-        file information dict.
-
-        Parameters
-        ----------
-        path: str
-            Path to GeoTiff file(s)
-        timestepped: Bool
-            If True, find multiple files. Assumes `regex` has a named 'timestamp' group.
-        regex: str
-            Compiled regex to match file(s). Matches timesteps on 'timestamp' group.
-        """
-
-        file_info = {}
-        files = os.listdir(path)
-        matches = map(regex.match, files)
-        matches = [x for x in matches if x is not None]
-        if not matches:
-            raise ValueError('no files matched {} in {}'.format(regex.pattern, path))
-        if timestepped:
-            file_info['timesteps'] = {}
-            for m in matches:
-                timestep = m.group('timestamp')
-                # Only support 1 file per timestep for now
-                assert timestep not in file_info['timesteps']
-                file_info['timesteps'][timestep] = os.path.join(path, m.group(0))
-        else:
-            # Only support 1 file per timestep for now
-            assert len(matches) == 1
-            file_info['filename'] = os.path.join(path, matches[0].group(0))
-
-        meta = TileStore._load_file_meta([os.path.join(path, m.group(0)) for m in matches])
-        file_info['meta'] = meta
-        file_info['meta']['timestepped'] = timestepped
-
-        return file_info
-
-    @staticmethod
-    def _load_file_meta(files):
-        """Pre-load and pre-compute needed file metadata.
+    def _load_meta(self, dataset):
+        """ Compute dataset metadata
         Also validate that meta doesn't differ between timesteps.
 
         Parameters
         ----------
-        path: str
-            Path to the file.
+        dataset: str
+            Name of dataset
 
         Returns
         -------
-        out: dict
-            Metadata."""
+        dict
+            Metadata"""
+
+        if self._datasets[dataset]['timestepped']:
+            files = self._datasets[dataset]['timesteps'].values()
+        else:
+            files = [self._datasets[dataset]['file']]
 
         meta = {}
         first = True
@@ -171,40 +147,50 @@ class TileStore:
             if diff:
                 raise ValueError('{} does not match other files in: {}'.format(f, diff))
         meta['range'] = (np.asscalar(data_min), np.asscalar(data_max))
+        meta['timestepped'] = self._datasets[dataset]['timestepped']
 
-        return meta
+        return frozendict(meta)
 
-    def tile(self, tile_x, tile_y, tile_z, ds_name,
+    @_requires_dataset
+    @_lazy_load
+    @cachedmethod(operator.attrgetter('_cache'))
+    def tile(self, dataset, tile_x, tile_y, tile_z,
              timestep=None, tilesize=256):
         """Load a requested tile from source.
 
         Parameters
         ----------
+        dataset: str
+            name of dataset
         tile_x: int
             Mercator tile X index.
         tile_y: int
             Mercator tile Y index.
         tile_z: int
             Mercator tile ZOOM level.
+        timestep: str
+            Timestep name if dataset is timestepped
+        tilesize: int
+            Size in pixels of returned tile image
         """
 
-        try:
-            dataset = self._datasets[ds_name]
-        except KeyError:
-            raise TileNotFoundError('no such dataset {}'.format(ds_name))
+        ds = self._datasets[dataset]
 
-        if not dataset['timestepped'] and timestep:
-            raise TileNotFoundError('dataset {} is not timestepped'.format(ds_name))
+        if not ds['timestepped'] and timestep:
+            raise TileNotFoundError('dataset {} is not timestepped'.format(dataset))
+        elif not timestep and ds['timestepped']:
+            raise TileNotFoundError('dataset {} is timestepped, but no timestep provided'
+                                    .format(dataset))
 
         if timestep:
             try:
-                fname = dataset['timesteps'][timestep]
+                fname = ds['timesteps'][timestep]
             except KeyError:
-                raise TileNotFoundError('no such timestep in dataset {}'.format(ds_name))
+                raise TileNotFoundError('no such timestep in dataset {}'.format(dataset))
         else:
-            fname = dataset['filename']
+            fname = ds['file']
 
-        if not tile_exists(dataset['meta']['wgs_bounds'], tile_z, tile_x, tile_y):
+        if not tile_exists(ds['meta']['wgs_bounds'], tile_z, tile_x, tile_y):
             raise TileOutOfBoundsError('Tile {}/{}/{} is outside image bounds'
                                        .format(tile_z, tile_x, tile_y))
 
@@ -212,7 +198,7 @@ class TileStore:
         tile_bounds = mercantile.xy_bounds(mercator_tile)
         tile = self._load_tile(fname, tile_bounds, tilesize)
 
-        alpha_mask = self._alpha_mask(tile, ds_name, tilesize)
+        alpha_mask = self._alpha_mask(tile, dataset, tilesize)
 
         return tile, alpha_mask
 
@@ -300,7 +286,4 @@ def tile_exists(bounds, tile_z, tile_x, tile_y):
     mintile = mercantile.tile(bounds[0], bounds[3], tile_z)
     maxtile = mercantile.tile(bounds[2], bounds[1], tile_z)
 
-    return (tile_x <= maxtile.x + 1) \
-        and (tile_x >= mintile.x) \
-        and (tile_y <= maxtile.y + 1) \
-        and (tile_y >= mintile.y)
+    return mintile.x <= tile_x <= maxtile.x + 1 and mintile.y <= tile_y <= maxtile.y + 1

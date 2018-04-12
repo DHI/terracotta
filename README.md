@@ -60,7 +60,7 @@ regex = yangon\.tif
 [lake-titicaca]
 path = /data/terracotta/lake-titicaca
 timestepped = yes
-regex = titicaca_(?P<timestamp>[0-9]{8})\.tif
+regex = titicaca_(?P<timestep>[0-9]{8})\.tif
 ```
 
 The config above would give us a server with 2 datasets called `yangon` and `lake-titicaca`.

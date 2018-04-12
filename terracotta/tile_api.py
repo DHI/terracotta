@@ -4,7 +4,6 @@ from flask import Blueprint, current_app, abort, send_file, jsonify
 import numpy as np
 import matplotlib
 import matplotlib.cm as cm
-from cachetools import LFUCache, cached
 
 import terracotta.tile as tile
 from terracotta.tile import TileNotFoundError, TileOutOfBoundsError, DatasetNotFoundError
@@ -12,27 +11,23 @@ import terracotta.encode_decode as ed
 
 
 tile_api = Blueprint('tile_api', __name__)
-cache = None
 tilestore = None
 
 
-def init(datasets, cache_size):
-    global cache
+def init(cfg_file):
     global tilestore
-    cache = LFUCache(cache_size)
-    tilestore = tile.TileStore(datasets)
+    tilestore = tile.TileStore(cfg_file)
 
 
-@tile_api.route('/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
-@tile_api.route('/<dataset>/<timestep>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
+@tile_api.route('/tile/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
+@tile_api.route('/tile/<dataset>/<timestep>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
                 methods=['GET'])
-@cached(cache)
 def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     """Respond to tile requests"""
 
     try:
-        img, alpha_mask = tilestore.tile(tile_x, tile_y, tile_z, dataset, timestep)
-    except TileNotFoundError:
+        img, alpha_mask = tilestore.tile(dataset, tile_x, tile_y, tile_z, timestep)
+    except (TileNotFoundError, DatasetNotFoundError):
         if current_app.debug:
             raise
         abort(404)

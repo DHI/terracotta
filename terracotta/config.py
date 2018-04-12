@@ -1,7 +1,8 @@
 import os
 import re
-import configparser
 from ast import literal_eval
+
+from frozendict import frozendict
 
 
 DEFAULT_CACHE_SIZE = 256000000
@@ -28,10 +29,24 @@ def _parse_classes(ds_name, cfg):
     # literal_eval converts x.y to float and x to int
     class_vals = [literal_eval(x) for x in class_vals]
 
-    return dict(zip(class_names, class_vals))
+    return frozendict(zip(class_names, class_vals))
 
 
-def _parse_ds(ds_name, cfg):
+def parse_ds(ds_name, cfg):
+    """Parses a config file dataset into an internal dataset representation.
+
+    Parameters
+    ----------
+    ds_name: str
+        Name of section in config file
+    cfg: ConfigParser
+        Instance of ConfigParser which has already been passed a config file
+
+    Returns
+    -------
+    dict
+        Dict of dataset information
+    """
     cfg_ds = cfg[ds_name]
     ds = {}
 
@@ -51,32 +66,46 @@ def _parse_ds(ds_name, cfg):
     if not os.path.isdir(path) and os.access(path, os.R_OK):
         raise ValueError('path {} in {} is not a readable directory'.format(path, ds_name))
     reg = re.compile(reg_str)
-    if ds['timestepped'] and 'timestamp' not in reg.groupindex.keys():
-        raise ValueError('missing timestamp group in regex for timestepped dataset {}'
+    if ds['timestepped'] and 'timestep' not in reg.groupindex.keys():
+        raise ValueError('missing timestep group in regex for timestepped dataset {}'
                          .format(ds_name))
     if ds['categorical']:
         ds['classes'] = _parse_classes(ds_name, cfg)
 
-    ds['regex'] = reg
-    ds['path'] = path
+    files = os.listdir(path)
+    matches = map(reg.match, files)
+    matches = [x for x in matches if x is not None]
+    if not matches:
+        raise ValueError('no files matched {} in {}'.format(reg.pattern, path))
+
+    # Only support 1 file per timestep for now
+    if not ds['timestepped']:
+        assert len(matches) == 1
+        ds['file'] = matches[0].group(0)
+    else:
+        ds['timesteps'] = {}
+        for m in matches:
+            timestep = m.group('timestep')
+            # Only support 1 file per timestep for now
+            assert timestep not in ds['timesteps']
+            ds['timesteps'][timestep] = os.path.join(path, m.group(0))
 
     return ds
 
 
-def parse_cfg(cfg_path='./config.cfg'):
-    """Parse and validate config file.
+def parse_options(cfg):
+    """Parse and validate options section of config file.
 
     Parameters
     ----------
-    cfg_path: str
-        Path to config file.
+    cfg: ConfigParser
+        Instance of ConfigParser which has already been passed a config file
 
     Returns
     -------
-    out: (options, datasets) tuple"""
-
-    cfg = configparser.ConfigParser()
-    cfg.read(cfg_path)
+    dict
+        Dict mapping option name to value
+    """
 
     # Get options
     options = {}
@@ -86,15 +115,6 @@ def parse_cfg(cfg_path='./config.cfg'):
         # Dummy section
         cfg.add_section('options')
         cfg_options = cfg['options']
-    options['max_cache_size'] = cfg_options.getint('max_cache_size', fallback=DEFAULT_CACHE_SIZE)
+    options['tile_cache_size'] = cfg_options.getint('tile_cache_size', fallback=DEFAULT_CACHE_SIZE)
 
-    # Assume remaining sections are datasets
-    cfg.remove_section('options')
-    if not cfg.sections():
-        raise ValueError('no datasets in config file')
-
-    datasets = {}
-    for ds_name in cfg.sections():
-        datasets[ds_name] = _parse_ds(ds_name, cfg)
-
-    return (options, datasets)
+    return options
