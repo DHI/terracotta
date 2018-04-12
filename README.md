@@ -30,6 +30,19 @@ min/max values of the dataset, WGS84 bounds, datatype and more.
 Returns a JSON {'timesteps': list of timesteps for `dataset`} response
 or empty list if `dataset` is not timestepped.
 
+- http://server.com/terracotta/legend/{dataset}
+Returns a JSON of `class_names` and associated colormap hex values if `dataset` is categorical.
+If `dataset` is not categorical, it returns the colors associated with the `min` and `max` values in `dataset`.
+
+```json
+{
+  "legend": {
+    "land": "#00FF00",
+    "water": "#0000FF",
+  }
+}
+```
+
 ## Configuration
 Datasets and other options are defined in Terracotta's config file.
 By default Terracotta looks for `config.cfg` in the current directory.

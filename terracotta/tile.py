@@ -90,7 +90,7 @@ class TileStore:
     @_requires_dataset
     @_lazy_load
     def get_nodata(self, dataset):
-        return self._datasets[dataset]['meta']['nodata']
+        return self._datasets[dataset]['nodata']
 
     @_requires_dataset
     @_lazy_load
