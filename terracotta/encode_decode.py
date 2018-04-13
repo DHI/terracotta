@@ -98,7 +98,10 @@ def img_cmap(tile, range, cmap='inferno'):
     """
 
     normalizer = matplotlib.colors.Normalize(vmin=range[0], vmax=range[1], clip=True)
-    mapper = cm.ScalarMappable(norm=normalizer, cmap=cmap)
+    try:
+        mapper = cm.ScalarMappable(norm=normalizer, cmap=cmap)
+    except ValueError as e:
+        raise ValueError('Possibly invalid colormap') from e
 
     rgba = mapper.to_rgba(tile, bytes=True, norm=True)
 
