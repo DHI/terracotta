@@ -12,25 +12,32 @@ It is recommended to use [Cloud Optimized GeoTIFFs](http://www.cogeo.org) with T
 ## The API
 Terracotta currently implements the following http API (curly braces denote request parameters):
 
-- http://server.com/tile/{dataset}/{z}/{x}/{y}.png
+- `http://server.com/tile/{dataset}/{z}/{x}/{y}.png`
 Serves mercator tile (`x`, `y`) at zoom level `z`, from `dataset`.
 
-- http://server.com/tile/{dataset}/{timestep}/{z}/{x}/{y}.png
+- `http://server.com/tile/{dataset}/{timestep}/{z}/{x}/{y}.png`
 Same as previous but for timestepped datasets.
 The format of `timestep` is dependent on the dataset.
 
-- http://server.com/datasets
+For both forms of the tile API call, it is possible to choose the colormap
+of the data by adding the query parameter `colormap` to the url, e.g:
+
+`http://server.com/tile/{dataset}/{z}/{x}/{y}.png?colormap=plasma`
+
+the default colormap is currently `inferno`
+
+- `http://server.com/datasets`
 Returns a JSON {'datasets': list of dataset names} response
 
-- http://server.com/meta/{dataset}
+- `http://server.com/meta/{dataset}`
 Returns a JSON of useful metadata for `dataset`, such as whether or not `dataset` is timestepped,
 min/max values of the dataset, WGS84 bounds, datatype and more.
 
-- http://server.com/timesteps/{dataset}
+- `http://server.com/timesteps/{dataset}`
 Returns a JSON {'timesteps': list of timesteps for `dataset`} response
 or empty list if `dataset` is not timestepped.
 
-- http://server.com/legend/{dataset}
+- `http://server.com/legend/{dataset}`
 Returns a JSON of `class_names` and associated colormap hex values if `dataset` is categorical.
 If `dataset` is not categorical, it returns the colors associated with the `min` and `max` values in `dataset`.
 
@@ -42,6 +49,9 @@ If `dataset` is not categorical, it returns the colors associated with the `min`
   }
 }
 ```
+
+- `http://server.com/colormaps`
+Return a JSON of `colormaps` which is a list of available colormaps for the colormap query param.
 
 ## Configuration
 Datasets and other options are defined in Terracotta's config file.

@@ -3,6 +3,7 @@ from io import BytesIO
 from flask import Blueprint, current_app, abort, send_file, jsonify, render_template
 import numpy as np
 import matplotlib
+import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 import terracotta.tile as tile
@@ -24,6 +25,7 @@ def init(**kwargs):
                 methods=['GET'])
 def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     """Respond to tile requests"""
+    cmap = request.args.get('colormap', 'inferno')
 
     try:
         img, alpha_mask = tilestore.tile(dataset, tile_x, tile_y, tile_z, timestep)
@@ -37,8 +39,10 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
         alpha_mask = np.zeros((256, 256), dtype=np.uint8)
 
     range = tilestore.get_meta(dataset)['range']
-    # img = ed.contrast_stretch(img, range)
-    img = ed.img_cmap(img, range)
+    try:
+        img = ed.img_cmap(img, range, cmap=cmap)
+    except ValueError:
+        abort(400)
     img = ed.array_to_img(img, alpha_mask=alpha_mask)
 
     sio = BytesIO()
@@ -127,3 +131,11 @@ def get_legend(dataset):
     legend = {'legend': names_hex}
 
     return jsonify(legend)
+
+
+@flask_api.route('/colormaps', methods=['GET'])
+def get_cmaps():
+    """Send back a JSON list of all registered colormaps"""
+    cmaps = plt.colormaps()
+
+    return jsonify({'colormaps': cmaps})
