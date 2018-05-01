@@ -1,5 +1,7 @@
 import itertools
 import glob
+import os
+
 import click
 
 import terracotta.app as app
@@ -10,6 +12,14 @@ class GlobbityGlob(click.ParamType):
 
     def convert(self, value, *args):
         return glob.glob(value)
+
+
+class ExpandedPath(click.Path):
+    def convert(self, value, *args, **kwargs):
+        if os.name == 'nt':
+            # Only expand on Windows, as shell will do it on *nix
+            value = os.path.expanduser(value)
+        return super().convert(value, *args, **kwargs)
 
 
 @click.command()

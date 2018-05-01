@@ -11,6 +11,17 @@ setup(
     author='Philip Graae',
     author_email='phgr@dhigroup.com',
     packages=find_packages(),
+    setup_requires=['numpy'],
+    install_requires=['numpy',
+                      'flask',
+                      'click',
+                      'pillow',
+                      'frozendict',
+                      'matplotlib',
+                      'mercantile',
+                      'rasterio',
+                      'cachetools'
+                      ],
     entry_points='''
         [console_scripts]
         terracotta=terracotta.cli:cli

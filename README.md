@@ -12,68 +12,58 @@ It is recommended to use [Cloud Optimized GeoTIFFs](http://www.cogeo.org) with T
 ## The API
 Terracotta currently implements the following http API (curly braces denote request parameters):
 
-- http://server.com/terracotta/{dataset}/{z}/{x}/{y}.png
+- http://server.com/tile/{dataset}/{z}/{x}/{y}.png
 Serves mercator tile (`x`, `y`) at zoom level `z`, from `dataset`.
 
-- http://server.com/terracotta/{dataset}/{timestep}/{z}/{x}/{y}.png
+- http://server.com/tile/{dataset}/{timestep}/{z}/{x}/{y}.png
 Same as previous but for timestepped datasets.
 The format of `timestep` is dependent on the dataset.
 
-- http://server.com/terracotta/datasets
+- http://server.com/datasets
 Returns a JSON {'datasets': list of dataset names} response
 
-- http://server.com/terracotta/meta/{dataset}
+- http://server.com/meta/{dataset}
 Returns a JSON of useful metadata for `dataset`, such as whether or not `dataset` is timestepped,
 min/max values of the dataset, WGS84 bounds, datatype and more.
 
-- http://server.com/terracotta/timesteps/{dataset}
+- http://server.com/timesteps/{dataset}
 Returns a JSON {'timesteps': list of timesteps for `dataset`} response
 or empty list if `dataset` is not timestepped.
+
+- http://server.com/legend/{dataset}
+Returns a JSON of `class_names` and associated colormap hex values if `dataset` is categorical.
+If `dataset` is not categorical, it returns the colors associated with the `min` and `max` values in `dataset`.
+
+```json
+{
+  "legend": {
+    "land": "#00FF00",
+    "water": "#0000FF",
+  }
+}
+```
 
 ## Configuration
 Datasets and other options are defined in Terracotta's config file.
 By default Terracotta looks for `config.cfg` in the current directory.
 If you are running Terracotta through its CLI, you can point to a config file by using `--cfg-file`.
 
-A Terracotta config file may have an optional `[options]` section and has one or more required dataset sections.
-The name of a dataset section defines the name of the dataset.
-
-Currently the `[options]` section only has one option:
-
-- max_cache_size
-Which defaults to 256MB.
-
-Each dataset section starts with a `[ds_name]` header, where `ds_name` will be the dataset name.
-Each section then have the following options:
-
-- `path`
-Path to the folder containing the dataset raster(s).
-Required.
-
-- `regex`
-Regex to match raster file(s) in the folder.
-Non-timestepped datasets must only match a single file.
-Required.
-
-- `timestepped`
-Boolean value, indicating whether the dataset is timestepped.
-If True, `regex` must have a [named group](https://docs.python.org/3/howto/regex.html#non-capturing-and-named-groups)
-called `timestamp`, which will be used to extract the timesteps from the raster filenames.
-Not required, defaults to False.
-
 ### Example configuration
 ```
 [options]
-max_cache_size = 128000000
+tile_cache_size = 128000000
 
 [yangon]
 path = /data/terracotta/yangon
 regex = yangon\.tif
+categorical = yes
+class_names = urban, forest, cropland, grassland, soil, water
+class_values = 1, 2, 3, 4, 5, 6
 
 [lake-titicaca]
 path = /data/terracotta/lake-titicaca
 timestepped = yes
-regex = titicaca_(?P<timestamp>[0-9]{8})\.tif
+regex = titicaca_(?P<timestep>[0-9]{8})\.tif
 ```
 
 The config above would give us a server with 2 datasets called `yangon` and `lake-titicaca`.
@@ -81,8 +71,11 @@ The config above would give us a server with 2 datasets called `yangon` and `lak
 `yangon` is not timestepped and consists of the single GeoTIFF file `yangon.tif`, which is located in
 `/data/terracotta/yangon`.
 
+`yangon` is a categorical dataset, and a call to `http://server.com/legend/yangon` would return a JSON
+of the `class_names` and the associated colors given the `class_values` and current colormap.
+
 `lake-titicaca` is timestepped and consists of one or more files, all located in `/data/terracotta/lake-titicaca`.
 These files follow the naming scheme `titicaca_yyyymmdd.tif` where `yyyymmdd` are the timesteps associated with the files.
 For example: `titicaca_20170101.tif` contains the data for first of January 2017. Tiles from this timestep can be requested through:
 
-`http://server.com/terracotta/lake-titicaca/20170101/{z}/{x}/{y}.png`.
+`http://server.com/tile/lake-titicaca/20170101/{z}/{x}/{y}.png`.

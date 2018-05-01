@@ -2,35 +2,32 @@ from io import BytesIO
 
 from flask import Blueprint, current_app, abort, send_file, jsonify, render_template
 import numpy as np
-from cachetools import LFUCache, cached
+import matplotlib
+import matplotlib.cm as cm
 
 import terracotta.tile as tile
 from terracotta.tile import TileNotFoundError, TileOutOfBoundsError, DatasetNotFoundError
 import terracotta.encode_decode as ed
 
 
-tile_api = Blueprint('tile_api', __name__)
-cache = None
+flask_api = Blueprint('flask_api', __name__)
 tilestore = None
 
 
-def init(datasets, cache_size):
-    global cache
+def init(**kwargs):
     global tilestore
-    cache = LFUCache(cache_size)
-    tilestore = tile.TileStore(datasets)
+    tilestore = tile.TileStore(**kwargs)
 
 
-@tile_api.route('/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
-@tile_api.route('/<dataset>/<timestep>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
+@flask_api.route('/tile/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
+@flask_api.route('/tile/<dataset>/<timestep>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
                 methods=['GET'])
-@cached(cache)
 def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     """Respond to tile requests"""
 
     try:
-        img, alpha_mask = tilestore.tile(tile_x, tile_y, tile_z, dataset, timestep)
-    except TileNotFoundError:
+        img, alpha_mask = tilestore.tile(dataset, tile_x, tile_y, tile_z, timestep)
+    except (TileNotFoundError, DatasetNotFoundError):
         if current_app.debug:
             raise
         abort(404)
@@ -51,7 +48,7 @@ def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
     return send_file(sio, mimetype='image/png')
 
 
-@tile_api.route('/datasets', methods=['GET'])
+@flask_api.route('/datasets', methods=['GET'])
 def get_datasets():
     """Send back names of available datasets"""
     datasets = list(tilestore.get_datasets())
@@ -59,7 +56,7 @@ def get_datasets():
     return jsonify({'datasets': datasets})
 
 
-@tile_api.route('/meta/<dataset>', methods=['GET'])
+@flask_api.route('/meta/<dataset>', methods=['GET'])
 def get_meta(dataset):
     """Send back dataset metadata as json"""
     try:
@@ -72,7 +69,7 @@ def get_meta(dataset):
     return jsonify(meta)
 
 
-@tile_api.route('/timesteps/<dataset>', methods=['GET'])
+@flask_api.route('/timesteps/<dataset>', methods=['GET'])
 def get_timesteps(dataset):
     """Send back list of timesteps for dataset as json."""
     try:
@@ -85,7 +82,7 @@ def get_timesteps(dataset):
     return jsonify({'timesteps': timesteps})
 
 
-@tile_api.route('/bounds/<dataset>', methods=['GET'])
+@flask_api.route('/bounds/<dataset>', methods=['GET'])
 def get_bounds(dataset):
     """Send back WGS bounds of dataset"""
     try:
@@ -95,7 +92,7 @@ def get_bounds(dataset):
             raise
         abort(404)
 
-    return jsonify({'wgs_bounds': bounds})
+    return jsonify(bounds)
 
 
 @tile_api.route('/', methods=['GET'])
@@ -103,3 +100,30 @@ def get_map():
     if not current_app.debug:
         abort(404)
     return render_template('map.html')
+
+
+@flask_api.route('/legend/<dataset>', methods=['GET'])
+def get_legend(dataset):
+    """Send back JSON of class names or min/max
+    with corresponding color as hex"""
+    try:
+        classes = tilestore.get_classes(dataset)
+    except DatasetNotFoundError:
+        if current_app.debug:
+            raise
+        abort(404)
+
+    val_range = tilestore.get_meta(dataset)['range']
+    names, vals = zip(*classes.items())
+
+    # Cmapper
+    normalizer = matplotlib.colors.Normalize(vmin=val_range[0], vmax=val_range[1], clip=True)
+    mapper = cm.ScalarMappable(norm=normalizer, cmap='inferno')
+
+    rgbs = [mapper.to_rgba(x, bytes=True) for x in vals]
+    hex = ['#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2]) for rgb in rgbs]
+
+    names_hex = dict(zip(names, hex))
+    legend = {'legend': names_hex}
+
+    return jsonify(legend)
