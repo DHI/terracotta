@@ -19,7 +19,7 @@
 <script>
   function getDatasets(){
     var http_request = new XMLHttpRequest();
-    http_request.open("GET", "/terracotta/datasets", false);
+    http_request.open("GET", "/datasets", false);
     http_request.send();
 
     if (http_request.status === 200) {
@@ -32,11 +32,11 @@
 
   function getMapCenter(datasets){
     var http_request = new XMLHttpRequest();
-    http_request.open("GET", "/terracotta/bounds/" + datasets[0], false);
+    http_request.open("GET", "/bounds/" + datasets[0], false);
     http_request.send();
 
     if (http_request.status === 200) {
-      var bounds = JSON.parse(http_request.responseText)["wgs_bounds"];
+      var bounds = JSON.parse(http_request.responseText);
       return [(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2];
     }
 
@@ -46,7 +46,7 @@
   var dataLayers = {};
   var datasets = getDatasets();
   for(i = 0; i < datasets.length; i++) {
-    dataLayers[datasets[i]] = L.tileLayer("/terracotta/" + datasets[i] + "/{z}/{x}/{y}.png");
+    dataLayers[datasets[i]] = L.tileLayer("/tile/" + datasets[i] + "/{z}/{x}/{y}.png");
   }
 
   var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';

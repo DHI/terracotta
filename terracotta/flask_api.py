@@ -1,6 +1,6 @@
 from io import BytesIO
 
-from flask import Blueprint, current_app, abort, send_file, jsonify, render_template
+from flask import Blueprint, current_app, abort, send_file, jsonify, request, render_template
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -99,7 +99,7 @@ def get_bounds(dataset):
     return jsonify(bounds)
 
 
-@tile_api.route('/', methods=['GET'])
+@flask_api.route('/', methods=['GET'])
 def get_map():
     if not current_app.debug:
         abort(404)

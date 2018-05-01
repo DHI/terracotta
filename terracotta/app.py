@@ -23,11 +23,10 @@ def create_app(raster_files=None, cfg_file=None, debug=False, profile=False):
     if cfg_file is not None:
         terracotta.flask_api.init(cfg_file=cfg_file)
     elif raster_files is not None:
-        options = config.default_cfg()
+        options = terracotta.config.default_cfg()
         import re
         datasets = {os.path.basename(r): {'name': os.path.basename(r), 'timestepped': False,
-                                          'path': os.path.dirname(r) or '.',
-                                          'regex': re.compile(os.path.basename(r) + '$')} for r in raster_files}
+                                          'categorical': False, 'file': r} for r in raster_files}
         terracotta.flask_api.init(datasets=datasets, cache_size=options['max_cache_size'])
     else:
         raise ValueError('Either raster files or config file must be given')
@@ -42,7 +41,7 @@ def run_app(*args, preview=False, **kwargs):
     app = create_app(*args, **kwargs)
     port = 5000
     if preview and 'WERKZEUG_RUN_MAIN' not in os.environ:
-        threading.Timer(2, lambda: webbrowser.open('http://127.0.0.1:%d/terracotta/' % port)).start()
+        threading.Timer(2, lambda: webbrowser.open('http://127.0.0.1:%d/' % port)).start()
     app.run(port=port)
 
 
