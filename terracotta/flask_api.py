@@ -1,6 +1,6 @@
 from io import BytesIO
 
-from flask import Blueprint, current_app, abort, send_file, jsonify, request
+from flask import Blueprint, current_app, abort, send_file, jsonify, request, render_template
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -15,9 +15,9 @@ flask_api = Blueprint('flask_api', __name__)
 tilestore = None
 
 
-def init(cfg_file):
+def init(**kwargs):
     global tilestore
-    tilestore = tile.TileStore(cfg_file)
+    tilestore = tile.TileStore(**kwargs)
 
 
 @flask_api.route('/tile/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
@@ -97,6 +97,13 @@ def get_bounds(dataset):
         abort(404)
 
     return jsonify(bounds)
+
+
+@flask_api.route('/', methods=['GET'])
+def get_map():
+    if not current_app.debug:
+        abort(404)
+    return render_template('map.html')
 
 
 @flask_api.route('/legend/<dataset>', methods=['GET'])

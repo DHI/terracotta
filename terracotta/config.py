@@ -29,7 +29,12 @@ def _parse_classes(ds_name, cfg):
     # literal_eval converts x.y to float and x to int
     class_vals = [literal_eval(x) for x in class_vals]
 
-    return frozendict(zip(class_names, class_vals))
+
+def default_cfg():
+    return {
+        'max_cache_size': DEFAULT_CACHE_SIZE,
+        'timestepped': DEFAULT_TIMESTEPPED
+    }
 
 
 def parse_ds(ds_name, cfg):

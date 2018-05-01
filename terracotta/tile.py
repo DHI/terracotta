@@ -48,13 +48,20 @@ def _lazy_load(func):
 class TileStore:
     """Stores information about datasets and caches access to tiles."""
 
-    def __init__(self, cfg_path):
-        cfg = configparser.ConfigParser()
-        cfg.read(cfg_path)
-        options = config.parse_options(cfg)
+    def __init__(self, cfg_file=None, datasets=None, cache_size=None):
+        if cfg_file is not None:
+            cfg = configparser.ConfigParser()
+            cfg.read(cfg_file)
+            options = config.parse_options(cfg)
 
-        self._datasets = self._make_datasets(cfg)
-        self._cache = LFUCache(options['tile_cache_size'])
+            self._datasets = self._make_datasets(cfg)
+            self._cache = LFUCache(options['tile_cache_size'])
+        elif datasets is not None:
+            self._datasets = datasets
+            cache_size = cache_size or config.DEFAULT_CACHE_SIZE
+            self._cache = LFUCache(cache_size)
+        else:
+            raise ValueError('TileStore must be initialized with either a cfg_file or dict of datasets')
 
     @staticmethod
     def _make_datasets(cfg):

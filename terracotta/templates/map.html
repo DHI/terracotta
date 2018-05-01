@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+	<title>Terracotta Tile Preview</title>
+
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="/static/leaflet.css"/>
+  <link rel="stylesheet" href="/static/map.css"/>
+  <script src="/static/leaflet.js"></script>
+
+</head>
+<body>
+
+<div id='map'></div>
+
+<script>
+  function getDatasets(){
+    var http_request = new XMLHttpRequest();
+    http_request.open("GET", "/datasets", false);
+    http_request.send();
+
+    if (http_request.status === 200) {
+      var datasets = JSON.parse(http_request.responseText)["datasets"];
+      return datasets;
+    }
+
+    return {};
+  }
+
+  function getMapCenter(datasets){
+    var http_request = new XMLHttpRequest();
+    http_request.open("GET", "/bounds/" + datasets[0], false);
+    http_request.send();
+
+    if (http_request.status === 200) {
+      var bounds = JSON.parse(http_request.responseText);
+      return [(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2];
+    }
+
+    return [0, 0];
+  }
+
+  var dataLayers = {};
+  var datasets = getDatasets();
+  for(i = 0; i < datasets.length; i++) {
+    dataLayers[datasets[i]] = L.tileLayer("/tile/" + datasets[i] + "/{z}/{x}/{y}.png");
+  }
+
+  var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+	var osmAttrib = 'Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
+
+	var osmBase = L.tileLayer(osmUrl, {attribution: osmAttrib})
+
+	var map = L.map('map', {
+		center: getMapCenter(datasets),
+		zoom: 10,
+		layers: [osmBase]
+	});
+
+	var baseLayers = {
+		"OpenStreetMap": osmBase
+	};
+
+	L.control.layers(baseLayers, dataLayers).addTo(map);
+</script>
+
+
+
+</body>
+</html>
