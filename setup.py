@@ -11,6 +11,7 @@ setup(
     author='Philip Graae',
     author_email='phgr@dhigroup.com',
     packages=find_packages(),
+    python_requires='>=3.5'
     setup_requires=['numpy'],
     install_requires=['numpy',
                       'flask',
