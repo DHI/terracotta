@@ -3,12 +3,18 @@ import matplotlib
 import matplotlib.cm as cm
 from PIL import Image
 
+BAND_TO_MODE = {
+    1: 'L',
+    2: 'LA',
+    3: 'RGB',
+    4: 'RGBA'
+}
+
 
 def array_to_img(arr, alpha_mask=None):
     """Convert Numpy array to img.
     input array can be shape (H,W), (H,W,2), (H,W,3) or (H,W,4).
     Will be interpreted as L, LA, RGB and RGBA respectively.
-
     Parameters
     ----------
     arr: numpy array
@@ -17,40 +23,29 @@ def array_to_img(arr, alpha_mask=None):
         Alpha values (0 transparent, 255 opaque).
         If input shape is (H,W,2) or (H,W,4) and alpha_mask is None,
         the last slice will be used as alpha.
-
     Returns
     -------
-    out: PIL Image"""
-
-    # TODO: Fix this messy logic
-    if not arr.ndim > 1 and arr.ndim < 4:
+    out: PIL Image
+    """
+    if arr.ndim not in [2, 3]:
         raise ValueError("Img must have 2 or 3 dimensions")
+
     if arr.ndim == 2:
         # Make a new dimension for alpha mask
         arr = arr[:, :, np.newaxis]
-    elif arr.ndim == 3 and arr.shape[2] > 4:
+
+    num_bands = arr.shape[2]
+
+    if 1 > num_bands > 4:
         raise ValueError("Check array shape, only L, LA, RGB and RGBA supported")
-    if alpha_mask is None:
-        if arr.shape[2] == 2 or arr.shape[2] == 4:
-            # Assume last slice is alpha
-            alpha_mask = None
-        else:
-            alpha_mask = np.full((arr.shape[0], arr.shape[1]), 255, dtype=np.uint8)
 
-    if arr.shape[2] == 1 or arr.shape[2] == 3:
-        arr = np.dstack((arr, alpha_mask))
-    else:
-        if alpha_mask is not None:
+    if alpha_mask is not None:
+        if num_bands in [2, 4]:  # assume last slice is alpha
             arr[:, :, -1] = alpha_mask
+        else:
+            arr = np.dstack((arr, alpha_mask))
 
-    if arr.shape[2] == 2:
-        img = Image.fromarray(arr, mode='LA')
-    elif arr.shape[2] == 4:
-        img = Image.fromarray(arr, mode='RGBA')
-    else:
-        raise ValueError("Unreachable code")
-
-    return img
+    return Image.fromarray(arr, mode=BAND_TO_MODE[arr.shape[2]])
 
 
 def contrast_stretch(tile, val_range):
