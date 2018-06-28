@@ -1,6 +1,6 @@
+from io import BytesIO
+
 import numpy as np
-import matplotlib
-import matplotlib.cm as cm
 from PIL import Image
 
 BAND_TO_MODE = {
@@ -48,37 +48,56 @@ def array_to_img(arr, alpha_mask=None):
     return Image.fromarray(arr, mode=BAND_TO_MODE[arr.shape[2]])
 
 
-def contrast_stretch(tile, val_range):
-    """Scale an image to between 0 and 255.
+def array_to_png(arr, alpha_mask=None):
+    img = array_to_img(arr, alpha_mask=alpha_mask)
+
+    sio = BytesIO()
+    img.save(sio, 'png', compress_level=0)
+    sio.seek(0)
+    return sio
+
+
+def percentile_from_cumulative_histogram(chist, percentiles):
+    chist = np.asarray(chist)
+    return np.searchsorted(100 * chist / chist[-1], percentiles)
+
+
+def contrast_stretch(data, in_range, out_range, clip=True):
+    lower_bound_in, upper_bound_in = in_range
+    lower_bound_out, upper_bound_out = out_range
+    out_data = data - lower_bound_in
+    out_data *= (upper_bound_out - lower_bound_out) / (upper_bound_in - lower_bound_in)
+    out_data += lower_bound_out
+    if clip:
+        np.clip(out_data, *out_range, out=out_data)
+    return out_data
+
+
+def to_uint8(data, lower_bound, upper_bound):
+    """Re-scale an array to [0, 255].
 
     Parameters
     ----------
-    val_range: (int, int)
-        min and max value of input tile
+    lower_bound, upper_bound: number
+        Upper and lower bound of input data for stretch
 
     Returns
     -------
-    out: numpy array
-        input tile scaled to 0 - 255.
+    out: ndarray
+        Input data as uint8, scaled to [0, 255]
     """
-
-    _, max_val = val_range
-    if max_val == 0:
-        tile[:] = 0
-    else:
-        tile *= 255 // max_val
-    tile = tile.astype(np.uint8)
-    return tile
+    rescaled = contrast_stretch(data, (lower_bound, upper_bound), (0, 255), clip=True)
+    return rescaled.astype(np.uint8)
 
 
-def img_cmap(tile, range, cmap='inferno'):
+def img_cmap(tile, data_range, cmap='inferno'):
     """Maps input tile data to colormap.
 
     Parameters
     ----------
     tile: numpy array
         2d array of tile data
-    range: tuple of len(2)
+    data_range: (number, number)
         (min, max) values to map from data to cmap.
         tile values outside will be clamped to cmap min or max.
     cmap: str
@@ -91,13 +110,10 @@ def img_cmap(tile, range, cmap='inferno'):
         Numpy RGBA array
 
     """
-
-    normalizer = matplotlib.colors.Normalize(vmin=range[0], vmax=range[1], clip=True)
+    import matplotlib.cm
     try:
-        mapper = cm.ScalarMappable(norm=normalizer, cmap=cmap)
+        mapper = matplotlib.cm.get_cmap(cmap)
     except ValueError as e:
-        raise ValueError('Possibly invalid colormap') from e
+        raise ValueError('Encountered invalid colormap') from e
 
-    rgba = mapper.to_rgba(tile, bytes=True, norm=True)
-
-    return rgba
+    return mapper(contrast_stretch(tile, data_range, (0, 1)))
