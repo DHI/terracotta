@@ -13,18 +13,26 @@ setup(
     packages=find_packages(),
     python_requires='>=3.5',
     setup_requires=['numpy'],
-    install_requires=['numpy',
-                      'flask',
-                      'click',
-                      'pillow',
-                      'frozendict',
-                      'matplotlib',
-                      'mercantile',
-                      'rasterio',
-                      'cachetools'
-                      ],
+    install_requires=[
+        'numpy',
+        'flask',
+        'click',
+        'pillow',
+        'matplotlib',
+        'mercantile',
+        'rasterio',
+        'cachetools'
+    ],
     entry_points='''
         [console_scripts]
         terracotta=terracotta.cli:cli
     ''',
+    extras_require={
+        'test': ['pytest']
+    },
+    include_package_data=True,
+    package_data={
+        'terracotta': ['templates/*.html', 'static/*.js',
+                       'static/*.css', 'static/images/*.png']
+    }
 )

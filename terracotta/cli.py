@@ -29,7 +29,7 @@ class ExpandedPath(click.Path):
               help='Enable Flask profiling')
 @click.option('-p', '--preview', is_flag=True, default=False,
               help='Open preview in browser (implies debug)')
-@click.option('--cfg-file', '-c', type=ExpandedPath(exists=True), default=None, required=False)
+@click.option('--cfg-file', '-c', type=ExpandedPath(exists=True), default=None)
 @click.argument('raster_files', nargs=-1, type=GlobbityGlob(), required=False)
 def cli(raster_files, cfg_file, *args, **kwargs):
     """Entry point of Terracotta CLI"""

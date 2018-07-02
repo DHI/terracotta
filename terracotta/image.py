@@ -57,9 +57,44 @@ def array_to_png(arr, alpha_mask=None):
     return sio
 
 
-def percentile_from_cumulative_histogram(chist, percentiles):
-    chist = np.asarray(chist)
-    return np.searchsorted(100 * chist / chist[-1], percentiles)
+def get_alpha_mask(data, nodata):
+    """Return alpha layer for tile, where nodata NaNs and Infs are transparent.
+
+    Parameters
+    ----------
+    tile: np.array
+        The image tile.
+    ds_name: string
+        Internal name of the dataset.
+    tilesize: int
+        length of one side of tile
+
+    Returns
+    -------
+    out: np.array of uint8
+        Array of alpha values"""
+
+    if data.ndim not in (2, 3):
+        raise ValueError('Encountered invalid shape (must be 2 or 3-dimensional)')
+
+    if data.ndim == 2:
+        data = data[..., np.newaxis]
+
+    nodata = list(nodata)
+    if len(nodata) != data.shape[-1]:
+        raise ValueError('Need one nodata value per data band')
+
+    out_shape = data.shape[:-1]
+    alpha_mask = np.full(out_shape, 255, np.uint8)
+
+    for band, nodata_value in enumerate(nodata):
+        alpha_mask[data[..., band] == nodata_value] = 0
+
+    # Also mask out other invalid values if float
+    if np.issubdtype(data.dtype, np.floating):
+        alpha_mask[np.any(~np.isfinite(data), axis=-1)] = 0
+
+    return alpha_mask
 
 
 def contrast_stretch(data, in_range, out_range, clip=True):
@@ -117,3 +152,18 @@ def img_cmap(tile, data_range, cmap='inferno'):
         raise ValueError('Encountered invalid colormap') from e
 
     return mapper(contrast_stretch(tile, data_range, (0, 1)))
+
+
+def get_stretch_range(method, metadata, data_min=None, data_max=None, percentiles=None):
+    if method == 'stretch':
+        stretch_range = (data_min or metadata['min'], data_max or metadata['max'])
+    elif method == 'histogram_cut':
+        stretch_percentile = percentiles or (2, 98)
+        image_percentiles = np.concatenate(
+            (metadata['min'], metadata['percentiles'], metadata['max'])
+        )
+        stretch_range = np.interp(stretch_percentile, np.arange(0, 101), image_percentiles)
+    else:
+        raise ValueError(f'unrecognized stretching method {method}')
+
+    return stretch_range
