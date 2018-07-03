@@ -1,9 +1,8 @@
-from typing import Mapping, Any
+from typing import Mapping, Sequence, Any, Union
 
-from terracotta.database import requires_database, Database
+from terracotta.drivers.base import Driver
 
 
-@requires_database
-def metadata(db: Database, keys: Mapping[str, str]) -> Mapping[str, Any]:
+def metadata(driver: Driver, keys: Union[Sequence[str], Mapping[str, str]]) -> Mapping[str, Any]:
     """Returns all metadata for a single dataset"""
-    raise NotImplementedError
+    return driver.get_metadata(keys)

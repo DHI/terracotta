@@ -133,3 +133,17 @@ def test_raster_retrieval(tmpdir, raster_file, provider):
     assert data2.shape == (256, 256)
 
     np.testing.assert_array_equal(data1, data2)
+
+
+@pytest.mark.parametrize('provider', ['sqlite'])
+def test_raster_duplicate(tmpdir, raster_file, provider):
+    from terracotta import drivers
+    dbfile = tmpdir.join('test.sqlite')
+    db = drivers.get_driver(str(dbfile), provider=provider)
+    keys = ('some', 'keys')
+
+    db.create(keys)
+    db.insert(['some', 'value'], str(raster_file))
+    db.insert(['some', 'value'], str(raster_file))
+
+    assert list(db.get_datasets().keys()) == [('some', 'value')]

@@ -6,6 +6,7 @@ Base class and mixins for data handlers.
 from abc import ABC, abstractmethod
 from typing import Callable, Mapping, Any, Tuple, Optional, Sequence, List
 import operator
+import warnings
 import functools
 
 from cachetools import cachedmethod, LRUCache
@@ -103,7 +104,9 @@ class RasterDriver(Driver):
         extra_metadata = extra_metadata or {}
 
         with rasterio.open(raster_path) as src:
-            raster_data = src.read(1)
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore', message='invalid value encountered.*')
+                raster_data = src.read(1)
             nodata = src.nodata
             bounds = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds), densify_pts=21)
 
@@ -134,12 +137,9 @@ class RasterDriver(Driver):
             with rasterio.open(path) as src, WarpedVRT(src, dst_crs='epsg:3857',
                                                        resampling=Resampling.bilinear) as vrt:
                     window = vrt.window(*bounds) if bounds is not None else None
-                    arr = vrt.read(
-                        1,
-                        window=window,
-                        out_shape=tilesize,
-                        boundless=True
-                    )
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings('ignore', message='invalid value encountered.*')
+                        arr = vrt.read(1, window=window, out_shape=tilesize, boundless=True)
         except OSError:
             raise exceptions.TileNotFoundError('error while reading file {}'.format(path))
 

@@ -15,6 +15,7 @@ def array_to_img(arr, alpha_mask=None):
     """Convert Numpy array to img.
     input array can be shape (H,W), (H,W,2), (H,W,3) or (H,W,4).
     Will be interpreted as L, LA, RGB and RGBA respectively.
+
     Parameters
     ----------
     arr: numpy array
@@ -23,6 +24,7 @@ def array_to_img(arr, alpha_mask=None):
         Alpha values (0 transparent, 255 opaque).
         If input shape is (H,W,2) or (H,W,4) and alpha_mask is None,
         the last slice will be used as alpha.
+
     Returns
     -------
     out: PIL Image
@@ -57,44 +59,15 @@ def array_to_png(arr, alpha_mask=None):
     return sio
 
 
-def get_alpha_mask(data, nodata):
-    """Return alpha layer for tile, where nodata NaNs and Infs are transparent.
-
-    Parameters
-    ----------
-    tile: np.array
-        The image tile.
-    ds_name: string
-        Internal name of the dataset.
-    tilesize: int
-        length of one side of tile
-
-    Returns
-    -------
-    out: np.array of uint8
-        Array of alpha values"""
-
-    if data.ndim not in (2, 3):
-        raise ValueError('Encountered invalid shape (must be 2 or 3-dimensional)')
-
-    if data.ndim == 2:
-        data = data[..., np.newaxis]
-
-    nodata = list(nodata)
-    if len(nodata) != data.shape[-1]:
-        raise ValueError('Need one nodata value per data band')
-
-    out_shape = data.shape[:-1]
-    alpha_mask = np.full(out_shape, 255, np.uint8)
-
-    for band, nodata_value in enumerate(nodata):
-        alpha_mask[data[..., band] == nodata_value] = 0
+def get_valid_mask(data, nodata):
+    """Return mask for data, masking out nodata and invalid values"""
+    out = data != nodata
 
     # Also mask out other invalid values if float
     if np.issubdtype(data.dtype, np.floating):
-        alpha_mask[np.any(~np.isfinite(data), axis=-1)] = 0
+        out &= np.isfinite(data)
 
-    return alpha_mask
+    return out
 
 
 def contrast_stretch(data, in_range, out_range, clip=True):
@@ -108,59 +81,45 @@ def contrast_stretch(data, in_range, out_range, clip=True):
     return out_data
 
 
-def to_uint8(data, lower_bound, upper_bound):
+def to_uint8(data, lower_bound, upper_bound, cmap=None):
     """Re-scale an array to [0, 255].
 
     Parameters
     ----------
-    lower_bound, upper_bound: number
+    lower_bound, upper_bound:
         Upper and lower bound of input data for stretch
 
     Returns
     -------
-    out: ndarray
-        Input data as uint8, scaled to [0, 255]
+    Input data as uint8, scaled to [0, 255]
     """
-    rescaled = contrast_stretch(data, (lower_bound, upper_bound), (0, 255), clip=True)
+    if cmap is None:
+        rescaled = contrast_stretch(data, (lower_bound, upper_bound), (0, 255), clip=True)
+    else:
+        rescaled = apply_cmap(data, (lower_bound, upper_bound))
     return rescaled.astype(np.uint8)
 
 
-def img_cmap(tile, data_range, cmap='inferno'):
-    """Maps input tile data to colormap.
-
-    Parameters
-    ----------
-    tile: numpy array
-        2d array of tile data
-    data_range: (number, number)
-        (min, max) values to map from data to cmap.
-        tile values outside will be clamped to cmap min or max.
-    cmap: str
-        Name of matplotlib colormap to use.
-        https://matplotlib.org/examples/color/colormaps_reference.html
-
-    Returns
-    -------
-    out: numpy array
-        Numpy RGBA array
-
-    """
+def apply_cmap(data, data_range, cmap='inferno'):
+    """Maps input data to colormap."""
     import matplotlib.cm
     try:
         mapper = matplotlib.cm.get_cmap(cmap)
     except ValueError as e:
         raise ValueError('Encountered invalid colormap') from e
 
-    return mapper(contrast_stretch(tile, data_range, (0, 1)))
+    return mapper(contrast_stretch(data, data_range, (0, 1)))
 
 
-def get_stretch_range(method, metadata, data_min=None, data_max=None, percentiles=None):
+def get_stretch_range(method, metadata, data_range=None, percentiles=None):
+    global_min, global_max = metadata['range']
     if method == 'stretch':
-        stretch_range = (data_min or metadata['min'], data_max or metadata['max'])
+        data_min, data_max = data_range or (None, None)
+        stretch_range = (data_min or global_min, data_max or global_max)
     elif method == 'histogram_cut':
         stretch_percentile = percentiles or (2, 98)
         image_percentiles = np.concatenate(
-            (metadata['min'], metadata['percentiles'], metadata['max'])
+            ([global_min], metadata['percentiles'], [global_max])
         )
         stretch_range = np.interp(stretch_percentile, np.arange(0, 101), image_percentiles)
     else:

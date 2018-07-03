@@ -1,20 +1,13 @@
 import concurrent.futures
-import functools
 from typing import Sequence, Mapping, Any
 from typing.io import BinaryIO
 
-from terracotta.driver.base import Driver
+from terracotta.drivers.base import Driver
 from terracotta import settings, image, xyz
 
 
-def scatter(fun):
-    @functools.wraps(fun)
-    def inner(kwargs):
-        return fun(**kwargs)
-
-
 def rgb(driver: Driver, some_keys: Mapping[str, str], tile_xyz: Sequence[int],
-        rgb_values: Sequence[str], *, stretch_method='stretch',
+        rgb_values: Sequence[str], *, stretch_method: str = 'stretch',
         stretch_options: Mapping[str, Any] = None) -> BinaryIO:
     """Return RGB image as PNG
 
@@ -42,21 +35,24 @@ def rgb(driver: Driver, some_keys: Mapping[str, str], tile_xyz: Sequence[int],
 
         unspecified_key = unspecified_key[0]
         band_keys = [dict(some_keys, {unspecified_key: band_key}) for band_key in rgb_values]
-        metadata = [driver.get_metadata(where=band_key) for band_key in band_keys]
+        metadata = [driver.get_metadata(band_key) for band_key in band_keys]
 
         tile_size = settings.TILE_SIZE
         out = np.empty(tile_size + (3,), dtype='uint8')
+        valid_mask = np.ones(tile_size, dtype='bool')
 
         def get_tile(keys, metadata):
             tile_data = xyz.get_tile_data(driver, keys, tile_x=tile_x, tile_y=tile_y, tile_z=tile_z,
                                           tilesize=tile_size)
+            valid_mask = image.get_valid_mask(out, nodata=metadata['nodata'])
             stretch_range = image.get_stretch_range(stretch_method, metadata, **stretch_options)
-            return image.to_uint8(tile_data, *stretch_range)
+            return image.to_uint8(tile_data, *stretch_range), valid_mask
 
         with concurrent.futures.ThreadPoolExecutor(3) as executor:
             results = executor.map(get_tile, band_keys, metadata)
-            for i, band_data in enumerate(results):
+            for i, (band_data, band_valid_mask) in enumerate(results):
                 out[..., i] = band_data
+                valid_mask &= band_valid_mask
 
-    alpha_mask = image.get_alpha_mask(out, nodata=[m['nodata'] for m in metadata])
-    return image.to_png(out, alpha_mask=alpha_mask)
+    alpha_mask = (255 * valid_mask).astype('uint8')
+    return image.array_to_png(out, alpha_mask=alpha_mask)

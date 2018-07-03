@@ -1,70 +1,91 @@
-from io import BytesIO
+import os
+import threading
+import webbrowser
+import json
 
-from flask import Blueprint, current_app, abort, send_file, jsonify, request, render_template
-import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
+from flask import Flask, Blueprint, current_app, abort, send_file, jsonify, request, render_template
 
-import terracotta.tile as tile
-from terracotta.tile import TileNotFoundError, TileOutOfBoundsError, DatasetNotFoundError
-import terracotta.encode_decode as ed
-
+from terracotta.exceptions import TileNotFoundError, TileOutOfBoundsError, DatasetNotFoundError
+# TODO: proper exception handling
 
 flask_api = Blueprint('flask_api', __name__)
-tilestore = None
 
 
-def init(**kwargs):
-    global tilestore
-    tilestore = tile.TileStore(**kwargs)
+@flask_api.route('/rgb/<path:path>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
+def get_rgb(tile_z, tile_y, tile_x, path):
+    """Return PNG image of requested RGB tile"""
+    from terracotta.handlers.rgb import rgb
 
-
-@flask_api.route('/tile/<dataset>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
-@flask_api.route('/tile/<dataset>/<timestep>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
-                methods=['GET'])
-def get_tile(dataset, tile_z, tile_x, tile_y, timestep=None):
-    """Respond to tile requests"""
-    cmap = request.args.get('colormap', 'inferno')
-
-    try:
-        img, alpha_mask = tilestore.tile(dataset, tile_x, tile_y, tile_z, timestep)
-    except (TileNotFoundError, DatasetNotFoundError):
-        if current_app.debug:
-            raise
+    driver = current_app.config['DRIVER']
+    some_keys = path.split('/')
+    if len(some_keys) != len(driver.available_keys) - 1:
         abort(404)
-    except TileOutOfBoundsError:
-        nodata = tilestore.get_nodata(dataset)
-        img = np.full((256, 256), nodata, dtype=np.uint8)
-        alpha_mask = np.zeros((256, 256), dtype=np.uint8)
-
-    range = tilestore.get_meta(dataset)['range']
-    try:
-        img = ed.img_cmap(img, range, cmap=cmap)
-    except ValueError:
+    tile_xyz = (tile_x, tile_y, tile_z)
+    rgb_values = [request.args.get(k) for k in ('r', 'g', 'b')]
+    if not all(rgb_values.values()):
         abort(400)
-    img = ed.array_to_img(img, alpha_mask=alpha_mask)
+    stretch_method = request.args.get('stretch_method', 'stretch')
+    stretch_options = {k: json.loads(request.args[k]) for k in ('data_range', 'percentiles')
+                       if k in request.args}
+    try:
+        image = rgb(
+            driver, some_keys, tile_xyz, rgb_values,
+            stretch_method=stretch_method, stretch_options=stretch_options
+        )
+    except TileNotFoundError:
+        abort(404)
+    return send_file(image, mimetype='image/png')
 
-    sio = BytesIO()
-    img.save(sio, 'png', compress_level=0)
-    sio.seek(0)
 
-    return send_file(sio, mimetype='image/png')
+@flask_api.route('/singleband/<path:path>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
+                 methods=['GET'])
+def get_singleband(tile_z, tile_y, tile_x, path):
+    """Return PNG image of requested RGB tile"""
+    from terracotta.handlers.singleband import singleband
+
+    driver = current_app.config['DRIVER']
+    keys = path.split('/')
+    if len(keys) != len(driver.available_keys):
+        abort(404)
+    tile_xyz = (tile_x, tile_y, tile_z)
+
+    stretch_method = request.args.get('stretch_method', 'stretch')
+    stretch_options = {k: json.loads(request.args[k]) for k in ('data_range', 'percentiles')
+                       if k in request.args}
+    colormap = request.args.get('colormap', 'inferno')
+
+    try:
+        image = singleband(
+            driver, keys, tile_xyz, colormap=colormap,
+            stretch_method=stretch_method, stretch_options=stretch_options
+        )
+    except TileNotFoundError:
+        abort(404)
+    return send_file(image, mimetype='image/png')
 
 
 @flask_api.route('/datasets', methods=['GET'])
 def get_datasets():
-    """Send back names of available datasets"""
-    datasets = list(tilestore.get_datasets())
+    """Send back all available key combinations"""
+    from terracotta.handlers.datasets import datasets
+    driver = current_app.config['DRIVER']
+    keys = dict(request.args.items()) or None
+    print(keys)
+    available_datasets = datasets(driver, keys)
+    return jsonify(available_datasets)
 
-    return jsonify({'datasets': datasets})
 
-
-@flask_api.route('/meta/<dataset>', methods=['GET'])
-def get_meta(dataset):
+@flask_api.route('/metadata/<path:path>', methods=['GET'])
+def get_metadata(path):
     """Send back dataset metadata as json"""
+    from terracotta.handlers.metadata import metadata
+    driver = current_app.config['DRIVER']
+    keys = path.split('/')
+    if len(keys) != len(driver.available_keys):
+        abort(404)
+
     try:
-        meta = tilestore.get_meta(dataset)
+        meta = metadata(driver, keys)
     except DatasetNotFoundError:
         if current_app.debug:
             raise
@@ -73,69 +94,49 @@ def get_meta(dataset):
     return jsonify(meta)
 
 
-@flask_api.route('/timesteps/<dataset>', methods=['GET'])
-def get_timesteps(dataset):
-    """Send back list of timesteps for dataset as json."""
-    try:
-        timesteps = tilestore.get_timesteps(dataset)
-    except DatasetNotFoundError:
-        if current_app.debug:
-            raise
-        abort(404)
-
-    return jsonify({'timesteps': timesteps})
-
-
-@flask_api.route('/bounds/<dataset>', methods=['GET'])
-def get_bounds(dataset):
-    """Send back WGS bounds of dataset"""
-    try:
-        bounds = tilestore.get_bounds(dataset)
-    except DatasetNotFoundError:
-        if current_app.debug:
-            raise
-        abort(404)
-
-    return jsonify(bounds)
-
-
-@flask_api.route('/', methods=['GET'])
-def get_map():
-    if not current_app.debug:
-        abort(404)
-    return render_template('map.html')
-
-
-@flask_api.route('/legend/<dataset>', methods=['GET'])
-def get_legend(dataset):
-    """Send back JSON of class names or min/max
-    with corresponding color as hex"""
-    try:
-        classes = tilestore.get_classes(dataset)
-    except DatasetNotFoundError:
-        if current_app.debug:
-            raise
-        abort(404)
-
-    val_range = tilestore.get_meta(dataset)['range']
-    names, vals = zip(*classes.items())
-
-    # Cmapper
-    normalizer = matplotlib.colors.Normalize(vmin=val_range[0], vmax=val_range[1], clip=True)
-    mapper = cm.ScalarMappable(norm=normalizer, cmap='inferno')
-
-    rgbs = [mapper.to_rgba(x, bytes=True) for x in vals]
-    hex = ['#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2]) for rgb in rgbs]
-
-    names_hex = dict(zip(names, hex))
-    legend = {'legend': names_hex}
-
-    return jsonify(legend)
+@flask_api.route('/keys', methods=['GET'])
+def get_keys():
+    """Send back a JSON list of all key names"""
+    from terracotta.handlers.keys import keys
+    driver = current_app.config['DRIVER']
+    return jsonify(keys(driver))
 
 
 @flask_api.route('/colormaps', methods=['GET'])
 def get_cmaps():
     """Send back a JSON list of all registered colormaps"""
-    cmaps = plt.colormaps()
+    from terracotta.handlers.colormaps import colormaps
+    return jsonify(colormaps())
 
-    return jsonify({'colormaps': cmaps})
+
+@flask_api.route('/', methods=['GET'])
+def get_map():
+    return render_template('map.html')
+
+
+def create_app(driver, debug=False, profile=False):
+    """Returns a Flask app"""
+
+    new_app = Flask('terracotta')
+    new_app.debug = debug
+    new_app.config['DRIVER'] = driver
+    new_app.register_blueprint(flask_api, url_prefix='')
+
+    if profile:
+        from werkzeug.contrib.profiler import ProfilerMiddleware
+        new_app.config['PROFILE'] = True
+        new_app.wsgi_app = ProfilerMiddleware(new_app.wsgi_app, restrictions=[30])
+
+    return new_app
+
+
+def run_app(*args, preview=False, **kwargs):
+    """Create an app and run it.
+    All args are passed to create_app."""
+
+    app = create_app(*args, **kwargs)
+    port = 5000
+    if preview and 'WERKZEUG_RUN_MAIN' not in os.environ:
+        threading.Timer(2, lambda: webbrowser.open('http://127.0.0.1:%d/' % port)).start()
+
+    app.run(port=port)

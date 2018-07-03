@@ -14,3 +14,7 @@ class TileOutOfBoundsError(Exception):
 
 class DatasetNotFoundError(Exception):
     pass
+
+
+class UnknownKeyError(Exception):
+    pass

@@ -1,9 +1,9 @@
 from typing import List, Mapping
 
-from terracotta.database import requires_database, Database
+from terracotta.drivers.base import Driver
 
 
-@requires_database
-def datasets(db: Database, some_keys: Mapping[str, str] = None) -> List[Mapping[str, str]]:
+def datasets(driver: Driver, some_keys: Mapping[str, str] = None) -> List[List[str]]:
     """List all available key combinations"""
-    raise NotImplementedError
+    with driver.connect():
+        return [list(ds) for ds in driver.get_datasets(where=some_keys).keys()]

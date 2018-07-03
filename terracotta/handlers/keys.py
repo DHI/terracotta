@@ -1,9 +1,8 @@
 from typing import List
 
-from terracotta.database import requires_database, Database
+from terracotta.drivers.base import Driver
 
 
-@requires_database
-def keys(db: Database) -> List[str]:
+def keys(driver: Driver) -> List[str]:
     """List available keys, in order"""
-    raise NotImplementedError
+    return driver.available_keys

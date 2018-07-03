@@ -1,3 +1,5 @@
+import functools
+
 from terracotta.drivers.base import Driver
 from terracotta.drivers.sqlite import SQLiteDriver
 
@@ -7,6 +9,20 @@ DRIVERS = {
 }
 
 
+def singleton(fun):
+    instance_cache = {}
+
+    @functools.wraps(fun)
+    def inner(*args, **kwargs):
+        key = tuple(args) + tuple(kwargs.items())
+        if key not in instance_cache:
+            instance_cache[key] = fun(*args, **kwargs)
+        return instance_cache[key]
+
+    return inner
+
+
+@singleton
 def get_driver(url_or_path: str, provider: str = None) -> Driver:
     if provider is None:  # try and auto-detect
         provider = 'sqlite'

@@ -9,12 +9,13 @@ import contextlib
 import json
 import re
 from typing import Any, Sequence, Mapping, Tuple, Union
+from pathlib import Path
 
-from cachetools import LRUCache, cachedmethod
+from cachetools import LFUCache, cachedmethod
 import numpy as np
 
 from terracotta.drivers.base import RasterDriver, requires_connection
-from terracotta import settings
+from terracotta import settings, exceptions
 
 
 class SQLiteDriver(RasterDriver):
@@ -33,12 +34,12 @@ class SQLiteDriver(RasterDriver):
         ('metadata', 'VARCHAR[max]')
     )
 
-    def __init__(self, path: str):
-        self.path = path
+    def __init__(self, path: Union[str, Path]):
+        self.path = str(path)
         self._available_keys = None
         self.conn = None
 
-        self._metadata_cache = LRUCache(settings.CACHE_SIZE)
+        self._metadata_cache = LFUCache(settings.CACHE_SIZE)
         super(SQLiteDriver, self).__init__()
 
     @staticmethod
@@ -79,7 +80,7 @@ class SQLiteDriver(RasterDriver):
         except TypeError:  # not a mapping
             return keys
         except KeyError as exc:
-            raise ValueError('Encountered unknown key') from exc
+            raise exceptions.UnknownKeyError('Encountered unknown key') from exc
 
     @contextlib.contextmanager
     def connect(self):
@@ -131,7 +132,8 @@ class SQLiteDriver(RasterDriver):
 
     @cachedmethod(operator.attrgetter('_metadata_cache'))
     @requires_connection
-    def _get_datasets(self, where: Tuple[Tuple[str], Tuple[str]] = None):
+    def _get_datasets(self, where: Tuple[Tuple[str], Tuple[str]] = None
+                      ) -> Mapping[Tuple[str], str]:
         c = self.conn.cursor()
 
         if where is None:
@@ -139,7 +141,7 @@ class SQLiteDriver(RasterDriver):
         else:
             where_keys, where_values = where
             if not all(key in self.available_keys for key in where_keys):
-                raise ValueError('Encountered unrecognized keys in where clause')
+                raise exceptions.UnknownKeyError('Encountered unrecognized keys in where clause')
             where_string = ' AND '.join([f'{key}=?' for key in where_keys])
             c.execute(f'SELECT * FROM datasets WHERE {where_string}', where_values)
 
@@ -163,7 +165,7 @@ class SQLiteDriver(RasterDriver):
         if not rows:  # support lazy loading
             filepath = self.get_datasets(dict(zip(self.available_keys, keys)))
             if not filepath:
-                raise ValueError(f'No dataset found for given keys {keys}')
+                raise exceptions.DatasetNotFoundError(f'No dataset found for given keys {keys}')
             assert len(filepath) == 1
             # compute metadata and try again
             self.insert(keys, filepath[keys])
