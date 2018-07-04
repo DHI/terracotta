@@ -7,6 +7,12 @@ branches:
   only:
     - master
 
+addons:
+  apt:
+    update: true
+    packages:
+      - libgdal-dev
+
 install:
   - pip install -e .[test]
 
@@ -31,4 +37,4 @@ notifications:
       - dhigras:TPwMxNqVS9FeaTUJNZlMmL6i
     on_failure: change
     on_success: change
-on_pull_requests: false
+    on_pull_requests: false

@@ -28,7 +28,7 @@ setup(
         terracotta=terracotta.cli:cli
     ''',
     extras_require={
-        'test': ['pytest']
+        'test': ['pytest', 'pytest-cov', 'codecov']
     },
     include_package_data=True,
     package_data={
