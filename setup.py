@@ -20,7 +20,7 @@ setup(
         'pillow',
         'matplotlib',
         'mercantile',
-        'rasterio',
+        'rasterio>=1.0b1',
         'cachetools'
     ],
     entry_points='''
@@ -28,7 +28,7 @@ setup(
         terracotta=terracotta.cli:cli
     ''',
     extras_require={
-        'test': ['pytest', 'pytest-cov', 'codecov']
+        'test': ['pytest', 'pytest-cov', 'pytest-mypy', 'codecov']
     },
     include_package_data=True,
     package_data={
