@@ -1,0 +1,34 @@
+language: python
+
+python:
+  - "3.6"
+
+branches:
+  only:
+    - master
+
+install:
+  - pip install -e .[test]
+
+jobs:
+  include:
+    # lint
+    - before_install: skip
+      install:
+        - pip install flake8
+      script:
+        - flake8 terracotta
+    # test
+    - script:
+        - python -m pytest --cov=terracotta -W error --color=yes -v
+      after_success:
+        - codecov
+
+notifications:
+  email: false
+  slack:
+    rooms:
+      - dhigras:TPwMxNqVS9FeaTUJNZlMmL6i
+    on_failure: change
+    on_success: change
+on_pull_requests: false
