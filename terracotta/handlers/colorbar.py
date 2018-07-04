@@ -2,17 +2,17 @@ from typing import Mapping, Sequence, Union, Any, List
 
 import numpy as np
 
-from terracotta import image
-from terracotta.drivers.base import Driver
+from terracotta import settings, image, get_driver
 
 
-def colorbar(driver: Driver, keys: Union[Sequence[str], Mapping[str, str]], *,
+def colorbar(keys: Union[Sequence[str], Mapping[str, str]], *,
              colormap: str = None, stretch_method: str = 'stretch',
              stretch_options: Mapping[str, Any] = None, num_values: int = 100
              ) -> Mapping[Union[int, float], List[float]]:
     """Returns a mapping pixel value -> rgba for given image"""
     stretch_options = stretch_options or {}
 
+    driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
     with driver.connect():
         metadata = driver.get_metadata(keys)
 

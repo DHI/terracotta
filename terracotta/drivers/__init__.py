@@ -24,7 +24,7 @@ def singleton(fun):
 
 @singleton
 def get_driver(url_or_path: str, provider: str = None) -> Driver:
-    if provider is None:  # try and auto-detect
+    if not provider:  # try and auto-detect
         provider = 'sqlite'
 
     try:

@@ -73,7 +73,8 @@ def get_valid_mask(data, nodata):
 def contrast_stretch(data, in_range, out_range, clip=True):
     lower_bound_in, upper_bound_in = in_range
     lower_bound_out, upper_bound_out = out_range
-    out_data = data - lower_bound_in
+    out_data = data.astype('float64', copy=True)
+    out_data -= lower_bound_in
     out_data *= (upper_bound_out - lower_bound_out) / (upper_bound_in - lower_bound_in)
     out_data += lower_bound_out
     if clip:
@@ -81,7 +82,7 @@ def contrast_stretch(data, in_range, out_range, clip=True):
     return out_data
 
 
-def to_uint8(data, lower_bound, upper_bound, cmap=None):
+def to_uint8(data, lower_bound, upper_bound):
     """Re-scale an array to [0, 255].
 
     Parameters
@@ -93,10 +94,7 @@ def to_uint8(data, lower_bound, upper_bound, cmap=None):
     -------
     Input data as uint8, scaled to [0, 255]
     """
-    if cmap is None:
-        rescaled = contrast_stretch(data, (lower_bound, upper_bound), (0, 255), clip=True)
-    else:
-        rescaled = apply_cmap(data, (lower_bound, upper_bound))
+    rescaled = contrast_stretch(data, (lower_bound, upper_bound), (0, 255), clip=True)
     return rescaled.astype(np.uint8)
 
 

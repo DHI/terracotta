@@ -4,10 +4,6 @@ Custom exceptions raised internally
 """
 
 
-class TileNotFoundError(Exception):
-    pass
-
-
 class TileOutOfBoundsError(Exception):
     pass
 
@@ -17,4 +13,8 @@ class DatasetNotFoundError(Exception):
 
 
 class UnknownKeyError(Exception):
+    pass
+
+
+class InvalidArgumentsError(Exception):
     pass

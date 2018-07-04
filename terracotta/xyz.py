@@ -1,11 +1,14 @@
 from typing import Sequence, Tuple
 
+import numpy as np
 import mercantile
 
 from terracotta import exceptions
+from terracotta.drivers.base import Driver
 
 
-def get_tile_data(driver, keys, tile_x, tile_y, tile_z, *, tilesize=(256, 256)):
+def get_tile_data(driver: Driver, keys: Sequence[str], tile_x: int, tile_y: int, tile_z: int, *,
+                  tilesize: Sequence[int] = (256, 256)) -> np.ndarray:
     metadata = driver.get_metadata(keys)
     wgs_bounds = metadata['bounds']
     if not tile_exists(wgs_bounds, tile_x, tile_y, tile_z):

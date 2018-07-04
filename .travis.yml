@@ -16,19 +16,11 @@ addons:
 install:
   - pip install -e .[test]
 
-jobs:
-  include:
-    # lint
-    - before_install: skip
-      install:
-        - pip install flake8
-      script:
-        - flake8 terracotta
-    # test
-    - script:
-        - python -m pytest --cov=terracotta -W error --color=yes -v
-      after_success:
-        - codecov
+script:
+  - python -m pytest --color=yes -v
+
+after_success:
+  - codecov
 
 notifications:
   email: false

@@ -21,14 +21,15 @@ setup(
         'matplotlib',
         'mercantile',
         'rasterio>=1.0b1',
-        'cachetools'
+        'cachetools',
+        'tqdm'
     ],
     entry_points='''
         [console_scripts]
-        terracotta=terracotta.cli:cli
+        terracotta=terracotta.scripts.cli:cli
     ''',
     extras_require={
-        'test': ['pytest', 'pytest-cov', 'pytest-mypy', 'codecov']
+        'test': ['pytest', 'pytest-cov', 'pytest-mypy', 'pytest-flake8', 'codecov']
     },
     include_package_data=True,
     package_data={

@@ -1,8 +1,9 @@
 from typing import Mapping, Sequence, Any, Union
 
-from terracotta.drivers.base import Driver
+from terracotta import settings, get_driver
 
 
-def metadata(driver: Driver, keys: Union[Sequence[str], Mapping[str, str]]) -> Mapping[str, Any]:
+def metadata(keys: Union[Sequence[str], Mapping[str, str]]) -> Mapping[str, Any]:
     """Returns all metadata for a single dataset"""
+    driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
     return driver.get_metadata(keys)
