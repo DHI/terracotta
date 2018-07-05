@@ -29,7 +29,7 @@ setup(
         terracotta=terracotta.scripts.cli:cli
     ''',
     extras_require={
-        'test': ['pytest', 'pytest-cov', 'pytest-mypy', 'pytest-flake8', 'codecov']
+        'test': ['pytest>=3.5', 'pytest-cov', 'pytest-mypy', 'pytest-flake8', 'codecov']
     },
     include_package_data=True,
     package_data={
