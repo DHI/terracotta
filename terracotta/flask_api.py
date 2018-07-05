@@ -12,19 +12,27 @@ flask_api = Blueprint('flask_api', __name__)
 
 
 def convert_exceptions(fun: Callable) -> Callable:
+    """Converts internal exceptions to appropriate HTTP responses"""
 
     @functools.wraps(fun)
     def inner(*args: Any, **kwargs: Any) -> Any:
         try:
             return fun(*args, **kwargs)
+
         except exceptions.TileOutOfBoundsError:
-            from terracotta import settings, image
+            # send empty image
+            from terracotta import get_settings, image
+            settings = get_settings()
             return send_file(image.empty_image(settings.TILE_SIZE), mimetype='image/png')
+
         except (exceptions.DatasetNotFoundError, exceptions.UnknownKeyError):
+            # wrong path -> 404
             if current_app.debug:
                 raise
             abort(404)
+
         except exceptions.InvalidArgumentsError:
+            # wrong query arguments -> 400
             if current_app.debug:
                 raise
             abort(400)
@@ -76,7 +84,7 @@ def get_singleband(tile_z: int, tile_y: int, tile_x: int, path: str) -> Any:
     stretch_method = request.args.get('stretch_method', 'stretch')
     stretch_options = {k: json.loads(request.args[k]) for k in ('data_range', 'percentiles')
                        if k in request.args}
-    colormap = request.args.get('colormap', 'inferno')
+    colormap = request.args.get('colormap', 'Greys_r')
 
     image = singleband(
         keys, tile_xyz, colormap=colormap,

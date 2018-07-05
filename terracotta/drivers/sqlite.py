@@ -19,7 +19,7 @@ from cachetools import LFUCache, cachedmethod
 import numpy as np
 
 from terracotta.drivers.base import RasterDriver, requires_connection
-from terracotta import settings, exceptions
+from terracotta import get_settings, exceptions
 
 
 def memoize(fun: Callable) -> Callable:
@@ -51,6 +51,7 @@ class SQLiteDriver(RasterDriver):
     )
 
     def __init__(self, path: Union[str, Path]) -> None:
+        settings = get_settings()
         self.path: str = str(path)
         self._connetion_pool: Dict[int, Connection] = {}
         self._db_lock: Lock = Lock()
@@ -183,6 +184,9 @@ class SQLiteDriver(RasterDriver):
     @cachedmethod(operator.attrgetter('_metadata_cache'))
     @requires_connection
     def _get_metadata(self, keys: Tuple[str]) -> Dict[str, Any]:
+
+        if len(keys) != len(self.available_keys):
+            raise exceptions.UnknownKeyError('Got wrong number of keys')
 
         conn = self.get_connection()
         c = conn.cursor()

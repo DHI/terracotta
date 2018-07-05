@@ -5,6 +5,8 @@ from io import BytesIO
 import numpy as np
 from PIL import Image
 
+from terracotta import exceptions
+
 BAND_TO_MODE = {
     1: 'L',
     2: 'LA',
@@ -90,11 +92,11 @@ def apply_cmap(data: np.ndarray, data_range: Sequence[Number], cmap: str = None)
     """Maps input data to colormap."""
     import matplotlib.cm
 
-    cmap = cmap or 'Greys'
+    cmap_ = cmap or 'Greys_r'
     try:
-        mapper = matplotlib.cm.get_cmap(cmap)
+        mapper = matplotlib.cm.get_cmap(cmap_)
     except ValueError as e:
-        raise ValueError('Encountered invalid colormap') from e
+        raise exceptions.InvalidArgumentsError('Encountered invalid colormap') from e
 
     return mapper(contrast_stretch(data, data_range, (0, 1)))
 
@@ -120,6 +122,6 @@ def get_stretch_range(method: str, metadata: Mapping[str, Any],
         stretch_range = (interpolated_percentiles[0], interpolated_percentiles[1])
 
     else:
-        raise ValueError(f'unrecognized stretching method {method}')
+        raise exceptions.InvalidArgumentsError(f'unrecognized stretching method {method}')
 
     return stretch_range

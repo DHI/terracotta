@@ -7,6 +7,7 @@ T = TypeVar('T', str, int, float, Tuple[str, ...], Tuple[int, ...], Tuple[float,
 
 
 def _coerce(from_: Any, to: T) -> T:
+    """Recursively coerce first argument to type of second argument."""
     if isinstance(to, tuple):
         if len(from_) != len(to):
             raise ValueError('inconsistent length')
@@ -20,6 +21,8 @@ class TerracottaSettings:
     CACHE_SIZE: int = 1024 * 1024 * 500  # 500MB
     TILE_SIZE: Tuple[int, int] = (256, 256)
 
+    __locked__: bool = False
+
     def __init__(self, **kwargs: Mapping[str, Any]) -> None:
         for key, val in kwargs.items():
             try:
@@ -27,16 +30,22 @@ class TerracottaSettings:
             except (ValueError, TypeError) as exc:
                 raise ValueError(f'Could not parse key {key} with value {val}') from exc
 
-        def _immutable(*args: Any, **kwargs: Any) -> None:
-            raise TypeError('settings are immutable')
+        self.__locked__ = True
 
-        setattr(self, '__setattr__', _immutable)
+    def __setattr__(self, name: str, value: Any) -> None:
+        if self.__locked__:
+            raise TypeError('settings are immutable')
+        object.__setattr__(self, name, value)
+
+    def __repr__(self) -> str:
+        attr_string = ', '.join(f'{key}={getattr(self, key)}' for key in AVAILABLE_SETTINGS)
+        return f'TerracottaSettings({attr_string})'
 
 
 AVAILABLE_SETTINGS = tuple(attr for attr in dir(TerracottaSettings) if not attr.startswith('_'))
 
 
-def get_settings(config: Mapping[str, Any] = None) -> TerracottaSettings:
+def parse_config(config: Mapping[str, Any] = None) -> TerracottaSettings:
     """Parse given config dict and return new TerracottaSettings object"""
     config_dict = config or {}
 
@@ -46,7 +55,11 @@ def get_settings(config: Mapping[str, Any] = None) -> TerracottaSettings:
         if value is None:
             env_value = os.environ.get(f'TC_{key}', None)
             if env_value:
-                value = json.loads(env_value)
+                try:
+                    value = json.loads(env_value)
+                except json.decoder.JSONDecodeError as exc:
+                    raise ValueError(f'Could not parse environment variable TC_{key} with value'
+                                     f'{env_value} as JSON') from exc
 
         return key, value
 

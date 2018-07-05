@@ -2,7 +2,7 @@ import concurrent.futures
 from typing import Sequence, Mapping, Any, Tuple, Optional, TypeVar
 from typing.io import BinaryIO
 
-from terracotta import settings, get_driver, image, xyz, exceptions
+from terracotta import get_settings, get_driver, image, xyz, exceptions
 
 Number = TypeVar('Number', int, float)
 
@@ -38,6 +38,7 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int],
     except ValueError:
         raise exceptions.InvalidArgumentsError('xyz argument must contain 3 values')
 
+    settings = get_settings()
     driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
 
     available_keys = driver.available_keys

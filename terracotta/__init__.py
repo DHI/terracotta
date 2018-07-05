@@ -9,18 +9,22 @@ del mpl
 
 # initialize settings
 from typing import Mapping, Any
-from terracotta.config import get_settings
+from terracotta.config import parse_config, TerracottaSettings
 
-settings = get_settings()
-del get_settings
+_settings = parse_config()
 
 
 def update_settings(config: Mapping[str, Any] = None) -> None:
-    from terracotta.config import get_settings
-    global settings
-    settings = get_settings(config)
+    from terracotta.config import parse_config
+    global _settings
+    _settings = parse_config(config)
 
 
+def get_settings() -> TerracottaSettings:
+    return _settings
+
+
+del parse_config, TerracottaSettings
 del Mapping, Any
 
 # expose API

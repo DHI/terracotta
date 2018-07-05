@@ -1,7 +1,7 @@
 from typing import Sequence, Mapping, Any, Union
 from typing.io import BinaryIO
 
-from terracotta import settings, get_driver, image, xyz
+from terracotta import get_settings, get_driver, image, xyz
 
 
 def singleband(keys: Union[Sequence[str], Mapping[str, str]], tile_xyz: Sequence[int], *,
@@ -16,6 +16,7 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]], tile_xyz: Sequence
     except ValueError:
         raise ValueError('xyz argument must contain three values')
 
+    settings = get_settings()
     driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
     with driver.connect():
         metadata = driver.get_metadata(keys)

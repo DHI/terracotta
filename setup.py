@@ -20,7 +20,7 @@ setup(
         'pillow',
         'matplotlib',
         'mercantile',
-        'rasterio>=1.0b1',
+        'rasterio>=1.0rc1',
         'cachetools',
         'tqdm'
     ],

@@ -15,7 +15,7 @@ import contextlib
 from cachetools import cachedmethod, LRUCache
 import numpy as np
 
-from terracotta import settings, exceptions
+from terracotta import get_settings, exceptions
 
 
 def requires_connection(fun: Callable) -> Callable:
@@ -91,6 +91,7 @@ class RasterDriver(Driver):
 
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        settings = get_settings()
         self._raster_cache = LRUCache(settings.CACHE_SIZE, getsizeof=sys.getsizeof)
         super(RasterDriver, self).__init__(*args, **kwargs)
 
