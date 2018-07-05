@@ -16,22 +16,10 @@ Number = TypeVar('Number', int, float)
 
 
 def array_to_img(arr: np.ndarray, alpha_mask: Optional[np.ndarray] = None) -> Image:
-    """Convert Numpy array to img.
-    input array can be shape (H,W), (H,W,2), (H,W,3) or (H,W,4).
+    """Convert NumPy array to PIL Image.
+
+    Input array can be shape (H,W), (H,W,2), (H,W,3) or (H,W,4).
     Will be interpreted as L, LA, RGB and RGBA respectively.
-
-    Parameters
-    ----------
-    arr: numpy array
-        Image data.
-    alpha_mask: numpy array
-        Alpha values (0 transparent, 255 opaque).
-        If input shape is (H,W,2) or (H,W,4) and alpha_mask is None,
-        the last slice will be used as alpha.
-
-    Returns
-    -------
-    out: PIL Image
     """
     if arr.ndim not in [2, 3]:
         raise ValueError("Img must have 2 or 3 dimensions")
@@ -61,6 +49,11 @@ def array_to_png(arr: np.ndarray, alpha_mask: Optional[np.ndarray] = None) -> Bi
     img.save(sio, 'png', compress_level=0)
     sio.seek(0)
     return sio
+
+
+def empty_image(size: Tuple[int, int]) -> BinaryIO:
+    img = np.zeros(size, dtype='uint8')
+    return array_to_png(img, alpha_mask=img)
 
 
 def get_valid_mask(data: np.ndarray, nodata: Number) -> np.ndarray:
@@ -97,7 +90,7 @@ def apply_cmap(data: np.ndarray, data_range: Sequence[Number], cmap: str = None)
     """Maps input data to colormap."""
     import matplotlib.cm
 
-    cmap = cmap or 'inferno'
+    cmap = cmap or 'Greys'
     try:
         mapper = matplotlib.cm.get_cmap(cmap)
     except ValueError as e:

@@ -5,7 +5,9 @@ Base class and mixins for data handlers.
 
 from abc import ABC, abstractmethod
 from typing import Callable, Mapping, Any, Tuple, Sequence, Dict, Union, List
+import sys
 import operator
+import math
 import warnings
 import functools
 import contextlib
@@ -89,7 +91,7 @@ class RasterDriver(Driver):
 
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self._raster_cache = LRUCache(settings.CACHE_SIZE)
+        self._raster_cache = LRUCache(settings.CACHE_SIZE, getsizeof=sys.getsizeof)
         super(RasterDriver, self).__init__(*args, **kwargs)
 
     def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]
@@ -133,26 +135,53 @@ class RasterDriver(Driver):
 
     @cachedmethod(operator.attrgetter('_raster_cache'))
     @requires_connection
-    def _get_raster_tile(self, keys: Tuple[str], *, bounds: Tuple[float] = None,
-                         tilesize: Sequence[int] = (256, 256)) -> np.ndarray:
+    def _get_raster_tile(self, keys: Tuple[str], *,
+                         bounds: Tuple[float, float, float, float] = None,
+                         tilesize: Tuple[int, int] = (256, 256)) -> np.ndarray:
+        """Load a raster dataset from a file through rasterio.
+
+        Heavily inspired by mapbox/rio-tiler
+        """
         import rasterio
+        from rasterio import transform, warp
         from rasterio.vrt import WarpedVRT
         from rasterio.enums import Resampling
 
         path = self.get_datasets(dict(zip(self.available_keys, keys)))
         assert len(path) == 1
         path = path[keys]
-        try:
-            with contextlib.ExitStack() as es, warnings.catch_warnings():
-                warnings.filterwarnings('ignore', message='invalid value encountered.*')
+
+        target_crs = 'epsg:3857'
+        resampling = Resampling.nearest
+
+        with contextlib.ExitStack() as es:
+            try:
                 src = es.enter_context(rasterio.open(path))
-                vrt = es.enter_context(
-                    WarpedVRT(src, crs='epsg:3857', resampling=Resampling.bilinear)
+            except OSError:
+                raise IOError('error while reading file {}'.format(path))
+
+            dst_transform, _, _ = warp.calculate_default_transform(
+                src.crs, target_crs, src.width, src.height, *src.bounds
+            )
+
+            if bounds is not None:
+                w, s, e, n = bounds
+            else:
+                w, s, e, n = src.bounds
+
+            vrt_width = math.ceil((e - w) / dst_transform.a)
+            vrt_height = math.ceil((s - n) / dst_transform.e)
+            vrt_transform = transform.from_bounds(w, s, e, n, vrt_width, vrt_height)
+            vrt = es.enter_context(
+                WarpedVRT(
+                    src, crs=target_crs, resampling=resampling,
+                    transform=vrt_transform, width=vrt_width, height=vrt_height
                 )
-                window = vrt.window(*bounds) if bounds is not None else None
-                arr = vrt.read(1, window=window, out_shape=tilesize, boundless=True)
-        except OSError:
-            raise IOError('error while reading file {}'.format(path))
+            )
+
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore', message='invalid value encountered.*')
+                arr = vrt.read(1, out_shape=tilesize, resampling=resampling)
 
         return arr
 

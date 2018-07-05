@@ -5,6 +5,7 @@ to be present on disk.
 """
 
 from typing import Any, Sequence, Mapping, Tuple, Union, Callable, Iterator, Dict
+import sys
 import operator
 import contextlib
 import functools
@@ -53,7 +54,7 @@ class SQLiteDriver(RasterDriver):
         self.path: str = str(path)
         self._connetion_pool: Dict[int, Connection] = {}
         self._db_lock: Lock = Lock()
-        self._metadata_cache: LFUCache = LFUCache(settings.CACHE_SIZE)
+        self._metadata_cache: LFUCache = LFUCache(settings.CACHE_SIZE, getsizeof=sys.getsizeof)
         super(SQLiteDriver, self).__init__(path)
 
     @staticmethod

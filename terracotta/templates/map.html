@@ -23,20 +23,20 @@
     http_request.send();
 
     if (http_request.status === 200) {
-      var datasets = JSON.parse(http_request.responseText)["datasets"];
-      return datasets;
+      return JSON.parse(http_request.responseText);
     }
 
-    return {};
+    return [];
   }
 
   function getMapCenter(datasets){
     var http_request = new XMLHttpRequest();
-    http_request.open("GET", "/bounds/" + datasets[0], false);
+    http_request.open("GET", "/metadata/" + datasets[0].join("/"), false);
     http_request.send();
 
     if (http_request.status === 200) {
-      var bounds = JSON.parse(http_request.responseText);
+      var metadata = JSON.parse(http_request.responseText);
+			var bounds = metadata["bounds"];
       return [(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2];
     }
 
@@ -46,7 +46,7 @@
   var dataLayers = {};
   var datasets = getDatasets();
   for(i = 0; i < datasets.length; i++) {
-    dataLayers[datasets[i]] = L.tileLayer("/tile/" + datasets[i] + "/{z}/{x}/{y}.png");
+    dataLayers[datasets[i].join(" | ")] = L.tileLayer("/singleband/" + datasets[i].join("/") + "/{z}/{x}/{y}.png");
   }
 
   var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';

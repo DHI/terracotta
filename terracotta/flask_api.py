@@ -17,11 +17,14 @@ def convert_exceptions(fun: Callable) -> Callable:
     def inner(*args: Any, **kwargs: Any) -> Any:
         try:
             return fun(*args, **kwargs)
+        except exceptions.TileOutOfBoundsError:
+            from terracotta import settings, image
+            return send_file(image.empty_image(settings.TILE_SIZE), mimetype='image/png')
         except (exceptions.DatasetNotFoundError, exceptions.UnknownKeyError):
             if current_app.debug:
                 raise
             abort(404)
-        except (exceptions.InvalidArgumentsError, exceptions.TileOutOfBoundsError):
+        except exceptions.InvalidArgumentsError:
             if current_app.debug:
                 raise
             abort(400)
@@ -29,13 +32,14 @@ def convert_exceptions(fun: Callable) -> Callable:
     return inner
 
 
+@flask_api.route('/rgb/<int:tile_z>/<int:tile_x>/<int:tile_y>.png')
 @flask_api.route('/rgb/<path:path>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
 @convert_exceptions
-def get_rgb(tile_z: int, tile_y: int, tile_x: int, path: str) -> Any:
+def get_rgb(tile_z: int, tile_y: int, tile_x: int, path: str = '') -> Any:
     """Return PNG image of requested RGB tile"""
     from terracotta.handlers.rgb import rgb
 
-    some_keys = path.split('/')
+    some_keys = [key for key in path.split('/') if key]
 
     tile_xyz = (tile_x, tile_y, tile_z)
     rgb_values = [request.args.get(k) for k in ('r', 'g', 'b')]
@@ -154,4 +158,4 @@ def run_app(*args: Any, allow_all_ips: bool = False,
 
         threading.Timer(2, open_browser).start()
 
-    app.run(host=host, port=port, threaded=True)
+    app.run(host=host, port=port)
