@@ -14,7 +14,7 @@ addons:
       - libgdal-dev
 
 install:
-  - pip install -e .[test]
+  - pip install -e .[test] --upgrade-strategy=eager
 
 script:
   - python -m pytest --color=yes -v
