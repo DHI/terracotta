@@ -1,8 +1,9 @@
+from typing import Mapping, Any
 import tempfile
 
 import click
 
-from terracotta.scripts.click_types import RasterPattern, TOMLFile
+from terracotta.scripts.click_types import RasterPattern, RasterPatternType, TOMLFile
 
 
 @click.command('serve')
@@ -19,8 +20,9 @@ from terracotta.scripts.click_types import RasterPattern, TOMLFile
               help='Allow connections from outside IP addresses')
 @click.option('--port', type=click.INT, default=None,
               help='Port to use [default: first free port between 5000 and 5099]')
-def serve(database=None, raster_pattern=None, debug=False, profile=False, no_browser=False,
-          config=None, database_provider=None, allow_all_ips=False, port=None):
+def serve(database: str = None, raster_pattern: RasterPatternType = None, debug: bool = False,
+          profile: bool = False, no_browser: bool = False, config: Mapping[str, Any] = None,
+          database_provider: str = None, allow_all_ips: bool = False, port: int = None) -> None:
     from terracotta import get_driver, update_settings
     from terracotta.flask_api import run_app
 
@@ -30,7 +32,7 @@ def serve(database=None, raster_pattern=None, debug=False, profile=False, no_bro
     if (database is None) == (raster_pattern is None):
         raise click.UsageError('Either --database or --raster-pattern must be given')
 
-    if database is None:
+    if raster_pattern is not None:
         dbfile = tempfile.NamedTemporaryFile(suffix='.sqlite', delete=False)
         dbfile.close()
 
@@ -47,7 +49,7 @@ def serve(database=None, raster_pattern=None, debug=False, profile=False, no_bro
     update_settings({'DRIVER_PATH': database, 'DRIVER_PROVIDER': database_provider})
 
     # find open port
-    def check_socket(host, port):
+    def check_socket(host: str, port: int) -> bool:
         """Check if given port can be listened to"""
         import socket
         from contextlib import closing

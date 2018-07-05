@@ -1,8 +1,10 @@
+from typing import Any
+
 import click
 
 
 @click.group('terracotta')
-def cli(*args, **kwargs):
+def cli(*args: Any, **kwargs: Any) -> None:
     """Terracotta CLI"""
     pass
 

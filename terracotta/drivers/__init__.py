@@ -1,3 +1,4 @@
+from typing import Callable, Any, Dict
 import functools
 
 from terracotta.drivers.base import Driver
@@ -9,11 +10,11 @@ DRIVERS = {
 }
 
 
-def singleton(fun):
-    instance_cache = {}
+def singleton(fun: Callable) -> Callable:
+    instance_cache: Dict[Any, Any] = {}
 
     @functools.wraps(fun)
-    def inner(*args, **kwargs):
+    def inner(*args: Any, **kwargs: Any) -> Any:
         key = tuple(args) + tuple(kwargs.items())
         if key not in instance_cache:
             instance_cache[key] = fun(*args, **kwargs)

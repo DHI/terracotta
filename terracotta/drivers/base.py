@@ -4,7 +4,7 @@ Base class and mixins for data handlers.
 """
 
 from abc import ABC, abstractmethod
-from typing import Callable, Mapping, Any, Tuple, Optional, Sequence, List
+from typing import Callable, Mapping, Any, Tuple, Sequence, Dict, Union, List
 import operator
 import warnings
 import functools
@@ -13,12 +13,12 @@ import contextlib
 from cachetools import cachedmethod, LRUCache
 import numpy as np
 
-from terracotta import settings
+from terracotta import settings, exceptions
 
 
 def requires_connection(fun: Callable) -> Callable:
     @functools.wraps(fun)
-    def inner(self, *args, **kwargs):
+    def inner(self: Driver, *args: Any, **kwargs: Any) -> Any:
         with self.connect():
             return fun(self, *args, **kwargs)
     return inner
@@ -29,24 +29,24 @@ class Driver(ABC):
 
     Defines a common interface for all handlers.
     """
-    available_keys: Optional[Tuple] = None
+    available_keys: Tuple[str]
 
     @abstractmethod
-    def __init__(self, url_or_path: str, *args, **kwargs) -> None:
+    def __init__(self, url_or_path: str) -> None:
         pass
 
     @abstractmethod
-    def create(self, *args, **kwargs) -> None:
+    def create(self, *args: Any, **kwargs: Any) -> None:
         """Create a new, empty data storage"""
         pass
 
     @abstractmethod
-    def connect(self) -> None:
+    def connect(self) -> contextlib.AbstractContextManager:
         """Context manager to connect to a given database and clean up on exit."""
         pass
 
     @abstractmethod
-    def get_datasets(self, where: Mapping[str, str] = None) -> List[Mapping[str, Any]]:
+    def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], Any]:
         """Get all known dataset key combinations matching the given pattern (all if not given).
 
         Values are a handle to retrieve data.
@@ -54,7 +54,7 @@ class Driver(ABC):
         pass
 
     @abstractmethod
-    def get_metadata(self, keys: Sequence[str]) -> Mapping[str, Any]:
+    def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
         """Return all stored metadata for given keys.
 
         Metadata has to contain the following keys:
@@ -69,13 +69,14 @@ class Driver(ABC):
         pass
 
     @abstractmethod
-    def get_raster_tile(self, keys: Sequence[str], *, bounds: Sequence[float] = None,
+    def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
+                        bounds: Sequence[float] = None,
                         tilesize: Sequence[int] = (256, 256)) -> np.ndarray:
         """Get raster tile as a NumPy array for given keys."""
         pass
 
     @abstractmethod
-    def insert(self, *args, **kwargs) -> None:
+    def insert(self, *args: Any, **kwargs: Any) -> None:
         """Register a new dataset. Used to populate data storage."""
         pass
 
@@ -87,8 +88,18 @@ class RasterDriver(Driver):
     """
 
     @abstractmethod
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._raster_cache = LRUCache(settings.CACHE_SIZE)
+        super(RasterDriver, self).__init__(*args, **kwargs)
+
+    def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]
+                              ) -> List[Any]:
+        try:
+            return [keys[key] for key in self.available_keys]  # type: ignore
+        except TypeError:  # not a mapping
+            return list(keys)
+        except KeyError as exc:
+            raise exceptions.UnknownKeyError('Encountered unknown key') from exc
 
     @staticmethod
     def _compute_metadata(raster_path: str,
@@ -132,13 +143,11 @@ class RasterDriver(Driver):
         assert len(path) == 1
         path = path[keys]
         try:
-            with contextlib.ExitStack() as es:
-                es.enter_context(warnings.catch_warnings())
+            with contextlib.ExitStack() as es, warnings.catch_warnings():
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
-                warnings.filterwarnings('ignore', message='dst_crs will be removed in 1.1, use crs')
                 src = es.enter_context(rasterio.open(path))
                 vrt = es.enter_context(
-                    WarpedVRT(src, dst_crs='epsg:3857', resampling=Resampling.bilinear)
+                    WarpedVRT(src, crs='epsg:3857', resampling=Resampling.bilinear)
                 )
                 window = vrt.window(*bounds) if bounds is not None else None
                 arr = vrt.read(1, window=window, out_shape=tilesize, boundless=True)
@@ -147,9 +156,11 @@ class RasterDriver(Driver):
 
         return arr
 
-    def get_raster_tile(self, keys: Sequence[str], *, bounds: Sequence[float] = None,
+    def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
+                        bounds: Sequence[float] = None,
                         tilesize: Sequence[int] = (256, 256)) -> np.ndarray:
         """Load tile with given keys or metadata"""
         # make sure all arguments are hashable
-        return self._get_raster_tile(tuple(keys), bounds=tuple(bounds) if bounds else None,
+        _keys = self._key_dict_to_sequence(keys)
+        return self._get_raster_tile(tuple(_keys), bounds=tuple(bounds) if bounds else None,
                                      tilesize=tuple(tilesize))

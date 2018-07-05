@@ -1,8 +1,9 @@
+from typing import Sequence, List
 import subprocess
 import shutil
 import itertools
 import tempfile
-import pathlib
+from pathlib import Path
 
 import click
 
@@ -14,7 +15,8 @@ from terracotta.scripts.click_types import GlobbityGlob, PathlibPath
 @click.argument('raster-files', nargs=-1, type=GlobbityGlob(), required=True)
 @click.option('-o', '--output-folder', type=PathlibPath(file_okay=False), required=True)
 @click.option('--overwrite', is_flag=True, default=False)
-def optimize_rasters(raster_files, output_folder, overwrite=False):
+def optimize_rasters(raster_files: Sequence[str], output_folder: Path,
+                     overwrite: bool = False) -> None:
     """Optimize a collection of raster files for use with Terracotta.
 
     Note that all rasters may only contain a single band. GDAL is required to run this command.
@@ -35,12 +37,12 @@ def optimize_rasters(raster_files, output_folder, overwrite=False):
     else:
         pbar = raster_files
 
-    def abort(msg):
+    def abort(msg: str) -> None:
         pbar.close()
         click.echo(msg)
         raise click.Abort()
 
-    def call_gdal(cmd):
+    def call_gdal(cmd: List[str]) -> None:
         try:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8')
         except subprocess.CalledProcessError as exc:
@@ -49,8 +51,8 @@ def optimize_rasters(raster_files, output_folder, overwrite=False):
             error_lines = '\n'.join(line for line in output if 'ERROR' in line)
             abort(f'Error while running GDAL:\n{error_lines}')
 
-    with tempfile.TemporaryDirectory() as tempdir:
-        tempdir = pathlib.Path(tempdir)
+    with tempfile.TemporaryDirectory() as t:
+        tempdir = Path(t)
         for input_file in pbar:
             if has_tqdm:
                 pbar.set_postfix({'file': input_file.name})

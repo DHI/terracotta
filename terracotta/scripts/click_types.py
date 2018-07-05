@@ -1,3 +1,4 @@
+from typing import List, Any, Tuple, Dict
 import pathlib
 import glob
 import re
@@ -10,20 +11,23 @@ import click
 class GlobbityGlob(click.ParamType):
     name = 'glob'
 
-    def convert(self, value, *args):
+    def convert(self, value: str, *args: Any) -> List[pathlib.Path]:
         return [pathlib.Path(f) for f in glob.glob(value)]
 
 
 class PathlibPath(click.Path):
-    def convert(self, *args, **kwargs):
+    def convert(self, *args: Any, **kwargs: Any) -> pathlib.Path:  # type: ignore
         return pathlib.Path(super(PathlibPath, self).convert(*args, **kwargs))
+
+
+RasterPatternType = Tuple[List[str], Dict[Tuple[str, ...], str]]
 
 
 class RasterPattern(click.ParamType):
     """Expands a pattern following the Python format specification to matching files"""
     name = 'raster-pattern'
 
-    def convert(self, value, *args, **kwargs):
+    def convert(self, value: str, *args: Any) -> RasterPatternType:
         value = os.path.realpath(value).replace('\\', '\\\\')
 
         try:
@@ -40,13 +44,13 @@ class RasterPattern(click.ParamType):
             self.fail('Pattern must contain at least one placeholder')
 
         try:
-            regex_pattern = re.compile(regex_pattern)
+            compiled_pattern = re.compile(regex_pattern)
         except re.error as exc:
             self.fail(f'Could not parse pattern to regex: {exc!s}')
 
         # use glob to find candidates, regex to extract placeholder values
         candidates = [os.path.realpath(candidate) for candidate in glob.glob(glob_pattern)]
-        matched_candidates = [regex_pattern.match(candidate) for candidate in candidates]
+        matched_candidates = [compiled_pattern.match(candidate) for candidate in candidates]
 
         key_combinations = [tuple(match.groups()) for match in matched_candidates if match]
         if len(key_combinations) != len(set(key_combinations)):
@@ -59,6 +63,6 @@ class RasterPattern(click.ParamType):
 class TOMLFile(click.ParamType):
     name = 'toml-file'
 
-    def convert(self, value, *args, **kwargs):
+    def convert(self, value: str, *args: Any) -> Dict[str, Any]:
         import toml
         return toml.load(value)

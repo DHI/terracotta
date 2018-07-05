@@ -4,9 +4,10 @@ SQLite-backed data handler. Metadata is stored in an SQLite database, raster dat
 to be present on disk.
 """
 
-from typing import Any, Sequence, Mapping, Tuple, Union, List
+from typing import Any, Sequence, Mapping, Tuple, Union, Callable, Iterator, Dict
 import operator
 import contextlib
+import functools
 import json
 import re
 from threading import Lock, get_ident
@@ -18,6 +19,18 @@ import numpy as np
 
 from terracotta.drivers.base import RasterDriver, requires_connection
 from terracotta import settings, exceptions
+
+
+def memoize(fun: Callable) -> Callable:
+    cache: Dict[Tuple[Any, ...], Any] = {}
+
+    @functools.wraps(fun)
+    def inner(*args: Any) -> Any:
+        if args not in cache:
+            cache[args] = fun(*args)
+        return cache[args]
+
+    return inner
 
 
 class SQLiteDriver(RasterDriver):
@@ -38,14 +51,13 @@ class SQLiteDriver(RasterDriver):
 
     def __init__(self, path: Union[str, Path]) -> None:
         self.path: str = str(path)
-        self._available_keys: Tuple[str, ...] = None
-        self._connetion_pool: Mapping[int, Connection] = {}
+        self._connetion_pool: Dict[int, Connection] = {}
         self._db_lock: Lock = Lock()
         self._metadata_cache: LFUCache = LFUCache(settings.CACHE_SIZE)
-        super(SQLiteDriver, self).__init__()
+        super(SQLiteDriver, self).__init__(path)
 
     @staticmethod
-    def _encode_data(decoded: Mapping[str, Any]) -> Mapping[str, Any]:
+    def _encode_data(decoded: Mapping[str, Any]) -> Dict[str, Any]:
         """Transform from internal format to database representation"""
         encoded = {
             'bounds_north': decoded['bounds'][0],
@@ -63,7 +75,7 @@ class SQLiteDriver(RasterDriver):
         return encoded
 
     @staticmethod
-    def _decode_data(encoded: Mapping[str, Any]) -> Mapping[str, Any]:
+    def _decode_data(encoded: Mapping[str, Any]) -> Dict[str, Any]:
         """Transform from database format to internal representation"""
         decoded = {
             'bounds': tuple([encoded[f'bounds_{d}'] for d in ('north', 'east', 'south', 'west')]),
@@ -76,27 +88,18 @@ class SQLiteDriver(RasterDriver):
         }
         return decoded
 
-    def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]
-                              ) -> List[Any]:
-        try:
-            return [keys[key] for key in self.available_keys]
-        except TypeError:  # not a mapping
-            return list(keys)
-        except KeyError as exc:
-            raise exceptions.UnknownKeyError('Encountered unknown key') from exc
-
     def get_connection(self) -> Connection:
         return self._connetion_pool[get_ident()]
 
     @contextlib.contextmanager
-    def lock_for_write(self):
+    def lock_for_write(self) -> Iterator:
         conn = self.get_connection()
         with self._db_lock:
             yield
             conn.commit()
 
     @contextlib.contextmanager
-    def connect(self):
+    def connect(self) -> Iterator:
         import sqlite3
         thread_id = get_ident()
         conn = self._connetion_pool.get(thread_id)
@@ -112,21 +115,20 @@ class SQLiteDriver(RasterDriver):
             conn.commit()
             if close:
                 conn.close()
-                self._connetion_pool[thread_id] = None
+                self._connetion_pool.pop(thread_id)
+
+    @memoize
+    @requires_connection
+    def _get_available_keys(self) -> Tuple[str, ...]:
+        conn = self.get_connection()
+        c = conn.cursor()
+        c.execute('SELECT * FROM keys')
+        return tuple(row[0] for row in c)
+
+    available_keys = property(_get_available_keys)  # type: ignore
 
     @requires_connection
-    def _get_available_keys(self) -> Tuple[str]:
-        if self._available_keys is None:
-            conn = self.get_connection()
-            c = conn.cursor()
-            c.execute('SELECT * FROM keys')
-            self._available_keys = tuple(row[0] for row in c)
-        return self._available_keys
-
-    available_keys = property(_get_available_keys)
-
-    @requires_connection
-    def create(self, keys: Sequence[str], drop_if_exists: bool = False, lock=True):
+    def create(self, keys: Sequence[str], drop_if_exists: bool = False, lock: bool = True) -> None:
 
         if not all(re.match(r'\w+', key) for key in keys):
             raise ValueError('keys can be alphanumeric only')
@@ -155,8 +157,8 @@ class SQLiteDriver(RasterDriver):
 
     @cachedmethod(operator.attrgetter('_metadata_cache'))
     @requires_connection
-    def _get_datasets(self, where: Tuple[Tuple[str], Tuple[str]] = None
-                      ) -> Mapping[Tuple[str], str]:
+    def _get_datasets(self,
+                      where: Tuple[Tuple[str], Tuple[str]] = None) -> Dict[Tuple[str, ...], str]:
 
         conn = self.get_connection()
         c = conn.cursor()
@@ -173,14 +175,13 @@ class SQLiteDriver(RasterDriver):
         num_keys = len(self.available_keys)
         return {tuple(row[:num_keys]): row[-1] for row in c}
 
-    def get_datasets(self, where: Mapping[str, str] = None) -> Sequence[Mapping[str, Any]]:
-        if where is not None:
-            where = (tuple(where.keys()), tuple(where.values()))
-        return self._get_datasets(where)
+    def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], str]:
+        where_ = where and (tuple(where.keys()), tuple(where.values()))
+        return self._get_datasets(where_)
 
     @cachedmethod(operator.attrgetter('_metadata_cache'))
     @requires_connection
-    def _get_metadata(self, keys: Tuple[str]) -> Mapping[str, Any]:
+    def _get_metadata(self, keys: Tuple[str]) -> Dict[str, Any]:
 
         conn = self.get_connection()
         c = conn.cursor()
@@ -204,13 +205,13 @@ class SQLiteDriver(RasterDriver):
         assert len(encoded_data) == 1
         return self._decode_data(encoded_data[0])
 
-    def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Mapping[str, Any]:
+    def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
         keys = tuple(self._key_dict_to_sequence(keys))
         return self._get_metadata(keys)
 
     @requires_connection
     def insert(self, keys: Union[Sequence[str], Mapping[str, str]], filepath: str,
-               metadata: Mapping[str, Any] = None, compute_metadata: bool = True):
+               metadata: Mapping[str, Any] = None, compute_metadata: bool = True) -> None:
 
         conn = self.get_connection()
         c = conn.cursor()

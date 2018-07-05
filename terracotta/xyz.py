@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Union, Mapping
 
 import numpy as np
 import mercantile
@@ -7,7 +7,8 @@ from terracotta import exceptions
 from terracotta.drivers.base import Driver
 
 
-def get_tile_data(driver: Driver, keys: Sequence[str], tile_x: int, tile_y: int, tile_z: int, *,
+def get_tile_data(driver: Driver, keys: Union[Sequence[str], Mapping[str, str]],
+                  tile_x: int, tile_y: int, tile_z: int, *,
                   tilesize: Sequence[int] = (256, 256)) -> np.ndarray:
     metadata = driver.get_metadata(keys)
     wgs_bounds = metadata['bounds']

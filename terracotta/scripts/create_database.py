@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import click
 
-from terracotta.scripts.click_types import RasterPattern, PathlibPath
+from terracotta.scripts.click_types import RasterPattern, RasterPatternType, PathlibPath
 
 
 @click.command('create-database',
@@ -9,7 +11,8 @@ from terracotta.scripts.click_types import RasterPattern, PathlibPath
 @click.option('-o', '--output-file', type=PathlibPath(dir_okay=False), required=True)
 @click.option('--overwrite', is_flag=True, default=False)
 @click.option('--skip-metadata', is_flag=True, default=False)
-def create_database(raster_pattern, output_file, overwrite=False, skip_metadata=False):
+def create_database(raster_pattern: RasterPatternType, output_file: Path,
+                    overwrite: bool = False, skip_metadata: bool = False) -> None:
     """Create a new raster database from a collection of raster files.
 
     This command only supports the creation of an SQLite database without any additional metadata.

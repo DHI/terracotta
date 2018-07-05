@@ -1,5 +1,5 @@
 import concurrent.futures
-from typing import Sequence, Mapping, Any
+from typing import Sequence, Mapping, Any, Tuple
 from typing.io import BinaryIO
 
 from terracotta import settings, get_driver, image, xyz, exceptions
@@ -15,7 +15,7 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int],
     """
     import numpy as np
 
-    stretch_options = stretch_options or {}
+    _stretch_options = stretch_options or {}
 
     if len(rgb_values) != 3:
         raise ValueError('rgb_values argument must contain three values')
@@ -38,13 +38,13 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int],
         out = np.empty(tile_size + (3,), dtype='uint8')
         valid_mask = np.ones(tile_size, dtype='bool')
 
-        def get_tile(keys):
+        def get_tile(keys: Tuple[str, ...]) -> np.ndarray:
             with driver.connect():
                 metadata = driver.get_metadata(keys)
                 tile_data = xyz.get_tile_data(driver, keys, tile_x=tile_x, tile_y=tile_y,
                                               tile_z=tile_z, tilesize=tile_size)
             valid_mask = image.get_valid_mask(tile_data, nodata=metadata['nodata'])
-            stretch_range = image.get_stretch_range(stretch_method, metadata, **stretch_options)
+            stretch_range = image.get_stretch_range(stretch_method, metadata, **_stretch_options)
             return image.to_uint8(tile_data, *stretch_range), valid_mask
 
         results = executor.map(get_tile, band_keys)
