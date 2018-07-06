@@ -6,17 +6,27 @@ from terracotta.scripts.click_types import RasterPattern, RasterPatternType, Pat
 
 
 @click.command('create-database',
-               short_help='Create a new raster database from a collection of raster files.')
+               short_help='Create a new SQLite raster database from a collection of raster files.')
 @click.argument('raster-pattern', type=RasterPattern(), required=True)
-@click.option('-o', '--output-file', type=PathlibPath(dir_okay=False), required=True)
-@click.option('--overwrite', is_flag=True, default=False)
-@click.option('--skip-metadata', is_flag=True, default=False)
+@click.option('-o', '--output-file', type=PathlibPath(dir_okay=False), required=True,
+              help='Path to output file.')
+@click.option('--overwrite', is_flag=True, default=False,
+              help='Always overwrite existing database without asking')
+@click.option('--skip-metadata', is_flag=True, default=False,
+              help='Speed up ingestion by not pre-computing metadata '
+                   '(will be computed on first request instead)')
 def create_database(raster_pattern: RasterPatternType, output_file: Path,
                     overwrite: bool = False, skip_metadata: bool = False) -> None:
-    """Create a new raster database from a collection of raster files.
+    """Create a new SQLite raster database from a collection of raster files.
 
-    This command only supports the creation of an SQLite database without any additional metadata.
-    For more sophisticated use cases use the Python API.
+    First arguments is a format pattern defining paths and keys of all raster files.
+
+    Example:
+
+        terracotta create-database /path/to/rasters/{{name}}/{{date}}_{{band}}.tif -o out.sqlite
+
+    This command only supports the creation of a simple SQLite database without any additional
+    metadata. For more sophisticated use cases use the Terracotta Python API.
     """
     import tqdm
     from terracotta import get_driver

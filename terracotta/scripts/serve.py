@@ -6,23 +6,38 @@ import click
 from terracotta.scripts.click_types import RasterPattern, RasterPatternType, TOMLFile
 
 
-@click.command('serve')
-@click.option('-d', '--database', required=False, default=None)
-@click.option('-r', '--raster-pattern', type=RasterPattern(), required=False, default=None)
-@click.option('-c', '--config', type=TOMLFile(), default=None)
-@click.option('--no-browser', is_flag=True, default=False)
+@click.command('serve', short_help='Serve rasters through a local Flask development server.')
+@click.option('-d', '--database', required=False, default=None,
+              help='Database to serve from.')
+@click.option('-r', '--raster-pattern', type=RasterPattern(), required=False, default=None,
+              help='A format pattern defining paths and keys of the raster files to serve.')
+@click.option('-c', '--config', type=TOMLFile(), default=None,
+              help='Update global settings from this TOML file.')
+@click.option('--no-browser', is_flag=True, default=False, help='Do not serve preview page.')
 @click.option('--debug', is_flag=True, default=False,
-              help='Enable Flask debugging')
+              help='Enable Flask debugging.')
 @click.option('--profile', is_flag=True, default=False,
-              help='Enable Flask profiling')
-@click.option('--database-provider', default=None)
+              help='Enable Flask profiling.')
+@click.option('--database-provider', default=None,
+              help='Specify the driver to use to read database [default: auto detect].')
 @click.option('--allow-all-ips', is_flag=True, default=False,
-              help='Allow connections from outside IP addresses')
+              help='Allow connections from outside IP addresses. Use with care!')
 @click.option('--port', type=click.INT, default=None,
-              help='Port to use [default: first free port between 5000 and 5099]')
+              help='Port to use [default: first free port between 5000 and 5099].')
 def serve(database: str = None, raster_pattern: RasterPatternType = None, debug: bool = False,
           profile: bool = False, no_browser: bool = False, config: Mapping[str, Any] = None,
           database_provider: str = None, allow_all_ips: bool = False, port: int = None) -> None:
+    """Serve rasters through a local Flask development server.
+
+    Either --database or --raster-pattern must be given.
+
+    Example:
+
+        terracotta serve -r /path/to/rasters/{{name}}/{{date}}_{{band}}.tif
+
+    This command is a data exploration tool and not meant for production use. Deploy Terracotta as
+    a WSGI or serverless app instead.
+    """
     from terracotta import get_driver, update_settings
     from terracotta.flask_api import run_app
 

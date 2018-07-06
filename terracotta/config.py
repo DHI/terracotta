@@ -1,6 +1,7 @@
 from typing import Mapping, Any, Tuple, TypeVar
 import os
 import json
+import tempfile
 
 
 T = TypeVar('T', str, int, float, Tuple[str, ...], Tuple[int, ...], Tuple[float, ...])
@@ -20,6 +21,7 @@ class TerracottaSettings:
     DRIVER_PROVIDER: str = ''
     CACHE_SIZE: int = 1024 * 1024 * 500  # 500MB
     TILE_SIZE: Tuple[int, int] = (256, 256)
+    DB_CACHEDIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
 
     __locked__: bool = False
 

@@ -1,3 +1,7 @@
+# Pipenv
+Pipfile
+Pipfile.lock
+
 # pytest
 .pytest_cache/
 

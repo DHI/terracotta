@@ -7,7 +7,7 @@ setup(
     name='terracotta',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    description='An XYZ tile server written in Python',
+    description='A modern XYZ tile server written in Python',
     author='Philip Graae',
     author_email='phgr@dhigroup.com',
     packages=find_packages(),
@@ -22,7 +22,8 @@ setup(
         'mercantile',
         'rasterio>=1.0rc1',
         'cachetools',
-        'tqdm'
+        'tqdm',
+        'toml'
     ],
     entry_points='''
         [console_scripts]

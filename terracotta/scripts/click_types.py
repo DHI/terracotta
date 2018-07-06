@@ -9,6 +9,7 @@ import click
 
 
 class GlobbityGlob(click.ParamType):
+    """Expands a glob pattern to Path objects"""
     name = 'glob'
 
     def convert(self, value: str, *args: Any) -> List[pathlib.Path]:
@@ -16,6 +17,7 @@ class GlobbityGlob(click.ParamType):
 
 
 class PathlibPath(click.Path):
+    """Converts a string to a pathlib.Path object"""
     def convert(self, *args: Any, **kwargs: Any) -> pathlib.Path:  # type: ignore
         return pathlib.Path(super(PathlibPath, self).convert(*args, **kwargs))
 
@@ -61,8 +63,9 @@ class RasterPattern(click.ParamType):
 
 
 class TOMLFile(click.ParamType):
+    """Parses a TOML file to a dict"""
     name = 'toml-file'
 
     def convert(self, value: str, *args: Any) -> Dict[str, Any]:
         import toml
-        return toml.load(value)
+        return dict(toml.load(value))

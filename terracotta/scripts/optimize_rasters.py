@@ -13,11 +13,19 @@ from terracotta.scripts.click_types import GlobbityGlob, PathlibPath
 @click.command('optimize-rasters',
                short_help='Optimize a collection of raster files for use with Terracotta.')
 @click.argument('raster-files', nargs=-1, type=GlobbityGlob(), required=True)
-@click.option('-o', '--output-folder', type=PathlibPath(file_okay=False), required=True)
-@click.option('--overwrite', is_flag=True, default=False)
+@click.option('-o', '--output-folder', type=PathlibPath(file_okay=False), required=True,
+              help='Output folder for cloud-optimized rasters. Subdirectories will be flattened.')
+@click.option('--overwrite', is_flag=True, default=False,
+              help='Force overwrite of existing files')
 def optimize_rasters(raster_files: Sequence[str], output_folder: Path,
                      overwrite: bool = False) -> None:
     """Optimize a collection of raster files for use with Terracotta.
+
+    First argument is a list of input files or glob patterns.
+
+    Example:
+
+        terracotta optimize-rasters rasters/*.tif -o cloud-optimized/
 
     Note that all rasters may only contain a single band. GDAL is required to run this command.
 
@@ -59,6 +67,10 @@ def optimize_rasters(raster_files: Sequence[str], output_folder: Path,
             else:
                 click.echo(input_file.name)
 
+            output_file = output_folder / input_file.with_suffix('.tif').name
+            if not overwrite and output_file.is_file():
+                abort(f'Output file {output_file!s} exists (use --overwrite to ignore)')
+
             temp_output_file = tempdir / f'{input_file.stem}.tif'
             call_gdal([
                 'gdal_translate', str(input_file), str(temp_output_file), '-co', 'TILED=YES',
@@ -75,10 +87,6 @@ def optimize_rasters(raster_files: Sequence[str], output_folder: Path,
                 '-co', 'COPY_SRC_OVERVIEWS=YES', '-co', 'BLOCKXSIZE=256', '-co', 'BLOCKYSIZE=256',
                 '--config', 'GDAL_TIFF_OVR_BLOCKSIZE', '256'
             ])
-
-            output_file = output_folder / input_file.with_suffix('.tif').name
-            if not overwrite and output_file.is_file():
-                abort(f'Output file {output_file!s} exists (use --overwrite to ignore)')
 
             shutil.move(str(temp_output_file_co), output_file)
 

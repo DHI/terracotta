@@ -18,3 +18,7 @@ class UnknownKeyError(Exception):
 
 class InvalidArgumentsError(Exception):
     pass
+
+
+class InvalidDatabaseError(Exception):
+    pass
