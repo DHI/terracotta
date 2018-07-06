@@ -1,7 +1,17 @@
+import os
+
 import pytest
 
 import numpy as np
 import rasterio
+
+
+def pytest_configure(config):
+    os.environ['TC_TESTING'] = '1'
+
+
+def pytest_unconfigure(config):
+    os.environ['TC_TESTING'] = '0'
 
 
 @pytest.fixture(scope='session')
@@ -28,6 +38,20 @@ def raster_file(tmpdir_factory):
         dst.write(raster_data, 1)
 
     return outpath
+
+
+@pytest.fixture(scope='session')
+def raster_file_xyz(raster_file):
+    import rasterio
+    import rasterio.vrt
+    import mercantile
+
+    with rasterio.open(str(raster_file)) as src:
+        with rasterio.vrt.WarpedVRT(src, crs='epsg:4326') as vrt:
+            raster_bounds = vrt.bounds
+
+    tile = mercantile.tile(raster_bounds[0], raster_bounds[3], 10)
+    return (tile.x, tile.y, 10)
 
 
 @pytest.fixture(scope='session')

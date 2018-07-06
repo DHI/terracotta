@@ -7,10 +7,8 @@ import mercantile
 import pytest
 
 
-def test_rgb_handler(read_only_database, monkeypatch, raster_file):
+def test_rgb_handler(use_read_only_database, raster_file):
     import terracotta
-    settings = terracotta.config.parse_config({'DRIVER_PATH': str(read_only_database)})
-    monkeypatch.setattr(terracotta, 'get_settings', lambda: settings)
 
     with rasterio.open(str(raster_file)) as src:
         with rasterio.vrt.WarpedVRT(src, crs='epsg:4326') as vrt:
@@ -22,14 +20,11 @@ def test_rgb_handler(read_only_database, monkeypatch, raster_file):
     from terracotta.handlers import rgb
     raw_img = rgb.rgb(['val21'], xyz, ['val22', 'val23', 'val24'])
     img_data = np.asarray(Image.open(raw_img))
-    assert img_data.shape == (*settings.TILE_SIZE, 4)
+    assert img_data.shape == (*terracotta.get_settings().TILE_SIZE, 4)
 
 
-def test_rgb_out_of_bounds(read_only_database, monkeypatch, raster_file):
+def test_rgb_out_of_bounds(use_read_only_database, raster_file):
     import terracotta
-    settings = terracotta.config.parse_config({'DRIVER_PATH': str(read_only_database)})
-    monkeypatch.setattr(terracotta, 'get_settings', lambda: settings)
-
     from terracotta.handlers import rgb
 
     with pytest.raises(terracotta.exceptions.TileOutOfBoundsError):

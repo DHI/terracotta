@@ -1,5 +1,6 @@
 from typing import Optional, Sequence, Tuple, Mapping, Any, TypeVar
 from typing.io import BinaryIO
+import warnings
 from io import BytesIO
 
 import numpy as np
@@ -98,7 +99,9 @@ def apply_cmap(data: np.ndarray, data_range: Sequence[Number], cmap: str = None)
     except ValueError as e:
         raise exceptions.InvalidArgumentsError('Encountered invalid colormap') from e
 
-    return mapper(contrast_stretch(data, data_range, (0, 1)))
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', 'invalid value encountered.*', RuntimeWarning)
+        return mapper(contrast_stretch(data, data_range, (0, 1)))
 
 
 def get_stretch_range(method: str, metadata: Mapping[str, Any],

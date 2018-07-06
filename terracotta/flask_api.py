@@ -77,7 +77,7 @@ def get_singleband(tile_z: int, tile_y: int, tile_x: int, path: str) -> Any:
     """Return PNG image of requested RGB tile"""
     from terracotta.handlers.singleband import singleband
 
-    keys = path.split('/')
+    keys = [key for key in path.split('/') if key]
 
     tile_xyz = (tile_x, tile_y, tile_z)
 
@@ -109,7 +109,7 @@ def get_datasets() -> str:
 def get_metadata(path: str) -> str:
     """Send back dataset metadata as json"""
     from terracotta.handlers.metadata import metadata
-    keys = path.split('/')
+    keys = [key for key in path.split('/') if key]
     meta = metadata(keys)
     return jsonify(meta)
 
@@ -132,7 +132,9 @@ def get_cmaps() -> str:
 
 @flask_api.route('/', methods=['GET'])
 def get_map() -> Any:
-    return render_template('map.html')
+    if current_app.config.get('ALLOW_PREVIEW'):
+        return render_template('map.html')
+    abort(404)
 
 
 def create_app(debug: bool = False, profile: bool = False) -> Flask:
@@ -156,6 +158,7 @@ def run_app(*args: Any, allow_all_ips: bool = False,
     All args are passed to create_app."""
 
     app = create_app(*args, **kwargs)
+    app.config['ALLOW_PREVIEW'] = preview
     host = '0.0.0.0' if allow_all_ips else 'localhost'
     if preview and 'WERKZEUG_RUN_MAIN' not in os.environ:
         import threading
@@ -165,5 +168,8 @@ def run_app(*args: Any, allow_all_ips: bool = False,
             webbrowser.open(f'http://127.0.0.1:{port}/')
 
         threading.Timer(2, open_browser).start()
+
+    if os.environ.get('TC_TESTING'):
+        return
 
     app.run(host=host, port=port)
