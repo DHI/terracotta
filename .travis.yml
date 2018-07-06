@@ -11,6 +11,7 @@ addons:
   apt:
     update: true
     packages:
+      - gdal
       - libgdal-dev
 
 install:
