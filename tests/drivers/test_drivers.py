@@ -1,5 +1,3 @@
-import sqlite3
-
 import numpy as np
 import pytest
 
@@ -37,7 +35,7 @@ def test_connect(tmpdir, provider):
 
 @pytest.mark.parametrize('provider', ['sqlite'])
 def test_recreation(tmpdir, provider):
-    from terracotta import drivers
+    from terracotta import drivers, exceptions
     dbfile = tmpdir.join('test.sqlite')
     db = drivers.get_driver(str(dbfile), provider=provider)
     keys = ('some', 'keys')
@@ -46,7 +44,7 @@ def test_recreation(tmpdir, provider):
     assert db.available_keys == keys
     assert db.get_datasets() == {}
 
-    with pytest.raises(sqlite3.OperationalError):
+    with pytest.raises(exceptions.InvalidDatabaseError):
         db.create(keys, drop_if_exists=False)
 
     db.create(keys, drop_if_exists=True)
