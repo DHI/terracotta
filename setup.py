@@ -18,7 +18,6 @@ setup(
         'flask',
         'click',
         'pillow',
-        'matplotlib',
         'mercantile',
         'rasterio>=1.0rc1',
         'cachetools',
@@ -36,12 +35,15 @@ setup(
             'pytest-mypy',
             'pytest-flake8',
             'codecov',
-            'attrs>=17.4.0'
+            'attrs>=17.4.0',
+            'matplotlib'
         ]
     },
     include_package_data=True,
     package_data={
-        'terracotta': ['templates/*.html', 'static/*.js',
-                       'static/*.css', 'static/images/*.png']
+        'terracotta': [
+            'cmaps/*.txt',  # colormaps
+            'templates/*.html', 'static/*.js', 'static/*.css', 'static/images/*.png'  # preview app
+        ]
     }
 )

@@ -18,11 +18,11 @@ def pytest_unconfigure(config):
 def raster_file(tmpdir_factory):
     import affine
 
-    raster_data = np.random.rand(256, 256).astype('float32')
+    raster_data = np.random.randint(0, np.iinfo(np.uint16).max, size=(256, 256), dtype='uint16')
     profile = {
         'driver': 'GTiff',
-        'dtype': 'float32',
-        'nodata': np.nan,
+        'dtype': 'uint16',
+        'nodata': 0,
         'width': raster_data.shape[1],
         'height': raster_data.shape[0],
         'count': 1,

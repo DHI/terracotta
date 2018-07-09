@@ -187,6 +187,33 @@ TILE_SIZE = (256, 256)
 DB_CACHEDIR = '/tmp/terracotta'  # used to cache remote databases
 ```
 
+## Deployment on AWS
+
+Example `zappa_settings.json` file:
+
+```json
+{
+    "dev": {
+        "app_function": "terracotta.zappa_api.app_debug",
+        "aws_region": "eu-central-1",
+        "profile_name": "default",
+        "project_name": "my-terracotta-deployment",
+        "runtime": "python3.6",
+        "s3_bucket": "zappa-terracotta",
+        "aws_environment_variables": {
+            "TC_DRIVER_PATH": "\"s3://my-bucket/terracotta.sqlite\"",
+            "TC_DRIVER_PROVIDER": "\"sqlite\""
+        },
+        "cors": true,
+        "exclude": [
+            "*.gz", "*.rar", "boto3*", "botocore*", "awscli*", ".mypy_cache", ".pytest_cache",
+            ".eggs"
+        ]
+    }
+}
+
+```
+
 ## Limitations
 
 There are some cases that Terracotta does not handle:

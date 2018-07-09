@@ -1,15 +1,15 @@
 import concurrent.futures
-from typing import Sequence, Mapping, Any, Tuple, Optional, TypeVar
+from typing import Sequence, Tuple, Optional, TypeVar
 from typing.io import BinaryIO
 
 from terracotta import get_settings, get_driver, image, xyz, exceptions
 
 Number = TypeVar('Number', int, float)
+ListOfRanges = Sequence[Optional[Tuple[Optional[Number], Optional[Number]]]]
 
 
-def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int],
-        rgb_values: Sequence[str], *, stretch_method: str = 'stretch',
-        stretch_options: Mapping[str, Any] = None) -> BinaryIO:
+def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int], rgb_values: Sequence[str], *,
+        stretch_ranges: ListOfRanges = None) -> BinaryIO:
     """Return RGB image as PNG
 
     Red, green, and blue channels correspond to the given values `rgb_values` of the key
@@ -17,18 +17,10 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int],
     """
     import numpy as np
 
-    _stretch_options = stretch_options or {}
+    stretch_ranges_ = stretch_ranges or (None, None, None)
 
-    scale_ranges = []
-    for k in ('r', 'g', 'b'):
-        band_range = _stretch_options.get(f'{k}_range')
-        if band_range and len(band_range) != 2:
-            raise exceptions.InvalidArgumentsError(f'{k}_range argument must contain 2 values')
-        scale_ranges.append(band_range)
-
-    percentiles = _stretch_options.get('percentiles')
-    if percentiles and len(percentiles) != 2:
-        raise exceptions.InvalidArgumentsError('percentiles argument must contain 2 values')
+    if len(stretch_ranges_) != 3:
+        raise exceptions.InvalidArgumentsError('stretch_ranges argument must contan 3 values')
 
     if len(rgb_values) != 3:
         raise exceptions.InvalidArgumentsError('rgb_values argument must contain 3 values')
@@ -50,21 +42,24 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int],
     out = np.empty(tile_size + (3,), dtype='uint8')
     valid_mask = np.ones(tile_size, dtype='bool')
 
-    def get_tile(band_key: str, scale_range: Optional[Tuple[Number]]) -> np.ndarray:
+    def get_tile(band_key: str, scale_range: Optional[Tuple[Number, Number]]) -> np.ndarray:
         keys = (*some_keys, band_key)
 
         with driver.connect():
             metadata = driver.get_metadata(keys)
             tile_data = xyz.get_tile_data(driver, keys, tile_x=tile_x, tile_y=tile_y,
                                           tile_z=tile_z, tilesize=tile_size)
+
         valid_mask = image.get_valid_mask(tile_data, nodata=metadata['nodata'])
-        stretch_range = image.get_stretch_range(
-            stretch_method, metadata, data_range=scale_range, percentiles=percentiles
-        )
+        global_min, global_max = metadata['range']
+        if scale_range is not None:
+            stretch_range = (scale_range[0] or global_min, scale_range[1] or global_max)
+        else:
+            stretch_range = (global_min, global_max)
         return image.to_uint8(tile_data, *stretch_range), valid_mask
 
     with concurrent.futures.ThreadPoolExecutor(3) as executor:
-        results = executor.map(get_tile, rgb_values, scale_ranges)
+        results = executor.map(get_tile, rgb_values, stretch_ranges_)
         for i, (band_data, band_valid_mask) in enumerate(results):
             out[..., i] = band_data
             valid_mask &= band_valid_mask

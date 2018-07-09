@@ -13,7 +13,7 @@ def test_singleband_handler(use_read_only_database, raster_file, raster_file_xyz
     for keys in ds:
         raw_img = singleband.singleband(keys, raster_file_xyz)
         img_data = np.asarray(Image.open(raw_img))
-        assert img_data.shape == (*settings.TILE_SIZE, 2)
+        assert img_data.shape == (*settings.TILE_SIZE, 4)
 
 
 def test_singleband_out_of_bounds(use_read_only_database, raster_file):

@@ -55,16 +55,10 @@ def get_rgb(tile_z: int, tile_y: int, tile_x: int, path: str = '') -> Any:
     if not all(rgb_values):
         raise exceptions.InvalidArgumentsError('r, g, and b arguments must be given')
 
-    stretch_method = request.args.get('stretch_method', 'stretch')
-    stretch_options = {
-        'data_range': [json.loads(request.args.get(k, 'null')) for k in
-                       ('r_range', 'g_range', 'b_range')],
-        'percentiles': json.loads(request.args.get('percentiles', 'null'))
-    }
+    stretch_ranges = [json.loads(request.args.get(f'{k}_range', 'null')) for k in ('r', 'g', 'b')]
 
     image = rgb(
-        some_keys, tile_xyz, rgb_values,
-        stretch_method=stretch_method, stretch_options=stretch_options
+        some_keys, tile_xyz, rgb_values, stretch_ranges=stretch_ranges
     )
 
     return send_file(image, mimetype='image/png')
@@ -81,14 +75,11 @@ def get_singleband(tile_z: int, tile_y: int, tile_x: int, path: str) -> Any:
 
     tile_xyz = (tile_x, tile_y, tile_z)
 
-    stretch_method = request.args.get('stretch_method', 'stretch')
-    stretch_options = {k: json.loads(request.args[k]) for k in ('data_range', 'percentiles')
-                       if k in request.args}
-    colormap = request.args.get('colormap', 'Greys_r')
+    stretch_range = json.loads(request.args.get('stretch_range', 'null'))
+    colormap = request.args.get('colormap')
 
     image = singleband(
-        keys, tile_xyz, colormap=colormap,
-        stretch_method=stretch_method, stretch_options=stretch_options
+        keys, tile_xyz, colormap=colormap, stretch_range=stretch_range
     )
 
     return send_file(image, mimetype='image/png')
@@ -128,6 +119,22 @@ def get_cmaps() -> str:
     """Send back a JSON list of all registered colormaps"""
     from terracotta.handlers.colormaps import colormaps
     return jsonify(colormaps())
+
+
+@flask_api.route('/legend', methods=['GET'])
+@convert_exceptions
+def get_legend() -> str:
+    """Send back a JSON list of pixel value, color tuples"""
+    from terracotta.handlers.legend import legend
+
+    stretch_range = json.loads(request.args.get('stretch_range', 'null'))
+    if not stretch_range:
+        raise exceptions.InvalidArgumentsError('stretch_range argument must be given')
+
+    colormap = request.args.get('colormap')
+    num_values = int(request.args.get('num_values', 100))
+
+    return jsonify(legend(stretch_range=stretch_range, colormap=colormap, num_values=num_values))
 
 
 @flask_api.route('/', methods=['GET'])
