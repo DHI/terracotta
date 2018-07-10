@@ -1,3 +1,8 @@
+"""__init__.py
+
+Expose public API.
+"""
+
 # set version
 from ._version import get_versions
 __version__ = get_versions()['version']

@@ -1,3 +1,8 @@
+"""image.py
+
+Utilities to create and manipulate images.
+"""
+
 from typing import Optional, Sequence, Tuple, TypeVar
 from typing.io import BinaryIO
 import warnings
@@ -102,11 +107,12 @@ def apply_cmap(data: np.ndarray, data_range: Sequence[Number], cmap: str = None)
     from terracotta.cmaps import get_cmap
 
     normalized_data = contrast_stretch(data, data_range, (0, 1))
+    cmap_ = cmap or 'Greys_r'
 
     try:
-        cmap_vals = get_cmap(cmap or 'Greys_r')
+        cmap_vals = get_cmap(cmap_)
     except ValueError as exc:
-        raise exceptions.InvalidArgumentsError(f'Encountered invalid color map {cmap}') from exc
+        raise exceptions.InvalidArgumentsError(f'Encountered invalid color map {cmap_}') from exc
 
     num_vals = cmap_vals.shape[0]
 

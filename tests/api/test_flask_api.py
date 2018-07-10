@@ -9,8 +9,8 @@ import pytest
 
 @pytest.fixture(scope='module')
 def flask_app():
-    from terracotta.flask_api import create_app
-    return create_app()
+    from terracotta.api import create_app
+    return create_app(preview=True)
 
 
 @pytest.fixture(scope='module')

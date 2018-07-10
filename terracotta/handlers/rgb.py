@@ -1,3 +1,8 @@
+"""handlers/rgb.py
+
+Handle /rgb API endpoint. Band file retrieval is multi-threaded.
+"""
+
 import concurrent.futures
 from typing import Sequence, Tuple, Optional, TypeVar
 from typing.io import BinaryIO

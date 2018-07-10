@@ -1,3 +1,8 @@
+"""scripts/cli.py
+
+Entry point for CLI.
+"""
+
 from typing import Any
 
 import click

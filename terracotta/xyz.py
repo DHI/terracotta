@@ -1,3 +1,8 @@
+"""xyz.py
+
+Utilities to work with XYZ Mercator tiles.
+"""
+
 from typing import Sequence, Tuple, Union, Mapping
 
 import numpy as np

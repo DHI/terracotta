@@ -1,3 +1,8 @@
+"""scripts/optimize_rasters.py
+
+Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
+"""
+
 from typing import Sequence, List
 import subprocess
 import shutil

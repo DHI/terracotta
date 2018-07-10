@@ -1,3 +1,8 @@
+"""handlers/singleband.py
+
+Handle /singleband API endpoint.
+"""
+
 from typing import Sequence, Mapping, Union, Tuple, TypeVar
 from typing.io import BinaryIO
 
@@ -29,7 +34,7 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]], tile_xyz: Sequence
                                       tilesize=tile_size)
 
     valid_mask = image.get_valid_mask(tile_data, nodata=metadata['nodata'])
-    alpha_mask = (255 * valid_mask).astype('uint8')
+    alpha_mask = image.to_uint8(valid_mask, 0, 1)
 
     global_min, global_max = metadata['range']
     stretch_range_ = (stretch_min or global_min, stretch_max or global_max)

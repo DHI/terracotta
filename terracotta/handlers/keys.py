@@ -1,3 +1,8 @@
+"""handlers/keys.py
+
+Handle /keys API endpoint.
+"""
+
 from typing import List
 
 from terracotta import get_settings, get_driver

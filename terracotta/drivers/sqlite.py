@@ -1,6 +1,6 @@
-"""sqlite.py
+"""drivers/sqlite.py
 
-SQLite-backed data handler. Metadata is stored in an SQLite database, raster data is assumed
+SQLite-backed raster driver. Metadata is stored in an SQLite database, raster data is assumed
 to be present on disk.
 """
 
@@ -56,6 +56,20 @@ def _download_from_s3(bucket_name: str, key: str, location: str) -> None:
 
 
 class SQLiteDriver(RasterDriver):
+    """SQLite-backed raster driver.
+
+    Thread-safe by opening a single connection per thread and locking database to prevent concurrent
+    writes. Also supports databases stored remotely in an S3 bucket (downloaded during __init__).
+
+    Data is stored in 3 different tables:
+
+    - `keys`: Contains a single column holding all available keys.
+    - `datasets`: Maps indices to raster file path.
+    - `metadata`: Contains actual metadata as separate columns. Indexed via keys.
+
+    This driver caches both raster- and metadata (in separate caches).
+
+    """
     KEY_TYPE: str = 'VARCHAR[256]'
     METADATA_COLUMNS: Tuple[Tuple[str, ...], ...] = (
         ('bounds_north', 'REAL'),
@@ -72,6 +86,7 @@ class SQLiteDriver(RasterDriver):
     )
 
     def __init__(self, path: Union[str, Path]) -> None:
+        """Use given database path to read and store metadata. Path may be local or s3:// URL."""
         settings = get_settings()
 
         # check if database needs to be retrieved from remote storage
@@ -88,7 +103,9 @@ class SQLiteDriver(RasterDriver):
         self.path: str = path_str
         self._connetion_pool: Dict[int, Connection] = {}
         self._db_lock: Lock = Lock()
-        self._metadata_cache: LFUCache = LFUCache(settings.CACHE_SIZE, getsizeof=sys.getsizeof)
+        self._metadata_cache: LFUCache = LFUCache(
+            settings.METADATA_CACHE_SIZE, getsizeof=sys.getsizeof
+        )
         super(SQLiteDriver, self).__init__(path)
 
     @staticmethod
@@ -124,6 +141,7 @@ class SQLiteDriver(RasterDriver):
         return decoded
 
     def get_connection(self) -> Connection:
+        """Convenience method to retrieve the correct connection for the current thread."""
         return self._connetion_pool[get_ident()]
 
     @contextlib.contextmanager
@@ -156,6 +174,7 @@ class SQLiteDriver(RasterDriver):
     @convert_exceptions('Could not retrieve keys from database')
     @requires_connection
     def _get_available_keys(self) -> Tuple[str, ...]:
+        """Caching getter for available_keys. Assumes keys do not change during runtime."""
         conn = self.get_connection()
         c = conn.cursor()
         c.execute('SELECT * FROM keys')
@@ -165,7 +184,7 @@ class SQLiteDriver(RasterDriver):
 
     @convert_exceptions('Could not create tables')
     @requires_connection
-    def create(self, keys: Sequence[str], drop_if_exists: bool = False, lock: bool = True) -> None:
+    def create(self, keys: Sequence[str], drop_if_exists: bool = False) -> None:
         if not all(re.match(r'\w+', key) for key in keys):
             raise ValueError('keys can be alphanumeric only')
 
@@ -196,6 +215,7 @@ class SQLiteDriver(RasterDriver):
     @requires_connection
     def _get_datasets(self,
                       where: Tuple[Tuple[str], Tuple[str]] = None) -> Dict[Tuple[str, ...], str]:
+        """Cache-backed version of get_datasets"""
         conn = self.get_connection()
         c = conn.cursor()
 
@@ -221,6 +241,7 @@ class SQLiteDriver(RasterDriver):
     @convert_exceptions('Could not retrieve metadata')
     @requires_connection
     def _get_metadata(self, keys: Tuple[str]) -> Dict[str, Any]:
+        """Cache-backed version of get_metadata"""
         if len(keys) != len(self.available_keys):
             raise exceptions.UnknownKeyError('Got wrong number of keys')
 

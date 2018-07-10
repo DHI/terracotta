@@ -1,3 +1,8 @@
+"""config.py
+
+Implement settings parsing.
+"""
+
 from typing import Mapping, Any, Tuple, TypeVar
 import os
 import json
@@ -19,7 +24,8 @@ def _coerce(from_: Any, to: T) -> T:
 class TerracottaSettings:
     DRIVER_PATH: str = ''
     DRIVER_PROVIDER: str = ''
-    CACHE_SIZE: int = 1024 * 1024 * 500  # 500MB
+    RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490MB
+    METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10MB
     TILE_SIZE: Tuple[int, int] = (256, 256)
     DB_CACHEDIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
 
@@ -54,16 +60,25 @@ def parse_config(config: Mapping[str, Any] = None) -> TerracottaSettings:
     def get_value(key: str) -> Tuple[str, Any]:
         value = config_dict.get(key)
 
-        if value is None:
-            env_value = os.environ.get(f'TC_{key}', None)
-            if env_value:
-                try:
-                    value = json.loads(env_value)
-                except json.decoder.JSONDecodeError as exc:
-                    raise ValueError(f'Could not parse environment variable TC_{key} with value'
-                                     f'{env_value} as JSON') from exc
+        if value is not None:
+            return key, value
 
-        return key, value
+        value = os.environ.get(f'TC_{key}', None)
+
+        if value is None:
+            return key, value
+
+        value = value.strip()
+
+        try:
+            return key, json.loads(value)
+        except json.decoder.JSONDecodeError as exc:
+            # try and parse as a literal string
+            if not any(value.startswith(k) for k in ('[', '{', '"', 'true', 'false', 'null')):
+                return key, value
+
+            raise ValueError(f'Could not parse environment variable TC_{key} with value'
+                             f'{value} as JSON') from exc
 
     parsed_settings = dict((key, value) for key, value in map(get_value, AVAILABLE_SETTINGS)
                            if value)

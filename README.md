@@ -15,7 +15,8 @@ For best performance, it is highly recommended to use [Cloud Optimized GeoTIFFs]
 command `terracotta optimize-rasters`.
 
 Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source software such as
-[Flask](http://flask.pocoo.org) and [Rasterio](https://github.com/mapbox/rasterio).
+[Flask](http://flask.pocoo.org), [Zappa](), and
+[Rasterio](https://github.com/mapbox/rasterio).
 
 ## Use cases
 
@@ -27,6 +28,9 @@ Terracotta covers several use cases:
    [the Flask documentation](http://flask.pocoo.org/docs/1.0/deploying/) for more information.
    Ingestion can either be done [ahead of time](#ingestion) (recommended) or on demand.
 3. It can be deployed on serverless architectures such as AWS λ, serving tiles from S3 buckets.
+   This allows you to build apps that scale infinitely while requiring minimal maintenance!
+   To make it as easy as possible to deploy to AWS λ, we make use of the magic provided by
+   [Zappa](). See [Deployment on AWS](#deployment-on-aws) for more details.
 
 
 ## Why Terracotta?
@@ -34,21 +38,22 @@ Terracotta covers several use cases:
 There are many good reasons to ditch your ancient raster data workflow and switch to Terracotta.
 Some of them are listed here:
 
-- It is trivial to get going.
+- It is trivial to get going
 - Usability is our first priority.
-- Terracotta makes minimal assumptions about your data, so *you stay in charge*.
+- Terracotta makes minimal assumptions about your data, so *you stay in charge*. Use the tools you
+  know and love to create your data - leave the rest to Terracotta.
 - Terracotta is built with extensibility in mind. Want to change your architecture? No problem!
   Even if Terracotta does not support your use case yet, extending it is as easy as implementing
-  a single class.
-- It uses Python 3.6 type annotations throughout and is well tested, to make sure it won't leave you
-  hanging when you need it the most.
+  a single Python class.
+- We use Python 3.6 type annotations throughout the project and aim for extensive test coverage,
+  to make sure we don't leave you hanging when you need us the most.
 
 ## Architecture
 
 In Terracotta, all heavy lifting is done by a so-called driver. The driver specifies where and how
 Terracotta can find the raster data and metadata it requires to serve a dataset. Most drivers use
 a database to store metadata and rely on a file system to store raster data, but neither of those
-statements is enforced by the API.
+things is enforced by the API.
 
 Already implemented drivers include:
 
@@ -63,9 +68,19 @@ On most systems, installation is as easy as
 pip install terracotta
 ```
 
+To install additional requirements needed to deploy to AWS, run
+
+```bash
+pip install terracotta[aws]
+```
+
+instead.
+
 ## Ingestion
 
 ### Using `create-database`
+
+A simple but limited way to build a database is through the command line interface. 
 
 ### An example ingestion script using the Python API
 
@@ -126,19 +141,21 @@ or accept parameters from the command line.
 
 Terracotta implements the following API (curly braces denote request parameters):
 
+
+- `http://server.com/keys`
+
+   Lists the names of all available keys in the current deployment.
+
 - `http://server.com/singleband/{key1}/{key2}/.../{z}/{x}/{y}.png`
 
-   Serves [Mercator tile](http://www.maptiler.org/google-maps-coordinates-tile-bounds-projection/)
-   (`x`, `y`) at zoom level `z`, from `dataset`.
+   Serves a [Mercator tile](http://www.maptiler.org/google-maps-coordinates-tile-bounds-projection/)
+   with indices `x`, `y` at zoom level `z` from the dataset identified by the given keys.
 
 - `http://server.com/rgb/{key1}/{key2}/.../{z}/{x}/{y}.png?r={key_n_1}&g={key_n_2}&b={key_n_3}`
 
    Returns RGB where red, green, and blue channels correspond to the given values of the last key
    `key_n`. All keys except the last one must be specified in the route.
 
-- `http://server.com/keys`
-
-   Lists the names of all available keys in the current deployment.
 
 - `http://server.com/datasets?{some_key}={some_value}&{other_key}={other_value}&...`
 
@@ -150,14 +167,42 @@ Terracotta implements the following API (curly braces denote request parameters)
 
 - `http://server.com/metadata/{key1}/{key2}/...`
 
-   Returns a JSON object containing useful metadata for `dataset`, such as whether or not `dataset` is timestepped,
-min/max values of the dataset, WGS84 bounds, datatype and more.
+   Returns a JSON object containing useful metadata for the given dataset. This is the same data that
+   is used internally to e.g. store dataset bounds.
 
-   Metadata contains:
+   An example response:
 
-   - `bounds`:
+   ```json
+   {
+     "bounds": [
+        79.19199424434089,
+        5.337099218019268,
+        80.18591373088215,
+        6.332401637137314
+      ],
+      "mean": 42.06583390303198,
+      "metadata": {
+        "ingestion_date": "20170101",
+        "sensor": "L2A"
+      },
+      "nodata": 0.0,
+      "percentiles": [
+        28.0, 28.0, 29.0, 29.0, 30.0, 30.0, 30.0, 30.0, 31.0, 31.0, 31.0, 31.0, 32.0, 32.0, 32.0,
+        32.0, 32.0, 32.0, 33.0, 33.0, 33.0, 33.0, 33.0, 33.0, 33.0, 33.0, 34.0, 34.0, 34.0, 34.0,
+        34.0, 34.0, 34.0, 34.0, 34.0, 34.0, 35.0, 35.0, 35.0, 35.0, 35.0, 35.0, 35.0, 35.0, 35.0,
+        36.0, 36.0, 36.0, 36.0, 36.0, 36.0, 36.0, 36.0, 37.0, 37.0, 37.0, 37.0, 37.0, 37.0, 37.0,
+        38.0, 38.0, 38.0, 38.0, 38.0, 38.0, 39.0, 39.0, 39.0, 39.0, 39.0, 40.0, 40.0, 40.0, 40.0,
+        41.0, 41.0, 41.0, 41.0, 42.0, 42.0, 42.0, 43.0, 43.0, 44.0, 44.0, 45.0, 46.0, 46.0, 47.0,
+        48.0, 49.0, 51.0, 54.0, 59.0, 70.0, 95.0, 149.0, 255.0
+      ],
+      "range": [21.0, 255.0],
+      "stdev": 29.000394898443023
+   }
+   ```
 
-- `http://server.com/colorbar/{key1}/{key2}/...`
+   The key `metadata` is specified during ingestion and not used internally.
+
+- `http://server.com/legend/{key1}/{key2}/...`
 
    Returns a JSON mapping numerical values to RGB codes.
 
@@ -187,7 +232,10 @@ TILE_SIZE = (256, 256)
 DB_CACHEDIR = '/tmp/terracotta'  # used to cache remote databases
 ```
 
-## Deployment on AWS
+## Deployment on AWS λ
+
+The easiest way to deploy Terracotta on AWS λ is by using [Zappa]().
+
 
 Example `zappa_settings.json` file:
 
@@ -220,3 +268,4 @@ There are some cases that Terracotta does not handle:
 
 - The number of keys must be unique throughout a dataset.
 - You can only use the last key to compose RGB images.
+- Several other [open issues] (PRs welcome!)

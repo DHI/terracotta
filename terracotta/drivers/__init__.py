@@ -1,3 +1,8 @@
+"""drivers/__init__.py
+
+Define an interface to retrieve Terracotta drivers.
+"""
+
 from typing import Callable, Any, Dict
 import functools
 

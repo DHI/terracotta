@@ -15,6 +15,10 @@ def test_env_config(monkeypatch):
         assert config.parse_config().DRIVER_PATH == 'test2'
 
     with monkeypatch.context() as m:
+        m.setenv('TC_DRIVER_PATH', 'test3')
+        assert config.parse_config().DRIVER_PATH == 'test3'
+
+    with monkeypatch.context() as m:
         m.setenv('TC_TILE_SIZE', json.dumps([1, 2]))
         assert config.parse_config().TILE_SIZE == (1, 2)
 
@@ -23,12 +27,12 @@ def test_env_config_invalid(monkeypatch):
     from terracotta import config
 
     with monkeypatch.context() as m:
-        m.setenv('TC_TILE_SIZE', '1')
+        m.setenv('TC_TILE_SIZE', '[1')  # unbalanced bracket
         with pytest.raises(ValueError):
             config.parse_config()
 
     with monkeypatch.context() as m:
-        m.setenv('TC_DRIVER_PATH', 'test')
+        m.setenv('TC_DRIVER_PATH', '{{test: 1}}')  # unquoted key
         with pytest.raises(ValueError):
             config.parse_config()
     assert True

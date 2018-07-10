@@ -1,3 +1,8 @@
+"""handlers/metadata.py
+
+Handle /metadata API endpoint.
+"""
+
 from typing import Mapping, Sequence, Any, Union
 
 from terracotta import get_settings, get_driver

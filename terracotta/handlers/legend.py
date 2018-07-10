@@ -1,3 +1,8 @@
+"""handlers/legend.py
+
+Handle /legend API endpoint.
+"""
+
 from typing import List, Tuple, TypeVar
 
 import numpy as np

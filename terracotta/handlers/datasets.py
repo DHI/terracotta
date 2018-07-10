@@ -1,3 +1,8 @@
+"""handlers/datasets.py
+
+Handle /datasets API endpoint.
+"""
+
 from typing import List, Mapping
 
 from terracotta import get_settings, get_driver

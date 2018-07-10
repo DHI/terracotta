@@ -1,3 +1,8 @@
+"""cmaps/__init__.py
+
+Define an interface to retrieve stored color maps.
+"""
+
 from typing.io import BinaryIO
 from pkg_resources import resource_listdir, resource_stream, Requirement, DistributionNotFound
 
@@ -24,6 +29,7 @@ AVAILABLE_CMAPS = {f[:-len(SUFFIX)] for f in CMAP_FILES if f.endswith(SUFFIX)}
 
 
 def get_cmap(name: str) -> np.ndarray:
+    """Retrieve the given colormap and return stored RGBA values as a NumPy array (num_vals, 4)"""
     name = name.lower()
 
     if name not in AVAILABLE_CMAPS:

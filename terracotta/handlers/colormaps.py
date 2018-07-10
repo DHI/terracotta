@@ -1,3 +1,8 @@
+"""handlers/colormaps.py
+
+Handle /colormaps API endpoint.
+"""
+
 from typing import List
 
 

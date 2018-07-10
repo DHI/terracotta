@@ -1,3 +1,8 @@
+"""scripts/serve.py
+
+Use Flask development server to serve up raster files or database locally.
+"""
+
 from typing import Mapping, Any
 import tempfile
 
@@ -13,6 +18,9 @@ from terracotta.scripts.click_types import RasterPattern, RasterPatternType, TOM
               help='A format pattern defining paths and keys of the raster files to serve.')
 @click.option('-c', '--config', type=TOMLFile(), default=None,
               help='Update global settings from this TOML file.')
+@click.option('--rgb-key', default=None,
+              help='Key to use for RGB compositing [default: last key in pattern]. '
+                   'Has no effect if -r/--raster-pattern is not given.')
 @click.option('--no-browser', is_flag=True, default=False, help='Do not serve preview page.')
 @click.option('--debug', is_flag=True, default=False,
               help='Enable Flask debugging.')
@@ -26,7 +34,8 @@ from terracotta.scripts.click_types import RasterPattern, RasterPatternType, TOM
               help='Port to use [default: first free port between 5000 and 5099].')
 def serve(database: str = None, raster_pattern: RasterPatternType = None, debug: bool = False,
           profile: bool = False, no_browser: bool = False, config: Mapping[str, Any] = None,
-          database_provider: str = None, allow_all_ips: bool = False, port: int = None) -> None:
+          database_provider: str = None, allow_all_ips: bool = False, port: int = None,
+          rgb_key: str = None) -> None:
     """Serve rasters through a local Flask development server.
 
     Either --database or --raster-pattern must be given.
@@ -39,7 +48,7 @@ def serve(database: str = None, raster_pattern: RasterPatternType = None, debug:
     a WSGI or serverless app instead.
     """
     from terracotta import get_driver, update_settings
-    from terracotta.flask_api import run_app
+    from terracotta.api import run_app
 
     if config is not None:
         update_settings(config)
@@ -52,6 +61,16 @@ def serve(database: str = None, raster_pattern: RasterPatternType = None, debug:
         dbfile.close()
 
         keys, raster_files = raster_pattern
+
+        if rgb_key is not None:
+            if rgb_key not in keys:
+                raise click.UsageError('RGB key not found in raster pattern')
+            # re-order keys
+            rgb_idx = keys.index(rgb_key)
+            keys = [*keys[:rgb_idx], *keys[rgb_idx + 1:], keys[rgb_idx]]
+            raster_files = {(*k[:rgb_idx], *k[rgb_idx + 1:], k[rgb_idx]): v for k, v in
+                            raster_files.items()}
+
         driver = get_driver(dbfile.name, provider='sqlite')
 
         with driver.connect():

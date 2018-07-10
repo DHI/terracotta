@@ -1,6 +1,6 @@
-"""generate_cmaps.py
+"""cmaps/generate_cmaps.py
 
-Script to generate color map dumps from matplotlib
+A script to generate color map dumps from matplotlib.
 """
 
 import numpy as np
