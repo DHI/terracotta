@@ -80,7 +80,7 @@ instead.
 
 ### Using `create-database`
 
-A simple but limited way to build a database is through the command line interface. 
+A simple but limited way to build a database is through the command line interface.
 
 ### An example ingestion script using the Python API
 
@@ -139,76 +139,10 @@ or accept parameters from the command line.
 
 ## The API
 
-Terracotta implements the following API (curly braces denote request parameters):
+Every Terracotta deployment exposes the API it uses as a `swagger.json` file and a visual
+explorer hosted at `http://server.com/swagger.json` and `http://server.com/apidoc`, respectively.
+This is the best way to find out which API *your* deployment of Terracotta uses.
 
-
-- `http://server.com/keys`
-
-   Lists the names of all available keys in the current deployment.
-
-- `http://server.com/singleband/{key1}/{key2}/.../{z}/{x}/{y}.png`
-
-   Serves a [Mercator tile](http://www.maptiler.org/google-maps-coordinates-tile-bounds-projection/)
-   with indices `x`, `y` at zoom level `z` from the dataset identified by the given keys.
-
-- `http://server.com/rgb/{key1}/{key2}/.../{z}/{x}/{y}.png?r={key_n_1}&g={key_n_2}&b={key_n_3}`
-
-   Returns RGB where red, green, and blue channels correspond to the given values of the last key
-   `key_n`. All keys except the last one must be specified in the route.
-
-
-- `http://server.com/datasets?{some_key}={some_value}&{other_key}={other_value}&...`
-
-   List all available key combinations. Examples:
-
-   - `/datasets?name=foo&timestep=bar` returns `[{name: foo, timestep: bar, band: baz}, {name: foo, timestep: bar, band: boo}, ...]`
-   - `/datasets?name=foo` returns `[{name: foo, timestep: bar, band: baz}, {name: foo, timestep: baa, band: boo}, ...]`
-
-
-- `http://server.com/metadata/{key1}/{key2}/...`
-
-   Returns a JSON object containing useful metadata for the given dataset. This is the same data that
-   is used internally to e.g. store dataset bounds.
-
-   An example response:
-
-   ```json
-   {
-     "bounds": [
-        79.19199424434089,
-        5.337099218019268,
-        80.18591373088215,
-        6.332401637137314
-      ],
-      "mean": 42.06583390303198,
-      "metadata": {
-        "ingestion_date": "20170101",
-        "sensor": "L2A"
-      },
-      "nodata": 0.0,
-      "percentiles": [
-        28.0, 28.0, 29.0, 29.0, 30.0, 30.0, 30.0, 30.0, 31.0, 31.0, 31.0, 31.0, 32.0, 32.0, 32.0,
-        32.0, 32.0, 32.0, 33.0, 33.0, 33.0, 33.0, 33.0, 33.0, 33.0, 33.0, 34.0, 34.0, 34.0, 34.0,
-        34.0, 34.0, 34.0, 34.0, 34.0, 34.0, 35.0, 35.0, 35.0, 35.0, 35.0, 35.0, 35.0, 35.0, 35.0,
-        36.0, 36.0, 36.0, 36.0, 36.0, 36.0, 36.0, 36.0, 37.0, 37.0, 37.0, 37.0, 37.0, 37.0, 37.0,
-        38.0, 38.0, 38.0, 38.0, 38.0, 38.0, 39.0, 39.0, 39.0, 39.0, 39.0, 40.0, 40.0, 40.0, 40.0,
-        41.0, 41.0, 41.0, 41.0, 42.0, 42.0, 42.0, 43.0, 43.0, 44.0, 44.0, 45.0, 46.0, 46.0, 47.0,
-        48.0, 49.0, 51.0, 54.0, 59.0, 70.0, 95.0, 149.0, 255.0
-      ],
-      "range": [21.0, 255.0],
-      "stdev": 29.000394898443023
-   }
-   ```
-
-   The key `metadata` is specified during ingestion and not used internally.
-
-- `http://server.com/legend/{key1}/{key2}/...`
-
-   Returns a JSON mapping numerical values to RGB codes.
-
-- `http://server.com/colormaps`
-
-   Return a JSON list of all available colormaps for the `colormap` query parameter.
 
 ## Configuration
 
