@@ -1,125 +1,77 @@
+"""config.py
+
+Implement settings parsing.
+"""
+
+from typing import Mapping, Any, Tuple, NamedTuple, Dict, Optional
 import os
-import re
-from ast import literal_eval
+import json
+import tempfile
 
-from frozendict import frozendict
-
-
-DEFAULT_CACHE_SIZE = 256000000
-DEFAULT_TIMESTEPPED = False
-DEFAULT_CATEGORICAL = False
+from marshmallow import Schema, fields, validate, pre_load, post_load, ValidationError
 
 
-def _parse_classes(ds_name, cfg):
-    cfg_ds = cfg[ds_name]
+class TerracottaSettings(NamedTuple):
+    DRIVER_PATH: str
+    DRIVER_PROVIDER: Optional[str]
 
+    DEBUG: bool
+    PROFILE: bool
+
+    RASTER_CACHE_SIZE: int
+    METADATA_CACHE_SIZE: int
+    TILE_SIZE: Tuple[int, int]
+    DB_CACHEDIR: str
+
+
+class SettingSchema(Schema):
+    """Schema used to create TerracottaSettings objects"""
+    DRIVER_PATH = fields.String(missing='')
+    DRIVER_PROVIDER = fields.String(missing=None)
+
+    DEBUG = fields.Boolean(missing=False)
+    PROFILE = fields.Boolean(missing=False)
+
+    RASTER_CACHE_SIZE = fields.Integer(missing=1024 * 1024 * 490)
+    METADATA_CACHE_SIZE = fields.Integer(missing=1024 * 1024 * 10)
+
+    TILE_SIZE = fields.List(fields.Integer(), validate=validate.Length(equal=2), missing=(256, 256))
+    DB_CACHEDIR = fields.String(missing=os.path.join(tempfile.gettempdir(), 'terracotta'))
+
+    @pre_load
+    def prepare_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        for var in ('TILE_SIZE',):
+            val = data.get(var)
+            if val and isinstance(val, str):
+                try:
+                    data[var] = json.loads(val)
+                except json.decoder.JSONDecodeError as exc:
+                    raise ValidationError(f'Could not parse value for key {var} as JSON') from exc
+        return data
+
+    @post_load
+    def convert_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        data['TILE_SIZE'] = tuple(data['TILE_SIZE'])
+        return data
+
+
+AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._field_types.keys())
+
+
+def parse_config(config: Mapping[str, Any] = None) -> TerracottaSettings:
+    """Parse given config dict and return new TerracottaSettings object"""
+    config_dict = dict(config or {})
+
+    for setting in AVAILABLE_SETTINGS:
+        env_setting = f'TC_{setting}'
+        if setting not in config_dict and env_setting in os.environ:
+            config_dict[setting] = os.environ[env_setting]
+
+    schema = SettingSchema()
     try:
-        class_names = [s.strip() for s in cfg_ds['class_names'].split(',')]
-        class_vals = [s.strip() for s in cfg_ds['class_values'].split(',')]
-    except KeyError as e:
-        raise ValueError('Missing {} for categorical dataset {}'.format(e.args[0], ds_name))
+        parsed_settings = schema.load(config_dict)
+    except ValidationError as exc:
+        raise ValueError('Could not parse configuration') from exc
 
-    # Sanity check
-    if not all([s.isdigit() for s in class_vals]):
-        raise ValueError('Non-numeric value in class_values for dataset {}'.format(ds_name))
-    if len(class_vals) != len(class_names):
-        raise ValueError('Number of class_names and class_values do not match for dataset {}'
-                         .format(ds_name))
-
-    # literal_eval converts x.y to float and x to int
-    class_vals = [literal_eval(x) for x in class_vals]
-
-
-def default_cfg():
-    return {
-        'max_cache_size': DEFAULT_CACHE_SIZE,
-        'timestepped': DEFAULT_TIMESTEPPED
-    }
-
-
-def parse_ds(ds_name, cfg):
-    """Parses a config file dataset into an internal dataset representation.
-
-    Parameters
-    ----------
-    ds_name: str
-        Name of section in config file
-    cfg: ConfigParser
-        Instance of ConfigParser which has already been passed a config file
-
-    Returns
-    -------
-    dict
-        Dict of dataset information
-    """
-    cfg_ds = cfg[ds_name]
-    ds = {}
-
-    # Options that we have defaults for or that we know exist
-    ds['name'] = ds_name
-    ds['timestepped'] = cfg_ds.getboolean('timestepped', fallback=DEFAULT_TIMESTEPPED)
-    ds['categorical'] = cfg_ds.getboolean('categorical', fallback=DEFAULT_CATEGORICAL)
-
-    # Options that must exist but don't have defaults
-    try:
-        path = cfg_ds['path']
-        reg_str = cfg_ds['regex']
-    except KeyError as e:
-        raise ValueError('Missing option {} for dataset {}'.format(e.args[0], ds_name))
-
-    # Validate option values
-    if not os.path.isdir(path) and os.access(path, os.R_OK):
-        raise ValueError('path {} in {} is not a readable directory'.format(path, ds_name))
-    reg = re.compile(reg_str)
-    if ds['timestepped'] and 'timestep' not in reg.groupindex.keys():
-        raise ValueError('missing timestep group in regex for timestepped dataset {}'
-                         .format(ds_name))
-    if ds['categorical']:
-        ds['classes'] = _parse_classes(ds_name, cfg)
-
-    files = os.listdir(path)
-    matches = map(reg.match, files)
-    matches = [x for x in matches if x is not None]
-    if not matches:
-        raise ValueError('no files matched {} in {}'.format(reg.pattern, path))
-
-    # Only support 1 file per timestep for now
-    if not ds['timestepped']:
-        assert len(matches) == 1
-        ds['file'] = matches[0].group(0)
-    else:
-        ds['timesteps'] = {}
-        for m in matches:
-            timestep = m.group('timestep')
-            # Only support 1 file per timestep for now
-            assert timestep not in ds['timesteps']
-            ds['timesteps'][timestep] = os.path.join(path, m.group(0))
-
-    return ds
-
-
-def parse_options(cfg):
-    """Parse and validate options section of config file.
-
-    Parameters
-    ----------
-    cfg: ConfigParser
-        Instance of ConfigParser which has already been passed a config file
-
-    Returns
-    -------
-    dict
-        Dict mapping option name to value
-    """
-
-    # Get options
-    options = {}
-    try:
-        cfg_options = cfg['options']
-    except KeyError:
-        # Dummy section
-        cfg.add_section('options')
-        cfg_options = cfg['options']
-    options['tile_cache_size'] = cfg_options.getint('tile_cache_size', fallback=DEFAULT_CACHE_SIZE)
-
-    return options
+    new_settings = TerracottaSettings(**parsed_settings)
+    return new_settings
