@@ -5,7 +5,7 @@ Flask routes to serve API spec
 
 from typing import Any
 
-from flask import jsonify, render_template, url_for
+from flask import jsonify, render_template
 
 from terracotta.api.flask_api import spec_api, spec
 
@@ -17,4 +17,4 @@ def specification() -> str:
 
 @spec_api.route('/apidoc', methods=['GET'])
 def ui() -> Any:
-    return render_template('apidoc.html', SWAGGER_JSON=url_for('spec_api.specification'))
+    return render_template('apidoc.html')
