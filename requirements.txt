@@ -3,7 +3,7 @@ cachetools
 click
 flask
 flask_cors
-marshmallow
+marshmallow>=3.0.0b1
 mercantile
 numpy
 pillow
