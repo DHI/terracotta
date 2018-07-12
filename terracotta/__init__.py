@@ -8,6 +8,12 @@ from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
+# setup logging
+import rasterio
+import logging
+logging.getLogger('rasterio').setLevel(logging.ERROR)
+del rasterio, logging
+
 # initialize settings
 from typing import Mapping, Any
 from terracotta.config import parse_config, TerracottaSettings
