@@ -7,7 +7,7 @@
     <style> body { margin: 0; padding: 0; } </style>
   </head>
   <body>
-    <redoc spec-url='{{ SWAGGER_JSON }}' hide-loading></redoc>
-    <script src="/static/redoc.min.js"> </script>
+    <redoc spec-url="{{ url_for('.specification') }}" hide-loading></redoc>
+    <script src="{{ url_for('static', filename='redoc.min.js') }}"> </script>
   </body>
 </html>
