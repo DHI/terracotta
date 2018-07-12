@@ -1,3 +1,8 @@
+"""api/map.py
+
+Flask route to serve preview app.
+"""
+
 from typing import Any
 
 from flask import render_template

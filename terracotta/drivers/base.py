@@ -123,10 +123,11 @@ class RasterDriver(Driver):
 
         row_data['bounds'] = bounds
         row_data['nodata'] = nodata
-        if np.isnan(nodata):
-            valid_data = raster_data[np.isfinite(raster_data)]
-        else:
-            valid_data = raster_data[raster_data != nodata]
+
+        valid_data = raster_data[np.isfinite(raster_data)]
+        if not np.isnan(nodata):
+            valid_data = valid_data[valid_data != nodata]
+
         row_data['range'] = (float(valid_data.min()), float(valid_data.max()))
         row_data['mean'] = float(valid_data.mean())
         row_data['stdev'] = float(valid_data.std())

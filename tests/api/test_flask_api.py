@@ -22,13 +22,13 @@ def client(flask_app):
 def test_get_colormaps(client):
     rv = client.get('/colormaps')
     assert rv.status_code == 200
-    assert 'jet' in json.loads(rv.data)
+    assert 'jet' in json.loads(rv.data)['colormaps']
 
 
 def test_get_keys(client, use_read_only_database):
     rv = client.get('/keys')
     assert rv.status_code == 200
-    assert ['key1', 'key2'] == json.loads(rv.data)
+    assert ['key1', 'key2'] == json.loads(rv.data)['keys']
 
 
 def test_get_metadata(client, use_read_only_database):
@@ -45,22 +45,22 @@ def test_get_metadata_nonexisting(client, use_read_only_database):
 def test_get_datasets(client, use_read_only_database):
     rv = client.get('/datasets')
     assert rv.status_code == 200
-    assert ['val11', 'val12'] in json.loads(rv.data)
+    assert {'key1': 'val11', 'key2': 'val12'} in json.loads(rv.data)['datasets']
 
 
 def test_get_datasets_selective(client, use_read_only_database):
     rv = client.get('/datasets?key1=val21')
     assert rv.status_code == 200
-    assert len(json.loads(rv.data)) == 3
+    assert len(json.loads(rv.data)['datasets']) == 3
 
     rv = client.get('/datasets?key1=val21&key2=val23')
     assert rv.status_code == 200
-    assert len(json.loads(rv.data)) == 1
+    assert len(json.loads(rv.data)['datasets']) == 1
 
 
 def test_get_datasets_unknown_key(client, use_read_only_database):
     rv = client.get('/datasets?UNKNOWN=val21')
-    assert rv.status_code == 404
+    assert rv.status_code == 400
 
 
 def test_get_singleband_greyscale(client, use_read_only_database, raster_file_xyz):
@@ -141,7 +141,7 @@ def test_get_rgb_stretch(client, use_read_only_database, raster_file_xyz):
     for stretch_range in ('[0,1]', '[0,null]', '[null, 1]', '[null,null]', 'null'):
         rv = client.get(f'/rgb/val21/{z}/{x}/{y}.png?r=val22&g=val23&b=val24&'
                         f'r_range={stretch_range}&b_range={stretch_range}&g_range={stretch_range}')
-        assert rv.status_code == 200
+        assert rv.status_code == 200, rv.data
 
         img = Image.open(BytesIO(rv.data))
         assert np.asarray(img).shape == (*settings.TILE_SIZE, 4)
@@ -150,4 +150,19 @@ def test_get_rgb_stretch(client, use_read_only_database, raster_file_xyz):
 def test_get_legend(client):
     rv = client.get('/legend?stretch_range=[0,1]')
     assert rv.status_code == 200
-    assert len(json.loads(rv.data)) == 100
+    assert len(json.loads(rv.data)['legend']) == 100
+
+
+def test_get_preview(client):
+    rv = client.get('/')
+    assert rv.status_code == 200
+
+
+def test_get_spec(client):
+    rv = client.get('/swagger.json')
+    assert rv.status_code == 200
+    assert json.loads(rv.data)
+
+    rv = client.get('/apidoc')
+    assert rv.status_code == 200
+    assert b'Terracotta' in rv.data

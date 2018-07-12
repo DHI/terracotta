@@ -1,22 +1,78 @@
+"""api/keys.py
+
+Flask route to handle /legend calls.
+"""
+
+from typing import Any, Mapping, Dict
 import json
 
 from flask import jsonify, request
+from marshmallow import Schema, fields, validate, pre_load, ValidationError
 
-from terracotta import exceptions
-from terracotta.api.flask_api import convert_exceptions, metadata_api
+from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
+
+
+class LegendEntrySchema(Schema):
+    value = fields.Number(required=True)
+    rgba = fields.List(fields.Number(), required=True, validate=validate.Length(equal=4))
+
+
+class LegendSchema(Schema):
+    legend = fields.Nested(LegendEntrySchema, many=True, required=True)
+
+
+class LegendOptionSchema(Schema):
+    stretch_range = fields.List(
+        fields.Number(), validate=validate.Length(equal=2), required=True,
+        description='Minimum and maximum value of colormap as JSON array '
+                    '(same as for /singleband and /rgb)'
+    )
+    colormap = fields.String(description='Name of color map to use', missing='Greys_r')
+    num_values = fields.Int(description='Number of values to return', missing=100)
+
+    @pre_load
+    def process_ranges(self, data: Mapping[str, Any]) -> Dict[str, Any]:
+        data = dict(data.items())
+        var = 'stretch_range'
+        val = data.get(var)
+        if val:
+            try:
+                data[var] = json.loads(val)
+            except json.decoder.JSONDecodeError as exc:
+                raise ValidationError(f'Could not decode value for {var} as JSON') from exc
+        return data
 
 
 @metadata_api.route('/legend', methods=['GET'])
 @convert_exceptions
 def get_legend() -> str:
-    """Send back a JSON list of pixel value, color tuples"""
+    """Get a legend mapping pixel values to colors
+    ---
+    get:
+        summary: /legend
+        description:
+            Get a legend mapping pixel values to colors. Use this to construct a color bar for a
+            dataset.
+        parameters:
+            - in: query
+              schema: LegendOptionSchema
+        responses:
+            200:
+                description: Array containing data values and RGBA tuples
+                schema: LegendSchema
+            400:
+                description: Query parameters are invalid
+    """
     from terracotta.handlers.legend import legend
 
-    stretch_range = json.loads(request.args.get('stretch_range', 'null'))
-    if not stretch_range:
-        raise exceptions.InvalidArgumentsError('stretch_range argument must be given')
+    input_schema = LegendOptionSchema()
+    options = input_schema.load(request.args)
 
-    colormap = request.args.get('colormap')
-    num_values = int(request.args.get('num_values', 100))
+    payload = {'legend': legend(**options)}
 
-    return jsonify(legend(stretch_range=stretch_range, colormap=colormap, num_values=num_values))
+    schema = LegendSchema()
+    return jsonify(schema.dump(payload))
+
+
+spec.definition('LegendEntry', schema=LegendEntrySchema)
+spec.definition('Legend', schema=LegendSchema)

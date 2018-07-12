@@ -24,6 +24,10 @@ def _coerce(from_: Any, to: T) -> T:
 class TerracottaSettings:
     DRIVER_PATH: str = ''
     DRIVER_PROVIDER: str = ''
+
+    DEBUG: bool = False
+    PROFILE: bool = False
+
     RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490MB
     METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10MB
     TILE_SIZE: Tuple[int, int] = (256, 256)

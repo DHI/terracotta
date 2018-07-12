@@ -42,7 +42,7 @@ def serve(database: str = None, raster_pattern: RasterPatternType = None, debug:
 
     Example:
 
-        terracotta serve -r /path/to/rasters/{{name}}/{{date}}_{{band}}.tif
+        terracotta serve -r /path/to/rasters/{name}/{date}_{band}.tif
 
     This command is a data exploration tool and not meant for production use. Deploy Terracotta as
     a WSGI or serverless app instead.

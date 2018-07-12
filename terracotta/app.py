@@ -1,9 +1,10 @@
 """app.py
 
-Instantiated versions of the Flask API.
+Instantiated version of the Flask API.
 """
 
+from terracotta import get_settings
 from terracotta.api import create_app
 
-app_debug = create_app(debug=True)
-app_production = create_app(debug=False)
+settings = get_settings()
+app = create_app(debug=settings.DEBUG, profile=settings.PROFILE)
