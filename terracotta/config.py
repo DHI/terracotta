@@ -3,88 +3,75 @@
 Implement settings parsing.
 """
 
-from typing import Mapping, Any, Tuple, TypeVar
+from typing import Mapping, Any, Tuple, NamedTuple, Dict, Optional
 import os
 import json
 import tempfile
 
-
-T = TypeVar('T', str, int, float, Tuple[str, ...], Tuple[int, ...], Tuple[float, ...])
-
-
-def _coerce(from_: Any, to: T) -> T:
-    """Recursively coerce first argument to type of second argument."""
-    if isinstance(to, tuple):
-        if len(from_) != len(to):
-            raise ValueError('inconsistent length')
-        return tuple(_coerce(f, t) for f, t in zip(from_, to))
-    return type(to)(from_)  # type: ignore
+from marshmallow import Schema, fields, validate, pre_load, post_load, ValidationError
 
 
-class TerracottaSettings:
-    DRIVER_PATH: str = ''
-    DRIVER_PROVIDER: str = ''
+class TerracottaSettings(NamedTuple):
+    DRIVER_PATH: str
+    DRIVER_PROVIDER: Optional[str]
 
-    DEBUG: bool = False
-    PROFILE: bool = False
+    DEBUG: bool
+    PROFILE: bool
 
-    RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490MB
-    METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10MB
-    TILE_SIZE: Tuple[int, int] = (256, 256)
-    DB_CACHEDIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
-
-    __locked__: bool = False
-
-    def __init__(self, **kwargs: Mapping[str, Any]) -> None:
-        for key, val in kwargs.items():
-            try:
-                self.__setattr__(key, _coerce(val, getattr(self, key)))
-            except (ValueError, TypeError) as exc:
-                raise ValueError(f'Could not parse key {key} with value {val}') from exc
-
-        self.__locked__ = True
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        if self.__locked__:
-            raise TypeError('settings are immutable')
-        object.__setattr__(self, name, value)
-
-    def __repr__(self) -> str:
-        attr_string = ', '.join(f'{key}={getattr(self, key)}' for key in AVAILABLE_SETTINGS)
-        return f'TerracottaSettings({attr_string})'
+    RASTER_CACHE_SIZE: int
+    METADATA_CACHE_SIZE: int
+    TILE_SIZE: Tuple[int, int]
+    DB_CACHEDIR: str
 
 
-AVAILABLE_SETTINGS = tuple(attr for attr in dir(TerracottaSettings) if not attr.startswith('_'))
+class SettingSchema(Schema):
+    """Schema used to create TerracottaSettings objects"""
+    DRIVER_PATH = fields.String(missing='')
+    DRIVER_PROVIDER = fields.String(missing=None)
+
+    DEBUG = fields.Boolean(missing=False)
+    PROFILE = fields.Boolean(missing=False)
+
+    RASTER_CACHE_SIZE = fields.Integer(missing=1024 * 1024 * 490)
+    METADATA_CACHE_SIZE = fields.Integer(missing=1024 * 1024 * 10)
+
+    TILE_SIZE = fields.List(fields.Integer(), validate=validate.Length(equal=2), missing=(256, 256))
+    DB_CACHEDIR = fields.String(missing=os.path.join(tempfile.gettempdir(), 'terracotta'))
+
+    @pre_load
+    def prepare_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        for var in ('TILE_SIZE',):
+            val = data.get(var)
+            if val and isinstance(val, str):
+                try:
+                    data[var] = json.loads(val)
+                except json.decoder.JSONDecodeError as exc:
+                    raise ValidationError(f'Could not parse value for key {var} as JSON') from exc
+        return data
+
+    @post_load
+    def convert_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        data['TILE_SIZE'] = tuple(data['TILE_SIZE'])
+        return data
+
+
+AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._field_types.keys())
 
 
 def parse_config(config: Mapping[str, Any] = None) -> TerracottaSettings:
     """Parse given config dict and return new TerracottaSettings object"""
-    config_dict = config or {}
+    config_dict = dict(config or {})
 
-    def get_value(key: str) -> Tuple[str, Any]:
-        value = config_dict.get(key)
+    for setting in AVAILABLE_SETTINGS:
+        env_setting = f'TC_{setting}'
+        if setting not in config_dict and env_setting in os.environ:
+            config_dict[setting] = os.environ[env_setting]
 
-        if value is not None:
-            return key, value
+    schema = SettingSchema()
+    try:
+        parsed_settings = schema.load(config_dict)
+    except ValidationError as exc:
+        raise ValueError('Could not parse configuration') from exc
 
-        value = os.environ.get(f'TC_{key}', None)
-
-        if value is None:
-            return key, value
-
-        value = value.strip()
-
-        try:
-            return key, json.loads(value)
-        except json.decoder.JSONDecodeError as exc:
-            # try and parse as a literal string
-            if not any(value.startswith(k) for k in ('[', '{', '"', 'true', 'false', 'null')):
-                return key, value
-
-            raise ValueError(f'Could not parse environment variable TC_{key} with value'
-                             f'{value} as JSON') from exc
-
-    parsed_settings = dict((key, value) for key, value in map(get_value, AVAILABLE_SETTINGS)
-                           if value)
     new_settings = TerracottaSettings(**parsed_settings)
     return new_settings

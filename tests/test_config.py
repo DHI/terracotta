@@ -7,16 +7,12 @@ def test_env_config(monkeypatch):
     from terracotta import config
 
     with monkeypatch.context() as m:
-        m.setenv('TC_DRIVER_PATH', '"test"')
+        m.setenv('TC_DRIVER_PATH', 'test')
         assert config.parse_config().DRIVER_PATH == 'test'
 
     with monkeypatch.context() as m:
-        m.setenv('TC_DRIVER_PATH', '"test2"')
+        m.setenv('TC_DRIVER_PATH', 'test2')
         assert config.parse_config().DRIVER_PATH == 'test2'
-
-    with monkeypatch.context() as m:
-        m.setenv('TC_DRIVER_PATH', 'test3')
-        assert config.parse_config().DRIVER_PATH == 'test3'
 
     with monkeypatch.context() as m:
         m.setenv('TC_TILE_SIZE', json.dumps([1, 2]))
@@ -32,7 +28,7 @@ def test_env_config_invalid(monkeypatch):
             config.parse_config()
 
     with monkeypatch.context() as m:
-        m.setenv('TC_DRIVER_PATH', '{{test: 1}}')  # unquoted key
+        m.setenv('TC_DEBUG', 'foo')  # not a boolean
         with pytest.raises(ValueError):
             config.parse_config()
     assert True
@@ -54,7 +50,7 @@ def test_terracotta_settings():
 
     assert settings.TILE_SIZE
 
-    with pytest.raises(TypeError):
+    with pytest.raises(AttributeError):
         settings.TILE_SIZE = (10, 10)
 
 
