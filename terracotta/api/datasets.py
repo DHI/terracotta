@@ -48,7 +48,7 @@ def get_datasets() -> str:
     keys = dict(request.args.items()) or None
     payload = {'datasets': datasets(keys)}
     schema = DatasetSchema()
-    return jsonify(schema.dump(payload))
+    return jsonify(schema.load(payload))
 
 
 spec.definition('Dataset', schema=DatasetSchema)

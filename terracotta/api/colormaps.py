@@ -31,7 +31,7 @@ def get_colormaps() -> str:
     from terracotta.handlers.colormaps import colormaps
     payload = {'colormaps': colormaps()}
     schema = ColormapSchema()
-    return jsonify(schema.dump(payload))
+    return jsonify(schema.load(payload))
 
 
 spec.definition('Colormaps', schema=ColormapSchema)

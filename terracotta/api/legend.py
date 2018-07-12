@@ -71,7 +71,7 @@ def get_legend() -> str:
     payload = {'legend': legend(**options)}
 
     schema = LegendSchema()
-    return jsonify(schema.dump(payload))
+    return jsonify(schema.load(payload))
 
 
 spec.definition('LegendEntry', schema=LegendEntrySchema)

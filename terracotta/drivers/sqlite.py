@@ -108,6 +108,7 @@ class SQLiteDriver(RasterDriver):
         )
         super(SQLiteDriver, self).__init__(path)
 
+    # TODO: use marshmallow schema instead
     @staticmethod
     def _encode_data(decoded: Mapping[str, Any]) -> Dict[str, Any]:
         """Transform from internal format to database representation"""

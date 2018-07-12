@@ -29,7 +29,7 @@ def get_keys() -> str:
     from terracotta.handlers.keys import keys
     schema = KeySchema()
     payload = {'keys': keys()}
-    return jsonify(schema.dump(payload))
+    return jsonify(schema.load(payload))
 
 
 spec.definition('Keys', schema=KeySchema)
