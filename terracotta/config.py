@@ -12,34 +12,37 @@ from marshmallow import Schema, fields, validate, pre_load, post_load, Validatio
 
 
 class TerracottaSettings(NamedTuple):
-    DRIVER_PATH: str
-    DRIVER_PROVIDER: Optional[str]
+    DRIVER_PATH: str = ''
+    DRIVER_PROVIDER: Optional[str] = None
 
-    DEBUG: bool
-    PROFILE: bool
+    DEBUG: bool = False
+    PROFILE: bool = False
 
-    RASTER_CACHE_SIZE: int
-    METADATA_CACHE_SIZE: int
-    TILE_SIZE: Tuple[int, int]
-    DB_CACHEDIR: str
+    RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490 MB
+    METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10 MB
+    TILE_SIZE: Tuple[int, int] = (256, 256)
+    DB_CACHEDIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
+
+
+AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._field_types.keys())
 
 
 class SettingSchema(Schema):
     """Schema used to create TerracottaSettings objects"""
-    DRIVER_PATH = fields.String(missing='')
-    DRIVER_PROVIDER = fields.String(missing=None)
+    DRIVER_PATH = fields.String()
+    DRIVER_PROVIDER = fields.String(allow_none=True)
 
-    DEBUG = fields.Boolean(missing=False)
-    PROFILE = fields.Boolean(missing=False)
+    DEBUG = fields.Boolean()
+    PROFILE = fields.Boolean()
 
-    RASTER_CACHE_SIZE = fields.Integer(missing=1024 * 1024 * 490)
-    METADATA_CACHE_SIZE = fields.Integer(missing=1024 * 1024 * 10)
+    RASTER_CACHE_SIZE = fields.Integer()
+    METADATA_CACHE_SIZE = fields.Integer()
 
-    TILE_SIZE = fields.List(fields.Integer(), validate=validate.Length(equal=2), missing=(256, 256))
-    DB_CACHEDIR = fields.String(missing=os.path.join(tempfile.gettempdir(), 'terracotta'))
+    TILE_SIZE = fields.List(fields.Integer(), validate=validate.Length(equal=2))
+    DB_CACHEDIR = fields.String()
 
     @pre_load
-    def prepare_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def decode_lists(self, data: Dict[str, Any]) -> Dict[str, Any]:
         for var in ('TILE_SIZE',):
             val = data.get(var)
             if val and isinstance(val, str):
@@ -50,12 +53,12 @@ class SettingSchema(Schema):
         return data
 
     @post_load
-    def convert_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        data['TILE_SIZE'] = tuple(data['TILE_SIZE'])
+    def encode_tuples(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        for var in ('TILE_SIZE',):
+            val = data.get(var)
+            if val:
+                data[var] = tuple(val)
         return data
-
-
-AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._field_types.keys())
 
 
 def parse_config(config: Mapping[str, Any] = None) -> TerracottaSettings:

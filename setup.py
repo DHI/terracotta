@@ -27,7 +27,7 @@ setup(
             'attrs>=17.4.0',
             'matplotlib'
         ],
-        's3': [
+        'aws': [
             'boto3',
             'botocore',
             'awscli',

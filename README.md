@@ -15,7 +15,7 @@ For best performance, it is highly recommended to use [Cloud Optimized GeoTIFFs]
 command `terracotta optimize-rasters`.
 
 Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source software such as
-[Flask](http://flask.pocoo.org), [Zappa](), and
+[Flask](http://flask.pocoo.org), [Zappa](https://github.com/Miserlou/Zappa), and
 [Rasterio](https://github.com/mapbox/rasterio).
 
 ## Use cases
@@ -65,13 +65,13 @@ Already implemented drivers include:
 On most systems, installation is as easy as
 
 ```bash
-pip install terracotta
+$ pip install terracotta
 ```
 
 To install additional requirements needed to deploy to AWS, run
 
 ```bash
-pip install terracotta[aws]
+$ pip install terracotta[aws]
 ```
 
 instead.
@@ -80,7 +80,21 @@ instead.
 
 ### Using `create-database`
 
-A simple but limited way to build a database is through the command line interface.
+A simple but limited way to build a database is through the command line interface. All you need to
+do is to point Terracotta to a folder of (cloud-optimized) GeoTiffs:
+
+```bash
+$ terracotta create-database /path/to/gtiffs/{sensor}_{name}_{date}_{band}.tif -o terracotta.sqlite
+```
+
+This will create a new database with the keys `sensor`, `name`, `date`, and `band` (in this order),
+and ingest all files matching the given pattern into it.
+
+For available options, see
+
+```bash
+$ terracotta create-database --help
+```
 
 ### An example ingestion script using the Python API
 
@@ -150,25 +164,20 @@ To allow for flexible deployments, Terracotta is fully configurable in several w
 
 1. Through a configuration file in TOML format, passed as an argument to `terracotta serve`, or
    to the app factory in WSGI or serverless deployments.
-2. By setting environment variables with the prefix `TC_`, containing the JSON-encoded value to
-   be used for the corresponding option.
+2. By setting environment variables with the prefix `TC_`. Lists are passed as JSON arrays:
+   `TC_TILE_SIZE=[128,128]`.
 3. Through Terracotta's Python API, by using the command `terracotta.update_settings(config)`,
    where `config` is a dictionary holding the new key-value pairs.
 
 ### Available settings
 
-`terracotta-config.toml`:
-```toml
-DRIVER_PATH = 'path_or_url'
-DRIVER_PROVIDER = ''  # default: auto-detect
-CACHE_SIZE = 1024 * 1024 * 500  # 500MB
-TILE_SIZE = (256, 256)
-DB_CACHEDIR = '/tmp/terracotta'  # used to cache remote databases
-```
+For all available settings, their types and default values, have a look at the file
+[config.py](https://github.com/DHI-GRAS/terracotta/blob/master/terracotta/config.py) in the
+Terracotta code.
 
 ## Deployment on AWS λ
 
-The easiest way to deploy Terracotta on AWS λ is by using [Zappa]().
+The easiest way to deploy Terracotta on AWS λ is by using [Zappa](https://github.com/Miserlou/Zappa).
 
 
 Example `zappa_settings.json` file:
@@ -176,15 +185,15 @@ Example `zappa_settings.json` file:
 ```json
 {
     "dev": {
-        "app_function": "terracotta.zappa_api.app_debug",
+        "app_function": "terracotta.app.app",
         "aws_region": "eu-central-1",
         "profile_name": "default",
         "project_name": "my-terracotta-deployment",
         "runtime": "python3.6",
         "s3_bucket": "zappa-terracotta",
         "aws_environment_variables": {
-            "TC_DRIVER_PATH": "\"s3://my-bucket/terracotta.sqlite\"",
-            "TC_DRIVER_PROVIDER": "\"sqlite\""
+            "TC_DRIVER_PATH": "s3://my-bucket/terracotta.sqlite",
+            "TC_DRIVER_PROVIDER": "sqlite"
         },
         "cors": true,
         "exclude": [

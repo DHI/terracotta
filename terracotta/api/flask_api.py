@@ -16,15 +16,13 @@ from terracotta import exceptions, __version__
 
 # define blueprints, will be populated by submodules
 tile_api = Blueprint('tile_api', 'terracotta')
-
 metadata_api = Blueprint('metadata_api', 'terracotta')
-CORS(metadata_api)  # allow access to metadata from all sources
-
 preview_api = Blueprint('preview_api', 'terracotta')
-
 spec_api = Blueprint('spec_api', 'terracotta')
 
-# Create an APISpec
+CORS(metadata_api)  # allow access to metadata from all sources
+
+# create an APISpec
 spec = APISpec(
     title='Terracotta',
     version=__version__,
@@ -90,17 +88,10 @@ def create_app(debug: bool = False, profile: bool = False, preview: bool = False
     import terracotta.api.rgb
     import terracotta.api.singleband
 
-    import terracotta.api.spec
-
     new_app.register_blueprint(tile_api, url_prefix='')
     new_app.register_blueprint(metadata_api, url_prefix='')
 
-    if preview:
-        import terracotta.api.map
-        new_app.register_blueprint(preview_api, url_prefix='')
-
-    new_app.register_blueprint(spec_api, url_prefix='')
-
+    # register routes on API spec
     with new_app.test_request_context():
         spec.add_path(view=terracotta.api.colormaps.get_colormaps)
         spec.add_path(view=terracotta.api.datasets.get_datasets)
@@ -109,6 +100,13 @@ def create_app(debug: bool = False, profile: bool = False, preview: bool = False
         spec.add_path(view=terracotta.api.metadata.get_metadata)
         spec.add_path(view=terracotta.api.rgb.get_rgb)
         spec.add_path(view=terracotta.api.singleband.get_singleband)
+
+    if preview:
+        import terracotta.api.map
+        new_app.register_blueprint(preview_api, url_prefix='')
+
+    import terracotta.api.spec
+    new_app.register_blueprint(spec_api, url_prefix='')
 
     if profile:
         from werkzeug.contrib.profiler import ProfilerMiddleware
