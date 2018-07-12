@@ -101,7 +101,7 @@ class SQLiteDriver(RasterDriver):
             path_str = remote_db_path
 
         self.path: str = path_str
-        self._connetion_pool: Dict[int, Connection] = {}
+        self._connection_pool: Dict[int, Connection] = {}
         self._db_lock: Lock = Lock()
         self._metadata_cache: LFUCache = LFUCache(
             settings.METADATA_CACHE_SIZE, getsizeof=sys.getsizeof
@@ -142,7 +142,7 @@ class SQLiteDriver(RasterDriver):
 
     def get_connection(self) -> Connection:
         """Convenience method to retrieve the correct connection for the current thread."""
-        return self._connetion_pool[get_ident()]
+        return self._connection_pool[get_ident()]
 
     @contextlib.contextmanager
     def lock_for_write(self) -> Iterator:
@@ -154,11 +154,11 @@ class SQLiteDriver(RasterDriver):
     @contextlib.contextmanager
     def connect(self) -> Iterator:
         thread_id = get_ident()
-        conn = self._connetion_pool.get(thread_id)
+        conn = self._connection_pool.get(thread_id)
         if conn is None:
             with convert_exceptions('Unable to connect to database'):
                 conn = sqlite3.connect(self.path)
-            self._connetion_pool[thread_id] = conn
+            self._connection_pool[thread_id] = conn
             close = True
         else:
             close = False
@@ -168,7 +168,7 @@ class SQLiteDriver(RasterDriver):
             conn.commit()
             if close:
                 conn.close()
-                self._connetion_pool.pop(thread_id)
+                self._connection_pool.pop(thread_id)
 
     @memoize
     @convert_exceptions('Could not retrieve keys from database')
