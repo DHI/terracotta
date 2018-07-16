@@ -195,7 +195,9 @@ Example `zappa_settings.json` file:
             "TC_DRIVER_PATH": "s3://my-bucket/terracotta.sqlite",
             "TC_DRIVER_PROVIDER": "sqlite"
         },
-        "cors": true,
+        "callbacks": {
+            "zip": "zappa_version_callback.inject_version"
+        },
         "exclude": [
             "*.gz", "*.rar", "boto3*", "botocore*", "awscli*", ".mypy_cache", ".pytest_cache",
             ".eggs"
