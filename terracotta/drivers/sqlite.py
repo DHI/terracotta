@@ -17,6 +17,7 @@ from threading import Lock, get_ident
 from pathlib import Path
 import sqlite3
 from sqlite3 import Connection
+from hashlib import md5
 
 from cachetools import LFUCache, cachedmethod
 import numpy as np
@@ -55,6 +56,37 @@ def _download_from_s3(bucket_name: str, key: str, location: str) -> None:
         raise exceptions.InvalidDatabaseError('Could not retrieve database from S3') from exc
 
 
+def _download_db_if_changed(local_path: Union[str, Path], remote_path: Union[str, Path],
+                            bucket_name: str, key: str) -> str:
+    import boto3
+    import botocore
+    etag = ''
+    m = md5()
+    with open(local_path, 'rb') as f:
+        m.update(f.read())
+    etag = m.hexdigest()
+
+    try:
+        s3 = boto3.resource('s3')
+        obj = s3.Object(bucket_name, key)
+        obj_bytes = obj.get(IfNoneMatch=etag)["Body"].read()  # raises if db matches local
+        with open(local_path, 'wb') as f:
+            f.write(obj_bytes)
+        m = md5()
+        m.update(obj_bytes)
+        etag = m.hexdigest()
+
+    except botocore.exceptions.ClientError as exc:
+        if exc.response['Error']['Code'] == '304':
+            # remote db hasn't changed, we're good
+            pass
+        else:
+            # something unexpected happened
+            raise exceptions.InvalidDatabaseError('Could not retrieve database from S3') from exc
+
+    return etag
+
+
 class SQLiteDriver(RasterDriver):
     """SQLite-backed raster driver.
 
@@ -91,14 +123,22 @@ class SQLiteDriver(RasterDriver):
 
         # check if database needs to be retrieved from remote storage
         path_str = str(path)
+        self._db_hash = None
         if path_str.startswith('s3://'):
             remote_db_path = os.path.join(settings.DB_CACHEDIR, 's3_db.sqlite')
+            parsed_url = urlparse.urlparse(path_str)
+            bucket_name, key = parsed_url.netloc, parsed_url.path.strip('/')
             if not os.path.isfile(remote_db_path):
                 os.makedirs(settings.DB_CACHEDIR, exist_ok=True)
-                parsed_url = urlparse.urlparse(path_str)
-                bucket_name, key = parsed_url.netloc, parsed_url.path.strip('/')
                 _download_from_s3(bucket_name, key, remote_db_path)
+                m = md5()
+                with open(remote_db_path, 'rb') as f:
+                    m.update(f.read())
+                etag = m.hexdigest()
+            else:
+                etag = _download_db_if_changed(remote_db_path, path_str, bucket_name, key)
             path_str = remote_db_path
+            self._db_hash = etag
 
         self.path: str = path_str
         self._connection_pool: Dict[int, Connection] = {}
