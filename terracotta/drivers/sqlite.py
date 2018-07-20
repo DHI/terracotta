@@ -125,19 +125,19 @@ class SQLiteDriver(RasterDriver):
         path_str = str(path)
         self._db_hash = None
         if path_str.startswith('s3://'):
-            remote_db_path = os.path.join(settings.DB_CACHEDIR, 's3_db.sqlite')
+            local_db_path = os.path.join(settings.DB_CACHEDIR, 's3_db.sqlite')
             parsed_url = urlparse.urlparse(path_str)
             bucket_name, key = parsed_url.netloc, parsed_url.path.strip('/')
-            if not os.path.isfile(remote_db_path):
+            if not os.path.isfile(local_db_path):
                 os.makedirs(settings.DB_CACHEDIR, exist_ok=True)
-                _download_from_s3(bucket_name, key, remote_db_path)
+                _download_from_s3(bucket_name, key, local_db_path)
                 m = md5()
-                with open(remote_db_path, 'rb') as f:
+                with open(local_db_path, 'rb') as f:
                     m.update(f.read())
                 etag = m.hexdigest()
             else:
-                etag = _download_db_if_changed(remote_db_path, path_str, bucket_name, key)
-            path_str = remote_db_path
+                etag = _download_db_if_changed(local_db_path, path_str, bucket_name, key)
+            path_str = local_db_path
             self._db_hash = etag
 
         self.path: str = path_str
