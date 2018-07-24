@@ -31,7 +31,7 @@ def create_database(raster_pattern: RasterPatternType, output_file: Path,
 
     Example:
 
-        terracotta create-database /path/to/rasters/{{name}}/{{date}}_{{band}}.tif -o out.sqlite
+        terracotta create-database /path/to/rasters/{name}/{date}_{band}.tif -o out.sqlite
 
     This command only supports the creation of a simple SQLite database without any additional
     metadata. For more sophisticated use cases use the Terracotta Python API.
