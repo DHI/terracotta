@@ -1,6 +1,6 @@
 """__init__.py
 
-Expose public API.
+Initialize settings and expose public API.
 """
 
 # set version
@@ -16,11 +16,21 @@ except OSError:
     __version__ = get_versions()['version']
     del get_versions
 
+
+# setup environment
+import os
+os.environ.update(
+    GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR'  # do not look for auxiliary files
+)
+del os
+
+
 # setup logging
 import rasterio
 import logging
 logging.getLogger('rasterio').setLevel(logging.ERROR)
 del rasterio, logging
+
 
 # initialize settings
 from typing import Mapping, Any
@@ -41,6 +51,7 @@ def get_settings() -> TerracottaSettings:
 
 del parse_config, TerracottaSettings
 del Mapping, Any
+
 
 # expose API
 from terracotta.drivers import get_driver  # noqa: F401
