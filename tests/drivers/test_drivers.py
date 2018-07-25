@@ -21,6 +21,17 @@ def test_creation(tmpdir, provider):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
+def test_creation_invalid(tmpdir, provider):
+    from terracotta import drivers
+    dbfile = tmpdir.join('test.sqlite')
+    db = drivers.get_driver(str(dbfile), provider=provider)
+    keys = ('invalid key')
+
+    with pytest.raises(ValueError):
+        db.create(keys)
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_connect(tmpdir, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')
