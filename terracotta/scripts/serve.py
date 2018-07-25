@@ -51,7 +51,7 @@ def serve(database: str = None, raster_pattern: RasterPatternType = None, debug:
     from terracotta.api import run_app
 
     if config is not None:
-        update_settings(config)
+        update_settings(**config)
 
     if (database is None) == (raster_pattern is None):
         raise click.UsageError('Either --database or --raster-pattern must be given')
@@ -80,7 +80,7 @@ def serve(database: str = None, raster_pattern: RasterPatternType = None, debug:
 
         database = dbfile.name
 
-    update_settings({'DRIVER_PATH': database, 'DRIVER_PROVIDER': database_provider})
+    update_settings(DRIVER_PATH=database, DRIVER_PROVIDER=database_provider)
 
     # find open port
     def check_socket(host: str, port: int) -> bool:

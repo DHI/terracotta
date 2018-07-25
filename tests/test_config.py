@@ -54,7 +54,12 @@ def test_terracotta_settings():
         settings.TILE_SIZE = (10, 10)
 
 
-def test_settings_repr():
-    from terracotta import config
-    settings = config.parse_config()
-    assert repr(settings)
+def test_update_config():
+    from terracotta import get_settings, update_settings
+    update_settings(DRIVER_PATH='test')
+    new_settings = get_settings()
+    assert new_settings.DRIVER_PATH == 'test'
+
+    update_settings(TILE_SIZE=[50, 50])
+    new_settings = get_settings()
+    assert new_settings.DRIVER_PATH == 'test' and new_settings.TILE_SIZE == (50, 50)

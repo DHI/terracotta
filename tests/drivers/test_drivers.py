@@ -2,10 +2,12 @@ import numpy as np
 import pytest
 
 
+DRIVERS = ['sqlite']
+
 METADATA_KEYS = ('bounds', 'nodata', 'range', 'mean', 'stdev', 'percentiles', 'metadata')
 
 
-@pytest.mark.parametrize('provider', ['sqlite'])
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_creation(tmpdir, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')
@@ -18,7 +20,7 @@ def test_creation(tmpdir, provider):
     assert dbfile.isfile()
 
 
-@pytest.mark.parametrize('provider', ['sqlite'])
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_connect(tmpdir, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')
@@ -33,7 +35,7 @@ def test_connect(tmpdir, provider):
     assert dbfile.isfile()
 
 
-@pytest.mark.parametrize('provider', ['sqlite'])
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_recreation(tmpdir, provider):
     from terracotta import drivers, exceptions
     dbfile = tmpdir.join('test.sqlite')
@@ -52,7 +54,7 @@ def test_recreation(tmpdir, provider):
     assert db.get_datasets() == {}
 
 
-@pytest.mark.parametrize('provider', ['sqlite'])
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_insertion_and_retrieval(tmpdir, raster_file, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')
@@ -70,7 +72,7 @@ def test_insertion_and_retrieval(tmpdir, raster_file, provider):
     assert all(key in metadata for key in METADATA_KEYS)
 
 
-@pytest.mark.parametrize('provider', ['sqlite'])
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_where(tmpdir, raster_file, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')
@@ -93,7 +95,7 @@ def test_where(tmpdir, raster_file, provider):
     assert data[('some', 'value')] == str(raster_file)
 
 
-@pytest.mark.parametrize('provider', ['sqlite'])
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_lazy_loading(tmpdir, raster_file, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')
@@ -113,7 +115,7 @@ def test_lazy_loading(tmpdir, raster_file, provider):
     assert all(np.all(data1[k] == data2[k]) for k in data1.keys())
 
 
-@pytest.mark.parametrize('provider', ['sqlite'])
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_raster_retrieval(tmpdir, raster_file, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')
@@ -133,7 +135,7 @@ def test_raster_retrieval(tmpdir, raster_file, provider):
     np.testing.assert_array_equal(data1, data2)
 
 
-@pytest.mark.parametrize('provider', ['sqlite'])
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_raster_duplicate(tmpdir, raster_file, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')
