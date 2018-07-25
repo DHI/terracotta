@@ -17,13 +17,14 @@ def get_tile_data(driver: Driver, keys: Union[Sequence[str], Mapping[str, str]],
                   tilesize: Sequence[int] = (256, 256)) -> np.ndarray:
     """Retrieve xyz tile data from given driver"""
     metadata = driver.get_metadata(keys)
+    nodata = metadata['nodata']
     wgs_bounds = metadata['bounds']
     if not tile_exists(wgs_bounds, tile_x, tile_y, tile_z):
         raise exceptions.TileOutOfBoundsError(
             f'Tile {tile_z}/{tile_x}/{tile_y} is outside image bounds'
         )
     target_bounds = get_xy_bounds(tile_x, tile_y, tile_z)
-    return driver.get_raster_tile(keys, bounds=target_bounds, tilesize=tilesize)
+    return driver.get_raster_tile(keys, bounds=target_bounds, tilesize=tilesize, nodata=nodata)
 
 
 def get_xy_bounds(tile_x: int, tile_y: int, tile_z: int) -> Tuple[float]:

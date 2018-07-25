@@ -10,6 +10,7 @@ from marshmallow import Schema, fields, validate, pre_load, ValidationError
 from flask import request, send_file
 
 from terracotta.api.flask_api import convert_exceptions, tile_api
+from terracotta.cmaps import AVAILABLE_CMAPS
 
 
 class SinglebandQuerySchema(Schema):
@@ -25,7 +26,7 @@ class SinglebandOptionSchema(Schema):
         description='Stretch range to use as JSON array, uses full range by default', missing=None
     )
     colormap = fields.String(description='Colormap to apply to image (see /colormap)',
-                             default='Greys_r')
+                             default='Greys_r', validate=validate.OneOf(AVAILABLE_CMAPS))
 
     @pre_load
     def process_ranges(self, data: Mapping[str, Any]) -> Dict[str, Any]:

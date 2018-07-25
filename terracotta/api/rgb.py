@@ -46,7 +46,6 @@ class RGBOptionSchema(Schema):
                     data[var] = json.loads(val)
                 except json.decoder.JSONDecodeError as exc:
                     raise ValidationError(f'Could not decode value for {var} as JSON') from exc
-        print(data)
         return data
 
 

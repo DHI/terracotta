@@ -43,15 +43,33 @@ def raster_file(tmpdir_factory):
 @pytest.fixture(scope='session')
 def raster_file_xyz(raster_file):
     import rasterio
-    import rasterio.vrt
+    import rasterio.warp
     import mercantile
 
     with rasterio.open(str(raster_file)) as src:
-        with rasterio.vrt.WarpedVRT(src, crs='epsg:4326') as vrt:
-            raster_bounds = vrt.bounds
+        raster_bounds = rasterio.warp.transform_bounds(src.crs, 'epsg:4326', *src.bounds)
+    raster_center_x = (raster_bounds[0] + raster_bounds[2]) / 2
+    raster_center_y = (raster_bounds[1] + raster_bounds[3]) / 2
 
-    tile = mercantile.tile(raster_bounds[0], raster_bounds[3], 10)
-    return (tile.x, tile.y, 10)
+    zoom = 12
+    tile = mercantile.tile(raster_center_x, raster_center_y, zoom)
+    return (tile.x, tile.y, zoom)
+
+
+@pytest.fixture(scope='session')
+def raster_file_xyz_lowzoom(raster_file):
+    import rasterio
+    import rasterio.warp
+    import mercantile
+
+    with rasterio.open(str(raster_file)) as src:
+        raster_bounds = rasterio.warp.transform_bounds(src.crs, 'epsg:4326', *src.bounds)
+    raster_center_x = (raster_bounds[0] + raster_bounds[2]) / 2
+    raster_center_y = (raster_bounds[1] + raster_bounds[3]) / 2
+
+    zoom = 10
+    tile = mercantile.tile(raster_center_x, raster_center_y, zoom)
+    return (tile.x, tile.y, zoom)
 
 
 @pytest.fixture(scope='session')

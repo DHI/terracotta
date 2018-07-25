@@ -166,8 +166,12 @@ To allow for flexible deployments, Terracotta is fully configurable in several w
    to the app factory in WSGI or serverless deployments.
 2. By setting environment variables with the prefix `TC_`. Lists are passed as JSON arrays:
    `TC_TILE_SIZE=[128,128]`.
-3. Through Terracotta's Python API, by using the command `terracotta.update_settings(config)`,
+3. Through Terracotta's Python API, by using the command `terracotta.update_settings(**config)`,
    where `config` is a dictionary holding the new key-value pairs.
+
+Explicit overrides (through the Python API or a configuration file) always have higher precedence
+than configuration through environment variables. When changing environment variables after setup,
+it might be necessary to call `terracotta.update_settings()` for the changes to take effect.
 
 ### Available settings
 

@@ -33,16 +33,19 @@ del rasterio, logging
 
 
 # initialize settings
-from typing import Mapping, Any
+from typing import Mapping, Any, Set
 from terracotta.config import parse_config, TerracottaSettings
 
-_settings = parse_config()
+_settings: TerracottaSettings = parse_config()
+_overwritten_settings: Set = set()
 
 
-def update_settings(config: Mapping[str, Any] = None) -> None:
+def update_settings(**new_config: Any) -> None:
     from terracotta.config import parse_config
-    global _settings
-    _settings = parse_config(config)
+    global _settings, _overwritten_settings
+    current_config = {k: getattr(_settings, k) for k in _overwritten_settings}
+    _settings = parse_config({**current_config, **new_config})
+    _overwritten_settings |= set(new_config.keys())
 
 
 def get_settings() -> TerracottaSettings:
@@ -50,7 +53,7 @@ def get_settings() -> TerracottaSettings:
 
 
 del parse_config, TerracottaSettings
-del Mapping, Any
+del Mapping, Any, Set
 
 
 # expose API

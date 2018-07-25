@@ -23,6 +23,8 @@ class TerracottaSettings(NamedTuple):
     TILE_SIZE: Tuple[int, int] = (256, 256)
     DB_CACHEDIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
 
+    RESAMPLING_METHOD: str = 'nearest'
+
 
 AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._field_types.keys())
 
@@ -40,6 +42,10 @@ class SettingSchema(Schema):
 
     TILE_SIZE = fields.List(fields.Integer(), validate=validate.Length(equal=2))
     DB_CACHEDIR = fields.String()
+
+    RESAMPLING_METHOD = fields.String(
+        validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
+    )
 
     @pre_load
     def decode_lists(self, data: Dict[str, Any]) -> Dict[str, Any]:
