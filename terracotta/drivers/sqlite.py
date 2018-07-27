@@ -286,6 +286,10 @@ class SQLiteDriver(RasterDriver):
         if override_path is None:
             override_path = filepath
 
+        if compute_metadata:
+            row_data = self._compute_metadata(filepath, metadata)
+            encoded_data = self._encode_data(row_data)
+
         with self.lock_for_write():
             keys = list(self._key_dict_to_sequence(keys))
             template_string = ', '.join(['?'] * (len(keys) + 1))
@@ -294,9 +298,6 @@ class SQLiteDriver(RasterDriver):
 
         if not compute_metadata:
             return
-
-        row_data = self._compute_metadata(filepath, metadata)
-        encoded_data = self._encode_data(row_data)
 
         with self.lock_for_write():
             row_keys, row_values = zip(*encoded_data.items())
