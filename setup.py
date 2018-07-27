@@ -36,7 +36,7 @@ setup(
     },
     entry_points='''
         [console_scripts]
-        terracotta=terracotta.scripts.cli:cli
+        terracotta=terracotta.scripts.cli:entrypoint
     ''',
     include_package_data=True,
     package_data={

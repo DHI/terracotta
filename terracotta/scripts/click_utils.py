@@ -1,6 +1,6 @@
-"""scripts/click_types.py
+"""scripts/click_utils.py
 
-Custom click parameter types for efficient option parsing.
+Custom click parameter types and utilities.
 """
 
 from typing import List, Any, Tuple, Dict

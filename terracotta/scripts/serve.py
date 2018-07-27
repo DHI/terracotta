@@ -8,12 +8,11 @@ import tempfile
 
 import click
 
-from terracotta.scripts.click_types import RasterPattern, RasterPatternType, TOMLFile
+from terracotta.scripts.click_utils import RasterPattern, RasterPatternType, TOMLFile
 
 
 @click.command('serve', short_help='Serve rasters through a local Flask development server.')
-@click.option('-d', '--database', required=False, default=None,
-              help='Database to serve from.')
+@click.option('-d', '--database', required=False, default=None, help='Database to serve from.')
 @click.option('-r', '--raster-pattern', type=RasterPattern(), required=False, default=None,
               help='A format pattern defining paths and keys of the raster files to serve.')
 @click.option('-c', '--config', type=TOMLFile(), default=None,
@@ -22,10 +21,8 @@ from terracotta.scripts.click_types import RasterPattern, RasterPatternType, TOM
               help='Key to use for RGB compositing [default: last key in pattern]. '
                    'Has no effect if -r/--raster-pattern is not given.')
 @click.option('--no-browser', is_flag=True, default=False, help='Do not serve preview page.')
-@click.option('--debug', is_flag=True, default=False,
-              help='Enable Flask debugging.')
-@click.option('--profile', is_flag=True, default=False,
-              help='Enable Flask profiling.')
+@click.option('--debug', is_flag=True, default=False, help='Enable Flask debugging.')
+@click.option('--profile', is_flag=True, default=False, help='Enable Flask profiling.')
 @click.option('--database-provider', default=None,
               help='Specify the driver to use to read database [default: auto detect].')
 @click.option('--allow-all-ips', is_flag=True, default=False,
@@ -103,8 +100,7 @@ def serve(database: str = None, raster_pattern: RasterPatternType = None, debug:
             port = port_candidate
             break
     else:
-        raise click.ClickException(f'Could not find open port to bind to '
-                                   f'(ports tried: {port_range})')
+        raise RuntimeError(f'Could not find open port to bind to (ports tried: {port_range})')
 
     run_app(port=port, allow_all_ips=allow_all_ips, debug=debug, profile=profile,
             preview=not no_browser)

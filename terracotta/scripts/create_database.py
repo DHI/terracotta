@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from terracotta.scripts.click_types import RasterPattern, RasterPatternType, PathlibPath
+from terracotta.scripts.click_utils import RasterPattern, RasterPatternType, PathlibPath
 
 
 @click.command('create-database',
