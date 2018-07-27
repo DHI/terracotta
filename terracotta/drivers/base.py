@@ -131,6 +131,9 @@ class RasterDriver(Driver):
         if not np.isnan(nodata):
             valid_data = valid_data[valid_data != nodata]
 
+        if valid_data.size == 0:
+            raise ValueError(f'Raster file {raster_path} does not contain any valid data')
+
         row_data['range'] = (float(valid_data.min()), float(valid_data.max()))
         row_data['mean'] = float(valid_data.mean())
         row_data['stdev'] = float(valid_data.std())
@@ -208,7 +211,7 @@ class RasterDriver(Driver):
             # construct VRT
             vrt = es.enter_context(
                 WarpedVRT(
-                    src, crs=target_crs, resampling=resampling_enum, init_dest_nodata=False,
+                    src, crs=target_crs, resampling=resampling_enum, init_dest_nodata=True,
                     src_nodata=nodata, nodata=nodata, transform=vrt_transform, width=vrt_width,
                     height=vrt_height
                 )
