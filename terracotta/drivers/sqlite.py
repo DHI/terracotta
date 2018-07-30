@@ -13,7 +13,7 @@ import functools
 import json
 import re
 import urllib.parse as urlparse
-from threading import Lock, get_ident
+from threading import get_ident
 from pathlib import Path
 import sqlite3
 from sqlite3 import Connection
@@ -58,8 +58,8 @@ def _download_from_s3(bucket_name: str, key: str, location: str) -> None:
 class SQLiteDriver(RasterDriver):
     """SQLite-backed raster driver.
 
-    Thread-safe by opening a single connection per thread and locking database to prevent concurrent
-    writes. Also supports databases stored remotely in an S3 bucket (downloaded during __init__).
+    Thread-safe by opening a single connection per thread. Also supports databases stored remotely
+    in an S3 bucket (downloaded during __init__).
 
     Data is stored in 3 different tables:
 
@@ -67,7 +67,7 @@ class SQLiteDriver(RasterDriver):
     - `datasets`: Maps indices to raster file path.
     - `metadata`: Contains actual metadata as separate columns. Indexed via keys.
 
-    This driver caches both raster- and metadata (in separate caches).
+    This driver caches both raster and metadata (in separate caches).
 
     """
     KEY_TYPE: str = 'VARCHAR[256]'
@@ -89,6 +89,8 @@ class SQLiteDriver(RasterDriver):
         """Use given database path to read and store metadata. Path may be local or s3:// URL."""
         settings = get_settings()
 
+        self.DB_CONNECTION_TIMEOUT: int = settings.DB_CONNECTION_TIMEOUT
+
         # check if database needs to be retrieved from remote storage
         path_str = str(path)
         if path_str.startswith('s3://'):
@@ -102,11 +104,16 @@ class SQLiteDriver(RasterDriver):
 
         self.path: str = path_str
         self._connetion_pool: Dict[int, Connection] = {}
-        self._db_lock: Lock = Lock()
         self._metadata_cache: LFUCache = LFUCache(
             settings.METADATA_CACHE_SIZE, getsizeof=sys.getsizeof
         )
         super(SQLiteDriver, self).__init__(path)
+
+    def _empty_cache(self) -> None:
+        settings = get_settings()
+        self._metadata_cache = LFUCache(
+            settings.METADATA_CACHE_SIZE, getsizeof=sys.getsizeof
+        )
 
     # TODO: use marshmallow schema instead
     @staticmethod
@@ -146,28 +153,23 @@ class SQLiteDriver(RasterDriver):
         return self._connetion_pool[get_ident()]
 
     @contextlib.contextmanager
-    def lock_for_write(self) -> Iterator:
-        conn = self.get_connection()
-        with self._db_lock:
-            yield
-            conn.commit()
-
-    @contextlib.contextmanager
     def connect(self) -> Iterator:
         thread_id = get_ident()
         conn = self._connetion_pool.get(thread_id)
+        close = False
         if conn is None:
             with convert_exceptions('Unable to connect to database'):
-                conn = sqlite3.connect(self.path)
+                conn = sqlite3.connect(self.path, timeout=self.DB_CONNECTION_TIMEOUT)
             self._connetion_pool[thread_id] = conn
             close = True
-        else:
-            close = False
         try:
             yield
+        except Exception:
+            conn.rollback()
+            raise
         finally:
-            conn.commit()
             if close:
+                conn.commit()
                 conn.close()
                 self._connetion_pool.pop(thread_id)
 
@@ -189,27 +191,26 @@ class SQLiteDriver(RasterDriver):
         if not all(re.match(r'\w+', key) for key in keys):
             raise ValueError('keys can be alphanumeric only')
 
-        with self.lock_for_write():
-            conn = self.get_connection()
-            c = conn.cursor()
+        conn = self.get_connection()
+        c = conn.cursor()
 
-            if drop_if_exists:
-                c.execute('DROP TABLE IF EXISTS keys')
-            c.execute(f'CREATE TABLE keys (keys {self.KEY_TYPE})')
-            c.executemany('INSERT INTO keys VALUES (?)', [(key,) for key in keys])
+        if drop_if_exists:
+            c.execute('DROP TABLE IF EXISTS keys')
+        c.execute(f'CREATE TABLE keys (keys {self.KEY_TYPE})')
+        c.executemany('INSERT INTO keys VALUES (?)', [(key,) for key in keys])
 
-            if drop_if_exists:
-                c.execute('DROP TABLE IF EXISTS datasets')
-            key_string = ', '.join([f'{key} {self.KEY_TYPE}' for key in keys])
-            c.execute(f'CREATE TABLE datasets ({key_string}, filepath VARCHAR[8000], '
-                      f'PRIMARY KEY({", ".join(keys)}))')
+        if drop_if_exists:
+            c.execute('DROP TABLE IF EXISTS datasets')
+        key_string = ', '.join([f'{key} {self.KEY_TYPE}' for key in keys])
+        c.execute(f'CREATE TABLE datasets ({key_string}, filepath VARCHAR[8000], '
+                  f'PRIMARY KEY({", ".join(keys)}))')
 
-            if drop_if_exists:
-                c.execute('DROP TABLE IF EXISTS metadata')
-            column_string = ', '.join(f'{col} {col_type}' for col, col_type
-                                      in self.METADATA_COLUMNS)
-            c.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
-                      f'PRIMARY KEY ({", ".join(keys)}))')
+        if drop_if_exists:
+            c.execute('DROP TABLE IF EXISTS metadata')
+        column_string = ', '.join(f'{col} {col_type}' for col, col_type
+                                  in self.METADATA_COLUMNS)
+        c.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
+                  f'PRIMARY KEY ({", ".join(keys)}))')
 
     @cachedmethod(operator.attrgetter('_metadata_cache'))
     @convert_exceptions('Could not retrieve datasets')
@@ -277,6 +278,7 @@ class SQLiteDriver(RasterDriver):
     def insert(self, keys: Union[Sequence[str], Mapping[str, str]], filepath: str,
                metadata: Mapping[str, Any] = None, *, compute_metadata: bool = True,
                override_path: str = None) -> None:
+
         conn = self.get_connection()
         c = conn.cursor()
 
@@ -286,21 +288,18 @@ class SQLiteDriver(RasterDriver):
         if override_path is None:
             override_path = filepath
 
+        keys = list(self._key_dict_to_sequence(keys))
+        template_string = ', '.join(['?'] * (len(keys) + 1))
+        c.execute(f'INSERT OR REPLACE INTO datasets VALUES ({template_string})',
+                  keys + [override_path])
+
         if compute_metadata:
             row_data = self._compute_metadata(filepath, metadata)
             encoded_data = self._encode_data(row_data)
-
-        with self.lock_for_write():
-            keys = list(self._key_dict_to_sequence(keys))
-            template_string = ', '.join(['?'] * (len(keys) + 1))
-            c.execute(f'INSERT OR REPLACE INTO datasets VALUES ({template_string})',
-                      keys + [override_path])
-
-        if not compute_metadata:
-            return
-
-        with self.lock_for_write():
             row_keys, row_values = zip(*encoded_data.items())
             template_string = ', '.join(['?'] * (len(keys) + len(row_values)))
             c.execute(f'INSERT OR REPLACE INTO metadata ({", ".join(self.available_keys)}, '
                       f'{", ".join(row_keys)}) VALUES ({template_string})', keys + list(row_values))
+
+        # insertion invalidates metadata cache
+        self._empty_cache()

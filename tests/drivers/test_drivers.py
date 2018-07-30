@@ -127,6 +127,159 @@ def test_lazy_loading(tmpdir, raster_file, provider):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
+def test_invalid_insertion(tmpdir, raster_file, provider):
+    from terracotta import drivers
+
+    dbfile = tmpdir.join('test.sqlite')
+    db = drivers.get_driver(str(dbfile), provider=provider)
+    keys = ('key',)
+
+    db.create(keys)
+
+    def throw(*args, **kwargs):
+        raise NotImplementedError()
+
+    db._compute_metadata = throw
+
+    db.insert(['bar'], str(raster_file), compute_metadata=False)
+
+    with pytest.raises(NotImplementedError):
+        db.insert(['foo'], str(raster_file), compute_metadata=True)
+
+    datasets = db.get_datasets()
+
+    assert ('bar',) in datasets
+    assert ('foo',) not in datasets
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_invalid_group_insertion(tmpdir, raster_file, provider):
+    from terracotta import drivers
+
+    dbfile = tmpdir.join('test.sqlite')
+    db = drivers.get_driver(str(dbfile), provider=provider)
+    keys = ('key',)
+
+    db.create(keys)
+
+    def throw(*args, **kwargs):
+        raise NotImplementedError()
+
+    db._compute_metadata = throw
+
+    with db.connect():
+        db.insert(['bar'], str(raster_file), compute_metadata=False)
+
+        with pytest.raises(NotImplementedError):
+            db.insert(['foo'], str(raster_file), compute_metadata=True)
+
+        datasets = db.get_datasets()
+
+    assert ('bar',) not in datasets
+    assert ('foo',) not in datasets
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_insertion_cache(tmpdir, raster_file, provider):
+    from terracotta import drivers
+
+    dbfile = tmpdir.join('test.sqlite')
+    db = drivers.get_driver(str(dbfile), provider=provider)
+    keys = ('key',)
+
+    db.create(keys)
+    datasets_before = db.get_datasets()
+    db.insert(['foo'], str(raster_file), compute_metadata=False)
+    datasets_after = db.get_datasets()
+
+    assert ('foo',) in datasets_after and ('foo',) not in datasets_before
+
+
+def insertion_worker(key, dbfile, raster_file, provider):
+    from terracotta import drivers
+    db = drivers.get_driver(str(dbfile), provider=provider)
+    db.insert([key], str(raster_file), compute_metadata=True)
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_multithreaded_insertion(tmpdir, raster_file, provider):
+    import functools
+    import concurrent.futures
+    from terracotta import drivers
+
+    dbfile = tmpdir.join('test.sqlite')
+    db = drivers.get_driver(str(dbfile), provider=provider)
+    keys = ('key',)
+
+    db.create(keys)
+
+    key_vals = [str(i) for i in range(100)]
+
+    worker = functools.partial(insertion_worker, dbfile=dbfile, raster_file=raster_file,
+                               provider=provider)
+
+    with concurrent.futures.ThreadPoolExecutor(10) as executor:
+        for result in executor.map(worker, key_vals):
+            pass
+
+    datasets = db.get_datasets()
+    assert all((key,) in datasets for key in key_vals), datasets.keys()
+
+    data1 = db.get_metadata(['77'])
+    data2 = db.get_metadata({'key': '99'})
+    assert list(data1.keys()) == list(data2.keys())
+    assert all(np.all(data1[k] == data2[k]) for k in data1.keys())
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_multiprocess_insertion(tmpdir, raster_file, provider):
+    import functools
+    import concurrent.futures
+    from terracotta import drivers
+
+    dbfile = str(tmpdir.join('test.sqlite'))
+    raster_file = str(raster_file)
+    db = drivers.get_driver(dbfile, provider=provider)
+    keys = ('key',)
+
+    db.create(keys)
+
+    key_vals = [str(i) for i in range(100)]
+
+    worker = functools.partial(insertion_worker, dbfile=dbfile, raster_file=raster_file,
+                               provider=provider)
+
+    with concurrent.futures.ProcessPoolExecutor(4) as executor:
+        for result in executor.map(worker, key_vals):
+            pass
+
+    datasets = db.get_datasets()
+    assert all((key,) in datasets for key in key_vals)
+
+    data1 = db.get_metadata(['77'])
+    data2 = db.get_metadata({'key': '99'})
+    assert list(data1.keys()) == list(data2.keys())
+    assert all(np.all(data1[k] == data2[k]) for k in data1.keys())
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_insertion_invalid_raster(tmpdir, invalid_raster_file, provider):
+    from terracotta import drivers
+
+    dbfile = str(tmpdir.join('test.sqlite'))
+    db = drivers.get_driver(dbfile, provider=provider)
+    keys = ('key',)
+
+    db.create(keys)
+
+    with pytest.raises(ValueError):
+        db.insert(['val'], str(invalid_raster_file))
+
+    datasets = db.get_datasets()
+    assert ('val',) not in datasets
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_raster_retrieval(tmpdir, raster_file, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')

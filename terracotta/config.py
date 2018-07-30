@@ -21,7 +21,9 @@ class TerracottaSettings(NamedTuple):
     RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490 MB
     METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10 MB
     TILE_SIZE: Tuple[int, int] = (256, 256)
+
     DB_CACHEDIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
+    DB_CONNECTION_TIMEOUT: int = 10
 
     RESAMPLING_METHOD: str = 'nearest'
 
@@ -41,7 +43,9 @@ class SettingSchema(Schema):
     METADATA_CACHE_SIZE = fields.Integer()
 
     TILE_SIZE = fields.List(fields.Integer(), validate=validate.Length(equal=2))
+
     DB_CACHEDIR = fields.String()
+    DB_CONNECTION_TIMEOUT = fields.Integer()
 
     RESAMPLING_METHOD = fields.String(
         validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
