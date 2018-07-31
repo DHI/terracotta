@@ -23,8 +23,5 @@ def test_optimize_rasters(big_raster_file, tmpdir):
             warnings.filterwarnings('ignore', 'invalid value encountered.*')
             np.testing.assert_array_equal(src1.read(), src2.read())
 
-    errors, _ = validate_cloud_optimized_geotiff.validate(str(big_raster_file))
-    assert errors and 'no overviews' in errors[0]
-
-    errors, _ = validate_cloud_optimized_geotiff.validate(str(outfile))
-    assert not errors
+    assert not validate_cloud_optimized_geotiff.cog_validate(str(big_raster_file))
+    assert validate_cloud_optimized_geotiff.cog_validate(str(outfile))
