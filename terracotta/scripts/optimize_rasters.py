@@ -64,7 +64,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     for f in raster_files_flat:
         if not f.is_file():
-            raise ValueError(f'Input file {f!s} is not a file')
+            raise click.Abort(f'Input raster {f!s} is not a file')
 
     output_folder.mkdir(exist_ok=True)
 
@@ -81,7 +81,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
             output_file = output_folder / input_file.with_suffix('.tif').name
 
             if not overwrite and output_file.is_file():
-                raise IOError(f'Output file {output_file!s} exists (use --overwrite to ignore)')
+                raise click.Abort(f'Output file {output_file!s} exists (use --overwrite to ignore)')
 
             with rasterio.Env(**GDAL_CONFIG), rasterio.open(str(input_file)) as src:
                 profile = src.profile.copy()

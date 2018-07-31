@@ -48,11 +48,15 @@ def create_database(raster_pattern: RasterPatternType,
     if rgb_key is not None:
         if rgb_key not in keys:
             raise click.UsageError('RGB key not found in raster pattern')
+
         # re-order keys
         rgb_idx = keys.index(rgb_key)
-        keys = [*keys[:rgb_idx], *keys[rgb_idx + 1:], keys[rgb_idx]]
-        raster_files = {(*k[:rgb_idx], *k[rgb_idx + 1:], k[rgb_idx]): v
-                        for k, v in raster_files.items()}
+
+        def push_to_last(seq: Sequence[Any], index: int) -> Tuple[Any, ...]:
+            return (*seq[:index], *seq[index + 1:], seq[index])
+
+        keys = list(push_to_last(keys, rgb_idx))
+        raster_files = {push_to_last(k, rgb_idx): v for k, v in raster_files.items()}
 
     driver = get_driver(output_file)
 

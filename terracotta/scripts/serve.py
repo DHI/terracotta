@@ -120,7 +120,7 @@ def serve(database: str = None,
             port = port_candidate
             break
     else:
-        raise RuntimeError(f'Could not find open port to bind to (ports tried: {port_range})')
+        raise click.Abort(f'Could not find open port to bind to (ports tried: {port_range})')
 
     run_app(port=port, allow_all_ips=allow_all_ips, debug=debug, profile=profile,
             preview=not no_browser)
