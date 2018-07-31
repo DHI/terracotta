@@ -3,8 +3,7 @@
 Entry point for CLI.
 """
 
-from typing import Any, Dict
-import sys
+from typing import Any
 
 import click
 

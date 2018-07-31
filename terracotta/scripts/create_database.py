@@ -3,6 +3,7 @@
 A convenience tool to create a Terracotta database from some raster files.
 """
 
+from typing import Tuple, Sequence, Any
 from pathlib import Path
 
 import click
