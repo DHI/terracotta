@@ -35,7 +35,7 @@ def entrypoint() -> None:
         click.echo('Aborted!', err=True)
         sys.exit(1)
     except Exception as exc:
-        styled_prefix = click.style('Error', fg="red", bg="white", bold=True)
+        styled_prefix = click.style('Error', fg='red', bg='white', bold=True)
         error_string = f'\n{styled_prefix}\n{exc!s}'
         click.echo(error_string, err=True)
         sys.exit(1)

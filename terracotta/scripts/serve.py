@@ -3,7 +3,7 @@
 Use Flask development server to serve up raster files or database locally.
 """
 
-from typing import Mapping, Any
+from typing import Mapping, Any, Tuple, Sequence
 import tempfile
 
 import click
@@ -29,9 +29,15 @@ from terracotta.scripts.click_utils import RasterPattern, RasterPatternType, TOM
               help='Allow connections from outside IP addresses. Use with care!')
 @click.option('--port', type=click.INT, default=None,
               help='Port to use [default: first free port between 5000 and 5099].')
-def serve(database: str = None, raster_pattern: RasterPatternType = None, debug: bool = False,
-          profile: bool = False, no_browser: bool = False, config: Mapping[str, Any] = None,
-          database_provider: str = None, allow_all_ips: bool = False, port: int = None,
+def serve(database: str = None,
+          raster_pattern: RasterPatternType = None,
+          debug: bool = False,
+          profile: bool = False,
+          no_browser: bool = False,
+          config: Mapping[str, Any] = None,
+          database_provider: str = None,
+          allow_all_ips: bool = False,
+          port: int = None,
           rgb_key: str = None) -> None:
     """Serve rasters through a local Flask development server.
 
@@ -62,18 +68,32 @@ def serve(database: str = None, raster_pattern: RasterPatternType = None, debug:
         if rgb_key is not None:
             if rgb_key not in keys:
                 raise click.UsageError('RGB key not found in raster pattern')
+
             # re-order keys
             rgb_idx = keys.index(rgb_key)
-            keys = [*keys[:rgb_idx], *keys[rgb_idx + 1:], keys[rgb_idx]]
-            raster_files = {(*k[:rgb_idx], *k[rgb_idx + 1:], k[rgb_idx]): v for k, v in
-                            raster_files.items()}
+
+            def push_to_last(seq: Sequence[Any], index: int) -> Tuple[Any, ...]:
+                return (*seq[:index], *seq[index + 1:], seq[index])
+
+            keys = list(push_to_last(keys, rgb_idx))
+            raster_files = {push_to_last(k, rgb_idx): v for k, v in raster_files.items()}
 
         driver = get_driver(dbfile.name, provider='sqlite')
 
+        pbar_args = dict(
+            label='Ingesting raster files',
+            show_eta=False,
+            item_show_func=lambda item: item[1] if item else ''
+        )
+
         with driver.connect():
             driver.create(keys)
-            for key, filepath in raster_files.items():
-                driver.insert(key, filepath, compute_metadata=False)
+
+            click.echo('')
+            with click.progressbar(raster_files.items(), **pbar_args) as pbar:  # type: ignore
+                for key, filepath in pbar:
+                    driver.insert(key, filepath, compute_metadata=False)
+            click.echo('')
 
         database = dbfile.name
 

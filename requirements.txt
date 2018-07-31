@@ -7,6 +7,5 @@ marshmallow>=3.0.0b1
 mercantile
 numpy
 pillow
-rasterio>=1.0rc1
-tqdm
+rasterio>=1.0
 toml

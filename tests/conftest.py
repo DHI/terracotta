@@ -41,6 +41,32 @@ def raster_file(tmpdir_factory):
 
 
 @pytest.fixture(scope='session')
+def big_raster_file(tmpdir_factory):
+    import affine
+
+    raster_data = np.random.randint(0, np.iinfo(np.uint16).max, size=(1024, 1024), dtype='uint16')
+    profile = {
+        'driver': 'GTiff',
+        'dtype': 'uint16',
+        'nodata': 0,
+        'width': raster_data.shape[1],
+        'height': raster_data.shape[0],
+        'count': 1,
+        'crs': {'init': 'epsg:32637'},
+        'transform': affine.Affine(
+            2.0, 0.0, 694920.0,
+            0.0, -2.0, 2055666.0
+        )
+    }
+
+    outpath = tmpdir_factory.mktemp('raster').join('img.tif')
+    with rasterio.open(str(outpath), 'w', **profile) as dst:
+        dst.write(raster_data, 1)
+
+    return outpath
+
+
+@pytest.fixture(scope='session')
 def invalid_raster_file(tmpdir_factory):
     """A raster file that is all nodata"""
     import affine
