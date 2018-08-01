@@ -9,7 +9,7 @@ def test_rgb_handler(use_read_only_database, raster_file, raster_file_xyz):
     from terracotta.handlers import rgb
     raw_img = rgb.rgb(['val21'], raster_file_xyz, ['val22', 'val23', 'val24'])
     img_data = np.asarray(Image.open(raw_img))
-    assert img_data.shape == (*terracotta.get_settings().TILE_SIZE, 4)
+    assert img_data.shape == (*terracotta.get_settings().TILE_SIZE, 3)
 
 
 def test_rgb_out_of_bounds(use_read_only_database, raster_file):

@@ -29,11 +29,15 @@ AVAILABLE_CMAPS = {f[:-len(SUFFIX)] for f in CMAP_FILES if f.endswith(SUFFIX)}
 
 
 def get_cmap(name: str) -> np.ndarray:
-    """Retrieve the given colormap and return stored RGBA values as a NumPy array (num_vals, 4)"""
+    """Retrieve the given colormap and return RGB values as a uint8 NumPy array of shape (255, 3)"""
     name = name.lower()
 
     if name not in AVAILABLE_CMAPS:
         raise ValueError(f'Unknown colormap {name}, must be one of {AVAILABLE_CMAPS}')
 
     with _get_cmap_data(name) as f:
-        return np.load(f)
+        cmap_data = np.load(f)
+
+    assert cmap_data.shape == (255, 3)
+    assert cmap_data.dtype == np.uint8
+    return cmap_data

@@ -1,11 +1,13 @@
 import pytest
 
+import numpy as np
+
 
 def test_get_cmap():
     from terracotta.cmaps import get_cmap
     cmap = get_cmap('jet')
-    assert cmap.shape[0] > 0
-    assert cmap.shape[1] == 4
+    assert cmap.shape == (255, 3)
+    assert cmap.dtype == np.uint8
 
 
 def test_get_cmap_filesystem(monkeypatch):
@@ -26,5 +28,5 @@ def test_get_cmap_filesystem(monkeypatch):
         importlib.reload(terracotta.cmaps)
 
         cmap = terracotta.cmaps.get_cmap('jet')
-        assert cmap.shape[0] > 0
-        assert cmap.shape[1] == 4
+        assert cmap.shape == (255, 3)
+        assert cmap.dtype == np.uint8

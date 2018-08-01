@@ -23,10 +23,11 @@ class SinglebandQuerySchema(Schema):
 class SinglebandOptionSchema(Schema):
     stretch_range = fields.List(
         fields.Number(allow_none=True), validate=validate.Length(equal=2), example='[0,1]',
-        description='Stretch range to use as JSON array, uses full range by default', missing=None
+        description='Stretch range to use as JSON array, uses full range by default. '
+                    'Null values indicate global minimum / maximum.', missing=None
     )
     colormap = fields.String(description='Colormap to apply to image (see /colormap)',
-                             default='Greys_r', validate=validate.OneOf(AVAILABLE_CMAPS))
+                             missing=None, validate=validate.OneOf(AVAILABLE_CMAPS))
 
     @pre_load
     def process_ranges(self, data: Mapping[str, Any]) -> Dict[str, Any]:

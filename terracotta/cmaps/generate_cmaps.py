@@ -9,19 +9,19 @@ import matplotlib.cm as cm
 from terracotta.cmaps import SUFFIX
 
 ALL_MAPS = cm.cmap_d
+NUM_VALS = 255
 
 
-def generate_maps(out_folder: str, num_vals: int = 255) -> None:
-    x = np.linspace(0, 1, num_vals)
+def generate_maps(out_folder: str) -> None:
+    x = np.linspace(0, 1, NUM_VALS)
     for cmap in ALL_MAPS:
         cmap_fun = cm.get_cmap(cmap)
-        cmap_vals = cmap_fun(x).astype('float32')
-        np.save(f'{out_folder}/{cmap.lower()}{SUFFIX}', cmap_vals)
+        cmap_vals = cmap_fun(x)[:, :-1]  # cut off alpha
+        cmap_uint8 = (cmap_vals * 255).astype('uint8')
+        np.save(f'{out_folder}/{cmap.lower()}{SUFFIX}', cmap_uint8)
 
 
 if __name__ == '__main__':
     import os
-    import sys
-    num_vals = sys.argv[1] if len(sys.argv) > 1 else 255
-    here = os.path.dirname(__file__)
-    generate_maps(num_vals=num_vals, out_folder=here)  # type: ignore
+    here = os.path.dirname(os.path.realpath(__file__))
+    generate_maps(out_folder=here)  # type: ignore

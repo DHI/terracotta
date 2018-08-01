@@ -72,7 +72,7 @@ def test_get_singleband_greyscale(client, use_read_only_database, raster_file_xy
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == (*settings.TILE_SIZE, 4)
+    assert np.asarray(img).shape == settings.TILE_SIZE
 
 
 def test_get_singleband_cmap(client, use_read_only_database, raster_file_xyz):
@@ -84,7 +84,7 @@ def test_get_singleband_cmap(client, use_read_only_database, raster_file_xyz):
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == (*settings.TILE_SIZE, 4)
+    assert np.asarray(img).shape == settings.TILE_SIZE
 
 
 def test_get_singleband_stretch(client, use_read_only_database, raster_file_xyz):
@@ -98,7 +98,7 @@ def test_get_singleband_stretch(client, use_read_only_database, raster_file_xyz)
         assert rv.status_code == 200
 
         img = Image.open(BytesIO(rv.data))
-        assert np.asarray(img).shape == (*settings.TILE_SIZE, 4)
+        assert np.asarray(img).shape == settings.TILE_SIZE
 
 
 def test_get_singleband_out_of_bounds(client, use_read_only_database):
@@ -110,8 +110,8 @@ def test_get_singleband_out_of_bounds(client, use_read_only_database):
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == (*settings.TILE_SIZE, 2)
-    assert np.all(np.asarray(img)[..., -1] == 0)
+    assert np.asarray(img).shape == settings.TILE_SIZE
+    assert np.all(np.asarray(img) == 0)
 
 
 def test_get_singleband_unknown_cmap(client, use_read_only_database, raster_file_xyz):
@@ -129,7 +129,7 @@ def test_get_rgb(client, use_read_only_database, raster_file_xyz):
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == (*settings.TILE_SIZE, 4)
+    assert np.asarray(img).shape == (*settings.TILE_SIZE, 3)
 
 
 def test_get_rgb_stretch(client, use_read_only_database, raster_file_xyz):
@@ -144,11 +144,11 @@ def test_get_rgb_stretch(client, use_read_only_database, raster_file_xyz):
         assert rv.status_code == 200, rv.data
 
         img = Image.open(BytesIO(rv.data))
-        assert np.asarray(img).shape == (*settings.TILE_SIZE, 4)
+        assert np.asarray(img).shape == (*settings.TILE_SIZE, 3)
 
 
 def test_get_legend(client):
-    rv = client.get('/legend?stretch_range=[0,1]')
+    rv = client.get('/legend?stretch_range=[0,1]&num_values=100')
     assert rv.status_code == 200
     assert len(json.loads(rv.data)['legend']) == 100
 

@@ -34,11 +34,9 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]], tile_xyz: Sequence
                                       tilesize=tile_size)
 
     valid_mask = image.get_valid_mask(tile_data, nodata=metadata['nodata'])
-    alpha_mask = image.to_uint8(valid_mask, 0, 1)
 
     global_min, global_max = metadata['range']
     stretch_range_ = (stretch_min or global_min, stretch_max or global_max)
-    tile_data = image.apply_cmap(tile_data, stretch_range_, cmap=colormap)
-    out = image.to_uint8(tile_data, 0, 1)
+    out = image.to_uint8(tile_data, *stretch_range_)
 
-    return image.array_to_png(out, alpha_mask=alpha_mask)
+    return image.array_to_png(out, transparency_mask=~valid_mask, colormap=colormap)
