@@ -73,4 +73,4 @@ def create_database(raster_pattern: RasterPatternType,
         click.echo('')
         with click.progressbar(raster_files.items(), **pbar_args) as pbar:  # type: ignore
             for key, filepath in pbar:
-                driver.insert(key, filepath, compute_metadata=not skip_metadata)
+                driver.insert(key, filepath, skip_metadata=skip_metadata)

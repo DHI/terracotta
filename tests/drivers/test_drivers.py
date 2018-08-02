@@ -114,8 +114,30 @@ def test_lazy_loading(tmpdir, raster_file, provider):
     keys = ('some', 'keys')
 
     db.create(keys)
-    db.insert(['some', 'value'], str(raster_file), compute_metadata=True)
-    db.insert(['some', 'other_value'], str(raster_file), compute_metadata=False)
+    db.insert(['some', 'value'], str(raster_file), skip_metadata=False)
+    db.insert(['some', 'other_value'], str(raster_file), skip_metadata=True)
+
+    datasets = db.get_datasets()
+    assert len(datasets) == 2
+
+    data1 = db.get_metadata(['some', 'value'])
+    data2 = db.get_metadata({'some': 'some', 'keys': 'other_value'})
+    assert list(data1.keys()) == list(data2.keys())
+    assert all(np.all(data1[k] == data2[k]) for k in data1.keys())
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_precomputed_metadata(tmpdir, raster_file, provider):
+    from terracotta import drivers
+    dbfile = tmpdir.join('test.sqlite')
+    db = drivers.get_driver(str(dbfile), provider=provider)
+    keys = ('some', 'keys')
+
+    metadata = db.compute_metadata(str(raster_file))
+
+    db.create(keys)
+    db.insert(['some', 'value'], str(raster_file), metadata=metadata)
+    db.insert(['some', 'other_value'], str(raster_file))
 
     datasets = db.get_datasets()
     assert len(datasets) == 2
@@ -139,12 +161,12 @@ def test_invalid_insertion(tmpdir, raster_file, provider):
     def throw(*args, **kwargs):
         raise NotImplementedError()
 
-    db._compute_metadata = throw
+    db.compute_metadata = throw
 
-    db.insert(['bar'], str(raster_file), compute_metadata=False)
+    db.insert(['bar'], str(raster_file), skip_metadata=True)
 
     with pytest.raises(NotImplementedError):
-        db.insert(['foo'], str(raster_file), compute_metadata=True)
+        db.insert(['foo'], str(raster_file), skip_metadata=False)
 
     datasets = db.get_datasets()
 
@@ -165,13 +187,13 @@ def test_invalid_group_insertion(tmpdir, raster_file, provider):
     def throw(*args, **kwargs):
         raise NotImplementedError()
 
-    db._compute_metadata = throw
+    db.compute_metadata = throw
 
     with db.connect():
-        db.insert(['bar'], str(raster_file), compute_metadata=False)
+        db.insert(['bar'], str(raster_file), skip_metadata=True)
 
         with pytest.raises(NotImplementedError):
-            db.insert(['foo'], str(raster_file), compute_metadata=True)
+            db.insert(['foo'], str(raster_file), skip_metadata=False)
 
         datasets = db.get_datasets()
 
@@ -189,7 +211,7 @@ def test_insertion_cache(tmpdir, raster_file, provider):
 
     db.create(keys)
     datasets_before = db.get_datasets()
-    db.insert(['foo'], str(raster_file), compute_metadata=False)
+    db.insert(['foo'], str(raster_file), skip_metadata=True)
     datasets_after = db.get_datasets()
 
     assert ('foo',) in datasets_after and ('foo',) not in datasets_before
@@ -198,7 +220,7 @@ def test_insertion_cache(tmpdir, raster_file, provider):
 def insertion_worker(key, dbfile, raster_file, provider):
     from terracotta import drivers
     db = drivers.get_driver(str(dbfile), provider=provider)
-    db.insert([key], str(raster_file), compute_metadata=True)
+    db.insert([key], str(raster_file), skip_metadata=False)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -311,3 +333,44 @@ def test_raster_duplicate(tmpdir, raster_file, provider):
     db.insert(['some', 'value'], str(raster_file))
 
     assert list(db.get_datasets().keys()) == [('some', 'value')]
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_deletion(tmpdir, raster_file, provider):
+    from terracotta import drivers, exceptions
+    dbfile = tmpdir.join('test.sqlite')
+    db = drivers.get_driver(str(dbfile), provider=provider)
+    keys = ('some', 'keys')
+
+    db.create(keys)
+
+    dataset = {'some': 'some', 'keys': 'value'}
+    db.insert(dataset, str(raster_file))
+
+    data = db.get_datasets()
+    assert list(data.keys()) == [('some', 'value')]
+    assert data[('some', 'value')] == str(raster_file)
+
+    metadata = db.get_metadata(('some', 'value'))
+    assert all(key in metadata for key in METADATA_KEYS)
+
+    db.delete(dataset)
+    assert not db.get_datasets()
+
+    with pytest.raises(exceptions.DatasetNotFoundError):
+        db.get_metadata(dataset)
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_delete_nonexisting(tmpdir, raster_file, provider):
+    from terracotta import drivers, exceptions
+    dbfile = tmpdir.join('test.sqlite')
+    db = drivers.get_driver(str(dbfile), provider=provider)
+    keys = ('some', 'keys')
+
+    db.create(keys)
+
+    dataset = {'some': 'some', 'keys': 'value'}
+
+    with pytest.raises(exceptions.DatasetNotFoundError):
+        db.delete(dataset)

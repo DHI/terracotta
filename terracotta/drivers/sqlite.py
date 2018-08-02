@@ -260,7 +260,7 @@ class SQLiteDriver(RasterDriver):
                 raise exceptions.DatasetNotFoundError(f'No dataset found for given keys {keys}')
             assert len(filepath) == 1
             # compute metadata and try again
-            self.insert(keys, filepath[keys])
+            self.insert(keys, filepath[keys], skip_metadata=False)
             c.execute(f'SELECT * FROM metadata WHERE {where_string}', keys)
             rows = list(c)
 
@@ -275,10 +275,12 @@ class SQLiteDriver(RasterDriver):
 
     @convert_exceptions('Could not write to database')
     @requires_connection
-    def insert(self, keys: Union[Sequence[str], Mapping[str, str]], filepath: str,
-               metadata: Mapping[str, Any] = None, *, compute_metadata: bool = True,
+    def insert(self,
+               keys: Union[Sequence[str], Mapping[str, str]],
+               filepath: str, *,
+               metadata: Mapping[str, Any] = None,
+               skip_metadata: bool = False,
                override_path: str = None) -> None:
-
         conn = self.get_connection()
         c = conn.cursor()
 
@@ -293,13 +295,37 @@ class SQLiteDriver(RasterDriver):
         c.execute(f'INSERT OR REPLACE INTO datasets VALUES ({template_string})',
                   keys + [override_path])
 
-        if compute_metadata:
-            row_data = self._compute_metadata(filepath, metadata)
-            encoded_data = self._encode_data(row_data)
+        if metadata is None and not skip_metadata:
+            metadata = self.compute_metadata(filepath)
+
+        if metadata is not None:
+            encoded_data = self._encode_data(metadata)
             row_keys, row_values = zip(*encoded_data.items())
             template_string = ', '.join(['?'] * (len(keys) + len(row_values)))
             c.execute(f'INSERT OR REPLACE INTO metadata ({", ".join(self.available_keys)}, '
                       f'{", ".join(row_keys)}) VALUES ({template_string})', keys + list(row_values))
 
         # insertion invalidates metadata cache
+        self._empty_cache()
+
+    @convert_exceptions('Could not write to database')
+    @requires_connection
+    def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
+        conn = self.get_connection()
+        c = conn.cursor()
+
+        if len(keys) != len(self.available_keys):
+            raise ValueError('Not enough keys')
+
+        keys = list(self._key_dict_to_sequence(keys))
+        key_dict = dict(zip(self.available_keys, keys))
+
+        if not self.get_datasets(key_dict):
+            raise exceptions.DatasetNotFoundError(f'No dataset found with keys {keys}')
+
+        where_string = ' AND '.join([f'{key}=?' for key in self.available_keys])
+        c.execute(f'DELETE FROM datasets WHERE {where_string}', keys)
+        c.execute(f'DELETE FROM metadata WHERE {where_string}', keys)
+
+        # deletion invalidates metadata cache
         self._empty_cache()

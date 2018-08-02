@@ -92,7 +92,7 @@ def serve(database: str = None,
             click.echo('')
             with click.progressbar(raster_files.items(), **pbar_args) as pbar:  # type: ignore
                 for key, filepath in pbar:
-                    driver.insert(key, filepath, compute_metadata=False)
+                    driver.insert(key, filepath, skip_metadata=True)
             click.echo('')
 
         database = dbfile.name

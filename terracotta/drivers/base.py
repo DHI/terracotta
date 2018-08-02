@@ -80,9 +80,24 @@ class Driver(ABC):
         """Get raster tile as a NumPy array for given keys."""
         pass
 
+    @staticmethod
     @abstractmethod
-    def insert(self, *args: Any, **kwargs: Any) -> None:
+    def compute_metadata(data: Any, *,
+                         extra_metadata: Any = None) -> Dict[str, Any]:
+        """Compute metadata for a given input file."""
+        pass
+
+    @abstractmethod
+    def insert(self, *args: Any,
+               metadata: Mapping[str, Any] = None,
+               skip_metadata: bool = False,
+               **kwargs: Any) -> None:
         """Register a new dataset. Used to populate data storage."""
+        pass
+
+    @abstractmethod
+    def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
+        """Remove a dataset from metadata storage."""
         pass
 
 
@@ -108,8 +123,8 @@ class RasterDriver(Driver):
             raise exceptions.UnknownKeyError('Encountered unknown key') from exc
 
     @staticmethod
-    def _compute_metadata(raster_path: str,
-                          extra_metadata: Mapping[str, Any] = None) -> Mapping[str, Any]:
+    def compute_metadata(raster_path: str, *,
+                         extra_metadata: Any = None) -> Dict[str, Any]:
         """Read given raster file and compute metadata from it"""
         import rasterio
         from rasterio.warp import transform_bounds
