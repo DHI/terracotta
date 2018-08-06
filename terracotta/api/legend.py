@@ -10,11 +10,12 @@ from flask import jsonify, request
 from marshmallow import Schema, fields, validate, pre_load, ValidationError
 
 from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
+from terracotta.cmaps import AVAILABLE_CMAPS
 
 
 class LegendEntrySchema(Schema):
     value = fields.Number(required=True)
-    rgba = fields.List(fields.Number(), required=True, validate=validate.Length(equal=4))
+    rgb = fields.List(fields.Number(), required=True, validate=validate.Length(equal=3))
 
 
 class LegendSchema(Schema):
@@ -27,8 +28,9 @@ class LegendOptionSchema(Schema):
         description='Minimum and maximum value of colormap as JSON array '
                     '(same as for /singleband and /rgb)'
     )
-    colormap = fields.String(description='Name of color map to use', missing='Greys_r')
-    num_values = fields.Int(description='Number of values to return', missing=100)
+    colormap = fields.String(description='Name of color map to use (see /colormap)',
+                             missing=None, validate=validate.OneOf(AVAILABLE_CMAPS))
+    num_values = fields.Int(description='Number of values to return', missing=255)
 
     @pre_load
     def process_ranges(self, data: Mapping[str, Any]) -> Dict[str, Any]:
@@ -71,7 +73,7 @@ def get_legend() -> str:
     payload = {'legend': legend(**options)}
 
     schema = LegendSchema()
-    return jsonify(schema.dump(payload))
+    return jsonify(schema.load(payload))
 
 
 spec.definition('LegendEntry', schema=LegendEntrySchema)

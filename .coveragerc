@@ -8,6 +8,7 @@ exclude_lines =
     pragma: no cover
     raise NotImplementedError
     if __name__ == .__main__.:
+    pass
 ignore_errors = True
 omit =
     terracotta/_version.py

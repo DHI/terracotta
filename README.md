@@ -15,7 +15,7 @@ For best performance, it is highly recommended to use [Cloud Optimized GeoTIFFs]
 command `terracotta optimize-rasters`.
 
 Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source software such as
-[Flask](http://flask.pocoo.org), [Zappa](), and
+[Flask](http://flask.pocoo.org), [Zappa](https://github.com/Miserlou/Zappa), and
 [Rasterio](https://github.com/mapbox/rasterio).
 
 ## Use cases
@@ -30,7 +30,8 @@ Terracotta covers several use cases:
 3. It can be deployed on serverless architectures such as AWS λ, serving tiles from S3 buckets.
    This allows you to build apps that scale infinitely while requiring minimal maintenance!
    To make it as easy as possible to deploy to AWS λ, we make use of the magic provided by
-   [Zappa](). See [Deployment on AWS](#deployment-on-aws) for more details.
+   [Zappa](https://github.com/Miserlou/Zappa). See [Deployment on AWS](#deployment-on-aws) 
+   for more details.
 
 
 ## Why Terracotta?
@@ -65,24 +66,53 @@ Already implemented drivers include:
 On most systems, installation is as easy as
 
 ```bash
-pip install terracotta
+$ pip install terracotta
 ```
 
 To install additional requirements needed to deploy to AWS, run
 
 ```bash
-pip install terracotta[aws]
+$ pip install terracotta[aws]
 ```
 
 instead.
 
 ## Ingestion
 
-### Using `create-database`
+For Terracotta to perform well, it is important that some metadata like the extent of your datasets
+or the range of its values is computed and ingested into a database. There are two ways to populate
+this metadata store:
 
-A simple but limited way to build a database is through the command line interface.
+### 1. Using `create-database`
 
-### An example ingestion script using the Python API
+A simple but limited way to build a database is through the command line interface. All you need to
+do is to point Terracotta to a folder of (cloud-optimized) GeoTiffs:
+
+```bash
+$ terracotta create-database /path/to/gtiffs/{sensor}_{name}_{date}_{band}.tif -o terracotta.sqlite
+```
+
+This will create a new database with the keys `sensor`, `name`, `date`, and `band` (in this order),
+and ingest all files matching the given pattern into it.
+
+For available options, see
+
+```bash
+$ terracotta create-database --help
+```
+
+### 2. Using the Python API
+
+Terracotta's driver API gives you fine-grained control over ingestion and retrieval.
+Metadata can be computed at three different times:
+
+1. Automatically during a call to `driver.insert` (fine for most applications);
+2. Manually using `driver.compute_metadata` (in case you want to decouple computation and IO,
+   or if you want to attach additional metadata); or
+3. On demand when a dataset is requested for the first time (this is what we want to avoid
+   through ingestion). 
+
+#### An example ingestion script using the Python API
 
 The following script populates a database with raster files located in a local directory
 `RASTER_FOLDER`. During deployment, the raster files will be located in an S3 bucket, so we
@@ -137,7 +167,7 @@ Note that the above script is just a simple example to show you some capabilitie
 Python API. More sophisticated solutions could e.g. attach additional metadata to database entries,
 or accept parameters from the command line.
 
-## The API
+## Web API
 
 Every Terracotta deployment exposes the API it uses as a `swagger.json` file and a visual
 explorer hosted at `http://server.com/swagger.json` and `http://server.com/apidoc`, respectively.
@@ -150,25 +180,24 @@ To allow for flexible deployments, Terracotta is fully configurable in several w
 
 1. Through a configuration file in TOML format, passed as an argument to `terracotta serve`, or
    to the app factory in WSGI or serverless deployments.
-2. By setting environment variables with the prefix `TC_`, containing the JSON-encoded value to
-   be used for the corresponding option.
-3. Through Terracotta's Python API, by using the command `terracotta.update_settings(config)`,
+2. By setting environment variables with the prefix `TC_`. Lists are passed as JSON arrays:
+   `TC_TILE_SIZE=[128,128]`.
+3. Through Terracotta's Python API, by using the command `terracotta.update_settings(**config)`,
    where `config` is a dictionary holding the new key-value pairs.
+
+Explicit overrides (through the Python API or a configuration file) always have higher precedence
+than configuration through environment variables. When changing environment variables after setup,
+it might be necessary to call `terracotta.update_settings()` for the changes to take effect.
 
 ### Available settings
 
-`terracotta-config.toml`:
-```toml
-DRIVER_PATH = 'path_or_url'
-DRIVER_PROVIDER = ''  # default: auto-detect
-CACHE_SIZE = 1024 * 1024 * 500  # 500MB
-TILE_SIZE = (256, 256)
-DB_CACHEDIR = '/tmp/terracotta'  # used to cache remote databases
-```
+For all available settings, their types and default values, have a look at the file
+[config.py](https://github.com/DHI-GRAS/terracotta/blob/master/terracotta/config.py) in the
+Terracotta code.
 
 ## Deployment on AWS λ
 
-The easiest way to deploy Terracotta on AWS λ is by using [Zappa]().
+The easiest way to deploy Terracotta on AWS λ is by using [Zappa](https://github.com/Miserlou/Zappa).
 
 
 Example `zappa_settings.json` file:
@@ -176,17 +205,19 @@ Example `zappa_settings.json` file:
 ```json
 {
     "dev": {
-        "app_function": "terracotta.zappa_api.app_debug",
+        "app_function": "terracotta.app.app",
         "aws_region": "eu-central-1",
         "profile_name": "default",
         "project_name": "my-terracotta-deployment",
         "runtime": "python3.6",
         "s3_bucket": "zappa-terracotta",
         "aws_environment_variables": {
-            "TC_DRIVER_PATH": "\"s3://my-bucket/terracotta.sqlite\"",
-            "TC_DRIVER_PROVIDER": "\"sqlite\""
+            "TC_DRIVER_PATH": "s3://my-bucket/terracotta.sqlite",
+            "TC_DRIVER_PROVIDER": "sqlite"
         },
-        "cors": true,
+        "callbacks": {
+            "zip": "zappa_version_callback.inject_version"
+        },
         "exclude": [
             "*.gz", "*.rar", "boto3*", "botocore*", "awscli*", ".mypy_cache", ".pytest_cache",
             ".eggs"
@@ -202,4 +233,4 @@ There are some cases that Terracotta does not handle:
 
 - The number of keys must be unique throughout a dataset.
 - You can only use the last key to compose RGB images.
-- Several other [open issues] (PRs welcome!)
+- Several other [open issues](https://github.com/DHI-GRAS/terracotta/issues) (PRs welcome!)

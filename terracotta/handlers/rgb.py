@@ -47,7 +47,7 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int], rgb_values: Sequence[
     out = np.empty(tile_size + (3,), dtype='uint8')
     valid_mask = np.ones(tile_size, dtype='bool')
 
-    def get_tile(band_key: str, scale_range: Optional[Tuple[Number, Number]]) -> np.ndarray:
+    def get_tile(band_key: str, stretch_override: Optional[Tuple[Number, Number]]) -> np.ndarray:
         keys = (*some_keys, band_key)
 
         with driver.connect():
@@ -56,11 +56,19 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int], rgb_values: Sequence[
                                           tile_z=tile_z, tilesize=tile_size)
 
         valid_mask = image.get_valid_mask(tile_data, nodata=metadata['nodata'])
-        global_min, global_max = metadata['range']
-        if scale_range is not None:
-            stretch_range = (scale_range[0] or global_min, scale_range[1] or global_max)
-        else:
-            stretch_range = (global_min, global_max)
+        stretch_range = list(metadata['range'])
+
+        if stretch_override is not None:
+            scale_min, scale_max = stretch_override
+            if scale_min is not None:
+                stretch_range[0] = scale_min
+            if scale_max is not None:
+                stretch_range[1] = scale_max
+
+        if stretch_range[1] < stretch_range[0]:
+            raise exceptions.InvalidArgumentsError('Upper stretch bound must be higher than '
+                                                   'lower bound')
+
         return image.to_uint8(tile_data, *stretch_range), valid_mask
 
     with concurrent.futures.ThreadPoolExecutor(3) as executor:
@@ -69,5 +77,4 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int], rgb_values: Sequence[
             out[..., i] = band_data
             valid_mask &= band_valid_mask
 
-    alpha_mask = image.to_uint8(valid_mask, 0, 1)
-    return image.array_to_png(out, alpha_mask=alpha_mask)
+    return image.array_to_png(out, transparency_mask=~valid_mask)

@@ -9,9 +9,11 @@ import click
 
 
 @click.group('terracotta')
-def cli(*args: Any, **kwargs: Any) -> None:
+@click.pass_context
+def cli(ctx: click.Context, *args: Any, **kwargs: Any) -> None:
     """Terracotta CLI"""
-    pass
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
 
 
 from terracotta.scripts.create_database import create_database

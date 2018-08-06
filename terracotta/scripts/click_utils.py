@@ -1,6 +1,6 @@
-"""scripts/click_types.py
+"""scripts/click_utils.py
 
-Custom click parameter types for efficient option parsing.
+Custom click parameter types and utilities.
 """
 
 from typing import List, Any, Tuple, Dict
@@ -58,6 +58,9 @@ class RasterPattern(click.ParamType):
         # use glob to find candidates, regex to extract placeholder values
         candidates = [os.path.realpath(candidate) for candidate in glob.glob(glob_pattern)]
         matched_candidates = [compiled_pattern.match(candidate) for candidate in candidates]
+
+        if not any(matched_candidates):
+            self.fail('Given pattern matches no files')
 
         key_combinations = [tuple(match.groups()) for match in matched_candidates if match]
         if len(key_combinations) != len(set(key_combinations)):

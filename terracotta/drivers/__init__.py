@@ -3,15 +3,19 @@
 Define an interface to retrieve Terracotta drivers.
 """
 
-from typing import Callable, Any, Dict
+from typing import Callable, Any, Dict, Union
 import functools
+import urllib.parse as urlparse
+from pathlib import Path
 
 from terracotta.drivers.base import Driver
 from terracotta.drivers.sqlite import SQLiteDriver
+from terracotta.drivers.sqlite_remote import RemoteSQLiteDriver
 
 
 DRIVERS = {
-    'sqlite': SQLiteDriver
+    'sqlite': SQLiteDriver,
+    'sqlite-remote': RemoteSQLiteDriver
 }
 
 
@@ -28,10 +32,19 @@ def singleton(fun: Callable) -> Callable:
     return inner
 
 
+def auto_detect_provider(url_or_path: Union[str, Path]) -> str:
+    parsed_path = urlparse.urlparse(str(url_or_path))
+
+    if parsed_path.scheme == 's3':
+        return 'sqlite-remote'
+
+    return 'sqlite'
+
+
 @singleton
-def get_driver(url_or_path: str, provider: str = None) -> Driver:
-    if not provider:  # try and auto-detect
-        provider = 'sqlite'
+def get_driver(url_or_path: Union[str, Path], provider: str = None) -> Driver:
+    if provider is None:  # try and auto-detect
+        provider = auto_detect_provider(url_or_path)
 
     try:
         DriverClass = DRIVERS[provider]
