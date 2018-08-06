@@ -30,7 +30,8 @@ Terracotta covers several use cases:
 3. It can be deployed on serverless architectures such as AWS λ, serving tiles from S3 buckets.
    This allows you to build apps that scale infinitely while requiring minimal maintenance!
    To make it as easy as possible to deploy to AWS λ, we make use of the magic provided by
-   [Zappa](). See [Deployment on AWS](#deployment-on-aws) for more details.
+   [Zappa](https://github.com/Miserlou/Zappa). See [Deployment on AWS](#deployment-on-aws) 
+   for more details.
 
 
 ## Why Terracotta?
@@ -78,7 +79,11 @@ instead.
 
 ## Ingestion
 
-### Using `create-database`
+For Terracotta to perform well, it is important that some metadata like the extent of your datasets
+or the range of its values is computed and ingested into a database. There are two ways to populate
+this metadata store:
+
+### 1. Using `create-database`
 
 A simple but limited way to build a database is through the command line interface. All you need to
 do is to point Terracotta to a folder of (cloud-optimized) GeoTiffs:
@@ -96,7 +101,18 @@ For available options, see
 $ terracotta create-database --help
 ```
 
-### An example ingestion script using the Python API
+### 2. Using the Python API
+
+Terracotta's driver API gives you fine-grained control over ingestion and retrieval.
+Metadata can be computed at three different times:
+
+1. Automatically during a call to `driver.insert` (fine for most applications);
+2. Manually using `driver.compute_metadata` (in case you want to decouple computation and IO,
+   or if you want to attach additional metadata); or
+3. On demand when a dataset is requested for the first time (this is what we want to avoid
+   through ingestion). 
+
+#### An example ingestion script using the Python API
 
 The following script populates a database with raster files located in a local directory
 `RASTER_FOLDER`. During deployment, the raster files will be located in an S3 bucket, so we
@@ -151,7 +167,7 @@ Note that the above script is just a simple example to show you some capabilitie
 Python API. More sophisticated solutions could e.g. attach additional metadata to database entries,
 or accept parameters from the command line.
 
-## The API
+## Web API
 
 Every Terracotta deployment exposes the API it uses as a `swagger.json` file and a visual
 explorer hosted at `http://server.com/swagger.json` and `http://server.com/apidoc`, respectively.
@@ -217,4 +233,4 @@ There are some cases that Terracotta does not handle:
 
 - The number of keys must be unique throughout a dataset.
 - You can only use the last key to compose RGB images.
-- Several other [open issues] (PRs welcome!)
+- Several other [open issues](https://github.com/DHI-GRAS/terracotta/issues) (PRs welcome!)
