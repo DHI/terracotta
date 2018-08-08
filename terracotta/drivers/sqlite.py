@@ -12,7 +12,6 @@ import contextlib
 import functools
 import json
 import re
-import urllib.parse as urlparse
 from threading import get_ident
 from pathlib import Path
 import sqlite3

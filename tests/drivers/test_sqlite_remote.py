@@ -3,6 +3,8 @@
 Tests that apply to all drivers go to test_drivers.py.
 """
 
+import os
+
 import pytest
 
 import boto3
@@ -55,6 +57,25 @@ def test_remote_database_hash_changed(tmpdir, raster_file):
     driver = get_driver(dbpath)
     assert driver.available_keys == keys
     assert driver.get_datasets() == {}
+    modification_date = os.path.getmtime(driver.path)
+
     create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
-    print('real driver: ', driver)
+    assert list(driver.get_datasets().keys()) == [('some', 'value')]
+    assert os.path.getmtime(driver.path) != modification_date
+
+
+@mock_s3
+def test_remote_database_hash_unchanged(tmpdir, raster_file):
+    keys = ('some', 'keys')
+    dbpath = create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
+
+    from terracotta import get_driver
+
+    driver = get_driver(dbpath)
+    assert driver.available_keys == keys
+    assert list(driver.get_datasets().keys()) == [('some', 'value')]
+    modification_date = os.path.getmtime(driver.path)
+
+    create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
+    assert os.path.getmtime(driver.path) == modification_date
     assert list(driver.get_datasets().keys()) == [('some', 'value')]

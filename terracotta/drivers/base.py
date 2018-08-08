@@ -23,7 +23,6 @@ Number = TypeVar('Number', int, float)
 def requires_connection(fun: Callable) -> Callable:
     @functools.wraps(fun)
     def inner(self: Driver, *args: Any, **kwargs: Any) -> Any:
-        print(self)
         with self.connect():
             return fun(self, *args, **kwargs)
     return inner

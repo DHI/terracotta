@@ -13,7 +13,7 @@ from terracotta import get_settings
 from terracotta.drivers.sqlite import SQLiteDriver, convert_exceptions
 
 
-@convert_exceptions('Could not retrieve database from S3')
+@convert_exceptions('Could not retrieve database from S3')  # type: ignore
 def _download_from_s3_if_changed(remote_path: str, local_path: Union[str, Path],
                                  current_hash: str) -> None:
     import boto3

@@ -3,7 +3,6 @@ import pytest
 
 
 DRIVERS = ['sqlite']
-WRITABLE_DRIVERS = ['sqlite']
 
 METADATA_KEYS = ('bounds', 'nodata', 'range', 'mean', 'stdev', 'percentiles', 'metadata')
 
