@@ -18,6 +18,7 @@ def pytest_unconfigure(config):
 def raster_file(tmpdir_factory):
     import affine
 
+    np.random.seed(17)
     raster_data = np.random.randint(0, np.iinfo(np.uint16).max, size=(256, 256), dtype='uint16')
     profile = {
         'driver': 'GTiff',
@@ -44,6 +45,7 @@ def raster_file(tmpdir_factory):
 def big_raster_file(tmpdir_factory):
     import affine
 
+    np.random.seed(17)
     raster_data = np.random.randint(0, np.iinfo(np.uint16).max, size=(1024, 1024), dtype='uint16')
     profile = {
         'driver': 'GTiff',
