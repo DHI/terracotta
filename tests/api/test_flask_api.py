@@ -138,7 +138,7 @@ def test_get_rgb_stretch(client, use_read_only_database, raster_file_xyz):
 
     x, y, z = raster_file_xyz
 
-    for stretch_range in ('[0,1]', '[0,null]', '[null, 1]', '[null,null]', 'null'):
+    for stretch_range in ('[0,10000]', '[0,null]', '[null, 10000]', '[null,null]', 'null'):
         rv = client.get(f'/rgb/val21/{z}/{x}/{y}.png?r=val22&g=val23&b=val24&'
                         f'r_range={stretch_range}&b_range={stretch_range}&g_range={stretch_range}')
         assert rv.status_code == 200, rv.data

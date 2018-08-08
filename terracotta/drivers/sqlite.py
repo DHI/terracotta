@@ -12,11 +12,11 @@ import contextlib
 import functools
 import json
 import re
-import urllib.parse as urlparse
 from threading import get_ident
 from pathlib import Path
 import sqlite3
 from sqlite3 import Connection
+from hashlib import md5
 
 from cachetools import LFUCache, cachedmethod
 import numpy as np
@@ -45,21 +45,10 @@ def convert_exceptions(msg: str) -> Iterator:
         raise exceptions.InvalidDatabaseError(msg) from exc
 
 
-def _download_from_s3(bucket_name: str, key: str, location: str) -> None:
-    import boto3
-    import botocore
-    s3 = boto3.resource('s3')
-    try:
-        s3.Bucket(bucket_name).download_file(key, location)
-    except botocore.exceptions.ClientError as exc:
-        raise exceptions.InvalidDatabaseError('Could not retrieve database from S3') from exc
-
-
 class SQLiteDriver(RasterDriver):
     """SQLite-backed raster driver.
 
-    Thread-safe by opening a single connection per thread. Also supports databases stored remotely
-    in an S3 bucket (downloaded during __init__).
+    Thread-safe by opening a single connection per thread.
 
     Data is stored in 3 different tables:
 
@@ -86,28 +75,30 @@ class SQLiteDriver(RasterDriver):
     )
 
     def __init__(self, path: Union[str, Path]) -> None:
-        """Use given database path to read and store metadata. Path may be local or s3:// URL."""
+        """Use given database path to read and store metadata."""
         settings = get_settings()
 
         self.DB_CONNECTION_TIMEOUT: int = settings.DB_CONNECTION_TIMEOUT
 
-        # check if database needs to be retrieved from remote storage
-        path_str = str(path)
-        if path_str.startswith('s3://'):
-            remote_db_path = os.path.join(settings.DB_CACHEDIR, 's3_db.sqlite')
-            if not os.path.isfile(remote_db_path):
-                os.makedirs(settings.DB_CACHEDIR, exist_ok=True)
-                parsed_url = urlparse.urlparse(path_str)
-                bucket_name, key = parsed_url.netloc, parsed_url.path.strip('/')
-                _download_from_s3(bucket_name, key, remote_db_path)
-            path_str = remote_db_path
+        self.path: str = str(path)
 
-        self.path: str = path_str
-        self._connetion_pool: Dict[int, Connection] = {}
+        self._connection_pool: Dict[int, Connection] = {}
         self._metadata_cache: LFUCache = LFUCache(
             settings.METADATA_CACHE_SIZE, getsizeof=sys.getsizeof
         )
+
+        self._db_hash: str = ''
+        if os.path.isfile(self.path):
+            self._db_hash = self._compute_hash(self.path)
+
         super(SQLiteDriver, self).__init__(path)
+
+    @staticmethod
+    def _compute_hash(path: Union[str, Path]) -> str:
+        m = md5()
+        with open(path, 'rb') as f:
+            m.update(f.read())
+        return m.hexdigest()
 
     def _empty_cache(self) -> None:
         settings = get_settings()
@@ -150,28 +141,47 @@ class SQLiteDriver(RasterDriver):
 
     def get_connection(self) -> Connection:
         """Convenience method to retrieve the correct connection for the current thread."""
-        return self._connetion_pool[get_ident()]
+        thread_id = get_ident()
+        if thread_id not in self._connection_pool:
+            raise RuntimeError('No open connection for current thread')
+        return self._connection_pool[thread_id]
 
     @contextlib.contextmanager
     def connect(self) -> Iterator:
         thread_id = get_ident()
-        conn = self._connetion_pool.get(thread_id)
-        close = False
-        if conn is None:
+        if thread_id not in self._connection_pool:
+            self._check_db()
             with convert_exceptions('Unable to connect to database'):
-                conn = sqlite3.connect(self.path, timeout=self.DB_CONNECTION_TIMEOUT)
-            self._connetion_pool[thread_id] = conn
+                new_conn = sqlite3.connect(self.path, timeout=self.DB_CONNECTION_TIMEOUT)
+            self._connection_pool[thread_id] = new_conn
             close = True
+        else:
+            close = False
+
+        conn = self.get_connection()
+
         try:
-            yield
+            yield conn
+
         except Exception:
             conn.rollback()
             raise
+
         finally:
             if close:
                 conn.commit()
                 conn.close()
-                self._connetion_pool.pop(thread_id)
+                self._connection_pool.pop(thread_id)
+
+    def _check_db(self) -> None:
+        """Called when opening a new connection"""
+        if not os.path.isfile(self.path):
+            return
+
+        new_hash = self._compute_hash(self.path)
+        if self._db_hash != new_hash:
+            self._empty_cache()
+            self._db_hash = new_hash
 
     @memoize
     @convert_exceptions('Could not retrieve keys from database')
@@ -213,8 +223,6 @@ class SQLiteDriver(RasterDriver):
                   f'PRIMARY KEY ({", ".join(keys)}))')
 
     @cachedmethod(operator.attrgetter('_metadata_cache'))
-    @convert_exceptions('Could not retrieve datasets')
-    @requires_connection
     def _get_datasets(self,
                       where: Tuple[Tuple[str], Tuple[str]] = None) -> Dict[Tuple[str, ...], str]:
         """Cache-backed version of get_datasets"""
@@ -235,13 +243,13 @@ class SQLiteDriver(RasterDriver):
         num_keys = len(self.available_keys)
         return {tuple(row[:num_keys]): row[-1] for row in c}
 
+    @convert_exceptions('Could not retrieve datasets')
+    @requires_connection
     def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], str]:
         where_ = where and (tuple(where.keys()), tuple(where.values()))
         return self._get_datasets(where_)
 
     @cachedmethod(operator.attrgetter('_metadata_cache'))
-    @convert_exceptions('Could not retrieve metadata')
-    @requires_connection
     def _get_metadata(self, keys: Tuple[str]) -> Dict[str, Any]:
         """Cache-backed version of get_metadata"""
         if len(keys) != len(self.available_keys):
@@ -269,6 +277,8 @@ class SQLiteDriver(RasterDriver):
         assert len(encoded_data) == 1
         return self._decode_data(encoded_data[0])
 
+    @convert_exceptions('Could not retrieve metadata')
+    @requires_connection
     def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
         keys = tuple(self._key_dict_to_sequence(keys))
         return self._get_metadata(keys)
@@ -305,9 +315,6 @@ class SQLiteDriver(RasterDriver):
             c.execute(f'INSERT OR REPLACE INTO metadata ({", ".join(self.available_keys)}, '
                       f'{", ".join(row_keys)}) VALUES ({template_string})', keys + list(row_values))
 
-        # insertion invalidates metadata cache
-        self._empty_cache()
-
     @convert_exceptions('Could not write to database')
     @requires_connection
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
@@ -326,6 +333,3 @@ class SQLiteDriver(RasterDriver):
         where_string = ' AND '.join([f'{key}=?' for key in self.available_keys])
         c.execute(f'DELETE FROM datasets WHERE {where_string}', keys)
         c.execute(f'DELETE FROM metadata WHERE {where_string}', keys)
-
-        # deletion invalidates metadata cache
-        self._empty_cache()

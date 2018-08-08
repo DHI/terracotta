@@ -25,7 +25,8 @@ setup(
             'pytest-flake8',
             'codecov',
             'attrs>=17.4.0',
-            'matplotlib'
+            'matplotlib',
+            'moto'
         ],
         'aws': [
             'boto3',
