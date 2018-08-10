@@ -21,7 +21,6 @@ def create_s3_db(keys, tmpdir, datasets=None):
 
     if datasets:
         for keys, path in datasets.items():
-            print(f'inserting {keys}')
             driver.insert(keys, path)
 
     with open(dbfile, 'rb') as f:
@@ -87,3 +86,23 @@ def test_remote_database_hash_unchanged(tmpdir, raster_file):
     create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
     assert os.path.getmtime(driver.path) == modification_date
     assert list(driver.get_datasets().keys()) == [('some', 'value')]
+
+
+@mock_s3
+def test_immutability(tmpdir, raster_file):
+    keys = ('some', 'keys')
+    dbpath = create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
+
+    from terracotta import get_driver
+
+    driver = get_driver(dbpath)
+
+    with pytest.raises(NotImplementedError):
+        driver.create(keys)
+
+    with pytest.raises(NotImplementedError):
+        driver.insert(('some', 'value'), str(raster_file))
+
+    with pytest.raises(NotImplementedError):
+        driver.delete(('some', 'value'))
+

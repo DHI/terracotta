@@ -27,6 +27,7 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]], tile_xyz: Sequence
 
     settings = get_settings()
     driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
+
     with driver.connect():
         metadata = driver.get_metadata(keys)
         tile_size = settings.TILE_SIZE
@@ -35,8 +36,14 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]], tile_xyz: Sequence
 
     valid_mask = image.get_valid_mask(tile_data, nodata=metadata['nodata'])
 
-    global_min, global_max = metadata['range']
-    stretch_range_ = (stretch_min or global_min, stretch_max or global_max)
+    stretch_range_ = list(metadata['range'])
+
+    if stretch_min is not None:
+        stretch_range_[0] = stretch_min
+
+    if stretch_max is not None:
+        stretch_range_[1] = stretch_max
+
     out = image.to_uint8(tile_data, *stretch_range_)
 
     return image.array_to_png(out, transparency_mask=~valid_mask, colormap=colormap)

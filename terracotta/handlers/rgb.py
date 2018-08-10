@@ -22,10 +22,18 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int], rgb_values: Sequence[
     """
     import numpy as np
 
-    stretch_ranges_ = stretch_ranges or (None, None, None)
+    # make sure all stretch ranges contain two values
+    if stretch_ranges is None:
+        stretch_ranges = [None, None, None]
 
-    if len(stretch_ranges_) != 3:
-        raise exceptions.InvalidArgumentsError('stretch_ranges argument must contan 3 values')
+    stretch_ranges = list(stretch_ranges)
+
+    if len(stretch_ranges) != 3:
+        raise exceptions.InvalidArgumentsError('stretch_ranges argument must contain 3 values')
+
+    for i, stretch_range in enumerate(stretch_ranges):
+        if stretch_range is None:
+            stretch_ranges[i] = (None, None)
 
     if len(rgb_values) != 3:
         raise exceptions.InvalidArgumentsError('rgb_values argument must contain 3 values')
@@ -47,7 +55,7 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int], rgb_values: Sequence[
     out = np.empty(tile_size + (3,), dtype='uint8')
     valid_mask = np.ones(tile_size, dtype='bool')
 
-    def get_tile(band_key: str, stretch_override: Optional[Tuple[Number, Number]]) -> np.ndarray:
+    def get_tile(band_key: str, stretch_override: Tuple[Number, Number]) -> np.ndarray:
         keys = (*some_keys, band_key)
 
         with driver.connect():
@@ -56,14 +64,16 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int], rgb_values: Sequence[
                                           tile_z=tile_z, tilesize=tile_size)
 
         valid_mask = image.get_valid_mask(tile_data, nodata=metadata['nodata'])
+
         stretch_range = list(metadata['range'])
 
-        if stretch_override is not None:
-            scale_min, scale_max = stretch_override
-            if scale_min is not None:
-                stretch_range[0] = scale_min
-            if scale_max is not None:
-                stretch_range[1] = scale_max
+        scale_min, scale_max = stretch_override
+
+        if scale_min is not None:
+            stretch_range[0] = scale_min
+
+        if scale_max is not None:
+            stretch_range[1] = scale_max
 
         if stretch_range[1] < stretch_range[0]:
             raise exceptions.InvalidArgumentsError('Upper stretch bound must be higher than '
@@ -72,7 +82,7 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int], rgb_values: Sequence[
         return image.to_uint8(tile_data, *stretch_range), valid_mask
 
     with concurrent.futures.ThreadPoolExecutor(3) as executor:
-        results = executor.map(get_tile, rgb_values, stretch_ranges_)
+        results = executor.map(get_tile, rgb_values, stretch_ranges)
         for i, (band_data, band_valid_mask) in enumerate(results):
             out[..., i] = band_data
             valid_mask &= band_valid_mask
