@@ -10,7 +10,7 @@ from io import BytesIO
 import numpy as np
 from PIL import Image
 
-from terracotta import exceptions
+from terracotta import exceptions, get_settings
 
 Number = TypeVar('Number', int, float)
 
@@ -20,7 +20,10 @@ def array_to_png(arr: np.ndarray,
                  colormap: str = None) -> BinaryIO:
     from terracotta.cmaps import get_cmap
 
+    settings = get_settings()
+
     transparency: Union[Tuple[int, int, int], int]
+    compress_level = settings.PNG_COMPRESS_LEVEL
 
     if arr.ndim == 3:  # encode RGB image
         if arr.shape[-1] != 3:
@@ -64,16 +67,20 @@ def array_to_png(arr: np.ndarray,
         img.putpalette(palette)
 
     sio = BytesIO()
-    img.save(sio, 'png', compress_level=1, transparency=transparency)
+    img.save(sio, 'png', compress_level=compress_level, transparency=transparency)
     sio.seek(0)
     return sio
 
 
 def empty_image(size: Tuple[int, int]) -> BinaryIO:
+    """Return a fully transparent PNG image of given size"""
+    settings = get_settings()
+    compress_level = settings.PNG_COMPRESS_LEVEL
+
     img = Image.new(mode='P', size=size, color=0)
 
     sio = BytesIO()
-    img.save(sio, 'png', compress_level=1, transparency=0)
+    img.save(sio, 'png', compress_level=compress_level, transparency=0)
     sio.seek(0)
     return sio
 

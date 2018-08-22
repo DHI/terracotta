@@ -20,7 +20,9 @@ class TerracottaSettings(NamedTuple):
 
     RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490 MB
     METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10 MB
+
     TILE_SIZE: Tuple[int, int] = (256, 256)
+    PNG_COMPRESS_LEVEL: int = 1
 
     DB_CACHEDIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
     DB_CONNECTION_TIMEOUT: int = 10
@@ -43,6 +45,7 @@ class SettingSchema(Schema):
     METADATA_CACHE_SIZE = fields.Integer()
 
     TILE_SIZE = fields.List(fields.Integer(), validate=validate.Length(equal=2))
+    PNG_COMPRESS_LEVEL = fields.Integer(validate=validate.Range(min=0, max=9))
 
     DB_CACHEDIR = fields.String()
     DB_CONNECTION_TIMEOUT = fields.Integer()
