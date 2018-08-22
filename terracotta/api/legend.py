@@ -7,7 +7,7 @@ from typing import Any, Mapping, Dict
 import json
 
 from flask import jsonify, request
-from marshmallow import Schema, fields, validate, pre_load, ValidationError
+from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 
 from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
 from terracotta.cmaps import AVAILABLE_CMAPS
@@ -23,6 +23,9 @@ class LegendSchema(Schema):
 
 
 class LegendOptionSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
+
     stretch_range = fields.List(
         fields.Number(), validate=validate.Length(equal=2), required=True,
         description='Minimum and maximum value of colormap as JSON array '

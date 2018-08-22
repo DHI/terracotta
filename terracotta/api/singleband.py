@@ -6,7 +6,7 @@ Flask route to handle /singleband calls.
 from typing import Any, Mapping, Dict
 import json
 
-from marshmallow import Schema, fields, validate, pre_load, ValidationError
+from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 from flask import request, send_file
 
 from terracotta.api.flask_api import convert_exceptions, tile_api
@@ -21,6 +21,9 @@ class SinglebandQuerySchema(Schema):
 
 
 class SinglebandOptionSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
+
     stretch_range = fields.List(
         fields.Number(allow_none=True), validate=validate.Length(equal=2), example='[0,1]',
         description='Stretch range to use as JSON array, uses full range by default. '

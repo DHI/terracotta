@@ -6,7 +6,7 @@ Flask route to handle /rgb calls.
 from typing import Any, Mapping, Dict
 import json
 
-from marshmallow import Schema, fields, validate, pre_load, ValidationError
+from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 from flask import request, send_file
 
 from terracotta.api.flask_api import convert_exceptions, tile_api, spec
@@ -20,6 +20,9 @@ class RGBQuerySchema(Schema):
 
 
 class RGBOptionSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
+
     r = fields.String(required=True, description='Key value for red band')
     g = fields.String(required=True, description='Key value for green band')
     b = fields.String(required=True, description='Key value for blue band')
