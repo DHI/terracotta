@@ -8,6 +8,7 @@ import itertools
 from pathlib import Path
 
 import click
+from rasterio.enums import Resampling
 
 from terracotta.scripts.click_utils import GlobbityGlob, PathlibPath
 
@@ -28,6 +29,12 @@ COG_PROFILE = {
     'photometric': 'MINISBLACK',
     'BIGTIFF': 'IF_SAFER'
 }
+RESAMPLING_METHODS = {
+    'average': Resampling.average,
+    'nearest': Resampling.nearest,
+    'bilinear': Resampling.bilinear,
+    'cubic': Resampling.cubic
+}
 
 
 @click.command('optimize-rasters',
@@ -37,8 +44,8 @@ COG_PROFILE = {
               help='Output folder for cloud-optimized rasters. Subdirectories will be flattened.')
 @click.option('--overwrite', is_flag=True, default=False,
               help='Force overwrite of existing files')
-@click.option('--resampling-method', type=str, default='average',
-              help='Resampling method for overviews', show_default=True)
+@click.option('--resampling-method', type=click.Choice(RESAMPLING_METHODS.keys()),
+              default='average', help='Resampling method for overviews', show_default=True)
 def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      output_folder: Path,
                      overwrite: bool = False,
@@ -56,7 +63,6 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
     import numpy as np
     import rasterio
     from rasterio.io import MemoryFile
-    from rasterio.enums import Resampling
     from rasterio.shutil import copy
 
     raster_files_flat = sorted(set(itertools.chain.from_iterable(raster_files)))
@@ -68,14 +74,6 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
     for f in raster_files_flat:
         if not f.is_file():
             raise click.Abort(f'Input raster {f!s} is not a file')
-
-    try:
-        rs_method = Resampling[resampling_method]
-    except KeyError:
-        methods = [str(x).split('.')[1] for x in Resampling]
-        click.echo('Invalid resampling method. Available methods are: ' +
-                   ' '.join(methods))
-        return
 
     output_folder.mkdir(exist_ok=True)
 
@@ -113,6 +111,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     mem.write_mask(mask)
 
                     overviews = [2 ** j for j in range(1, OVERVIEW_LEVEL + 1)]
+                    rs_method = RESAMPLING_METHODS[resampling_method]
                     mem.build_overviews(overviews, rs_method)
                     mem.update_tags(ns='tc_overview', resampling=rs_method.value)
 
