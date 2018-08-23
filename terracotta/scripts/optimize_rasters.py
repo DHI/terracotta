@@ -37,9 +37,12 @@ COG_PROFILE = {
               help='Output folder for cloud-optimized rasters. Subdirectories will be flattened.')
 @click.option('--overwrite', is_flag=True, default=False,
               help='Force overwrite of existing files')
+@click.option('-m', '--resampling-method', type=str, default='average',
+              help='Resampling method for overviews [default: average]')
 def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      output_folder: Path,
-                     overwrite: bool = False) -> None:
+                     overwrite: bool = False,
+                     resampling_method: str = 'average') -> None:
     """Optimize a collection of raster files for use with Terracotta.
 
     First argument is a list of input files or glob patterns.
@@ -65,6 +68,12 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
     for f in raster_files_flat:
         if not f.is_file():
             raise click.Abort(f'Input raster {f!s} is not a file')
+
+    try:
+        rs_method = Resampling[resampling_method]
+    except KeyError:
+        methods = [str(x).split('.')[1] for x in Resampling]
+        click.echo('Invalid resampling method. Available methods are: ' + ' '.join(methods))
 
     output_folder.mkdir(exist_ok=True)
 
@@ -102,7 +111,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     mem.write_mask(mask)
 
                     overviews = [2 ** j for j in range(1, OVERVIEW_LEVEL + 1)]
-                    mem.build_overviews(overviews, Resampling.average)
-                    mem.update_tags(ns='tc_overview', resampling=Resampling.average.value)
+                    mem.build_overviews(overviews, rs_method)
+                    mem.update_tags(ns='tc_overview', resampling=rs_method.value)
 
                     copy(mem, str(output_file), copy_src_overviews=True, **COG_PROFILE)
