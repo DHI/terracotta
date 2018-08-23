@@ -37,8 +37,8 @@ COG_PROFILE = {
               help='Output folder for cloud-optimized rasters. Subdirectories will be flattened.')
 @click.option('--overwrite', is_flag=True, default=False,
               help='Force overwrite of existing files')
-@click.option('-m', '--resampling-method', type=str, default='average',
-              help='Resampling method for overviews [default: average]')
+@click.option('--resampling-method', type=str, default='average',
+              help='Resampling method for overviews', show_default=True)
 def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      output_folder: Path,
                      overwrite: bool = False,
