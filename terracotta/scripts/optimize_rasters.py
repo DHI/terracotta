@@ -73,7 +73,9 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         rs_method = Resampling[resampling_method]
     except KeyError:
         methods = [str(x).split('.')[1] for x in Resampling]
-        click.echo('Invalid resampling method. Available methods are: ' + ' '.join(methods))
+        click.echo('Invalid resampling method. Available methods are: ' +
+                   ' '.join(methods))
+        return
 
     output_folder.mkdir(exist_ok=True)
 
