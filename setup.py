@@ -26,7 +26,8 @@ setup(
             'codecov',
             'attrs>=17.4.0',
             'matplotlib',
-            'moto'
+            'moto',
+            'crick'
         ],
         'aws': [
             'boto3',
