@@ -106,6 +106,7 @@ class RasterDriver(Driver):
 
     get_datasets has to return path to raster file as sole dict value.
     """
+    MAX_TRANSFORM_SIZE: int = 10980
 
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -173,6 +174,30 @@ class RasterDriver(Driver):
 
         raise ValueError(f'unknown resampling method {method}')
 
+    @staticmethod
+    def _safe_default_transform(dataset, crs):
+        """Work around memory issues when computing default transform for huge rasters"""
+        from affine import Affine
+        from rasterio.warp import calculate_default_transform
+
+        max_size = RasterDriver.MAX_TRANSFORM_SIZE
+        height_scale = max(dataset.height // max_size, 1)
+        width_scale = max(dataset.width // max_size, 1)
+
+        dst_transform, dst_width, dst_height = calculate_default_transform(
+            dataset.crs, crs,
+            dataset.width // width_scale,
+            dataset.height // height_scale,
+            *dataset.bounds
+        )
+
+        scale = Affine.scale(width_scale, height_scale)
+        print(scale)
+        dst_transform *= ~scale
+        dst_width, dst_height = scale * (dst_width, dst_height)
+
+        return dst_transform, dst_width, dst_height
+
     @cachedmethod(operator.attrgetter('_raster_cache'))
     @requires_connection
     def _get_raster_tile(self, keys: Tuple[str], *,
@@ -184,7 +209,7 @@ class RasterDriver(Driver):
         Heavily inspired by mapbox/rio-tiler
         """
         import rasterio
-        from rasterio import transform, warp, windows
+        from rasterio import transform, windows
         from rasterio.vrt import WarpedVRT
 
         settings = get_settings()
@@ -204,10 +229,9 @@ class RasterDriver(Driver):
                 raise IOError('error while reading file {}'.format(path))
 
             # compute default bounds and transform in target CRS
-            dst_transform, dst_width, dst_height = warp.calculate_default_transform(
-                src.crs, target_crs, src.width, src.height, *src.bounds
-            )
+            dst_transform, dst_width, dst_height = self._safe_default_transform(src, target_crs)
             dst_bounds = transform.array_bounds(dst_height, dst_width, dst_transform)
+            print(dst_transform, dst_width, dst_height)
 
             # update bounds to fit the whole tile
             if bounds is not None:
@@ -246,10 +270,6 @@ class RasterDriver(Driver):
 
             if window_ratio < 0.001:
                 raise exceptions.TileOutOfBoundsError('data covers less than 0.1% of tile')
-
-            # switch to average resampling for low zoom levels
-            if window_ratio < 0.1 and resampling_method != 'nearest':
-                resampling_enum = self._get_resampling_enum('average')
 
             # read data
             with warnings.catch_warnings():
