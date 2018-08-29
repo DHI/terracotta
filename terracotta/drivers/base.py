@@ -4,18 +4,11 @@ Base class for drivers.
 """
 
 from abc import ABC, abstractmethod
-from typing import Callable, Mapping, Any, Tuple, Sequence, Dict, Union, List, TypeVar
-import sys
-import operator
-import math
-import warnings
+from typing import Callable, Mapping, Any, Tuple, Sequence, Dict, Union, TypeVar
 import functools
 import contextlib
 
-from cachetools import cachedmethod, LRUCache
 import numpy as np
-
-from terracotta import get_settings, exceptions
 
 Number = TypeVar('Number', int, float)
 
@@ -99,5 +92,3 @@ class Driver(ABC):
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         """Remove a dataset from metadata storage."""
         pass
-
-
