@@ -77,7 +77,6 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
     click.echo('')
     with click.progressbar(raster_files_flat, **pbar_args) as pbar:  # type: ignore
         for input_file in pbar:
-
             output_file = output_folder / input_file.with_suffix('.tif').name
 
             if not overwrite and output_file.is_file():

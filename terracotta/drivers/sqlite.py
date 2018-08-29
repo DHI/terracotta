@@ -21,7 +21,8 @@ from hashlib import md5
 from cachetools import LFUCache, cachedmethod
 import numpy as np
 
-from terracotta.drivers.base import RasterDriver, requires_connection
+from terracotta.drivers.base import requires_connection
+from terracotta.drivers.raster_base import RasterDriver
 from terracotta import get_settings, exceptions
 
 
