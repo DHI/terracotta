@@ -4,6 +4,7 @@ Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 """
 
 from typing import Sequence
+import math
 import itertools
 from pathlib import Path
 
@@ -12,12 +13,16 @@ from rasterio.enums import Resampling
 
 from terracotta.scripts.click_utils import GlobbityGlob, PathlibPath
 
-OVERVIEW_LEVEL = 6
+CACHEMAX = 1024 * 1024 * 200  # 200 MB
+
 GDAL_CONFIG = {
     'GDAL_NUM_THREADS': 'ALL_CPUS',
     'GDAL_TIFF_INTERNAL_MASK': True,
     'GDAL_TIFF_OVR_BLOCKSIZE': 256,
+    'GDAL_CACHEMAX': CACHEMAX,
+    'GDAL_SWATH_SIZE': 2 * CACHEMAX
 }
+
 COG_PROFILE = {
     'count': 1,
     'driver': 'GTiff',
@@ -29,6 +34,7 @@ COG_PROFILE = {
     'photometric': 'MINISBLACK',
     'BIGTIFF': 'IF_SAFER'
 }
+
 RESAMPLING_METHODS = {
     'average': Resampling.average,
     'nearest': Resampling.nearest,
@@ -60,10 +66,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     Note that all rasters may only contain a single band.
     """
-    import numpy as np
     import rasterio
-    from rasterio.io import MemoryFile
-    from rasterio.shutil import copy
 
     raster_files_flat = sorted(set(itertools.chain.from_iterable(raster_files)))
 
@@ -86,33 +89,38 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
     click.echo('')
     with click.progressbar(raster_files_flat, **pbar_args) as pbar:  # type: ignore
         for input_file in pbar:
-
             output_file = output_folder / input_file.with_suffix('.tif').name
 
             if not overwrite and output_file.is_file():
-                raise click.Abort(f'Output file {output_file!s} exists (use --overwrite to ignore)')
+                click.echo('')
+                click.echo(f'Output file {output_file!s} exists (use --overwrite to ignore)')
+                raise click.Abort()
 
             with rasterio.Env(**GDAL_CONFIG), rasterio.open(str(input_file)) as src:
                 profile = src.profile.copy()
                 profile.update(COG_PROFILE)
 
-                with MemoryFile() as memfile, memfile.open(**profile) as mem:
-                    mask = np.zeros((mem.height, mem.width), dtype=np.uint8)
-                    windows = list(mem.block_windows(1))
+                try:
+                    with rasterio.open(str(output_file), 'w', **profile) as dst:
+                        windows = list(dst.block_windows(1))
 
-                    for _, w in windows:
-                        block_data = src.read(window=w, indexes=[1])
-                        mem.write(block_data, window=w)
-                        mask_value = src.dataset_mask(window=w)
+                        for _, w in windows:
+                            block_data = src.read(window=w, indexes=[1])
+                            dst.write(block_data, window=w)
+                            block_mask = src.dataset_mask(window=w)
+                            dst.write_mask(block_mask, window=w)
 
-                        mask[w.row_off:w.row_off + w.height,
-                             w.col_off:w.col_off + w.width] = mask_value
+                        max_overview_level = math.ceil(math.log2(max(
+                            dst.height // profile['blockysize'],
+                            dst.width // profile['blockxsize']
+                        )))
 
-                    mem.write_mask(mask)
+                        overviews = [2 ** j for j in range(1, max_overview_level + 1)]
+                        rs_method = RESAMPLING_METHODS[resampling_method]
+                        dst.build_overviews(overviews, rs_method)
+                        dst.update_tags(ns='tc_overview', resampling=rs_method.value)
 
-                    overviews = [2 ** j for j in range(1, OVERVIEW_LEVEL + 1)]
-                    rs_method = RESAMPLING_METHODS[resampling_method]
-                    mem.build_overviews(overviews, rs_method)
-                    mem.update_tags(ns='tc_overview', resampling=rs_method.value)
-
-                    copy(mem, str(output_file), copy_src_overviews=True, **COG_PROFILE)
+                except:  # noqa: E722
+                    if output_file.is_file():
+                        output_file.unlink()
+                    raise
