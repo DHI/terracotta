@@ -12,6 +12,7 @@ import warnings
 import functools
 import contextlib
 
+from affine import Affine
 from cachetools import cachedmethod, LRUCache
 import numpy as np
 
@@ -175,26 +176,49 @@ class RasterDriver(Driver):
         raise ValueError(f'unknown resampling method {method}')
 
     @staticmethod
-    def _safe_default_transform(dataset, crs):
-        """Work around memory issues when computing default transform for huge rasters"""
-        from affine import Affine
-        from rasterio.warp import calculate_default_transform
+    def _calculate_default_transform(src_crs: Union[Dict[str, str], str],
+                                     target_crs: Union[Dict[str, str], str],
+                                     width: int,
+                                     height: int,
+                                     *bounds: Number) -> Tuple[Affine, int, int]:
+        """A more stable version of GDAL's default transform.
 
-        max_size = RasterDriver.MAX_TRANSFORM_SIZE
-        height_scale = max(dataset.height // max_size, 1)
-        width_scale = max(dataset.width // max_size, 1)
+        Ensures that the number of pixels along the image's shortest diagonal remains
+        the same in both CRS, without enforcing square pixels.
 
-        dst_transform, dst_width, dst_height = calculate_default_transform(
-            dataset.crs, crs,
-            dataset.width // width_scale,
-            dataset.height // height_scale,
-            *dataset.bounds
+        Bounds are in order (west, south, east, north).
+        """
+        from rasterio import warp, transform
+
+        if len(bounds) != 4:
+            raise ValueError('Bounds must contain 4 values')
+
+        # transform image corners to target CRS
+        dst_corner_sw, dst_corner_nw, dst_corner_se, dst_corner_ne = (
+            list(zip(*warp.transform(
+                src_crs, target_crs,
+                [bounds[0], bounds[0], bounds[2], bounds[2]],
+                [bounds[1], bounds[3], bounds[1], bounds[3]]
+            )))
         )
 
-        scale = Affine.scale(width_scale, height_scale)
-        print(scale)
-        dst_transform *= ~scale
-        dst_width, dst_height = scale * (dst_width, dst_height)
+        # determine inner bounding box of corners in target CRS
+        dst_corner_bounds = [
+            max(dst_corner_sw[0], dst_corner_nw[0]),
+            max(dst_corner_sw[1], dst_corner_se[1]),
+            min(dst_corner_se[0], dst_corner_ne[0]),
+            min(dst_corner_nw[1], dst_corner_ne[1])
+        ]
+
+        # compute target resolution
+        dst_corner_transform = transform.from_bounds(*dst_corner_bounds, width=width, height=height)
+        target_res = (dst_corner_transform.a, dst_corner_transform.e)
+
+        # get transform spanning whole bounds (not just projected corners)
+        dst_bounds = warp.transform_bounds(src_crs, target_crs, *bounds)
+        dst_width = math.ceil((dst_bounds[2] - dst_bounds[0]) / target_res[0])
+        dst_height = math.ceil((dst_bounds[1] - dst_bounds[3]) / target_res[1])
+        dst_transform = transform.from_bounds(*dst_bounds, width=dst_width, height=dst_height)
 
         return dst_transform, dst_width, dst_height
 
@@ -212,6 +236,8 @@ class RasterDriver(Driver):
         from rasterio import transform, windows
         from rasterio.vrt import WarpedVRT
 
+        dst_bounds: Tuple[float, float, float, float]
+
         settings = get_settings()
 
         path = self.get_datasets(dict(zip(self.available_keys, keys)))
@@ -219,8 +245,8 @@ class RasterDriver(Driver):
         path = path[keys]
 
         target_crs = 'epsg:3857'
-        resampling_method = settings.RESAMPLING_METHOD
-        resampling_enum = self._get_resampling_enum(resampling_method)
+        upsampling_method = settings.UPSAMPLING_METHOD
+        upsampling_enum = self._get_resampling_enum(upsampling_method)
 
         with contextlib.ExitStack() as es:
             try:
@@ -229,47 +255,52 @@ class RasterDriver(Driver):
                 raise IOError('error while reading file {}'.format(path))
 
             # compute default bounds and transform in target CRS
-            dst_transform, dst_width, dst_height = self._safe_default_transform(src, target_crs)
+            dst_transform, dst_width, dst_height = self._calculate_default_transform(
+                src.crs, target_crs, src.width, src.height, *src.bounds
+            )
+            dst_res = (dst_transform.a, dst_transform.e)
             dst_bounds = transform.array_bounds(dst_height, dst_width, dst_transform)
-            print(dst_transform, dst_width, dst_height)
+
+            if bounds is None:
+                bounds = dst_bounds
 
             # update bounds to fit the whole tile
-            if bounds is not None:
-                w_vrt = min(dst_bounds[0], bounds[0])
-                s_vrt = min(dst_bounds[1], bounds[1])
-                e_vrt = max(dst_bounds[2], bounds[2])
-                n_vrt = max(dst_bounds[3], bounds[3])
-            else:
-                w_vrt, s_vrt, e_vrt, n_vrt = dst_bounds
+            vrt_bounds = [
+                min(dst_bounds[0], bounds[0]),
+                min(dst_bounds[1], bounds[1]),
+                max(dst_bounds[2], bounds[2]),
+                max(dst_bounds[3], bounds[3])
+            ]
 
             # re-compute shape and transform with updated bounds
-            vrt_width = math.ceil((e_vrt - w_vrt) / dst_transform.a)
-            vrt_height = math.ceil((s_vrt - n_vrt) / dst_transform.e)
-            vrt_transform = transform.from_bounds(w_vrt, s_vrt, e_vrt, n_vrt, vrt_width, vrt_height)
+            vrt_width = math.ceil((vrt_bounds[2] - vrt_bounds[0]) / dst_res[0])
+            vrt_height = math.ceil((vrt_bounds[1] - vrt_bounds[3]) / dst_res[1])
+            vrt_transform = transform.from_bounds(*vrt_bounds, width=vrt_width, height=vrt_height)
 
             # construct VRT
             vrt = es.enter_context(
                 WarpedVRT(
-                    src, crs=target_crs, resampling=resampling_enum, init_dest_nodata=True,
+                    src, crs=target_crs, resampling=upsampling_enum, init_dest_nodata=True,
                     src_nodata=nodata, nodata=nodata, transform=vrt_transform, width=vrt_width,
                     height=vrt_height
                 )
             )
 
-            # only read in given bounds from VRT
-            if bounds is None:
-                window_bounds = dst_bounds
-            else:
-                window_bounds = bounds
-
             # compute output window
-            out_window = windows.from_bounds(*window_bounds, transform=vrt_transform)
+            out_window = windows.from_bounds(*bounds, transform=vrt_transform)
 
             # prevent expensive loads of very sparse data
             window_ratio = dst_width / out_window.width * dst_height / out_window.height
 
             if window_ratio < 0.001:
                 raise exceptions.TileOutOfBoundsError('data covers less than 0.1% of tile')
+
+            # determine whether we are upsampling or downsampling
+            if window_ratio > 1:
+                resampling_enum = upsampling_enum
+            else:
+                downsampling_method = settings.DOWNSAMPLING_METHOD
+                resampling_enum = self._get_resampling_enum(downsampling_method)
 
             # read data
             with warnings.catch_warnings():
