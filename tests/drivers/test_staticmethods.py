@@ -48,3 +48,40 @@ def test_compute_metadata(big_raster_file, use_chunks):
         np.percentile(data, np.arange(1, 100)),
         rtol=0.01
     )
+
+
+@pytest.mark.parametrize('use_chunks', [True, False])
+def test_compute_metadata_invalid(invalid_raster_file, use_chunks):
+    from terracotta.drivers.raster_base import RasterDriver
+
+    with pytest.raises(ValueError):
+        RasterDriver.compute_metadata(str(invalid_raster_file), use_chunks=use_chunks)
+
+
+def test_compute_metadata_nocrick(big_raster_file):
+    import importlib
+
+    import rasterio
+    import numpy as np
+
+    with rasterio.open(str(big_raster_file)) as src:
+        data = src.read(1)
+        data = data[np.isfinite(data) & (data != src.nodata)]
+
+    import terracotta.drivers.raster_base
+    terracotta.drivers.raster_base.has_crick = False
+
+    with pytest.warns(UserWarning):
+        mtd = terracotta.drivers.raster_base.RasterDriver.compute_metadata(
+            str(big_raster_file), use_chunks=True)
+
+    np.testing.assert_allclose(mtd['range'], (data.min(), data.max()))
+    np.testing.assert_allclose(mtd['mean'], data.mean())
+    np.testing.assert_allclose(mtd['stdev'], data.std())
+
+    # allow error of 1%
+    np.testing.assert_allclose(
+        mtd['percentiles'],
+        np.percentile(data, np.arange(1, 100)),
+        rtol=0.01
+    )
