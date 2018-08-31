@@ -4,7 +4,11 @@ Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 """
 
 from typing import Sequence
+import os
+import math
 import itertools
+import contextlib
+import tempfile
 from pathlib import Path
 
 import click
@@ -12,12 +16,18 @@ from rasterio.enums import Resampling
 
 from terracotta.scripts.click_utils import GlobbityGlob, PathlibPath
 
-OVERVIEW_LEVEL = 6
+IN_MEMORY_THRESHOLD = 10980 * 10980
+
+CACHEMAX = 1024 * 1024 * 512  # 512 MB
+
 GDAL_CONFIG = {
     'GDAL_NUM_THREADS': 'ALL_CPUS',
     'GDAL_TIFF_INTERNAL_MASK': True,
     'GDAL_TIFF_OVR_BLOCKSIZE': 256,
+    'GDAL_CACHEMAX': CACHEMAX,
+    'GDAL_SWATH_SIZE': 2 * CACHEMAX
 }
+
 COG_PROFILE = {
     'count': 1,
     'driver': 'GTiff',
@@ -29,6 +39,7 @@ COG_PROFILE = {
     'photometric': 'MINISBLACK',
     'BIGTIFF': 'IF_SAFER'
 }
+
 RESAMPLING_METHODS = {
     'average': Resampling.average,
     'nearest': Resampling.nearest,
@@ -46,10 +57,14 @@ RESAMPLING_METHODS = {
               help='Force overwrite of existing files')
 @click.option('--resampling-method', type=click.Choice(RESAMPLING_METHODS.keys()),
               default='average', help='Resampling method for overviews', show_default=True)
+@click.option('--in-memory/--no-in-memory', default=None,
+              help='Force processing raster in memory / not in memory [default: process in memory '
+                   f'if smaller than {IN_MEMORY_THRESHOLD // 1e6:.0f} million pixels]')
 def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      output_folder: Path,
                      overwrite: bool = False,
-                     resampling_method: str = 'average') -> None:
+                     resampling_method: str = 'average',
+                     in_memory: bool = None) -> None:
     """Optimize a collection of raster files for use with Terracotta.
 
     First argument is a list of input files or glob patterns.
@@ -60,7 +75,6 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     Note that all rasters may only contain a single band.
     """
-    import numpy as np
     import rasterio
     from rasterio.io import MemoryFile
     from rasterio.shutil import copy
@@ -73,7 +87,8 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     for f in raster_files_flat:
         if not f.is_file():
-            raise click.Abort(f'Input raster {f!s} is not a file')
+            click.echo(f'Input raster {f!s} is not a file')
+            raise click.Abort()
 
     output_folder.mkdir(exist_ok=True)
 
@@ -86,33 +101,50 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
     click.echo('')
     with click.progressbar(raster_files_flat, **pbar_args) as pbar:  # type: ignore
         for input_file in pbar:
-
             output_file = output_folder / input_file.with_suffix('.tif').name
 
             if not overwrite and output_file.is_file():
-                raise click.Abort(f'Output file {output_file!s} exists (use --overwrite to ignore)')
+                click.echo('')
+                click.echo(f'Output file {output_file!s} exists (use --overwrite to ignore)')
+                raise click.Abort()
 
-            with rasterio.Env(**GDAL_CONFIG), rasterio.open(str(input_file)) as src:
+            with contextlib.ExitStack() as es:
+                es.enter_context(rasterio.Env(**GDAL_CONFIG))
+                src = es.enter_context(rasterio.open(str(input_file)))
+
                 profile = src.profile.copy()
                 profile.update(COG_PROFILE)
 
-                with MemoryFile() as memfile, memfile.open(**profile) as mem:
-                    mask = np.zeros((mem.height, mem.width), dtype=np.uint8)
-                    windows = list(mem.block_windows(1))
+                if in_memory is None:
+                    in_memory = src.width * src.height < IN_MEMORY_THRESHOLD
 
-                    for _, w in windows:
-                        block_data = src.read(window=w, indexes=[1])
-                        mem.write(block_data, window=w)
-                        mask_value = src.dataset_mask(window=w)
+                if in_memory:
+                    memfile = es.enter_context(MemoryFile())
+                    dst = es.enter_context(memfile.open(**profile))
+                else:
+                    tempdir = es.enter_context(tempfile.TemporaryDirectory())
+                    tempraster = os.path.join(tempdir, 'tc-raster.tif')
+                    dst = es.enter_context(rasterio.open(tempraster, 'w', **profile))
 
-                        mask[w.row_off:w.row_off + w.height,
-                             w.col_off:w.col_off + w.width] = mask_value
+                # iterate over blocks
+                windows = list(dst.block_windows(1))
 
-                    mem.write_mask(mask)
+                for _, w in windows:
+                    block_data = src.read(window=w, indexes=[1])
+                    dst.write(block_data, window=w)
+                    block_mask = src.dataset_mask(window=w)
+                    dst.write_mask(block_mask, window=w)
 
-                    overviews = [2 ** j for j in range(1, OVERVIEW_LEVEL + 1)]
-                    rs_method = RESAMPLING_METHODS[resampling_method]
-                    mem.build_overviews(overviews, rs_method)
-                    mem.update_tags(ns='tc_overview', resampling=rs_method.value)
+                # add overviews
+                max_overview_level = math.ceil(math.log2(max(
+                    dst.height // profile['blockysize'],
+                    dst.width // profile['blockxsize']
+                )))
 
-                    copy(mem, str(output_file), copy_src_overviews=True, **COG_PROFILE)
+                overviews = [2 ** j for j in range(1, max_overview_level + 1)]
+                rs_method = RESAMPLING_METHODS[resampling_method]
+                dst.build_overviews(overviews, rs_method)
+                dst.update_tags(ns='tc_overview', resampling=rs_method.value)
+
+                # copy to destination (this is necessary to produce a consistent file)
+                copy(dst, str(output_file), copy_src_overviews=True, **COG_PROFILE)

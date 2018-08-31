@@ -27,7 +27,8 @@ class TerracottaSettings(NamedTuple):
     DB_CACHEDIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
     DB_CONNECTION_TIMEOUT: int = 10
 
-    RESAMPLING_METHOD: str = 'nearest'
+    UPSAMPLING_METHOD: str = 'nearest'
+    DOWNSAMPLING_METHOD: str = 'average'
 
 
 AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._field_types.keys())
@@ -50,7 +51,10 @@ class SettingSchema(Schema):
     DB_CACHEDIR = fields.String()
     DB_CONNECTION_TIMEOUT = fields.Integer()
 
-    RESAMPLING_METHOD = fields.String(
+    UPSAMPLING_METHOD = fields.String(
+        validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
+    )
+    DOWNSAMPLING_METHOD = fields.String(
         validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
     )
 
