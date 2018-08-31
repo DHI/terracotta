@@ -11,8 +11,12 @@ addons:
   apt:
     update: true
     packages:
+      - build-essentials
       - gdal-bin
       - libgdal-dev
+
+before_install:
+  - pip install cython
 
 install:
   - pip install -e .[test]

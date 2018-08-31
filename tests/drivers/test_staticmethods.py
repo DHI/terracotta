@@ -5,7 +5,7 @@ def test_safe_transform_oom():
     from rasterio.warp import calculate_default_transform
     from rasterio._err import CPLE_OutOfMemoryError
 
-    from terracotta.drivers.base import RasterDriver
+    from terracotta.drivers.raster_base import RasterDriver
 
     args = (
         'epsg:4326',

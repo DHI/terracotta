@@ -3,7 +3,7 @@
 Define an interface to retrieve Terracotta drivers.
 """
 
-from typing import Callable, Any, Dict, Union
+from typing import Callable, Any, Union, Dict
 import functools
 import urllib.parse as urlparse
 from pathlib import Path
