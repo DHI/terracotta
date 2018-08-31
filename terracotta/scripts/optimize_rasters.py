@@ -87,7 +87,8 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     for f in raster_files_flat:
         if not f.is_file():
-            raise click.Abort(f'Input raster {f!s} is not a file')
+            click.echo(f'Input raster {f!s} is not a file')
+            raise click.Abort()
 
     output_folder.mkdir(exist_ok=True)
 

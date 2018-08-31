@@ -40,3 +40,38 @@ def test_serve_with_config(read_only_database, toml_file):
     result = runner.invoke(cli.cli, ['serve', '-d', str(read_only_database), '--no-browser',
                                      '--config', str(toml_file)])
     assert result.exit_code == 0
+
+
+def test_serve_rgb_key(raster_file):
+    from terracotta.scripts import cli
+
+    input_pattern = str(raster_file.dirpath('{rgb}m{foo}.tif'))
+
+    runner = CliRunner()
+    result = runner.invoke(cli.cli, ['serve', '-r', input_pattern, '--no-browser', '--rgb-key', 'rgb'])
+    assert result.exit_code == 0
+
+
+def test_serve_find_socket(raster_file):
+    import socket
+    from contextlib import closing
+    
+    from terracotta.scripts import cli
+
+    input_pattern = str(raster_file.dirpath('{name}.tif'))
+
+    host = '127.0.0.1'
+    port = 5000
+
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+        sock.bind((host, port))
+
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ['serve', '-r', input_pattern, '--no-browser', '--port', '5000'])
+        assert result.exit_code != 0
+        assert 'Could not find open port to bind to' in result.output
+
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ['serve', '-r', input_pattern, '--no-browser'])
+        assert result.exit_code == 0
+

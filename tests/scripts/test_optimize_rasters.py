@@ -35,3 +35,24 @@ def test_optimize_rasters(big_raster_file, tmpdir, in_memory):
 
     assert not validate_cloud_optimized_geotiff.cog_validate(str(big_raster_file))
     assert validate_cloud_optimized_geotiff.cog_validate(str(outfile))
+
+
+def test_optimize_rasters_nofiles(tmpdir):
+    from terracotta.scripts import cli
+
+    input_pattern = str(tmpdir.dirpath('*.tif'))
+    runner = CliRunner()
+    result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o', str(tmpdir)])
+
+    assert result.exit_code == 0
+    assert 'No files given' in result.output
+
+
+def test_optimize_rasters_invalid(tmpdir):
+    from terracotta.scripts import cli
+
+    runner = CliRunner()
+    result = runner.invoke(cli.cli, ['optimize-rasters', str(tmpdir), '-o', str(tmpdir)])
+
+    assert result.exit_code != 0
+    assert 'not a file' in result.output
