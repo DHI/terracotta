@@ -11,7 +11,7 @@ addons:
   apt:
     update: true
     packages:
-      - build-essentials
+      - build-essential
       - gdal-bin
       - libgdal-dev
 
