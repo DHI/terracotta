@@ -8,4 +8,5 @@ mercantile
 numpy
 pillow
 rasterio>=1.0
+shapely
 toml
