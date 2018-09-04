@@ -23,6 +23,7 @@ import numpy as np
 
 from terracotta.drivers.base import requires_connection
 from terracotta.drivers.raster_base import RasterDriver
+from terracotta.profile import trace
 from terracotta import get_settings, exceptions
 
 
@@ -245,6 +246,7 @@ class SQLiteDriver(RasterDriver):
         return {tuple(row[:num_keys]): row[-1] for row in c}
 
     @convert_exceptions('Could not retrieve datasets')
+    @trace('get_datasets')
     @requires_connection
     def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], str]:
         where_ = where and (tuple(where.keys()), tuple(where.values()))
@@ -279,12 +281,14 @@ class SQLiteDriver(RasterDriver):
         return self._decode_data(encoded_data[0])
 
     @convert_exceptions('Could not retrieve metadata')
+    @trace('get_metadata')
     @requires_connection
     def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
         keys = tuple(self._key_dict_to_sequence(keys))
         return self._get_metadata(keys)
 
     @convert_exceptions('Could not write to database')
+    @trace('insert')
     @requires_connection
     def insert(self,
                keys: Union[Sequence[str], Mapping[str, str]],
@@ -317,6 +321,7 @@ class SQLiteDriver(RasterDriver):
                       f'{", ".join(row_keys)}) VALUES ({template_string})', keys + list(row_values))
 
     @convert_exceptions('Could not write to database')
+    @trace('delete')
     @requires_connection
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         conn = self.get_connection()

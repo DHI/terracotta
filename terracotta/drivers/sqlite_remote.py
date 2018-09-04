@@ -11,9 +11,11 @@ from pathlib import Path
 
 from terracotta import get_settings
 from terracotta.drivers.sqlite import SQLiteDriver, convert_exceptions
+from terracotta.profile import trace
 
 
 @convert_exceptions('Could not retrieve database from S3')  # type: ignore
+@trace('download_db_from_s3')
 def _download_from_s3_if_changed(remote_path: str, local_path: Union[str, Path],
                                  current_hash: str) -> None:
     import boto3
@@ -28,15 +30,21 @@ def _download_from_s3_if_changed(remote_path: str, local_path: Union[str, Path],
     try:
         s3 = boto3.resource('s3')
         obj = s3.Object(bucket_name, key)
-        obj_bytes = obj.get(IfNoneMatch=current_hash)['Body'].read()  # raises if db matches local
-        with open(local_path, 'wb') as f:
-            f.write(obj_bytes)
+
+        with trace('s3_get_db'):
+            # raises if db matches local
+            obj_bytes = obj.get(IfNoneMatch=current_hash)['Body'].read()
+
+        with trace('write_downloaded_db'):
+            with open(local_path, 'wb') as f:
+                f.write(obj_bytes)
 
     except botocore.exceptions.ClientError as exc:
-        assert os.path.isfile(local_path)
         # 304 means hash hasn't changed
         if exc.response['Error']['Code'] != '304':
             raise
+
+    assert os.path.isfile(local_path)
 
 
 class RemoteSQLiteDriver(SQLiteDriver):

@@ -6,8 +6,10 @@ Handle /datasets API endpoint.
 from typing import List, Mapping, Dict
 
 from terracotta import get_settings, get_driver
+from terracotta.profile import trace
 
 
+@trace('datasets_handler')
 def datasets(some_keys: Mapping[str, str] = None) -> List[Dict[str, str]]:
     """List all available key combinations"""
     settings = get_settings()

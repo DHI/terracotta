@@ -10,11 +10,13 @@ from io import BytesIO
 import numpy as np
 from PIL import Image
 
+from terracotta.profile import trace
 from terracotta import exceptions, get_settings
 
 Number = TypeVar('Number', int, float)
 
 
+@trace('array_to_png')
 def array_to_png(arr: np.ndarray,
                  transparency_mask: np.ndarray = None,
                  colormap: str = None) -> BinaryIO:
@@ -96,6 +98,7 @@ def get_valid_mask(data: np.ndarray, nodata: Number) -> np.ndarray:
     return out
 
 
+@trace('contrast_stretch')
 def contrast_stretch(data: np.ndarray,
                      in_range: Sequence[Number],
                      out_range: Sequence[Number],

@@ -7,9 +7,12 @@ from typing import List, Tuple, TypeVar, Dict, Any
 
 import numpy as np
 
+from terracotta.profile import trace
+
 Number = TypeVar('Number', 'int', 'float')
 
 
+@trace('legend_handler')
 def legend(*, stretch_range: Tuple[Number, Number],
            colormap: str = None,
            num_values: int = 255) -> List[Dict[str, Any]]:

@@ -26,6 +26,7 @@ except ImportError:
 
 from terracotta import get_settings, exceptions
 from terracotta.drivers.base import requires_connection, Driver
+from terracotta.profile import trace
 
 Number = TypeVar('Number', int, float)
 
@@ -86,6 +87,7 @@ class RasterDriver(Driver):
         }
 
     @staticmethod
+    @trace('compute_metadata')
     def compute_metadata(raster_path: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None) -> Dict[str, Any]:
@@ -153,6 +155,7 @@ class RasterDriver(Driver):
         raise ValueError(f'unknown resampling method {method}')
 
     @staticmethod
+    @trace('calculate_default_transform')
     def _calculate_default_transform(src_crs: Union[Dict[str, str], str],
                                      target_crs: Union[Dict[str, str], str],
                                      width: int,
@@ -226,7 +229,8 @@ class RasterDriver(Driver):
 
         with contextlib.ExitStack() as es:
             try:
-                src = es.enter_context(rasterio.open(path))
+                with trace('open_dataset'):
+                    src = es.enter_context(rasterio.open(path))
             except OSError:
                 raise IOError('error while reading file {}'.format(path))
 
@@ -279,7 +283,7 @@ class RasterDriver(Driver):
                 resampling_enum = self._get_resampling_enum(downsampling_method)
 
             # read data
-            with warnings.catch_warnings():
+            with warnings.catch_warnings(), trace('read_from_vrt'):
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
                 arr = vrt.read(1, resampling=resampling_enum, window=out_window, out_shape=tilesize)
 
@@ -287,6 +291,7 @@ class RasterDriver(Driver):
 
         return arr
 
+    @trace('get_raster_tile')
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
                         tilesize: Sequence[int] = (256, 256),

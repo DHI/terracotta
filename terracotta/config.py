@@ -16,7 +16,8 @@ class TerracottaSettings(NamedTuple):
     DRIVER_PROVIDER: Optional[str] = None
 
     DEBUG: bool = False
-    PROFILE: bool = False
+    FLASK_PROFILE: bool = False
+    XRAY_PROFILE: bool = False
 
     RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490 MB
     METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10 MB
@@ -40,7 +41,8 @@ class SettingSchema(Schema):
     DRIVER_PROVIDER = fields.String(allow_none=True)
 
     DEBUG = fields.Boolean()
-    PROFILE = fields.Boolean()
+    FLASK_PROFILE = fields.Boolean()
+    XRAY_PROFILE = fields.Boolean()
 
     RASTER_CACHE_SIZE = fields.Integer()
     METADATA_CACHE_SIZE = fields.Integer()
