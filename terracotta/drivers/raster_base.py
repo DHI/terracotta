@@ -16,7 +16,6 @@ from cachetools import cachedmethod, LRUCache
 from affine import Affine
 
 from rasterio.io import DatasetReader
-from rasterio.windows import Window
 
 try:
     from crick import TDigest, SummaryStats
@@ -53,24 +52,43 @@ class RasterDriver(Driver):
             raise exceptions.UnknownKeyError('Encountered unknown key') from exc
 
     @staticmethod
-    def _accumulate_chunk_stats(dataset: DatasetReader,
-                                windows: List[Window],
-                                nodata: Number) -> Optional[Dict[str, Any]]:
+    def _compute_image_stats_chunked(dataset: DatasetReader,
+                                     nodata: Number) -> Optional[Dict[str, Any]]:
         """Loop over chunks and accumulate statistics"""
+        from rasterio import features, warp, windows
+        from shapely import geometry, ops
+
+        total_count = valid_data_count = 0
         tdigest = TDigest()
         sstats = SummaryStats()
+        convex_hulls = []
 
-        for w in windows:
+        block_windows = [w for _, w in dataset.block_windows(1)]
+
+        for w in block_windows:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
                 block_data = dataset.read(1, window=w)
 
-            valid_data = block_data[np.isfinite(block_data)]
+            total_count += int(block_data.size)
+
+            valid_data_mask = np.isfinite(block_data)
             if not np.isnan(nodata):
-                valid_data = valid_data[valid_data != nodata]
+                valid_data_mask &= (block_data != nodata)
+
+            valid_data = block_data[valid_data_mask]
 
             if valid_data.size == 0:
                 continue
+
+            valid_data_count += int(valid_data.size)
+
+            block_shapes = [geometry.shape(s[0]) for s in features.shapes(
+                valid_data_mask.astype('uint8'),
+                mask=valid_data_mask,
+                transform=windows.transform(w, dataset.transform)
+            )]
+            convex_hulls.append(ops.unary_union(block_shapes).convex_hull)
 
             tdigest.update(valid_data)
             sstats.update(valid_data)
@@ -78,11 +96,54 @@ class RasterDriver(Driver):
         if sstats.count() == 0:
             return None
 
+        convex_hull = ops.unary_union(convex_hulls).convex_hull
+        convex_hull_wgs = warp.transform_geom(
+            dataset.crs, 'epsg:4326', geometry.mapping(convex_hull)
+        )
+
         return {
+            'valid_percentage': valid_data_count / total_count * 100,
             'range': (sstats.min(), sstats.max()),
             'mean': sstats.mean(),
             'stdev': sstats.std(),
-            'percentiles': tdigest.quantile(np.arange(0.01, 1, 0.01))
+            'percentiles': tdigest.quantile(np.arange(0.01, 1, 0.01)),
+            'convex_hull': convex_hull_wgs
+        }
+
+    @staticmethod
+    def _compute_image_stats(dataset: DatasetReader,
+                             nodata: Number) -> Optional[Dict[str, Any]]:
+        from rasterio import features, warp
+        from shapely import geometry, ops
+
+        raster_data = dataset.read(1)
+
+        valid_data_mask = np.isfinite(raster_data)
+        if not np.isnan(nodata):
+            valid_data_mask &= (raster_data != nodata)
+
+        valid_data = raster_data[valid_data_mask]
+
+        if valid_data.size == 0:
+            return None
+
+        raster_shapes = [geometry.shape(s[0]) for s in features.shapes(
+            valid_data_mask.astype('uint8'),
+            mask=valid_data_mask,
+            transform=dataset.transform
+        )]
+        convex_hull = ops.unary_union(raster_shapes).convex_hull
+        convex_hull_wgs = warp.transform_geom(
+            dataset.crs, 'epsg:4326', geometry.mapping(convex_hull)
+        )
+
+        return {
+            'valid_percentage': valid_data.size / raster_data.size * 100,
+            'range': (float(valid_data.min()), float(valid_data.max())),
+            'mean': float(valid_data.mean()),
+            'stdev': float(valid_data.std()),
+            'percentiles': np.percentile(valid_data, np.arange(1, 100)),
+            'convex_hull': convex_hull_wgs
         }
 
     @staticmethod
@@ -91,14 +152,16 @@ class RasterDriver(Driver):
                          use_chunks: bool = None) -> Dict[str, Any]:
         """Read given raster file and compute metadata from it"""
         import rasterio
-        from rasterio.warp import transform_bounds
+        from rasterio import warp
 
         row_data: Dict[str, Any] = {}
         extra_metadata = extra_metadata or {}
 
         with rasterio.open(raster_path) as src:
             nodata = src.nodata or 0
-            bounds = transform_bounds(*[src.crs, 'epsg:4326'] + list(src.bounds), densify_pts=21)
+            bounds = warp.transform_bounds(
+                *[src.crs, 'epsg:4326'] + list(src.bounds), densify_pts=21
+            )
 
             if use_chunks is None:
                 use_chunks = src.width * src.height > RasterDriver.LARGE_RASTER_THRESHOLD
@@ -109,25 +172,14 @@ class RasterDriver(Driver):
                 use_chunks = False
 
             if use_chunks:
-                windows = [w for _, w in src.block_windows(1)]
-                chunk_stats = RasterDriver._accumulate_chunk_stats(src, windows, nodata)
-                if chunk_stats is None:
-                    raise ValueError(f'Raster file {raster_path} does not contain any valid data')
-                row_data.update(chunk_stats)
+                raster_stats = RasterDriver._compute_image_stats_chunked(src, nodata)
             else:
-                raster_data = src.read(1)
+                raster_stats = RasterDriver._compute_image_stats(src, nodata)
 
-                valid_data = raster_data[np.isfinite(raster_data)]
-                if not np.isnan(nodata):
-                    valid_data = valid_data[valid_data != nodata]
+            if raster_stats is None:
+                raise ValueError(f'Raster file {raster_path} does not contain any valid data')
 
-                if not valid_data.size:
-                    raise ValueError(f'Raster file {raster_path} does not contain any valid data')
-
-                row_data['range'] = (float(valid_data.min()), float(valid_data.max()))
-                row_data['mean'] = float(valid_data.mean())
-                row_data['stdev'] = float(valid_data.std())
-                row_data['percentiles'] = np.percentile(valid_data, np.arange(1, 100))
+            row_data.update(raster_stats)
 
         row_data['bounds'] = bounds
         row_data['nodata'] = nodata
@@ -138,6 +190,7 @@ class RasterDriver(Driver):
     @staticmethod
     def _get_resampling_enum(method: str) -> Any:
         from rasterio.enums import Resampling
+
         if method == 'nearest':
             return Resampling.nearest
 
