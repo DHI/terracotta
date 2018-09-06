@@ -83,7 +83,9 @@ class RasterDriver(Driver):
 
             valid_data_count += int(valid_data.size)
 
-            block_shapes = [geometry.shape(s[0]) for s in features.shapes(
+            # this formulation allows us to store only one convex hull per block,
+            # which should be relatively lightweight
+            block_shapes = [geometry.shape(s) for s, _ in features.shapes(
                 valid_data_mask.astype('uint8'),
                 mask=valid_data_mask,
                 transform=windows.transform(w, dataset.transform)
@@ -96,10 +98,12 @@ class RasterDriver(Driver):
         if sstats.count() == 0:
             return None
 
-        convex_hull = ops.unary_union(convex_hulls).convex_hull
-        convex_hull_wgs = warp.transform_geom(
+        # remove merge artefacts, transform, re-compute convex hull
+        convex_hull = ops.unary_union(convex_hulls).simplify(0)
+        convex_hull = warp.transform_geom(
             dataset.crs, 'epsg:4326', geometry.mapping(convex_hull)
         )
+        convex_hull = geometry.shape(convex_hull).convex_hull
 
         return {
             'valid_percentage': valid_data_count / total_count * 100,
@@ -107,7 +111,7 @@ class RasterDriver(Driver):
             'mean': sstats.mean(),
             'stdev': sstats.std(),
             'percentiles': tdigest.quantile(np.arange(0.01, 1, 0.01)),
-            'convex_hull': convex_hull_wgs
+            'convex_hull': geometry.mapping(convex_hull)
         }
 
     @staticmethod
@@ -127,15 +131,14 @@ class RasterDriver(Driver):
         if valid_data.size == 0:
             return None
 
-        raster_shapes = [geometry.shape(s[0]) for s in features.shapes(
+        raster_features = features.shapes(
             valid_data_mask.astype('uint8'),
             mask=valid_data_mask,
             transform=dataset.transform
-        )]
-        convex_hull = ops.unary_union(raster_shapes).convex_hull
-        convex_hull_wgs = warp.transform_geom(
-            dataset.crs, 'epsg:4326', geometry.mapping(convex_hull)
         )
+        raster_shapes_wgs = [geometry.shape(warp.transform_geom(dataset.crs, 'epsg:4326', s))
+                             for s, _ in raster_features]
+        convex_hull = ops.unary_union(raster_shapes_wgs).convex_hull
 
         return {
             'valid_percentage': valid_data.size / raster_data.size * 100,
@@ -143,7 +146,7 @@ class RasterDriver(Driver):
             'mean': float(valid_data.mean()),
             'stdev': float(valid_data.std()),
             'percentiles': np.percentile(valid_data, np.arange(1, 100)),
-            'convex_hull': convex_hull_wgs
+            'convex_hull': geometry.mapping(convex_hull)
         }
 
     @staticmethod

@@ -30,6 +30,7 @@ def test_compute_metadata(big_raster_file, use_chunks):
     import rasterio
     import rasterio.features
     from shapely.geometry import shape
+    from shapely.ops import unary_union
     import numpy as np
 
     from terracotta.drivers.raster_base import RasterDriver
@@ -41,7 +42,7 @@ def test_compute_metadata(big_raster_file, use_chunks):
             src, bidx=1, as_mask=True, geographic=True
         ))
 
-    convex_hull = shape(dataset_shape[0]['geometry']).convex_hull
+    convex_hull = unary_union([shape(s['geometry']) for s in dataset_shape]).convex_hull
 
     # compare
     mtd = RasterDriver.compute_metadata(str(big_raster_file), use_chunks=use_chunks)
@@ -75,6 +76,7 @@ def test_compute_metadata_nocrick(big_raster_file):
     import rasterio
     import rasterio.features
     from shapely.geometry import shape
+    from shapely.ops import unary_union
     import numpy as np
 
     with rasterio.open(str(big_raster_file)) as src:
@@ -84,7 +86,7 @@ def test_compute_metadata_nocrick(big_raster_file):
             src, bidx=1, as_mask=True, geographic=True
         ))
 
-    convex_hull = shape(dataset_shape[0]['geometry']).convex_hull
+    convex_hull = unary_union([shape(s['geometry']) for s in dataset_shape]).convex_hull
 
     import terracotta.drivers.raster_base
     terracotta.drivers.raster_base.has_crick = False

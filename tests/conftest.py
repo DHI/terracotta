@@ -53,6 +53,7 @@ def big_raster_file(tmpdir_factory):
 
     # include some big nodata regions
     raster_data[200:600, 400:800] = 0
+    raster_data[500, :] = 0
     raster_data[900:, :] = 0
     raster_data[800:, 800:] = 0
 
