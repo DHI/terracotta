@@ -28,26 +28,38 @@ def test_default_transform():
 @pytest.mark.parametrize('use_chunks', [True, False])
 def test_compute_metadata(big_raster_file, use_chunks):
     import rasterio
+    import rasterio.features
+    from shapely.geometry import shape
+    from shapely.ops import unary_union
     import numpy as np
 
     from terracotta.drivers.raster_base import RasterDriver
 
     with rasterio.open(str(big_raster_file)) as src:
         data = src.read(1)
-        data = data[np.isfinite(data) & (data != src.nodata)]
+        valid_data = data[np.isfinite(data) & (data != src.nodata)]
+        dataset_shape = list(rasterio.features.dataset_features(
+            src, bidx=1, as_mask=True, geographic=True
+        ))
 
+    convex_hull = unary_union([shape(s['geometry']) for s in dataset_shape]).convex_hull
+
+    # compare
     mtd = RasterDriver.compute_metadata(str(big_raster_file), use_chunks=use_chunks)
 
-    np.testing.assert_allclose(mtd['range'], (data.min(), data.max()))
-    np.testing.assert_allclose(mtd['mean'], data.mean())
-    np.testing.assert_allclose(mtd['stdev'], data.std())
+    np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)
+    np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()))
+    np.testing.assert_allclose(mtd['mean'], valid_data.mean())
+    np.testing.assert_allclose(mtd['stdev'], valid_data.std())
 
-    # allow error of 1%
+    # allow error of 1%, since we only compute approximate quantiles
     np.testing.assert_allclose(
         mtd['percentiles'], 
-        np.percentile(data, np.arange(1, 100)),
+        np.percentile(valid_data, np.arange(1, 100)),
         rtol=0.01
     )
+
+    assert shape(mtd['convex_hull']).equals(convex_hull)
 
 
 @pytest.mark.parametrize('use_chunks', [True, False])
@@ -62,26 +74,38 @@ def test_compute_metadata_nocrick(big_raster_file):
     import importlib
 
     import rasterio
+    import rasterio.features
+    from shapely.geometry import shape
+    from shapely.ops import unary_union
     import numpy as np
 
     with rasterio.open(str(big_raster_file)) as src:
         data = src.read(1)
-        data = data[np.isfinite(data) & (data != src.nodata)]
+        valid_data = data[np.isfinite(data) & (data != src.nodata)]
+        dataset_shape = list(rasterio.features.dataset_features(
+            src, bidx=1, as_mask=True, geographic=True
+        ))
+
+    convex_hull = unary_union([shape(s['geometry']) for s in dataset_shape]).convex_hull
 
     import terracotta.drivers.raster_base
     terracotta.drivers.raster_base.has_crick = False
 
     with pytest.warns(UserWarning):
         mtd = terracotta.drivers.raster_base.RasterDriver.compute_metadata(
-            str(big_raster_file), use_chunks=True)
+            str(big_raster_file), use_chunks=True)  
 
-    np.testing.assert_allclose(mtd['range'], (data.min(), data.max()))
-    np.testing.assert_allclose(mtd['mean'], data.mean())
-    np.testing.assert_allclose(mtd['stdev'], data.std())
+    # compare
+    np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)
+    np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()))
+    np.testing.assert_allclose(mtd['mean'], valid_data.mean())
+    np.testing.assert_allclose(mtd['stdev'], valid_data.std())
 
-    # allow error of 1%
+    # allow error of 1%, since we only compute approximate quantiles
     np.testing.assert_allclose(
         mtd['percentiles'],
-        np.percentile(data, np.arange(1, 100)),
+        np.percentile(valid_data, np.arange(1, 100)),
         rtol=0.01
     )
+
+    assert shape(mtd['convex_hull']).equals(convex_hull)
