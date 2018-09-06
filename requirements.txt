@@ -7,5 +7,6 @@ marshmallow>=3.0.0b1
 mercantile
 numpy
 pillow
+shapely
 rasterio>=1.0
 toml
