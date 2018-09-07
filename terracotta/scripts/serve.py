@@ -125,4 +125,4 @@ def serve(database: str = None,
         raise click.Abort()
 
     run_app(port=port, allow_all_ips=allow_all_ips, debug=debug,
-            flask_profile=profile, preview=not no_browser)
+            profile=profile, preview=not no_browser)

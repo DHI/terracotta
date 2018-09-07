@@ -14,7 +14,7 @@ Number = TypeVar('Number', int, float)
 ListOfRanges = Sequence[Optional[Tuple[Optional[Number], Optional[Number]]]]
 
 
-@trace('rgb_handler')
+@trace()
 def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int], rgb_values: Sequence[str], *,
         stretch_ranges: ListOfRanges = None) -> BinaryIO:
     """Return RGB image as PNG

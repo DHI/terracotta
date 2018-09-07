@@ -24,4 +24,4 @@ def generate_maps(out_folder: str) -> None:
 if __name__ == '__main__':
     import os
     here = os.path.dirname(os.path.realpath(__file__))
-    generate_maps(out_folder=here)  # type: ignore
+    generate_maps(out_folder=here)

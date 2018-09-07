@@ -6,8 +6,9 @@ marshmallow>=3.0.0b1
 mercantile
 numpy
 pillow
-rasterio>=1.0
 shapely
+rasterio>=1.0
+wakati
 
 aws_xray_sdk
 boto3

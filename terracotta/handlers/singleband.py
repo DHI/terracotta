@@ -12,7 +12,7 @@ from terracotta.profile import trace
 Number = TypeVar('Number', int, float)
 
 
-@trace('singleband_handler')
+@trace()
 def singleband(keys: Union[Sequence[str], Mapping[str, str]], tile_xyz: Sequence[int], *,
                colormap: str = None, stretch_range: Tuple[Number, Number] = None) -> BinaryIO:
     """Return singleband image as PNG"""

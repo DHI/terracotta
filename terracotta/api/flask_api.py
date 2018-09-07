@@ -74,8 +74,7 @@ def convert_exceptions(fun: Callable) -> Callable:
 
 
 def create_app(debug: bool = False,
-               flask_profile: bool = False,
-               xray_profile: bool = False,
+               profile: bool = False,
                preview: bool = False) -> Flask:
     """Returns a Flask app"""
 
@@ -111,7 +110,7 @@ def create_app(debug: bool = False,
     import terracotta.api.spec
     new_app.register_blueprint(spec_api, url_prefix='')
 
-    if flask_profile:
+    if profile:
         from werkzeug.contrib.profiler import ProfilerMiddleware
         new_app.config['PROFILE'] = True
         new_app.wsgi_app = ProfilerMiddleware(new_app.wsgi_app, restrictions=[30])

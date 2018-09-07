@@ -1,6 +1,6 @@
 """__init__.py
 
-Initialize settings and expose public API.
+Initialize global setup
 """
 
 # set version
@@ -25,13 +25,6 @@ os.environ.update(
 del os
 
 
-# setup logging
-import rasterio
-import logging
-logging.getLogger('rasterio').setLevel(logging.ERROR)
-del rasterio, logging
-
-
 # initialize settings
 from typing import Mapping, Any, Set
 from terracotta.config import parse_config, TerracottaSettings
@@ -54,6 +47,12 @@ def get_settings() -> TerracottaSettings:
 
 del parse_config, TerracottaSettings
 del Mapping, Any, Set
+
+
+# setup logging
+from terracotta import logs
+logs.set_logger()
+del logs
 
 
 # expose API

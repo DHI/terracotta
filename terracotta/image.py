@@ -16,7 +16,7 @@ from terracotta import exceptions, get_settings
 Number = TypeVar('Number', int, float)
 
 
-@trace('array_to_png')
+@trace()
 def array_to_png(arr: np.ndarray,
                  transparency_mask: np.ndarray = None,
                  colormap: str = None) -> BinaryIO:
@@ -98,7 +98,7 @@ def get_valid_mask(data: np.ndarray, nodata: Number) -> np.ndarray:
     return out
 
 
-@trace('contrast_stretch')
+@trace()
 def contrast_stretch(data: np.ndarray,
                      in_range: Sequence[Number],
                      out_range: Sequence[Number],

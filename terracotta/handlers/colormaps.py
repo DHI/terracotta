@@ -8,7 +8,7 @@ from typing import List
 from terracotta.profile import trace
 
 
-@trace('colormaps_handler')
+@trace()
 def colormaps() -> List[str]:
     """Return all supported colormaps"""
     from terracotta.cmaps import AVAILABLE_CMAPS
