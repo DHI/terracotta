@@ -119,7 +119,7 @@ class RasterDriver(Driver):
         }
 
     @staticmethod
-    def _compute_image_stats(dataset: DatasetReader,
+    def _compute_image_stats(dataset: 'DatasetReader',
                              nodata: Number) -> Optional[Dict[str, Any]]:
         from rasterio import features, warp
         from shapely import geometry, ops
