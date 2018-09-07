@@ -75,6 +75,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     Note that all rasters may only contain a single band.
     """
+    import tqdm
     import rasterio
     from rasterio.io import MemoryFile
     from rasterio.shutil import copy
@@ -92,59 +93,56 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     output_folder.mkdir(exist_ok=True)
 
-    pbar_args = dict(
-        label='Optimizing raster files',
-        show_eta=False,
-        item_show_func=lambda s: s.name if s else ''
-    )
-
     click.echo('')
-    with click.progressbar(raster_files_flat, **pbar_args) as pbar:  # type: ignore
-        for input_file in pbar:
-            output_file = output_folder / input_file.with_suffix('.tif').name
+    for input_file in tqdm.tqdm(raster_files_flat, desc='Optimizing raster files'):
+        output_file = output_folder / input_file.with_suffix('.tif').name
 
-            if not overwrite and output_file.is_file():
-                click.echo('')
-                click.echo(f'Output file {output_file!s} exists (use --overwrite to ignore)')
-                raise click.Abort()
+        if not overwrite and output_file.is_file():
+            click.echo('')
+            click.echo(f'Output file {output_file!s} exists (use --overwrite to ignore)')
+            raise click.Abort()
 
-            with contextlib.ExitStack() as es:
-                es.enter_context(rasterio.Env(**GDAL_CONFIG))
-                src = es.enter_context(rasterio.open(str(input_file)))
+        with contextlib.ExitStack() as es:
+            es.enter_context(rasterio.Env(**GDAL_CONFIG))
+            src = es.enter_context(rasterio.open(str(input_file)))
 
-                profile = src.profile.copy()
-                profile.update(COG_PROFILE)
+            profile = src.profile.copy()
+            profile.update(COG_PROFILE)
 
-                if in_memory is None:
-                    in_memory = src.width * src.height < IN_MEMORY_THRESHOLD
+            if in_memory is None:
+                in_memory = src.width * src.height < IN_MEMORY_THRESHOLD
 
-                if in_memory:
-                    memfile = es.enter_context(MemoryFile())
-                    dst = es.enter_context(memfile.open(**profile))
-                else:
-                    tempdir = es.enter_context(tempfile.TemporaryDirectory())
-                    tempraster = os.path.join(tempdir, 'tc-raster.tif')
-                    dst = es.enter_context(rasterio.open(tempraster, 'w', **profile))
+            if in_memory:
+                memfile = es.enter_context(MemoryFile())
+                dst = es.enter_context(memfile.open(**profile))
+            else:
+                tempdir = es.enter_context(tempfile.TemporaryDirectory())
+                tempraster = os.path.join(tempdir, 'tc-raster.tif')
+                dst = es.enter_context(rasterio.open(tempraster, 'w', **profile))
 
-                # iterate over blocks
-                windows = list(dst.block_windows(1))
+            # iterate over blocks
+            windows = list(dst.block_windows(1))
 
+            with tqdm.tqdm(windows, desc=output_file.name) as pbar:
                 for _, w in windows:
                     block_data = src.read(window=w, indexes=[1])
                     dst.write(block_data, window=w)
                     block_mask = src.dataset_mask(window=w)
                     dst.write_mask(block_mask, window=w)
+                    pbar.update()
+                pbar.set_description(f'Copying {output_file.name} ...')
 
-                # add overviews
-                max_overview_level = math.ceil(math.log2(max(
-                    dst.height // profile['blockysize'],
-                    dst.width // profile['blockxsize']
-                )))
+            # add overviews
+            max_overview_level = math.ceil(math.log2(max(
+                dst.height // profile['blockysize'],
+                dst.width // profile['blockxsize']
+            )))
 
-                overviews = [2 ** j for j in range(1, max_overview_level + 1)]
-                rs_method = RESAMPLING_METHODS[resampling_method]
-                dst.build_overviews(overviews, rs_method)
-                dst.update_tags(ns='tc_overview', resampling=rs_method.value)
+            overviews = [2 ** j for j in range(1, max_overview_level + 1)]
+            rs_method = RESAMPLING_METHODS[resampling_method]
+            dst.build_overviews(overviews, rs_method)
+            dst.update_tags(ns='tc_overview', resampling=rs_method.value)
 
-                # copy to destination (this is necessary to produce a consistent file)
-                copy(dst, str(output_file), copy_src_overviews=True, **COG_PROFILE)
+            # copy to destination (this is necessary to produce a consistent file)
+            copy(dst, str(output_file), copy_src_overviews=True, **COG_PROFILE)
+    click.echo('')
