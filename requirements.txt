@@ -10,3 +10,4 @@ pillow
 shapely
 rasterio>=1.0
 toml
+tqdm
