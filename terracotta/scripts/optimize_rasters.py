@@ -104,10 +104,10 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 short_name = input_file.name[:8] + '...' + input_file.name[-8:]
             else:
                 short_name = input_file.name
-            
+
             pbar.set_postfix(file=short_name)
             pbar.set_description('Reading')
-            
+
             output_file = output_folder / input_file.with_suffix('.tif').name
 
             if not overwrite and output_file.is_file():
