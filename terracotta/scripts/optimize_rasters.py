@@ -100,9 +100,14 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     with tqdm.tqdm(total=total_pixels, smoothing=0, unit_scale=True) as pbar:
         for input_file in raster_files_flat:
-            name = input_file.name
-            input_file_name = name[:8] + '...' + name[-8:] if len(name) > 20 else name
-            pbar.set_description(f'Reading: {input_file_name}')
+            if len(input_file.name) > 20:
+                short_name = input_file.name[:8] + '...' + input_file.name[-8:]
+            else:
+                short_name = input_file.name
+            
+            pbar.set_postfix(file=short_name)
+            pbar.set_description('Reading')
+            
             output_file = output_folder / input_file.with_suffix('.tif').name
 
             if not overwrite and output_file.is_file():
@@ -139,7 +144,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     pbar.update(w.height * w.width)
 
                 # add overviews
-                pbar.set_description(f'Resampling: {input_file_name}')
+                pbar.set_description('Creating overviews')
                 max_overview_level = math.ceil(math.log2(max(
                     dst.height // profile['blockysize'],
                     dst.width // profile['blockxsize']
@@ -151,5 +156,5 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 dst.update_tags(ns='tc_overview', resampling=rs_method.value)
 
                 # copy to destination (this is necessary to produce a consistent file)
-                pbar.set_description(f'Writing: {input_file_name}')
+                pbar.set_description('Copying')
                 copy(dst, str(output_file), copy_src_overviews=True, **COG_PROFILE)
