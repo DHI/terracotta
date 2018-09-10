@@ -12,11 +12,16 @@ from marshmallow import Schema, fields, validate, pre_load, post_load, Validatio
 
 
 class TerracottaSettings(NamedTuple):
+    """Contains all settings for the current Terracotta instance."""
     DRIVER_PATH: str = ''
     DRIVER_PROVIDER: Optional[str] = None
 
     DEBUG: bool = False
-    PROFILE: bool = False
+    FLASK_PROFILE: bool = False
+    XRAY_PROFILE: bool = False
+
+    LOGLEVEL: str = 'warning'
+    LOGFILE: str = ''
 
     RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490 MB
     METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10 MB
@@ -40,7 +45,8 @@ class SettingSchema(Schema):
     DRIVER_PROVIDER = fields.String(allow_none=True)
 
     DEBUG = fields.Boolean()
-    PROFILE = fields.Boolean()
+    FLASK_PROFILE = fields.Boolean()
+    XRAY_PROFILE = fields.Boolean()
 
     RASTER_CACHE_SIZE = fields.Integer()
     METADATA_CACHE_SIZE = fields.Integer()

@@ -3,7 +3,8 @@
 Base class for drivers operating on physical raster files.
 """
 
-from typing import Any, Union, Mapping, Sequence, Dict, List, Tuple, TypeVar, Optional
+from typing import (Any, Union, Mapping, Sequence, Dict, List, Tuple,
+                    TypeVar, Optional, cast, TYPE_CHECKING)
 from abc import abstractmethod
 import contextlib
 import operator
@@ -15,7 +16,8 @@ import numpy as np
 from cachetools import cachedmethod, LRUCache
 from affine import Affine
 
-from rasterio.io import DatasetReader
+if TYPE_CHECKING:
+    from rasterio.io import DatasetReader  # noqa: F401
 
 try:
     from crick import TDigest, SummaryStats
@@ -25,6 +27,7 @@ except ImportError:
 
 from terracotta import get_settings, exceptions
 from terracotta.drivers.base import requires_connection, Driver
+from terracotta.profile import trace
 
 Number = TypeVar('Number', int, float)
 
@@ -45,14 +48,15 @@ class RasterDriver(Driver):
     def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]
                               ) -> List[Any]:
         try:
-            return [keys[key] for key in self.available_keys]  # type: ignore
+            keys_as_mapping = cast(Mapping[str, Any], keys)
+            return [keys_as_mapping[key] for key in self.available_keys]
         except TypeError:  # not a mapping
             return list(keys)
         except KeyError as exc:
             raise exceptions.UnknownKeyError('Encountered unknown key') from exc
 
     @staticmethod
-    def _compute_image_stats_chunked(dataset: DatasetReader,
+    def _compute_image_stats_chunked(dataset: 'DatasetReader',
                                      nodata: Number) -> Optional[Dict[str, Any]]:
         """Loop over chunks and accumulate statistics"""
         from rasterio import features, warp, windows
@@ -115,7 +119,7 @@ class RasterDriver(Driver):
         }
 
     @staticmethod
-    def _compute_image_stats(dataset: DatasetReader,
+    def _compute_image_stats(dataset: 'DatasetReader',
                              nodata: Number) -> Optional[Dict[str, Any]]:
         from rasterio import features, warp
         from shapely import geometry, ops
@@ -150,6 +154,7 @@ class RasterDriver(Driver):
         }
 
     @staticmethod
+    @trace('compute_metadata')
     def compute_metadata(raster_path: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None) -> Dict[str, Any]:
@@ -209,6 +214,7 @@ class RasterDriver(Driver):
         raise ValueError(f'unknown resampling method {method}')
 
     @staticmethod
+    @trace('calculate_default_transform')
     def _calculate_default_transform(src_crs: Union[Dict[str, str], str],
                                      target_crs: Union[Dict[str, str], str],
                                      width: int,
@@ -282,7 +288,8 @@ class RasterDriver(Driver):
 
         with contextlib.ExitStack() as es:
             try:
-                src = es.enter_context(rasterio.open(path))
+                with trace('open_dataset'):
+                    src = es.enter_context(rasterio.open(path))
             except OSError:
                 raise IOError('error while reading file {}'.format(path))
 
@@ -335,7 +342,7 @@ class RasterDriver(Driver):
                 resampling_enum = self._get_resampling_enum(downsampling_method)
 
             # read data
-            with warnings.catch_warnings():
+            with warnings.catch_warnings(), trace('read_from_vrt'):
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
                 arr = vrt.read(1, resampling=resampling_enum, window=out_window, out_shape=tilesize)
 
@@ -343,6 +350,7 @@ class RasterDriver(Driver):
 
         return arr
 
+    @trace('get_raster_tile')
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
                         tilesize: Sequence[int] = (256, 256),

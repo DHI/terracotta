@@ -97,7 +97,8 @@ def serve(database: str = None,
 
         database = dbfile.name
 
-    update_settings(DRIVER_PATH=database, DRIVER_PROVIDER=database_provider)
+    update_settings(DRIVER_PATH=database, DRIVER_PROVIDER=database_provider,
+                    DEBUG=debug, FLASK_PROFILE=profile)
 
     # find open port
     def check_socket(host: str, port: int) -> bool:
@@ -123,5 +124,5 @@ def serve(database: str = None,
         click.echo(f'Could not find open port to bind to (ports tried: {port_range})')
         raise click.Abort()
 
-    run_app(port=port, allow_all_ips=allow_all_ips, debug=debug, profile=profile,
-            preview=not no_browser)
+    run_app(port=port, allow_all_ips=allow_all_ips, debug=debug,
+            profile=profile, preview=not no_browser)

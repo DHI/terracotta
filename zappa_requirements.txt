@@ -1,6 +1,5 @@
 apispec
 cachetools
-click
 flask
 flask_cors
 marshmallow>=3.0.0b1
@@ -9,6 +8,9 @@ numpy
 pillow
 shapely
 rasterio>=1.0
-shapely
-toml
-tqdm
+wakati
+
+aws_xray_sdk
+boto3
+botocore
+zappa

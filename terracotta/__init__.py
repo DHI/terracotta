@@ -1,6 +1,6 @@
 """__init__.py
 
-Initialize settings and expose public API.
+Initialize global setup
 """
 
 # set version
@@ -23,13 +23,6 @@ os.environ.update(
     GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR'  # do not look for auxiliary files
 )
 del os
-
-
-# setup logging
-import rasterio
-import logging
-logging.getLogger('rasterio').setLevel(logging.ERROR)
-del rasterio, logging
 
 
 # initialize settings

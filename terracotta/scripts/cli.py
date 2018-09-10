@@ -8,7 +8,7 @@ from typing import Any
 import click
 
 
-@click.group('terracotta')
+@click.group('terracotta', invoke_without_command=True)
 @click.pass_context
 def cli(ctx: click.Context, *args: Any, **kwargs: Any) -> None:
     """Terracotta CLI"""

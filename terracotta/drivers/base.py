@@ -11,11 +11,12 @@ import contextlib
 import numpy as np
 
 Number = TypeVar('Number', int, float)
+T = TypeVar('T')
 
 
-def requires_connection(fun: Callable) -> Callable:
+def requires_connection(fun: Callable[..., T]) -> Callable[..., T]:
     @functools.wraps(fun)
-    def inner(self: Driver, *args: Any, **kwargs: Any) -> Any:
+    def inner(self: Driver, *args: Any, **kwargs: Any) -> T:
         with self.connect():
             return fun(self, *args, **kwargs)
     return inner
@@ -57,6 +58,7 @@ class Driver(ABC):
         Metadata has to contain the following keys:
           - range: global minimum and maximum value in dataset
           - bounds: physical bounds covered by dataset
+          - convex_hull: GeoJSON shape specifying total data coverage
           - nodata: data value denoting missing or invalid data
           - percentiles: array of pre-computed percentiles in range(1, 100)
           - mean: global mean
