@@ -65,5 +65,5 @@ def create_database(raster_pattern: RasterPatternType,
     with driver.connect():
         driver.create(keys, drop_if_exists=True)
 
-        for key, filepath in tqdm.tqdm(raster_files.items(), desc="Ingesting raster files"):
+        for key, filepath in tqdm.tqdm(raster_files.items(), desc='Ingesting raster files'):
             driver.insert(key, filepath, skip_metadata=skip_metadata)
