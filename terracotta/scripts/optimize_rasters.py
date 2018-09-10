@@ -75,6 +75,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     Note that all rasters may only contain a single band.
     """
+    import tqdm
     import rasterio
     from rasterio.io import MemoryFile
     from rasterio.shutil import copy
@@ -85,22 +86,28 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         click.echo('No files given')
         return
 
+    total_pixels = 0
     for f in raster_files_flat:
         if not f.is_file():
             click.echo(f'Input raster {f!s} is not a file')
             raise click.Abort()
+        with rasterio.open(str(f), 'r') as src:
+            total_pixels += src.height * src.width
 
     output_folder.mkdir(exist_ok=True)
 
-    pbar_args = dict(
-        label='Optimizing raster files',
-        show_eta=False,
-        item_show_func=lambda s: s.name if s else ''
-    )
-
     click.echo('')
-    with click.progressbar(raster_files_flat, **pbar_args) as pbar:  # type: ignore
-        for input_file in pbar:
+
+    with tqdm.tqdm(total=total_pixels, smoothing=0, unit_scale=True) as pbar:
+        for input_file in raster_files_flat:
+            if len(input_file.name) > 20:
+                short_name = input_file.name[:8] + '...' + input_file.name[-8:]
+            else:
+                short_name = input_file.name
+            
+            pbar.set_postfix(file=short_name)
+            pbar.set_description('Reading')
+            
             output_file = output_folder / input_file.with_suffix('.tif').name
 
             if not overwrite and output_file.is_file():
@@ -134,8 +141,10 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     dst.write(block_data, window=w)
                     block_mask = src.dataset_mask(window=w)
                     dst.write_mask(block_mask, window=w)
+                    pbar.update(w.height * w.width)
 
                 # add overviews
+                pbar.set_description('Creating overviews')
                 max_overview_level = math.ceil(math.log2(max(
                     dst.height // profile['blockysize'],
                     dst.width // profile['blockxsize']
@@ -147,4 +156,5 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 dst.update_tags(ns='tc_overview', resampling=rs_method.value)
 
                 # copy to destination (this is necessary to produce a consistent file)
+                pbar.set_description('Copying')
                 copy(dst, str(output_file), copy_src_overviews=True, **COG_PROFILE)
