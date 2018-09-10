@@ -154,7 +154,7 @@ class RasterDriver(Driver):
         }
 
     @staticmethod
-    @trace()
+    @trace('compute_metadata')
     def compute_metadata(raster_path: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None) -> Dict[str, Any]:
@@ -214,7 +214,7 @@ class RasterDriver(Driver):
         raise ValueError(f'unknown resampling method {method}')
 
     @staticmethod
-    @trace()
+    @trace('calculate_default_transform')
     def _calculate_default_transform(src_crs: Union[Dict[str, str], str],
                                      target_crs: Union[Dict[str, str], str],
                                      width: int,
@@ -350,7 +350,7 @@ class RasterDriver(Driver):
 
         return arr
 
-    @trace()
+    @trace('get_raster_tile')
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
                         tilesize: Sequence[int] = (256, 256),

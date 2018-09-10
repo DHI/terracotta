@@ -9,7 +9,7 @@ from terracotta import get_settings, get_driver
 from terracotta.profile import trace
 
 
-@trace()
+@trace('metadata_handler')
 def metadata(keys: Union[Sequence[str], Mapping[str, str]]) -> Mapping[str, Any]:
     """Returns all metadata for a single dataset"""
     settings = get_settings()

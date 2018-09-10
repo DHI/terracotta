@@ -251,7 +251,7 @@ class SQLiteDriver(RasterDriver):
         num_keys = len(self.available_keys)
         return {tuple(row[:num_keys]): row[-1] for row in c}
 
-    @trace()
+    @trace('get_datasets')
     @requires_connection
     @convert_exceptions('Could not retrieve datasets')
     def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], str]:
@@ -286,14 +286,14 @@ class SQLiteDriver(RasterDriver):
         assert len(encoded_data) == 1
         return self._decode_data(encoded_data[0])
 
-    @trace()
+    @trace('get_metadata')
     @requires_connection
     @convert_exceptions('Could not retrieve metadata')
     def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
         keys = tuple(self._key_dict_to_sequence(keys))
         return self._get_metadata(keys)
 
-    @trace()
+    @trace('insert')
     @requires_connection
     @convert_exceptions('Could not write to database')
     def insert(self,
@@ -326,7 +326,7 @@ class SQLiteDriver(RasterDriver):
             c.execute(f'INSERT OR REPLACE INTO metadata ({", ".join(self.available_keys)}, '
                       f'{", ".join(row_keys)}) VALUES ({template_string})', keys + list(row_values))
 
-    @trace()
+    @trace('delete')
     @requires_connection
     @convert_exceptions('Could not write to database')
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:

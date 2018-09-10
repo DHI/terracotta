@@ -12,7 +12,7 @@ from terracotta.profile import trace
 Number = TypeVar('Number', 'int', 'float')
 
 
-@trace()
+@trace('legend_handler')
 def legend(*, stretch_range: Tuple[Number, Number],
            colormap: str = None,
            num_values: int = 255) -> List[Dict[str, Any]]:

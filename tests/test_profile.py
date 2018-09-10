@@ -13,23 +13,26 @@ def test_xray_tracing(caplog):
 
     update_settings(XRAY_PROFILE=True)
 
-    @terracotta.profile.trace()
-    def func_to_trace():
-        time.sleep(0.1)
-
-    with XRaySegment():
-        func_to_trace()
-
-    with XRaySegment():
-        with terracotta.profile.trace():
+    try:
+        @terracotta.profile.trace('dummy')
+        def func_to_trace():
             time.sleep(0.1)
 
-    for record in caplog.records:
-        assert record.levelname != 'ERROR'
+        with XRaySegment():
+            func_to_trace()
 
-    # sanity check, recording without starting a segment should fail
-    func_to_trace()
-    assert any(
-        ('cannot find the current segment' in record.message)
-        and (record.levelname == 'ERROR') for record in caplog.records
-    )
+        with XRaySegment():
+            with terracotta.profile.trace('dummy2'):
+                time.sleep(0.1)
+
+        for record in caplog.records:
+            assert record.levelname != 'ERROR'
+
+        # sanity check, recording without starting a segment should fail
+        func_to_trace()
+        assert any(
+            ('cannot find the current segment' in record.message)
+            and (record.levelname == 'ERROR') for record in caplog.records
+        )
+    finally:
+        update_settings(XRAY_PROFILE=False)

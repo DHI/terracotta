@@ -49,11 +49,5 @@ del parse_config, TerracottaSettings
 del Mapping, Any, Set
 
 
-# setup logging
-from terracotta import logs
-logs.set_logger()
-del logs
-
-
 # expose API
 from terracotta.drivers import get_driver  # noqa: F401

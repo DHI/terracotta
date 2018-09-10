@@ -9,7 +9,7 @@ from terracotta import get_settings, get_driver
 from terracotta.profile import trace
 
 
-@trace()
+@trace('keys_handler')
 def keys() -> List[str]:
     """List available keys, in order"""
     settings = get_settings()

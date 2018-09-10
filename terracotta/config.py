@@ -48,13 +48,6 @@ class SettingSchema(Schema):
     FLASK_PROFILE = fields.Boolean()
     XRAY_PROFILE = fields.Boolean()
 
-    LOGLEVEL = fields.String(
-        validate=validate.OneOf(['trace', 'debug', 'info', 'warning', 'error', 'critical'])
-    )
-    LOGFILE = fields.String(
-        validate=lambda path: os.access(os.path.dirname(path) or os.getcwd(), os.W_OK)
-    )
-
     RASTER_CACHE_SIZE = fields.Integer()
     METADATA_CACHE_SIZE = fields.Integer()
 

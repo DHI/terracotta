@@ -15,7 +15,7 @@ from terracotta.profile import trace
 
 
 @convert_exceptions('Could not retrieve database from S3')  # type: ignore
-@trace()
+@trace('download_db_from_s3')
 def _download_from_s3_if_changed(remote_path: str, local_path: Union[str, Path],
                                  current_hash: str) -> None:
     import boto3
@@ -31,11 +31,11 @@ def _download_from_s3_if_changed(remote_path: str, local_path: Union[str, Path],
         s3 = boto3.resource('s3')
         obj = s3.Object(bucket_name, key)
 
-        with trace():
+        with trace('check_remote_db'):
             # raises if db matches local
             obj_bytes = obj.get(IfNoneMatch=current_hash)['Body'].read()
 
-        with trace(), open(local_path, 'wb') as f:
+        with trace('write_to_disk'), open(local_path, 'wb') as f:
             f.write(obj_bytes)
 
     except botocore.exceptions.ClientError as exc:
