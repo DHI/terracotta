@@ -73,7 +73,9 @@ def convert_exceptions(fun: Callable) -> Callable:
     return inner
 
 
-def create_app(debug: bool = False, profile: bool = False, preview: bool = False) -> Flask:
+def create_app(debug: bool = False,
+               profile: bool = False,
+               preview: bool = False) -> Flask:
     """Returns a Flask app"""
 
     new_app = Flask('terracotta')

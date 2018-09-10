@@ -28,12 +28,6 @@ setup(
             'matplotlib',
             'moto',
             'crick'
-        ],
-        'aws': [
-            'boto3',
-            'botocore',
-            'awscli',
-            'zappa'
         ]
     },
     entry_points='''

@@ -8,11 +8,13 @@ from typing import Sequence, Tuple, Optional, TypeVar
 from typing.io import BinaryIO
 
 from terracotta import get_settings, get_driver, image, xyz, exceptions
+from terracotta.profile import trace
 
 Number = TypeVar('Number', int, float)
 ListOfRanges = Sequence[Optional[Tuple[Optional[Number], Optional[Number]]]]
 
 
+@trace('rgb_handler')
 def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int], rgb_values: Sequence[str], *,
         stretch_ranges: ListOfRanges = None) -> BinaryIO:
     """Return RGB image as PNG

@@ -4,7 +4,7 @@ SQLite-backed raster driver. Metadata is stored in an SQLite database, raster da
 to be present on disk.
 """
 
-from typing import Any, Sequence, Mapping, Tuple, Union, Callable, Iterator, Dict
+from typing import Any, Sequence, Mapping, Tuple, Union, Callable, Iterator, Dict, cast
 import sys
 import os
 import operator
@@ -23,6 +23,7 @@ import numpy as np
 
 from terracotta.drivers.base import requires_connection
 from terracotta.drivers.raster_base import RasterDriver
+from terracotta.profile import trace
 from terracotta import get_settings, exceptions
 
 
@@ -200,7 +201,7 @@ class SQLiteDriver(RasterDriver):
         c.execute('SELECT * FROM keys')
         return tuple(row[0] for row in c)
 
-    available_keys = property(_get_available_keys)  # type: ignore
+    available_keys = cast(Tuple[str], property(_get_available_keys))
 
     @convert_exceptions('Could not create tables')
     @requires_connection
@@ -250,8 +251,9 @@ class SQLiteDriver(RasterDriver):
         num_keys = len(self.available_keys)
         return {tuple(row[:num_keys]): row[-1] for row in c}
 
-    @convert_exceptions('Could not retrieve datasets')
+    @trace('get_datasets')
     @requires_connection
+    @convert_exceptions('Could not retrieve datasets')
     def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], str]:
         where_ = where and (tuple(where.keys()), tuple(where.values()))
         return self._get_datasets(where_)
@@ -284,14 +286,16 @@ class SQLiteDriver(RasterDriver):
         assert len(encoded_data) == 1
         return self._decode_data(encoded_data[0])
 
-    @convert_exceptions('Could not retrieve metadata')
+    @trace('get_metadata')
     @requires_connection
+    @convert_exceptions('Could not retrieve metadata')
     def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
         keys = tuple(self._key_dict_to_sequence(keys))
         return self._get_metadata(keys)
 
-    @convert_exceptions('Could not write to database')
+    @trace('insert')
     @requires_connection
+    @convert_exceptions('Could not write to database')
     def insert(self,
                keys: Union[Sequence[str], Mapping[str, str]],
                filepath: str, *,
@@ -322,8 +326,9 @@ class SQLiteDriver(RasterDriver):
             c.execute(f'INSERT OR REPLACE INTO metadata ({", ".join(self.available_keys)}, '
                       f'{", ".join(row_keys)}) VALUES ({template_string})', keys + list(row_values))
 
-    @convert_exceptions('Could not write to database')
+    @trace('delete')
     @requires_connection
+    @convert_exceptions('Could not write to database')
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         conn = self.get_connection()
         c = conn.cursor()
