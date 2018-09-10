@@ -288,7 +288,7 @@ class RasterDriver(Driver):
 
         with contextlib.ExitStack() as es:
             try:
-                with trace():
+                with trace('open_dataset'):
                     src = es.enter_context(rasterio.open(path))
             except OSError:
                 raise IOError('error while reading file {}'.format(path))
@@ -342,7 +342,7 @@ class RasterDriver(Driver):
                 resampling_enum = self._get_resampling_enum(downsampling_method)
 
             # read data
-            with warnings.catch_warnings(), trace():
+            with warnings.catch_warnings(), trace('read_from_vrt'):
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
                 arr = vrt.read(1, resampling=resampling_enum, window=out_window, out_shape=tilesize)
 
