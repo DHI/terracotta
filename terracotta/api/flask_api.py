@@ -82,10 +82,9 @@ def create_app(debug: bool = False,
     new_app.debug = debug
 
     # import submodules to populate blueprints
-    import terracotta.api.colormaps
     import terracotta.api.datasets
     import terracotta.api.keys
-    import terracotta.api.legend
+    import terracotta.api.colormap
     import terracotta.api.metadata
     import terracotta.api.rgb
     import terracotta.api.singleband
@@ -95,10 +94,9 @@ def create_app(debug: bool = False,
 
     # register routes on API spec
     with new_app.test_request_context():
-        spec.add_path(view=terracotta.api.colormaps.get_colormaps)
         spec.add_path(view=terracotta.api.datasets.get_datasets)
         spec.add_path(view=terracotta.api.keys.get_keys)
-        spec.add_path(view=terracotta.api.legend.get_legend)
+        spec.add_path(view=terracotta.api.colormap.get_colormap)
         spec.add_path(view=terracotta.api.metadata.get_metadata)
         spec.add_path(view=terracotta.api.rgb.get_rgb)
         spec.add_path(view=terracotta.api.singleband.get_singleband)

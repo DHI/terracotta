@@ -19,12 +19,6 @@ def client(flask_app):
         yield client
 
 
-def test_get_colormaps(client):
-    rv = client.get('/colormaps')
-    assert rv.status_code == 200
-    assert 'jet' in json.loads(rv.data)['colormaps']
-
-
 def test_get_keys(client, use_read_only_database):
     rv = client.get('/keys')
     assert rv.status_code == 200
@@ -171,16 +165,16 @@ def test_get_rgb_stretch(client, use_read_only_database, raster_file_xyz):
         assert np.asarray(img).shape == (*settings.TILE_SIZE, 3)
 
 
-def test_get_legend(client):
-    rv = client.get('/legend?stretch_range=[0,1]&num_values=100')
+def test_get_colormap(client):
+    rv = client.get('/colormap?stretch_range=[0,1]&num_values=100')
     assert rv.status_code == 200
-    assert len(json.loads(rv.data)['legend']) == 100
+    assert len(json.loads(rv.data)['colormap']) == 100
 
 
-def test_get_legend_extra_args(client):
-    rv = client.get('/legend?stretch_range=[0,1]&num_values=100&foo=bar&baz=quz')
+def test_get_colormap_extra_args(client):
+    rv = client.get('/colormap?stretch_range=[0,1]&num_values=100&foo=bar&baz=quz')
     assert rv.status_code == 200
-    assert len(json.loads(rv.data)['legend']) == 100
+    assert len(json.loads(rv.data)['colormap']) == 100
 
 
 def test_get_preview(client):
