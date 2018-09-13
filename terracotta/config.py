@@ -31,6 +31,7 @@ class TerracottaSettings(NamedTuple):
 
     DB_CACHEDIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
     DB_CONNECTION_TIMEOUT: int = 10
+    DB_CONNECTION_TTL: int = 10 * 60  # 10 min
 
     UPSAMPLING_METHOD: str = 'nearest'
     DOWNSAMPLING_METHOD: str = 'average'
@@ -56,6 +57,7 @@ class SettingSchema(Schema):
 
     DB_CACHEDIR = fields.String()
     DB_CONNECTION_TIMEOUT = fields.Integer()
+    DB_CONNECTION_TTL = fields.Integer()
 
     UPSAMPLING_METHOD = fields.String(
         validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])

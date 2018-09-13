@@ -6,8 +6,11 @@ to be present on disk.
 
 from typing import Any, Union
 import os
+import operator
 import urllib.parse as urlparse
 from pathlib import Path
+
+from cachetools import cachedmethod, TTLCache
 
 from terracotta import get_settings
 from terracotta.drivers.sqlite import SQLiteDriver, convert_exceptions
@@ -60,9 +63,11 @@ class RemoteSQLiteDriver(SQLiteDriver):
         os.makedirs(os.path.dirname(local_db_path), exist_ok=True)
 
         self._remote_path: str = str(path)
+        self._checkdb_cache = TTLCache(maxsize=1, ttl=settings.DB_CONNECTION_TTL)
 
         super(RemoteSQLiteDriver, self).__init__(local_db_path)
 
+    @cachedmethod(operator.attrgetter('_checkdb_cache'))
     def _check_db(self) -> None:
         _download_from_s3_if_changed(self._remote_path, self.path, self._db_hash)
         super(RemoteSQLiteDriver, self)._check_db()
