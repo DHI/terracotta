@@ -11,7 +11,7 @@ import boto3
 from moto import mock_s3
 
 
-def create_s3_db(keys, tmpdir, datasets=None):
+def create_s3_db(keys, tmpdir, override_aws_env_variables, datasets=None):
     import uuid
     from terracotta import get_driver
 
@@ -26,19 +26,23 @@ def create_s3_db(keys, tmpdir, datasets=None):
     with open(dbfile, 'rb') as f:
         db_bytes = f.read()
 
+    #conn = boto3.resource('s3', aws_access_key_id="FakeKey",
+    #        aws_secret_access_key='FakeSecretKey', aws_session_token='FakeSessionToken')
     conn = boto3.resource('s3')
     conn.create_bucket(Bucket='tctest')
 
     s3 = boto3.client('s3')
+    #s3 = boto3.client('s3', aws_access_key_id="FakeKey",
+    #        aws_secret_access_key='FakeSecretKey', aws_session_token='FakeSessionToken')
     s3.put_object(Bucket='tctest', Key='tc.sqlite', Body=db_bytes)
 
     return 's3://tctest/tc.sqlite'
 
 
 @mock_s3
-def test_remote_database(tmpdir):
+def test_remote_database(tmpdir, override_aws_env_variables):
     keys = ('some', 'keys')
-    dbpath = create_s3_db(keys, tmpdir)
+    dbpath = create_s3_db(keys, tmpdir, override_aws_env_variables)
 
     from terracotta import get_driver
     driver = get_driver(dbpath)
@@ -47,9 +51,9 @@ def test_remote_database(tmpdir):
 
 
 @mock_s3
-def test_remote_database_hash_changed(tmpdir, raster_file):
+def test_remote_database_hash_changed(tmpdir, raster_file, override_aws_env_variables):
     keys = ('some', 'keys')
-    dbpath = create_s3_db(keys, tmpdir)
+    dbpath = create_s3_db(keys, tmpdir, override_aws_env_variables)
 
     from terracotta import get_driver
 
@@ -60,7 +64,10 @@ def test_remote_database_hash_changed(tmpdir, raster_file):
         assert driver.get_datasets() == {}
         modification_date = os.path.getmtime(driver.path)
 
-        create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
+        create_s3_db(
+            keys, tmpdir, override_aws_env_variables,
+            datasets={('some', 'value'): str(raster_file)}
+        )
 
         # no change yet
         assert driver.get_datasets() == {}
@@ -72,9 +79,12 @@ def test_remote_database_hash_changed(tmpdir, raster_file):
 
 
 @mock_s3
-def test_remote_database_hash_unchanged(tmpdir, raster_file):
+def test_remote_database_hash_unchanged(tmpdir, raster_file, override_aws_env_variables):
     keys = ('some', 'keys')
-    dbpath = create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
+    dbpath = create_s3_db(
+        keys, tmpdir, override_aws_env_variables,
+        datasets={('some', 'value'): str(raster_file)}
+    )
 
     from terracotta import get_driver
 
@@ -83,15 +93,21 @@ def test_remote_database_hash_unchanged(tmpdir, raster_file):
     assert list(driver.get_datasets().keys()) == [('some', 'value')]
     modification_date = os.path.getmtime(driver.path)
 
-    create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
+    create_s3_db(
+        keys, tmpdir, override_aws_env_variables,
+        datasets={('some', 'value'): str(raster_file)}
+    )
     assert os.path.getmtime(driver.path) == modification_date
     assert list(driver.get_datasets().keys()) == [('some', 'value')]
 
 
 @mock_s3
-def test_immutability(tmpdir, raster_file):
+def test_immutability(tmpdir, raster_file, override_aws_env_variables):
     keys = ('some', 'keys')
-    dbpath = create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
+    dbpath = create_s3_db(
+        keys, tmpdir, override_aws_env_variables,
+        datasets={('some', 'value'): str(raster_file)}
+    )
 
     from terracotta import get_driver
 

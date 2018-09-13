@@ -164,3 +164,12 @@ def use_read_only_database(read_only_database, monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(terracotta, 'get_settings', lambda: settings)
         yield
+
+
+@pytest.fixture()
+def override_aws_env_variables(monkeypatch):
+    with monkeypatch.context() as m:
+        m.setenv('AWS_ACCESS_KEY_ID', 'FakeKey')
+        m.setenv('AWS_SECRET_ACCESS_KEY', 'FakeSecretKey')
+        m.setenv('AWS_SESSION_TOKEN', 'FakeSessionToken')
+        yield
