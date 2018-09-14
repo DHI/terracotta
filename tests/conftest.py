@@ -15,13 +15,10 @@ def pytest_unconfigure(config):
 
 
 @pytest.fixture(scope='session')
-def raster_data():
-    return np.arange(-128 * 256, 128 * 256, dtype='int16').reshape(256, 256)
-
-
-@pytest.fixture(scope='session')
-def raster_file(tmpdir_factory, raster_data):
+def raster_file(tmpdir_factory):
     import affine
+
+    raster_data = np.arange(-128 * 256, 128 * 256, dtype='int16').reshape(256, 256)
 
     profile = {
         'driver': 'GTiff',
