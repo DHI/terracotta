@@ -266,8 +266,10 @@ class RasterDriver(Driver):
     def _get_raster_tile(self, keys: Tuple[str], *,
                          bounds: Tuple[float, float, float, float] = None,
                          tilesize: Tuple[int, int] = (256, 256),
-                         nodata: Number = 0) -> np.ndarray:
+                         nodata: Number = 0,
+                         preserve_values: bool = False) -> np.ndarray:
         """Load a raster dataset from a file through rasterio.
+
         Heavily inspired by mapbox/rio-tiler
         """
         import rasterio
@@ -283,8 +285,12 @@ class RasterDriver(Driver):
         path = path[keys]
 
         target_crs = 'epsg:3857'
-        upsampling_method = settings.UPSAMPLING_METHOD
-        upsampling_enum = self._get_resampling_enum(upsampling_method)
+
+        if preserve_values:
+            upsampling_enum = downsampling_enum = self._get_resampling_enum('nearest')
+        else:
+            upsampling_enum = self._get_resampling_enum(settings.UPSAMPLING_METHOD)
+            downsampling_enum = self._get_resampling_enum(settings.DOWNSAMPLING_METHOD)
 
         with contextlib.ExitStack() as es:
             try:
@@ -338,8 +344,7 @@ class RasterDriver(Driver):
             if window_ratio > 1:
                 resampling_enum = upsampling_enum
             else:
-                downsampling_method = settings.DOWNSAMPLING_METHOD
-                resampling_enum = self._get_resampling_enum(downsampling_method)
+                resampling_enum = downsampling_enum
 
             # read data
             with warnings.catch_warnings(), trace('read_from_vrt'):
@@ -354,7 +359,8 @@ class RasterDriver(Driver):
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
                         tilesize: Sequence[int] = (256, 256),
-                        nodata: Number = 0) -> np.ndarray:
+                        nodata: Number = 0,
+                        preserve_values: bool = False) -> np.ndarray:
         """Load tile with given keys or metadata"""
         # make sure all arguments are hashable
         _keys = self._key_dict_to_sequence(keys)
@@ -362,5 +368,6 @@ class RasterDriver(Driver):
             tuple(_keys),
             bounds=tuple(bounds) if bounds else None,
             tilesize=tuple(tilesize),
-            nodata=nodata
+            nodata=nodata,
+            preserve_values=preserve_values
         )

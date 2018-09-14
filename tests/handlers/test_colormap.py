@@ -65,11 +65,3 @@ def test_colormap_consistency(use_read_only_database, read_only_database, raster
     for val in values_to_test:
         rgb = cmap[val]
         assert np.all(img_data[tile_data == val, :-1] == rgb)
-
-
-
-def test_nocmap():
-    from terracotta.handlers import colormap
-    cmap = colormap.colormap(stretch_range=[0., 1.], num_values=255)
-    cmap_array = np.array([row['rgb'] for row in cmap])
-    np.testing.assert_array_equal(cmap_array, np.tile(np.arange(1, 256)[:, np.newaxis], (1, 3)))
