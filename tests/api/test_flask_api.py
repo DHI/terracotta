@@ -93,6 +93,56 @@ def test_get_singleband_cmap(client, use_read_only_database, raster_file_xyz):
     assert np.asarray(img).shape == settings.TILE_SIZE
 
 
+def test_get_singleband_explicit_cmap(client, use_read_only_database, raster_file_xyz):
+    import terracotta
+    settings = terracotta.get_settings()
+
+    x, y, z = raster_file_xyz
+    explicit_cmap = {1: (0, 0, 0), 2.0: (255, 255, 255), 3: '#ffffff'}
+
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+                    f'&explicit_color_map={json.dumps(explicit_cmap)}')
+    print(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+          f'&explicit_color_map={json.dumps(explicit_cmap)}')
+    assert rv.status_code == 200
+
+    img = Image.open(BytesIO(rv.data))
+    assert np.asarray(img).shape == settings.TILE_SIZE
+
+
+def test_get_singleband_explicit_cmap_invalid(client, use_read_only_database, raster_file_xyz):
+    import terracotta
+    settings = terracotta.get_settings()
+
+    x, y, z = raster_file_xyz
+    explicit_cmap = {1: (0, 0, 0), 2: (255, 255, 255), 3: '#ffffff'}
+
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?'
+                    f'explicit_color_map={json.dumps(explicit_cmap)}')
+    assert rv.status_code == 400
+
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=jet'
+                    f'&explicit_color_map={json.dumps(explicit_cmap)}')
+    assert rv.status_code == 400
+
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit')
+    assert rv.status_code == 400
+
+    explicit_cmap[3] = 'omgomg'
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+                    f'&explicit_color_map={json.dumps(explicit_cmap)}')
+    assert rv.status_code == 400
+
+    explicit_cmap = [(255, 255, 255)]
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+                    f'&explicit_color_map={json.dumps(explicit_cmap)}')
+    assert rv.status_code == 400
+
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+                    f'&explicit_color_map=foo')
+    assert rv.status_code == 400
+
+
 def test_get_singleband_stretch(client, use_read_only_database, raster_file_xyz):
     import terracotta
     settings = terracotta.get_settings()

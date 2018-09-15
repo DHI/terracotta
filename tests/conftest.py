@@ -9,6 +9,13 @@ import rasterio
 def pytest_configure(config):
     os.environ['TC_TESTING'] = '1'
 
+    # prevent caching to keep tests independent
+    import terracotta
+    terracotta.update_settings(
+        METADATA_CACHE_SIZE=0,
+        RASTER_CACHE_SIZE=0
+    )
+
 
 def pytest_unconfigure(config):
     os.environ['TC_TESTING'] = '0'

@@ -17,6 +17,7 @@ def test_colormap_handler():
 @pytest.mark.parametrize('cmap_name', [None, 'jet'])
 def test_colormap_consistency(use_read_only_database, read_only_database, raster_file_xyz, 
                               stretch_range, cmap_name):
+    """Test consistency between /colormap and images returned by /singleband"""
     import terracotta
     from terracotta.xyz import get_tile_data
     from terracotta.handlers import singleband, colormap

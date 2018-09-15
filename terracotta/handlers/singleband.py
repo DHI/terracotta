@@ -22,7 +22,7 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]],
                stretch_range: Tuple[Number, Number] = None) -> BinaryIO:
     """Return singleband image as PNG"""
 
-    colormap_: Union[str, Sequence[RGB], None]
+    cmap_or_palette: Union[str, Sequence[RGB], None]
 
     try:
         tile_x, tile_y, tile_z = tile_xyz
@@ -55,7 +55,7 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]],
 
         labels, label_colors = list(colormap.keys()), list(colormap.values())
 
-        colormap_ = label_colors
+        cmap_or_palette = label_colors
         out = image.label(tile_data, labels)
     else:
         # determine stretch range from metadata and arguments
@@ -67,7 +67,7 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]],
         if stretch_max is not None:
             stretch_range_[1] = stretch_max
 
-        colormap_ = cast(Optional[str], colormap)
+        cmap_or_palette = cast(Optional[str], colormap)
         out = image.to_uint8(tile_data, *stretch_range_)
 
-    return image.array_to_png(out, transparency_mask=~valid_mask, colormap=colormap_)
+    return image.array_to_png(out, transparency_mask=~valid_mask, colormap=cmap_or_palette)
