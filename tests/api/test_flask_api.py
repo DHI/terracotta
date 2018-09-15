@@ -1,5 +1,6 @@
-import json
 from io import BytesIO
+import json
+import urllib.parse
 
 from PIL import Image
 import numpy as np
@@ -93,15 +94,20 @@ def test_get_singleband_cmap(client, use_read_only_database, raster_file_xyz):
     assert np.asarray(img).shape == settings.TILE_SIZE
 
 
+def urlsafe_json(payload):
+    payload_json = json.dumps(payload)
+    return urllib.parse.unquote_plus(payload_json)
+
+
 def test_get_singleband_explicit_cmap(client, use_read_only_database, raster_file_xyz):
     import terracotta
     settings = terracotta.get_settings()
 
     x, y, z = raster_file_xyz
-    explicit_cmap = {1: (0, 0, 0), 2.0: (255, 255, 255), 3: '#ffffff'}
+    explicit_cmap = {1: (0, 0, 0), 2.0: (255, 255, 255), 3: '#ffffff', 4: 'abcabc'}
 
     rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
-                    f'&explicit_color_map={json.dumps(explicit_cmap)}')
+                    f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
     assert rv.status_code == 200, rv.data.decode('utf-8')
 
     img = Image.open(BytesIO(rv.data))
@@ -113,14 +119,14 @@ def test_get_singleband_explicit_cmap_invalid(client, use_read_only_database, ra
     settings = terracotta.get_settings()
 
     x, y, z = raster_file_xyz
-    explicit_cmap = {1: (0, 0, 0), 2: (255, 255, 255), 3: '#ffffff'}
+    explicit_cmap = {1: (0, 0, 0), 2: (255, 255, 255), 3: '#ffffff', 4: 'abcabc'}
 
     rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?'
-                    f'explicit_color_map={json.dumps(explicit_cmap)}')
+                    f'explicit_color_map={urlsafe_json(explicit_cmap)}')
     assert rv.status_code == 400
 
     rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=jet'
-                    f'&explicit_color_map={json.dumps(explicit_cmap)}')
+                    f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
     assert rv.status_code == 400
 
     rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit')
@@ -128,12 +134,12 @@ def test_get_singleband_explicit_cmap_invalid(client, use_read_only_database, ra
 
     explicit_cmap[3] = 'omgomg'
     rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
-                    f'&explicit_color_map={json.dumps(explicit_cmap)}')
+                    f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
     assert rv.status_code == 400
 
     explicit_cmap = [(255, 255, 255)]
     rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
-                    f'&explicit_color_map={json.dumps(explicit_cmap)}')
+                    f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
     assert rv.status_code == 400
 
     rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
