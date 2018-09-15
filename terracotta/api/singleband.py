@@ -65,7 +65,8 @@ class SinglebandOptionSchema(Schema):
                 try:
                     data[var] = json.loads(val)
                 except json.decoder.JSONDecodeError as exc:
-                    raise ValidationError(f'Could not decode value for {var} as JSON') from exc
+                    msg = f'Could not decode value {val} for {var} as JSON'
+                    raise ValidationError(msg) from exc
 
         val = data.get('explicit_color_map')
         if val and isinstance(val, dict):
