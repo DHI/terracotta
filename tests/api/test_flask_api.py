@@ -108,9 +108,7 @@ def test_get_singleband_explicit_cmap(client, use_read_only_database, raster_fil
 
     rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
                     f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
-    print(urlsafe_json(explicit_cmap))
     assert rv.status_code == 200, rv.data.decode('utf-8')
-    assert False
 
     img = Image.open(BytesIO(rv.data))
     assert np.asarray(img).shape == settings.TILE_SIZE
