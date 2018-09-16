@@ -13,16 +13,16 @@ from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
 from terracotta.cmaps import AVAILABLE_CMAPS
 
 
-class colormapEntrySchema(Schema):
+class ColormapEntrySchema(Schema):
     value = fields.Number(required=True)
     rgb = fields.List(fields.Number(), required=True, validate=validate.Length(equal=3))
 
 
-class colormapSchema(Schema):
-    colormap = fields.Nested(colormapEntrySchema, many=True, required=True)
+class ColormapSchema(Schema):
+    colormap = fields.Nested(ColormapEntrySchema, many=True, required=True)
 
 
-class colormapOptionSchema(Schema):
+class ColormapOptionSchema(Schema):
     class Meta:
         unknown = EXCLUDE
 
@@ -63,24 +63,24 @@ def get_colormap() -> str:
             dataset.
         parameters:
             - in: query
-              schema: colormapOptionSchema
+              schema: ColormapOptionSchema
         responses:
             200:
                 description: Array containing data values and RGBA tuples
-                schema: colormapSchema
+                schema: ColormapSchema
             400:
                 description: Query parameters are invalid
     """
     from terracotta.handlers.colormap import colormap
 
-    input_schema = colormapOptionSchema()
+    input_schema = ColormapOptionSchema()
     options = input_schema.load(request.args)
 
     payload = {'colormap': colormap(**options)}
 
-    schema = colormapSchema()
+    schema = ColormapSchema()
     return jsonify(schema.load(payload))
 
 
-spec.definition('colormapEntry', schema=colormapEntrySchema)
-spec.definition('colormap', schema=colormapSchema)
+spec.definition('ColormapEntry', schema=ColormapEntrySchema)
+spec.definition('Colormap', schema=ColormapSchema)
