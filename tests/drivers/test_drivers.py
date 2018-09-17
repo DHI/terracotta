@@ -59,4 +59,3 @@ def test_recreation(tmpdir, provider):
     db.create(keys, drop_if_exists=True)
     assert db.available_keys == keys
     assert db.get_datasets() == {}
-

@@ -57,7 +57,7 @@ def big_raster_file(tmpdir_factory):
 
     # include some big nodata regions
     ix, iy = np.indices(raster_data.shape)
-    circular_mask = np.sqrt((ix - raster_data.shape[0] / 2) ** 2 
+    circular_mask = np.sqrt((ix - raster_data.shape[0] / 2) ** 2
                             + (iy - raster_data.shape[1] / 2) ** 2) > 400
     raster_data[circular_mask] = 0
     raster_data[200:600, 400:800] = 0

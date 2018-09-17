@@ -15,7 +15,7 @@ def test_colormap_handler():
 
 @pytest.mark.parametrize('stretch_range', [[0, 20000], [20000, 30000], [-50000, 50000]])
 @pytest.mark.parametrize('cmap_name', [None, 'jet'])
-def test_colormap_consistency(use_read_only_database, read_only_database, raster_file_xyz, 
+def test_colormap_consistency(use_read_only_database, read_only_database, raster_file_xyz,
                               stretch_range, cmap_name):
     """Test consistency between /colormap and images returned by /singleband"""
     import terracotta
@@ -26,7 +26,7 @@ def test_colormap_consistency(use_read_only_database, read_only_database, raster
     ds_keys = ['val21', 'val22']
 
     # get image with applied stretch and colormap
-    raw_img = singleband.singleband(ds_keys, raster_file_xyz, stretch_range=stretch_range, 
+    raw_img = singleband.singleband(ds_keys, raster_file_xyz, stretch_range=stretch_range,
                                     colormap=cmap_name)
     img_data = np.asarray(Image.open(raw_img).convert('RGBA'))
 
@@ -42,7 +42,7 @@ def test_colormap_consistency(use_read_only_database, read_only_database, raster
     num_values = stretch_range[1] - stretch_range[0] + 1
 
     # get colormap for given stretch
-    cmap = colormap.colormap(colormap=cmap_name, stretch_range=stretch_range, 
+    cmap = colormap.colormap(colormap=cmap_name, stretch_range=stretch_range,
                              num_values=num_values)
     cmap = dict(row.values() for row in cmap)
 
@@ -59,7 +59,7 @@ def test_colormap_consistency(use_read_only_database, read_only_database, raster
 
     # test values inside stretch_range
     values_to_test = np.unique(tile_data)
-    values_to_test = values_to_test[(values_to_test >= stretch_range[0]) & 
+    values_to_test = values_to_test[(values_to_test >= stretch_range[0]) &
                                     (values_to_test <= stretch_range[1]) &
                                     (values_to_test != nodata)]
 

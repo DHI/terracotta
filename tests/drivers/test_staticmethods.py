@@ -34,7 +34,7 @@ def geometry_mismatch(shape1, shape2):
 def test_compute_metadata(big_raster_file, use_chunks):
     import rasterio
     import rasterio.features
-    from shapely.geometry import shape, MultiPolygon, mapping
+    from shapely.geometry import shape, MultiPolygon
     import numpy as np
 
     from terracotta.drivers.raster_base import RasterDriver
@@ -58,7 +58,7 @@ def test_compute_metadata(big_raster_file, use_chunks):
 
     # allow error of 1%, since we only compute approximate quantiles
     np.testing.assert_allclose(
-        mtd['percentiles'], 
+        mtd['percentiles'],
         np.percentile(valid_data, np.arange(1, 100)),
         rtol=0.01
     )
@@ -77,7 +77,7 @@ def test_compute_metadata_invalid(invalid_raster_file, use_chunks):
 def test_compute_metadata_nocrick(big_raster_file):
     import rasterio
     import rasterio.features
-    from shapely.geometry import shape, MultiPolygon, mapping
+    from shapely.geometry import shape, MultiPolygon
     import numpy as np
 
     with rasterio.open(str(big_raster_file)) as src:
@@ -95,7 +95,7 @@ def test_compute_metadata_nocrick(big_raster_file):
 
         with pytest.warns(UserWarning):
             mtd = terracotta.drivers.raster_base.RasterDriver.compute_metadata(
-                str(big_raster_file), use_chunks=True)  
+                str(big_raster_file), use_chunks=True)
 
         # compare
         np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)

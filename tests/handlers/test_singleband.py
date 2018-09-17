@@ -30,7 +30,7 @@ def test_singleband_out_of_bounds(use_read_only_database, raster_file):
             singleband.singleband(keys, (10, 0, 0))
 
 
-def test_singleband_explicit_colormap(use_read_only_database, read_only_database, 
+def test_singleband_explicit_colormap(use_read_only_database, read_only_database,
                                       raster_file_xyz):
     import terracotta
     from terracotta.xyz import get_tile_data
@@ -54,6 +54,6 @@ def test_singleband_explicit_colormap(use_read_only_database, read_only_database
     # check that labels are mapped to colors correctly
     for cmap_label, cmap_color in colormap.items():
         assert np.all(img_data[tile_data == cmap_label] == np.array([*cmap_color, 255]))
-    
+
     # check that all data outside of labels is transparent
     assert np.all(img_data[~np.isin(tile_data, colormap.keys()), -1] == 0)

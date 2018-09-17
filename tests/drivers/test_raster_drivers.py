@@ -164,7 +164,7 @@ def insertion_worker(key, dbfile, raster_file, provider):
     db = drivers.get_driver(str(dbfile), provider=provider)
     with db.connect():
         db.insert([key], str(raster_file), skip_metadata=True)
-        # keep connection open for a while to increase the chance of 
+        # keep connection open for a while to increase the chance of
         # triggering a race condition
         time.sleep(0.05)
 

@@ -115,9 +115,6 @@ def test_get_singleband_explicit_cmap(client, use_read_only_database, raster_fil
 
 
 def test_get_singleband_explicit_cmap_invalid(client, use_read_only_database, raster_file_xyz):
-    import terracotta
-    settings = terracotta.get_settings()
-
     x, y, z = raster_file_xyz
     explicit_cmap = {1: (0, 0, 0), 2: (255, 255, 255), 3: '#ffffff', 4: 'abcabc'}
 
