@@ -218,6 +218,7 @@ you the tools to build your own system. Categorical data can be served by follow
    `reflectance`, or whatever makes sense for your given application.
 2. Attach a mapping `category name -> pixel value` to the metadata of your categorical dataset.
    Using the Python API, this could e.g. be done like this:
+   
    ```python
    import terracotta as tc
    
@@ -252,7 +253,6 @@ Terracotta server runs at `example.com`, you can use the following functionality
 
   ```json
   {
-      ...
       "extra_metadata": {
           "categories": {
               "clear land": 0,
