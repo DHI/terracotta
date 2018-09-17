@@ -56,10 +56,12 @@ def big_raster_file(tmpdir_factory):
     raster_data = np.random.randint(0, np.iinfo(np.uint16).max, size=(1024, 1024), dtype='uint16')
 
     # include some big nodata regions
+    ix, iy = np.indices(raster_data.shape)
+    circular_mask = np.sqrt((ix - raster_data.shape[0] / 2) ** 2 
+                            + (iy - raster_data.shape[1] / 2) ** 2) > 400
+    raster_data[circular_mask] = 0
     raster_data[200:600, 400:800] = 0
     raster_data[500, :] = 0
-    raster_data[900:, :] = 0
-    raster_data[800:, 800:] = 0
 
     profile = {
         'driver': 'GTiff',
