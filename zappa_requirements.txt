@@ -8,7 +8,6 @@ numpy
 pillow
 shapely
 rasterio>=1.0
-wakati
 
 aws_xray_sdk
 boto3
