@@ -14,7 +14,7 @@ from terracotta.drivers.sqlite import SQLiteDriver, convert_exceptions
 from terracotta.profile import trace
 
 
-@convert_exceptions('Could not retrieve database from S3')  # type: ignore
+@convert_exceptions('Could not retrieve database from S3')
 @trace('download_db_from_s3')
 def _download_from_s3_if_changed(remote_path: str, local_path: Union[str, Path],
                                  current_hash: str) -> None:

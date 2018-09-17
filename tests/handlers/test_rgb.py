@@ -38,8 +38,9 @@ def test_rgb_stretch(stretch_range, use_read_only_database, read_only_database, 
 
     ds_keys = ['val21', 'val22']
 
-    raw_img = rgb.rgb(['val21'], raster_file_xyz, ['val22', 'val23', 'val24'], stretch_ranges=[stretch_range] * 3)
-    img_data = np.asarray(Image.open(raw_img))[... , 0]
+    raw_img = rgb.rgb(['val21'], raster_file_xyz, ['val22', 'val23', 'val24'],
+                      stretch_ranges=[stretch_range] * 3)
+    img_data = np.asarray(Image.open(raw_img))[..., 0]
 
     # get unstretched data to compare to
     driver = terracotta.get_driver(read_only_database)

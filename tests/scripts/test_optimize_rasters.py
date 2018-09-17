@@ -22,7 +22,7 @@ def test_optimize_rasters(big_raster_file, tmpdir, in_memory):
         result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o', str(tmpdir)])
     else:
         in_memory_flag = '--in-memory' if in_memory else '--no-in-memory'
-        result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o', 
+        result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o',
                                          str(tmpdir), in_memory_flag])
 
     assert result.exit_code == 0

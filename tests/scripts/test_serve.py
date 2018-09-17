@@ -48,14 +48,16 @@ def test_serve_rgb_key(raster_file):
     input_pattern = str(raster_file.dirpath('{rgb}m{foo}.tif'))
 
     runner = CliRunner()
-    result = runner.invoke(cli.cli, ['serve', '-r', input_pattern, '--no-browser', '--rgb-key', 'rgb'])
+    result = runner.invoke(
+        cli.cli, ['serve', '-r', input_pattern, '--no-browser', '--rgb-key', 'rgb']
+    )
     assert result.exit_code == 0
 
 
 def test_serve_find_socket(raster_file):
     import socket
     from contextlib import closing
-    
+
     from terracotta.scripts import cli
 
     input_pattern = str(raster_file.dirpath('{name}.tif'))
@@ -67,11 +69,12 @@ def test_serve_find_socket(raster_file):
         sock.bind((host, port))
 
         runner = CliRunner()
-        result = runner.invoke(cli.cli, ['serve', '-r', input_pattern, '--no-browser', '--port', '5000'])
+        result = runner.invoke(
+            cli.cli, ['serve', '-r', input_pattern, '--no-browser', '--port', '5000']
+        )
         assert result.exit_code != 0
         assert 'Could not find open port to bind to' in result.output
 
         runner = CliRunner()
         result = runner.invoke(cli.cli, ['serve', '-r', input_pattern, '--no-browser'])
         assert result.exit_code == 0
-

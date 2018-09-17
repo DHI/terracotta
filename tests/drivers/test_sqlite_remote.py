@@ -105,4 +105,3 @@ def test_immutability(tmpdir, raster_file):
 
     with pytest.raises(NotImplementedError):
         driver.delete(('some', 'value'))
-

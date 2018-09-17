@@ -1,8 +1,5 @@
 import time
-import datetime
-import importlib
 
-import boto3
 from moto import mock_xray_client, XRaySegment
 
 
