@@ -1,6 +1,6 @@
 """api/keys.py
 
-Flask route to handle /legend calls.
+Flask route to handle /colormap calls.
 """
 
 from typing import Any, Mapping, Dict
@@ -13,16 +13,16 @@ from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
 from terracotta.cmaps import AVAILABLE_CMAPS
 
 
-class LegendEntrySchema(Schema):
+class ColormapEntrySchema(Schema):
     value = fields.Number(required=True)
     rgb = fields.List(fields.Number(), required=True, validate=validate.Length(equal=3))
 
 
-class LegendSchema(Schema):
-    legend = fields.Nested(LegendEntrySchema, many=True, required=True)
+class ColormapSchema(Schema):
+    colormap = fields.Nested(ColormapEntrySchema, many=True, required=True)
 
 
-class LegendOptionSchema(Schema):
+class ColormapOptionSchema(Schema):
     class Meta:
         unknown = EXCLUDE
 
@@ -31,8 +31,11 @@ class LegendOptionSchema(Schema):
         description='Minimum and maximum value of colormap as JSON array '
                     '(same as for /singleband and /rgb)'
     )
-    colormap = fields.String(description='Name of color map to use (see /colormap)',
-                             missing=None, validate=validate.OneOf(AVAILABLE_CMAPS))
+    colormap = fields.String(
+        description='Name of color map to use (for a preview see '
+                    'https://matplotlib.org/examples/color/colormaps_reference.html)',
+        missing=None, validate=validate.OneOf(AVAILABLE_CMAPS)
+    )
     num_values = fields.Int(description='Number of values to return', missing=255)
 
     @pre_load
@@ -48,36 +51,36 @@ class LegendOptionSchema(Schema):
         return data
 
 
-@metadata_api.route('/legend', methods=['GET'])
+@metadata_api.route('/colormap', methods=['GET'])
 @convert_exceptions
-def get_legend() -> str:
-    """Get a legend mapping pixel values to colors
+def get_colormap() -> str:
+    """Get a colormap mapping pixel values to colors
     ---
     get:
-        summary: /legend
+        summary: /colormap
         description:
-            Get a legend mapping pixel values to colors. Use this to construct a color bar for a
+            Get a colormap mapping pixel values to colors. Use this to construct a color bar for a
             dataset.
         parameters:
             - in: query
-              schema: LegendOptionSchema
+              schema: ColormapOptionSchema
         responses:
             200:
                 description: Array containing data values and RGBA tuples
-                schema: LegendSchema
+                schema: ColormapSchema
             400:
                 description: Query parameters are invalid
     """
-    from terracotta.handlers.legend import legend
+    from terracotta.handlers.colormap import colormap
 
-    input_schema = LegendOptionSchema()
+    input_schema = ColormapOptionSchema()
     options = input_schema.load(request.args)
 
-    payload = {'legend': legend(**options)}
+    payload = {'colormap': colormap(**options)}
 
-    schema = LegendSchema()
+    schema = ColormapSchema()
     return jsonify(schema.load(payload))
 
 
-spec.definition('LegendEntry', schema=LegendEntrySchema)
-spec.definition('Legend', schema=LegendSchema)
+spec.definition('ColormapEntry', schema=ColormapEntrySchema)
+spec.definition('Colormap', schema=ColormapSchema)

@@ -1,5 +1,6 @@
-import json
 from io import BytesIO
+import json
+import urllib.parse
 
 from PIL import Image
 import numpy as np
@@ -17,12 +18,6 @@ def flask_app():
 def client(flask_app):
     with flask_app.test_client() as client:
         yield client
-
-
-def test_get_colormaps(client):
-    rv = client.get('/colormaps')
-    assert rv.status_code == 200
-    assert 'jet' in json.loads(rv.data)['colormaps']
 
 
 def test_get_keys(client, use_read_only_database):
@@ -99,6 +94,59 @@ def test_get_singleband_cmap(client, use_read_only_database, raster_file_xyz):
     assert np.asarray(img).shape == settings.TILE_SIZE
 
 
+def urlsafe_json(payload):
+    payload_json = json.dumps(payload)
+    return urllib.parse.quote_plus(payload_json, safe=r',.[]{}:"')
+
+
+def test_get_singleband_explicit_cmap(client, use_read_only_database, raster_file_xyz):
+    import terracotta
+    settings = terracotta.get_settings()
+
+    x, y, z = raster_file_xyz
+    explicit_cmap = {1: (0, 0, 0), 2.0: (255, 255, 255), 3: '#ffffff', 4: 'abcabc'}
+
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+                    f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
+    assert rv.status_code == 200, rv.data.decode('utf-8')
+
+    img = Image.open(BytesIO(rv.data))
+    assert np.asarray(img).shape == settings.TILE_SIZE
+
+
+def test_get_singleband_explicit_cmap_invalid(client, use_read_only_database, raster_file_xyz):
+    import terracotta
+    settings = terracotta.get_settings()
+
+    x, y, z = raster_file_xyz
+    explicit_cmap = {1: (0, 0, 0), 2: (255, 255, 255), 3: '#ffffff', 4: 'abcabc'}
+
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?'
+                    f'explicit_color_map={urlsafe_json(explicit_cmap)}')
+    assert rv.status_code == 400
+
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=jet'
+                    f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
+    assert rv.status_code == 400
+
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit')
+    assert rv.status_code == 400
+
+    explicit_cmap[3] = 'omgomg'
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+                    f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
+    assert rv.status_code == 400
+
+    explicit_cmap = [(255, 255, 255)]
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+                    f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
+    assert rv.status_code == 400
+
+    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+                    f'&explicit_color_map=foo')
+    assert rv.status_code == 400
+
+
 def test_get_singleband_stretch(client, use_read_only_database, raster_file_xyz):
     import terracotta
     settings = terracotta.get_settings()
@@ -171,16 +219,16 @@ def test_get_rgb_stretch(client, use_read_only_database, raster_file_xyz):
         assert np.asarray(img).shape == (*settings.TILE_SIZE, 3)
 
 
-def test_get_legend(client):
-    rv = client.get('/legend?stretch_range=[0,1]&num_values=100')
+def test_get_colormap(client):
+    rv = client.get('/colormap?stretch_range=[0,1]&num_values=100')
     assert rv.status_code == 200
-    assert len(json.loads(rv.data)['legend']) == 100
+    assert len(json.loads(rv.data)['colormap']) == 100
 
 
-def test_get_legend_extra_args(client):
-    rv = client.get('/legend?stretch_range=[0,1]&num_values=100&foo=bar&baz=quz')
+def test_get_colormap_extra_args(client):
+    rv = client.get('/colormap?stretch_range=[0,1]&num_values=100&foo=bar&baz=quz')
     assert rv.status_code == 200
-    assert len(json.loads(rv.data)['legend']) == 100
+    assert len(json.loads(rv.data)['colormap']) == 100
 
 
 def test_get_preview(client):

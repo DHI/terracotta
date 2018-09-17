@@ -71,7 +71,8 @@ class Driver(ABC):
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
                         tilesize: Sequence[int] = (256, 256),
-                        nodata: Number = 0) -> np.ndarray:
+                        nodata: Number = 0,
+                        preserve_values: bool = False) -> np.ndarray:
         """Get raster tile as a NumPy array for given keys."""
         pass
 

@@ -25,7 +25,7 @@ try:
 except ImportError:
     has_crick = False
 
-from terracotta import get_settings, exceptions
+from terracotta import get_settings, exceptions, image
 from terracotta.drivers.base import requires_connection, Driver
 from terracotta.profile import trace
 
@@ -60,12 +60,12 @@ class RasterDriver(Driver):
                                      nodata: Number) -> Optional[Dict[str, Any]]:
         """Loop over chunks and accumulate statistics"""
         from rasterio import features, warp, windows
-        from shapely import geometry, ops
+        from shapely import geometry
 
         total_count = valid_data_count = 0
         tdigest = TDigest()
         sstats = SummaryStats()
-        convex_hulls = []
+        convex_hull = geometry.Polygon()
 
         block_windows = [w for _, w in dataset.block_windows(1)]
 
@@ -76,10 +76,7 @@ class RasterDriver(Driver):
 
             total_count += int(block_data.size)
 
-            valid_data_mask = np.isfinite(block_data)
-            if not np.isnan(nodata):
-                valid_data_mask &= (block_data != nodata)
-
+            valid_data_mask = image.get_valid_mask(block_data, nodata)
             valid_data = block_data[valid_data_mask]
 
             if valid_data.size == 0:
@@ -87,14 +84,12 @@ class RasterDriver(Driver):
 
             valid_data_count += int(valid_data.size)
 
-            # this formulation allows us to store only one convex hull per block,
-            # which should be relatively lightweight
             block_shapes = [geometry.shape(s) for s, _ in features.shapes(
                 valid_data_mask.astype('uint8'),
                 mask=valid_data_mask,
                 transform=windows.transform(w, dataset.transform)
             )]
-            convex_hulls.append(ops.unary_union(block_shapes).convex_hull)
+            convex_hull = geometry.MultiPolygon([convex_hull, *block_shapes]).convex_hull
 
             tdigest.update(valid_data)
             sstats.update(valid_data)
@@ -102,12 +97,9 @@ class RasterDriver(Driver):
         if sstats.count() == 0:
             return None
 
-        # remove merge artefacts, transform, re-compute convex hull
-        convex_hull = ops.unary_union(convex_hulls).simplify(0)
-        convex_hull = warp.transform_geom(
+        convex_hull_wgs = warp.transform_geom(
             dataset.crs, 'epsg:4326', geometry.mapping(convex_hull)
         )
-        convex_hull = geometry.shape(convex_hull).convex_hull
 
         return {
             'valid_percentage': valid_data_count / total_count * 100,
@@ -115,34 +107,32 @@ class RasterDriver(Driver):
             'mean': sstats.mean(),
             'stdev': sstats.std(),
             'percentiles': tdigest.quantile(np.arange(0.01, 1, 0.01)),
-            'convex_hull': geometry.mapping(convex_hull)
+            'convex_hull': convex_hull_wgs
         }
 
     @staticmethod
     def _compute_image_stats(dataset: 'DatasetReader',
                              nodata: Number) -> Optional[Dict[str, Any]]:
         from rasterio import features, warp
-        from shapely import geometry, ops
+        from shapely import geometry
 
         raster_data = dataset.read(1)
 
-        valid_data_mask = np.isfinite(raster_data)
-        if not np.isnan(nodata):
-            valid_data_mask &= (raster_data != nodata)
-
+        valid_data_mask = image.get_valid_mask(raster_data, nodata)
         valid_data = raster_data[valid_data_mask]
 
         if valid_data.size == 0:
             return None
 
-        raster_features = features.shapes(
+        raster_shapes = [geometry.shape(s) for s, _ in features.shapes(
             valid_data_mask.astype('uint8'),
-            mask=valid_data_mask,
+            mask=valid_data_mask.astype('bool'),
             transform=dataset.transform
+        )]
+        convex_hull = geometry.MultiPolygon(raster_shapes).convex_hull
+        convex_hull_wgs = warp.transform_geom(
+            dataset.crs, 'epsg:4326', geometry.mapping(convex_hull)
         )
-        raster_shapes_wgs = [geometry.shape(warp.transform_geom(dataset.crs, 'epsg:4326', s))
-                             for s, _ in raster_features]
-        convex_hull = ops.unary_union(raster_shapes_wgs).convex_hull
 
         return {
             'valid_percentage': valid_data.size / raster_data.size * 100,
@@ -150,7 +140,7 @@ class RasterDriver(Driver):
             'mean': float(valid_data.mean()),
             'stdev': float(valid_data.std()),
             'percentiles': np.percentile(valid_data, np.arange(1, 100)),
-            'convex_hull': geometry.mapping(convex_hull)
+            'convex_hull': convex_hull_wgs
         }
 
     @staticmethod
@@ -266,8 +256,10 @@ class RasterDriver(Driver):
     def _get_raster_tile(self, keys: Tuple[str], *,
                          bounds: Tuple[float, float, float, float] = None,
                          tilesize: Tuple[int, int] = (256, 256),
-                         nodata: Number = 0) -> np.ndarray:
+                         nodata: Number = 0,
+                         preserve_values: bool = False) -> np.ndarray:
         """Load a raster dataset from a file through rasterio.
+
         Heavily inspired by mapbox/rio-tiler
         """
         import rasterio
@@ -283,8 +275,12 @@ class RasterDriver(Driver):
         path = path[keys]
 
         target_crs = 'epsg:3857'
-        upsampling_method = settings.UPSAMPLING_METHOD
-        upsampling_enum = self._get_resampling_enum(upsampling_method)
+
+        if preserve_values:
+            upsampling_enum = downsampling_enum = self._get_resampling_enum('nearest')
+        else:
+            upsampling_enum = self._get_resampling_enum(settings.UPSAMPLING_METHOD)
+            downsampling_enum = self._get_resampling_enum(settings.DOWNSAMPLING_METHOD)
 
         with contextlib.ExitStack() as es:
             try:
@@ -338,8 +334,7 @@ class RasterDriver(Driver):
             if window_ratio > 1:
                 resampling_enum = upsampling_enum
             else:
-                downsampling_method = settings.DOWNSAMPLING_METHOD
-                resampling_enum = self._get_resampling_enum(downsampling_method)
+                resampling_enum = downsampling_enum
 
             # read data
             with warnings.catch_warnings(), trace('read_from_vrt'):
@@ -354,7 +349,8 @@ class RasterDriver(Driver):
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
                         tilesize: Sequence[int] = (256, 256),
-                        nodata: Number = 0) -> np.ndarray:
+                        nodata: Number = 0,
+                        preserve_values: bool = False) -> np.ndarray:
         """Load tile with given keys or metadata"""
         # make sure all arguments are hashable
         _keys = self._key_dict_to_sequence(keys)
@@ -362,5 +358,6 @@ class RasterDriver(Driver):
             tuple(_keys),
             bounds=tuple(bounds) if bounds else None,
             tilesize=tuple(tilesize),
-            nodata=nodata
+            nodata=nodata,
+            preserve_values=preserve_values
         )

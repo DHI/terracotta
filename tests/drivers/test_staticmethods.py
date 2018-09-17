@@ -25,12 +25,16 @@ def test_default_transform():
     assert our_height == args[3]
 
 
+def geometry_mismatch(shape1, shape2):
+    """Compute relative mismatch of two shapes"""
+    return shape1.symmetric_difference(shape2).area / shape1.union(shape2).area
+
+
 @pytest.mark.parametrize('use_chunks', [True, False])
 def test_compute_metadata(big_raster_file, use_chunks):
     import rasterio
     import rasterio.features
-    from shapely.geometry import shape
-    from shapely.ops import unary_union
+    from shapely.geometry import shape, MultiPolygon, mapping
     import numpy as np
 
     from terracotta.drivers.raster_base import RasterDriver
@@ -42,7 +46,7 @@ def test_compute_metadata(big_raster_file, use_chunks):
             src, bidx=1, as_mask=True, geographic=True
         ))
 
-    convex_hull = unary_union([shape(s['geometry']) for s in dataset_shape]).convex_hull
+    convex_hull = MultiPolygon([shape(s['geometry']) for s in dataset_shape]).convex_hull
 
     # compare
     mtd = RasterDriver.compute_metadata(str(big_raster_file), use_chunks=use_chunks)
@@ -59,7 +63,7 @@ def test_compute_metadata(big_raster_file, use_chunks):
         rtol=0.01
     )
 
-    assert shape(mtd['convex_hull']).equals(convex_hull)
+    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-8
 
 
 @pytest.mark.parametrize('use_chunks', [True, False])
@@ -71,12 +75,9 @@ def test_compute_metadata_invalid(invalid_raster_file, use_chunks):
 
 
 def test_compute_metadata_nocrick(big_raster_file):
-    import importlib
-
     import rasterio
     import rasterio.features
-    from shapely.geometry import shape
-    from shapely.ops import unary_union
+    from shapely.geometry import shape, MultiPolygon, mapping
     import numpy as np
 
     with rasterio.open(str(big_raster_file)) as src:
@@ -86,26 +87,30 @@ def test_compute_metadata_nocrick(big_raster_file):
             src, bidx=1, as_mask=True, geographic=True
         ))
 
-    convex_hull = unary_union([shape(s['geometry']) for s in dataset_shape]).convex_hull
+    convex_hull = MultiPolygon([shape(s['geometry']) for s in dataset_shape]).convex_hull
 
     import terracotta.drivers.raster_base
-    terracotta.drivers.raster_base.has_crick = False
+    try:
+        terracotta.drivers.raster_base.has_crick = False
 
-    with pytest.warns(UserWarning):
-        mtd = terracotta.drivers.raster_base.RasterDriver.compute_metadata(
-            str(big_raster_file), use_chunks=True)  
+        with pytest.warns(UserWarning):
+            mtd = terracotta.drivers.raster_base.RasterDriver.compute_metadata(
+                str(big_raster_file), use_chunks=True)  
 
-    # compare
-    np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)
-    np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()))
-    np.testing.assert_allclose(mtd['mean'], valid_data.mean())
-    np.testing.assert_allclose(mtd['stdev'], valid_data.std())
+        # compare
+        np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)
+        np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()))
+        np.testing.assert_allclose(mtd['mean'], valid_data.mean())
+        np.testing.assert_allclose(mtd['stdev'], valid_data.std())
 
-    # allow error of 1%, since we only compute approximate quantiles
-    np.testing.assert_allclose(
-        mtd['percentiles'],
-        np.percentile(valid_data, np.arange(1, 100)),
-        rtol=0.01
-    )
+        # allow error of 1%, since we only compute approximate quantiles
+        np.testing.assert_allclose(
+            mtd['percentiles'],
+            np.percentile(valid_data, np.arange(1, 100)),
+            rtol=0.01
+        )
 
-    assert shape(mtd['convex_hull']).equals(convex_hull)
+        assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-8
+
+    finally:
+        terracotta.drivers.raster_base.has_crick = True

@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-
 DRIVERS = ['sqlite']
 
 METADATA_KEYS = ('bounds', 'nodata', 'range', 'mean', 'stdev', 'percentiles', 'metadata')
@@ -160,9 +159,14 @@ def test_insertion_cache(tmpdir, raster_file, provider):
 
 
 def insertion_worker(key, dbfile, raster_file, provider):
+    import time
     from terracotta import drivers
     db = drivers.get_driver(str(dbfile), provider=provider)
-    db.insert([key], str(raster_file), skip_metadata=False)
+    with db.connect():
+        db.insert([key], str(raster_file), skip_metadata=True)
+        # keep connection open for a while to increase the chance of 
+        # triggering a race condition
+        time.sleep(0.05)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)

@@ -6,7 +6,8 @@ Flask route to handle /singleband calls.
 from typing import Any, Mapping, Dict
 import json
 
-from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
+from marshmallow import (Schema, fields, validate, validates_schema,
+                         pre_load, ValidationError, EXCLUDE)
 from flask import request, send_file
 
 from terracotta.api.flask_api import convert_exceptions, tile_api
@@ -29,19 +30,56 @@ class SinglebandOptionSchema(Schema):
         description='Stretch range to use as JSON array, uses full range by default. '
                     'Null values indicate global minimum / maximum.', missing=None
     )
-    colormap = fields.String(description='Colormap to apply to image (see /colormap)',
-                             missing=None, validate=validate.OneOf(AVAILABLE_CMAPS))
+
+    colormap = fields.String(
+        description='Colormap to apply to image (see /colormap)',
+        validate=validate.OneOf(('explicit', *AVAILABLE_CMAPS)), missing=None
+    )
+
+    explicit_color_map = fields.Dict(
+        keys=fields.Number(),
+        values=fields.List(fields.Number, validate=validate.Length(equal=3)),
+        example='{{0: (255, 255, 255)}}',
+        description='Explicit value-color mapping to use as JSON object. '
+                    'Must be given together with colormap=explicit. Color values can be '
+                    'specified either as RGB tuple (in the range of [0, 255]), or as '
+                    'hex strings.'
+    )
+
+    @validates_schema
+    def validate_cmap(self, data: Mapping[str, Any]) -> None:
+        if data.get('colormap', '') == 'explicit' and not data.get('explicit_color_map'):
+            raise ValidationError('explicit_color_map argument must be given for colormap=explicit',
+                                  'colormap')
+
+        if data.get('explicit_color_map') and data.get('colormap', '') != 'explicit':
+            raise ValidationError('explicit_color_map can only be given for colormap=explicit',
+                                  'explicit_color_map')
 
     @pre_load
-    def process_ranges(self, data: Mapping[str, Any]) -> Dict[str, Any]:
+    def decode_json(self, data: Mapping[str, Any]) -> Dict[str, Any]:
         data = dict(data.items())
-        var = 'stretch_range'
-        val = data.get(var)
-        if val:
-            try:
-                data[var] = json.loads(val)
-            except json.decoder.JSONDecodeError as exc:
-                raise ValidationError(f'Could not decode value for {var} as JSON') from exc
+        for var in ('stretch_range', 'explicit_color_map'):
+            val = data.get(var)
+            if val:
+                try:
+                    data[var] = json.loads(val)
+                except json.decoder.JSONDecodeError as exc:
+                    msg = f'Could not decode value {val} for {var} as JSON'
+                    raise ValidationError(msg) from exc
+
+        val = data.get('explicit_color_map')
+        if val and isinstance(val, dict):
+            for key, color in val.items():
+                if isinstance(color, str):
+                    hex_string = color.lstrip('#')
+                    try:
+                        rgb = [int(hex_string[i:i + 2], 16) for i in (0, 2, 4)]
+                        data['explicit_color_map'][key] = rgb
+                    except ValueError:
+                        msg = f'Could not decode value {color} in explicit_color_map as hex string'
+                        raise ValidationError(msg)
+
         return data
 
 
@@ -79,8 +117,9 @@ def get_singleband(tile_z: int, tile_y: int, tile_x: int, keys: str) -> Any:
     option_schema = SinglebandOptionSchema()
     options = option_schema.load(request.args)
 
-    image = singleband(
-        parsed_keys, tile_xyz, **options
-    )
+    if options.get('colormap', '') == 'explicit':
+        options['colormap'] = options.pop('explicit_color_map')
+
+    image = singleband(parsed_keys, tile_xyz, **options)
 
     return send_file(image, mimetype='image/png')
