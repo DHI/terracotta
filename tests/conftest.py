@@ -167,7 +167,7 @@ def use_read_only_database(read_only_database, monkeypatch):
 
 
 @pytest.fixture()
-def override_aws_env_variables(monkeypatch):
+def override_aws_credentials(monkeypatch):
     with monkeypatch.context() as m:
         m.setenv('AWS_ACCESS_KEY_ID', 'FakeKey')
         m.setenv('AWS_SECRET_ACCESS_KEY', 'FakeSecretKey')

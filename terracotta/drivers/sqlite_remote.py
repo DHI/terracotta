@@ -59,11 +59,11 @@ class RemoteSQLiteDriver(SQLiteDriver):
         """Use given database URL to read metadata."""
         settings = get_settings()
 
-        local_db_path = os.path.join(settings.DB_CACHEDIR, 's3_db.sqlite')
+        local_db_path = os.path.join(settings.REMOTE_DB_CACHE_DIR, 's3_db.sqlite')
         os.makedirs(os.path.dirname(local_db_path), exist_ok=True)
 
         self._remote_path: str = str(path)
-        self._checkdb_cache = TTLCache(maxsize=1, ttl=settings.DB_CONNECTION_TTL)
+        self._checkdb_cache = TTLCache(maxsize=1, ttl=settings.REMOTE_DB_CACHE_TTL)
 
         super(RemoteSQLiteDriver, self).__init__(local_db_path)
 
