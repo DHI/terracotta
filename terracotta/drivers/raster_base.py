@@ -56,6 +56,37 @@ class RasterDriver(Driver):
             raise exceptions.UnknownKeyError('Encountered unknown key') from exc
 
     @staticmethod
+    def _hull_candidate_mask(mask: np.ndarray) -> np.ndarray:
+        """Returns a reduced boolean mask to speed up convex hull computations.
+
+        Exploits the fact that only the first and last elements of each row and column
+        can contribute to the convex hull of a dataset.
+        """
+        assert mask.ndim == 2
+        assert mask.dtype == np.bool
+
+        nx, ny = mask.shape
+        out = np.zeros_like(mask)
+
+        # these operations do not short-circuit, but seems to be the best we can do
+        # NOTE: argmax returns 0 if a slice is all True or all False
+        first_row = np.argmax(mask, axis=0)
+        last_row = nx - 1 - np.argmax(mask[::-1, :], axis=0)
+        first_col = np.argmax(mask, axis=1)
+        last_col = ny - 1 - np.argmax(mask[:, ::-1], axis=1)
+
+        all_rows = np.arange(nx)
+        all_cols = np.arange(ny)
+
+        out[first_row, all_cols] = out[last_row, all_cols] = True
+        out[all_rows, first_col] = out[all_rows, last_col] = True
+
+        # filter all-False slices
+        out &= mask
+
+        return out
+
+    @staticmethod
     def _compute_image_stats_chunked(dataset: 'DatasetReader',
                                      nodata: Number) -> Optional[Dict[str, Any]]:
         """Loop over chunks and accumulate statistics"""
@@ -84,12 +115,13 @@ class RasterDriver(Driver):
 
             valid_data_count += int(valid_data.size)
 
-            block_shapes = [geometry.shape(s) for s, _ in features.shapes(
-                valid_data_mask.astype('uint8'),
-                mask=valid_data_mask,
+            hull_candidates = RasterDriver._hull_candidate_mask(valid_data_mask)
+            hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
+                np.ones(hull_candidates.shape, 'uint8'),
+                mask=hull_candidates,
                 transform=windows.transform(w, dataset.transform)
-            )]
-            convex_hull = geometry.MultiPolygon([convex_hull, *block_shapes]).convex_hull
+            ))
+            convex_hull = geometry.MultiPolygon([convex_hull, *hull_shapes]).convex_hull
 
             tdigest.update(valid_data)
             sstats.update(valid_data)
@@ -124,12 +156,13 @@ class RasterDriver(Driver):
         if valid_data.size == 0:
             return None
 
-        raster_shapes = [geometry.shape(s) for s, _ in features.shapes(
-            valid_data_mask.astype('uint8'),
-            mask=valid_data_mask.astype('bool'),
+        hull_candidates = RasterDriver._hull_candidate_mask(valid_data_mask)
+        hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
+            np.ones(hull_candidates.shape, 'uint8'),
+            mask=hull_candidates,
             transform=dataset.transform
-        )]
-        convex_hull = geometry.MultiPolygon(raster_shapes).convex_hull
+        ))
+        convex_hull = geometry.MultiPolygon(hull_shapes).convex_hull
         convex_hull_wgs = warp.transform_geom(
             dataset.crs, 'epsg:4326', geometry.mapping(convex_hull)
         )

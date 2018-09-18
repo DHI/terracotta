@@ -20,9 +20,6 @@ class TerracottaSettings(NamedTuple):
     FLASK_PROFILE: bool = False
     XRAY_PROFILE: bool = False
 
-    LOGLEVEL: str = 'warning'
-    LOGFILE: str = ''
-
     RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490 MB
     METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10 MB
 
