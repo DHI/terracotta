@@ -266,7 +266,9 @@ class RasterDriver(Driver):
     def _get_raster_tile(self, keys: Tuple[str], *,
                          bounds: Tuple[float, float, float, float] = None,
                          tilesize: Tuple[int, int] = (256, 256),
-                         nodata: Number = 0) -> np.ndarray:
+                         nodata: Number = 0,
+                         upsampling_method: str,
+                         downsampling_method: str) -> np.ndarray:
         """Load a raster dataset from a file through rasterio.
         Heavily inspired by mapbox/rio-tiler
         """
@@ -276,14 +278,11 @@ class RasterDriver(Driver):
 
         dst_bounds: Tuple[float, float, float, float]
 
-        settings = get_settings()
-
         path = self.get_datasets(dict(zip(self.available_keys, keys)))
         assert len(path) == 1
         path = path[keys]
 
         target_crs = 'epsg:3857'
-        upsampling_method = settings.UPSAMPLING_METHOD
         upsampling_enum = self._get_resampling_enum(upsampling_method)
 
         with contextlib.ExitStack() as es:
@@ -338,7 +337,6 @@ class RasterDriver(Driver):
             if window_ratio > 1:
                 resampling_enum = upsampling_enum
             else:
-                downsampling_method = settings.DOWNSAMPLING_METHOD
                 resampling_enum = self._get_resampling_enum(downsampling_method)
 
             # read data
@@ -357,10 +355,13 @@ class RasterDriver(Driver):
                         nodata: Number = 0) -> np.ndarray:
         """Load tile with given keys or metadata"""
         # make sure all arguments are hashable
+        settings = get_settings()
         _keys = self._key_dict_to_sequence(keys)
         return self._get_raster_tile(
             tuple(_keys),
             bounds=tuple(bounds) if bounds else None,
             tilesize=tuple(tilesize),
-            nodata=nodata
+            nodata=nodata,
+            upsampling_method=settings.UPSAMPLING_METHOD,
+            downsampling_method=settings.DOWNSAMPLING_METHOD,
         )
