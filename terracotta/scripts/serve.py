@@ -7,6 +7,7 @@ from typing import Mapping, Any, Tuple, Sequence
 import tempfile
 
 import click
+import tqdm
 
 from terracotta.scripts.click_utils import RasterPattern, RasterPatternType, TOMLFile
 
@@ -80,19 +81,12 @@ def serve(database: str = None,
 
         driver = get_driver(dbfile.name, provider='sqlite')
 
-        pbar_args = dict(
-            label='Ingesting raster files',
-            show_eta=False,
-            item_show_func=lambda item: item[1] if item else ''
-        )
-
         with driver.connect():
             driver.create(keys)
 
             click.echo('')
-            with click.progressbar(raster_files.items(), **pbar_args) as pbar:  # type: ignore
-                for key, filepath in pbar:
-                    driver.insert(key, filepath, skip_metadata=True)
+            for key, filepath in tqdm.tqdm(raster_files.items(), desc="Ingesting raster files"):
+                driver.insert(key, filepath, skip_metadata=True)
             click.echo('')
 
         database = dbfile.name
