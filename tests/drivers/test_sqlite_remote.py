@@ -12,6 +12,15 @@ from moto import mock_s3
 from cachetools import TTLCache
 
 
+@pytest.fixture()
+def override_aws_credentials(monkeypatch):
+    with monkeypatch.context() as m:
+        m.setenv('AWS_ACCESS_KEY_ID', 'FakeKey')
+        m.setenv('AWS_SECRET_ACCESS_KEY', 'FakeSecretKey')
+        m.setenv('AWS_SESSION_TOKEN', 'FakeSessionToken')
+        yield
+
+
 class Timer:
     def __init__(self, auto=False):
         self.auto = auto
@@ -24,11 +33,6 @@ class Timer:
 
     def tick(self):
         self.time += 1
-
-
-class TTLTestCache(TTLCache):
-    def __init__(self, maxsize=1, ttl=1, **kwargs):
-        TTLCache.__init__(self, maxsize, ttl=ttl, timer=Timer(), **kwargs)
 
 
 def create_s3_db(keys, tmpdir, datasets=None):
@@ -75,7 +79,7 @@ def test_remote_database_hash_changed(tmpdir, raster_file, override_aws_credenti
 
     driver = get_driver(dbpath)
     # replace TTL cache timer by manual timer
-    driver._checkdb_cache = TTLTestCache()
+    driver._checkdb_cache = TTLCache(maxsize=1, ttl=1, timer=Timer())
 
     with driver.connect():
         assert driver.available_keys == keys
