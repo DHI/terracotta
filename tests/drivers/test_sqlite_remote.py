@@ -9,6 +9,30 @@ import pytest
 
 import boto3
 from moto import mock_s3
+from cachetools import TTLCache
+
+
+@pytest.fixture()
+def override_aws_credentials(monkeypatch):
+    with monkeypatch.context() as m:
+        m.setenv('AWS_ACCESS_KEY_ID', 'FakeKey')
+        m.setenv('AWS_SECRET_ACCESS_KEY', 'FakeSecretKey')
+        m.setenv('AWS_SESSION_TOKEN', 'FakeSessionToken')
+        yield
+
+
+class Timer:
+    def __init__(self, auto=False):
+        self.auto = auto
+        self.time = 0
+
+    def __call__(self):
+        if self.auto:
+            self.time += 1
+        return self.time
+
+    def tick(self):
+        self.time += 1
 
 
 def create_s3_db(keys, tmpdir, datasets=None):
@@ -36,7 +60,7 @@ def create_s3_db(keys, tmpdir, datasets=None):
 
 
 @mock_s3
-def test_remote_database(tmpdir):
+def test_remote_database(tmpdir, override_aws_credentials):
     keys = ('some', 'keys')
     dbpath = create_s3_db(keys, tmpdir)
 
@@ -47,13 +71,15 @@ def test_remote_database(tmpdir):
 
 
 @mock_s3
-def test_remote_database_hash_changed(tmpdir, raster_file):
+def test_remote_database_hash_changed(tmpdir, raster_file, override_aws_credentials):
     keys = ('some', 'keys')
     dbpath = create_s3_db(keys, tmpdir)
 
     from terracotta import get_driver
 
     driver = get_driver(dbpath)
+    # replace TTL cache timer by manual timer
+    driver._checkdb_cache = TTLCache(maxsize=1, ttl=1, timer=Timer())
 
     with driver.connect():
         assert driver.available_keys == keys
@@ -66,13 +92,25 @@ def test_remote_database_hash_changed(tmpdir, raster_file):
         assert driver.get_datasets() == {}
         assert os.path.getmtime(driver.path) == modification_date
 
-    with driver.connect():  # db is updated on reconnect
+    # check if db connection is cached after one tick
+    driver._checkdb_cache.timer.tick()
+    assert len(driver._checkdb_cache) == 1
+
+    with driver.connect():  # db connection is cached; so still no change
+        assert driver.get_datasets() == {}
+        assert os.path.getmtime(driver.path) == modification_date
+
+    # TTL cache is invalidated after second tick
+    driver._checkdb_cache.timer.tick()
+    assert len(driver._checkdb_cache) == 0
+
+    with driver.connect():  # now db is updated on reconnect
         assert list(driver.get_datasets().keys()) == [('some', 'value')]
         assert os.path.getmtime(driver.path) != modification_date
 
 
 @mock_s3
-def test_remote_database_hash_unchanged(tmpdir, raster_file):
+def test_remote_database_hash_unchanged(tmpdir, raster_file, override_aws_credentials):
     keys = ('some', 'keys')
     dbpath = create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
 
@@ -89,7 +127,7 @@ def test_remote_database_hash_unchanged(tmpdir, raster_file):
 
 
 @mock_s3
-def test_immutability(tmpdir, raster_file):
+def test_immutability(tmpdir, raster_file, override_aws_credentials):
     keys = ('some', 'keys')
     dbpath = create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
 

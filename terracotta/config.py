@@ -20,17 +20,15 @@ class TerracottaSettings(NamedTuple):
     FLASK_PROFILE: bool = False
     XRAY_PROFILE: bool = False
 
-    LOGLEVEL: str = 'warning'
-    LOGFILE: str = ''
-
     RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490 MB
     METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10 MB
 
     TILE_SIZE: Tuple[int, int] = (256, 256)
     PNG_COMPRESS_LEVEL: int = 1
 
-    DB_CACHEDIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
     DB_CONNECTION_TIMEOUT: int = 10
+    REMOTE_DB_CACHE_DIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
+    REMOTE_DB_CACHE_TTL: int = 10 * 60  # 10 min
 
     UPSAMPLING_METHOD: str = 'nearest'
     DOWNSAMPLING_METHOD: str = 'average'
@@ -54,8 +52,9 @@ class SettingSchema(Schema):
     TILE_SIZE = fields.List(fields.Integer(), validate=validate.Length(equal=2))
     PNG_COMPRESS_LEVEL = fields.Integer(validate=validate.Range(min=0, max=9))
 
-    DB_CACHEDIR = fields.String()
     DB_CONNECTION_TIMEOUT = fields.Integer()
+    REMOTE_DB_CACHE_DIR = fields.String()
+    REMOTE_DB_CACHE_TTL = fields.Integer()
 
     UPSAMPLING_METHOD = fields.String(
         validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
