@@ -25,6 +25,7 @@ class Timer:
     def tick(self):
         self.time += 1
 
+
 class TTLTestCache(TTLCache):
     def __init__(self, maxsize=1, ttl=1, **kwargs):
         TTLCache.__init__(self, maxsize, ttl=ttl, timer=Timer(), **kwargs)
@@ -45,14 +46,10 @@ def create_s3_db(keys, tmpdir, datasets=None):
     with open(dbfile, 'rb') as f:
         db_bytes = f.read()
 
-    #conn = boto3.resource('s3', aws_access_key_id="FakeKey",
-    #        aws_secret_access_key='FakeSecretKey', aws_session_token='FakeSessionToken')
     conn = boto3.resource('s3')
     conn.create_bucket(Bucket='tctest')
 
     s3 = boto3.client('s3')
-    #s3 = boto3.client('s3', aws_access_key_id="FakeKey",
-    #        aws_secret_access_key='FakeSecretKey', aws_session_token='FakeSessionToken')
     s3.put_object(Bucket='tctest', Key='tc.sqlite', Body=db_bytes)
 
     return 's3://tctest/tc.sqlite'
@@ -95,10 +92,10 @@ def test_remote_database_hash_changed(tmpdir, raster_file, override_aws_credenti
     driver._checkdb_cache.timer.tick()
     assert len(driver._checkdb_cache) == 1
 
-    with driver.connect(): # db connection is cached; so still no change
+    with driver.connect():  # db connection is cached; so still no change
         assert driver.get_datasets() == {}
         assert os.path.getmtime(driver.path) == modification_date
-        
+
     # TTL cache is invalidated after second tick
     driver._checkdb_cache.timer.tick()
     assert len(driver._checkdb_cache) == 0
