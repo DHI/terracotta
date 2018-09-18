@@ -287,6 +287,8 @@ class RasterDriver(Driver):
     @cachedmethod(operator.attrgetter('_raster_cache'))
     @requires_connection
     def _get_raster_tile(self, keys: Tuple[str], *,
+                         upsampling_method: str,
+                         downsampling_method: str,
                          bounds: Tuple[float, float, float, float] = None,
                          tilesize: Tuple[int, int] = (256, 256),
                          nodata: Number = 0,
@@ -301,8 +303,6 @@ class RasterDriver(Driver):
 
         dst_bounds: Tuple[float, float, float, float]
 
-        settings = get_settings()
-
         path = self.get_datasets(dict(zip(self.available_keys, keys)))
         assert len(path) == 1
         path = path[keys]
@@ -312,8 +312,8 @@ class RasterDriver(Driver):
         if preserve_values:
             upsampling_enum = downsampling_enum = self._get_resampling_enum('nearest')
         else:
-            upsampling_enum = self._get_resampling_enum(settings.UPSAMPLING_METHOD)
-            downsampling_enum = self._get_resampling_enum(settings.DOWNSAMPLING_METHOD)
+            upsampling_enum = self._get_resampling_enum(upsampling_method)
+            downsampling_enum = self._get_resampling_enum(downsampling_method)
 
         with contextlib.ExitStack() as es:
             try:
@@ -386,11 +386,14 @@ class RasterDriver(Driver):
                         preserve_values: bool = False) -> np.ndarray:
         """Load tile with given keys or metadata"""
         # make sure all arguments are hashable
-        _keys = self._key_dict_to_sequence(keys)
+        settings = get_settings()
+        key_sequence = self._key_dict_to_sequence(keys)
         return self._get_raster_tile(
-            tuple(_keys),
+            tuple(key_sequence),
             bounds=tuple(bounds) if bounds else None,
             tilesize=tuple(tilesize),
             nodata=nodata,
-            preserve_values=preserve_values
+            preserve_values=preserve_values,
+            upsampling_method=settings.UPSAMPLING_METHOD,
+            downsampling_method=settings.DOWNSAMPLING_METHOD
         )
