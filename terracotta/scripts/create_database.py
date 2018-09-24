@@ -24,11 +24,14 @@ from terracotta.scripts.click_utils import RasterPattern, RasterPatternType, Pat
                    '(will be computed on first request instead)')
 @click.option('--rgb-key', default=None,
               help='Key to use for RGB compositing [default: last key in pattern]')
+@click.option('-q', '--quiet', is_flag=True, default=False, show_default=True,
+              help='Suppress all output to stdout')
 def create_database(raster_pattern: RasterPatternType,
                     output_file: Path,
                     overwrite: bool = False,
                     skip_metadata: bool = False,
-                    rgb_key: str = None) -> None:
+                    rgb_key: str = None,
+                    quiet: bool = False) -> None:
     """Create a new SQLite raster database from a collection of raster files.
 
     First arguments is a format pattern defining paths and keys of all raster files.
@@ -65,5 +68,6 @@ def create_database(raster_pattern: RasterPatternType,
     with driver.connect():
         driver.create(keys, drop_if_exists=True)
 
-        for key, filepath in tqdm.tqdm(raster_files.items(), desc='Ingesting raster files'):
+        progress = tqdm.tqdm(raster_files.items(), desc='Ingesting raster files', disable=quiet)
+        for key, filepath in progress:
             driver.insert(key, filepath, skip_metadata=skip_metadata)

@@ -60,11 +60,14 @@ RESAMPLING_METHODS = {
 @click.option('--in-memory/--no-in-memory', default=None,
               help='Force processing raster in memory / not in memory [default: process in memory '
                    f'if smaller than {IN_MEMORY_THRESHOLD // 1e6:.0f} million pixels]')
+@click.option('-q', '--quiet', is_flag=True, default=False, show_default=True,
+              help='Suppress all output to stdout')
 def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      output_folder: Path,
                      overwrite: bool = False,
                      resampling_method: str = 'average',
-                     in_memory: bool = None) -> None:
+                     in_memory: bool = None,
+                     quiet: bool = False) -> None:
     """Optimize a collection of raster files for use with Terracotta.
 
     First argument is a list of input files or glob patterns.
@@ -89,16 +92,19 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
     total_pixels = 0
     for f in raster_files_flat:
         if not f.is_file():
-            click.echo(f'Input raster {f!s} is not a file')
+            click.echo(f'Input raster {f!s} is not a file', err=True)
             raise click.Abort()
+
         with rasterio.open(str(f), 'r') as src:
             total_pixels += src.height * src.width
 
     output_folder.mkdir(exist_ok=True)
 
-    click.echo('')
+    if not quiet:
+        # insert newline for nicer progress bar style
+        click.echo('')
 
-    with tqdm.tqdm(total=total_pixels, smoothing=0, unit_scale=True) as pbar:
+    with tqdm.tqdm(total=total_pixels, smoothing=0, unit_scale=True, disable=quiet) as pbar:
         for input_file in raster_files_flat:
             if len(input_file.name) > 20:
                 short_name = input_file.name[:8] + '...' + input_file.name[-8:]
@@ -111,8 +117,8 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
             output_file = output_folder / input_file.with_suffix('.tif').name
 
             if not overwrite and output_file.is_file():
-                click.echo('')
-                click.echo(f'Output file {output_file!s} exists (use --overwrite to ignore)')
+                click.echo(f'Output file {output_file!s} exists (use --overwrite to ignore)',
+                           err=True)
                 raise click.Abort()
 
             with contextlib.ExitStack() as es:

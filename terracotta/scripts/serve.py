@@ -115,7 +115,7 @@ def serve(database: str = None,
             port = port_candidate
             break
     else:
-        click.echo(f'Could not find open port to bind to (ports tried: {port_range})')
+        click.echo(f'Could not find open port to bind to (ports tried: {port_range})', err=True)
         raise click.Abort()
 
     run_app(port=port, allow_all_ips=allow_all_ips, debug=debug,
