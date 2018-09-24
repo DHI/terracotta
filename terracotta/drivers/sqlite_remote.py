@@ -65,12 +65,12 @@ class RemoteSQLiteDriver(SQLiteDriver):
         self._remote_path: str = str(path)
         self._checkdb_cache = TTLCache(maxsize=1, ttl=settings.REMOTE_DB_CACHE_TTL)
 
-        super(RemoteSQLiteDriver, self).__init__(local_db_path)
+        super().__init__(local_db_path)
 
     @cachedmethod(operator.attrgetter('_checkdb_cache'))
     def _check_db(self) -> None:
         _download_from_s3_if_changed(self._remote_path, self.path, self._db_hash)
-        super(RemoteSQLiteDriver, self)._check_db()
+        super()._check_db()
 
     def create(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
