@@ -3,18 +3,14 @@
 Initialize global setup
 """
 
-# set version
 try:
-    # read from VERSION file if present
-    import os
-    with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
-        __version__ = f.read().strip()
-    del os
-except OSError:
-    # get through versioneer
-    from terracotta._version import get_versions
-    __version__ = get_versions()['version']
-    del get_versions
+    from _version import version as __version__  # noqa: F401
+except ImportError:
+    # package is not installed
+    raise RuntimeError(
+        'Terracotta has not been installed correctly. Please run `pip install -e .` or '
+        '`python setup.py install` in the Terracotta package folder.'
+    ) from None
 
 
 # setup environment
