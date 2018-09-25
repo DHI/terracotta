@@ -145,17 +145,20 @@ class SQLiteDriver(RasterDriver):
     def _check_db(self) -> None:
         """Called after opening a new connection"""
 
-        def versiontuple(version_string):
+        # check for version compatibility
+        def versiontuple(version_string: str) -> Sequence[str]:
             return version_string.split('.')
 
         db_version = self.db_version
         current_version = __version__
 
         if versiontuple(db_version)[:2] != versiontuple(current_version)[:2]:
-            msg = (f'Version conflict: database was created in v{db_version}, '
-                   f'but this is v{current_version}')
-            raise exceptions.InvalidDatabaseError(msg)
+            raise exceptions.InvalidDatabaseError(
+                f'Version conflict: database was created in v{db_version}, '
+                f'but this is v{current_version}'
+            )
 
+        # invalidate cache if db has changed since last connection
         new_hash = self._compute_hash(self.path)
         if self._db_hash != new_hash:
             self._empty_cache()
@@ -208,14 +211,14 @@ class SQLiteDriver(RasterDriver):
                 c.execute('DROP TABLE IF EXISTS datasets')
             key_string = ', '.join([f'{key} {self.KEY_TYPE}' for key in keys])
             c.execute(f'CREATE TABLE datasets ({key_string}, filepath VARCHAR[8000], '
-                    f'PRIMARY KEY({", ".join(keys)}))')
+                      f'PRIMARY KEY({", ".join(keys)}))')
 
             if drop_if_exists:
                 c.execute('DROP TABLE IF EXISTS metadata')
             column_string = ', '.join(f'{col} {col_type}' for col, col_type
-                                    in self.METADATA_COLUMNS)
+                                      in self.METADATA_COLUMNS)
             c.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
-                    f'PRIMARY KEY ({", ".join(keys)}))')
+                      f'PRIMARY KEY ({", ".join(keys)}))')
 
     @cachedmethod(operator.attrgetter('_metadata_cache'))
     def _get_datasets(self,
