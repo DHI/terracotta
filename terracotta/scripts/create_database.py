@@ -46,7 +46,9 @@ def create_database(raster_pattern: RasterPatternType,
     from terracotta import get_driver
 
     if output_file.is_file() and not overwrite:
-        click.confirm(f'Output file {output_file} exists. Continue?', abort=True)
+        click.confirm(f'Existing output file {output_file} will be overwritten. Continue?',
+                      abort=True)
+        output_file.unlink()
 
     keys, raster_files = raster_pattern
 
@@ -64,10 +66,9 @@ def create_database(raster_pattern: RasterPatternType,
         raster_files = {push_to_last(k, rgb_idx): v for k, v in raster_files.items()}
 
     driver = get_driver(output_file)
+    driver.create(keys)
 
     with driver.connect():
-        driver.create(keys, drop_if_exists=True)
-
         progress = tqdm.tqdm(raster_files.items(), desc='Ingesting raster files', disable=quiet)
         for key, filepath in progress:
             driver.insert(key, filepath, skip_metadata=skip_metadata)

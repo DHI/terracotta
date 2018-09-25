@@ -4,12 +4,11 @@ SQLite-backed raster driver. Metadata is stored in an SQLite database, raster da
 to be present on disk.
 """
 
-from typing import Any, Sequence, Mapping, Tuple, Union, Callable, Iterator, Dict, cast
+from typing import Any, Sequence, Mapping, Tuple, Union, Iterator, Dict, cast
 import sys
 import os
 import operator
 import contextlib
-import functools
 import json
 import re
 import sqlite3
@@ -27,20 +26,9 @@ from terracotta.drivers.base import requires_connection
 from terracotta.drivers.raster_base import RasterDriver
 
 
-def memoize(fun: Callable) -> Callable:
-    cache: Dict[Tuple[Any, ...], Any] = {}
-
-    @functools.wraps(fun)
-    def inner(*args: Any) -> Any:
-        if args not in cache:
-            cache[args] = fun(*args)
-        return cache[args]
-
-    return inner
-
-
 @contextlib.contextmanager
 def convert_exceptions(msg: str) -> Iterator:
+    """Convert internal sqlite exceptions to our InvalidDatabaseError"""
     try:
         yield
     except sqlite3.OperationalError as exc:
@@ -131,9 +119,8 @@ class SQLiteDriver(RasterDriver):
                 conn.close()
                 self._connection_pool.pop(thread_id)
 
-    @memoize
-    @convert_exceptions('Could not retrieve version from database')
     @requires_connection
+    @convert_exceptions('Could not retrieve version from database')
     def _get_db_version(self) -> str:
         conn = self._get_connection()
         c = conn.cursor()
@@ -177,9 +164,8 @@ class SQLiteDriver(RasterDriver):
             settings.METADATA_CACHE_SIZE, getsizeof=sys.getsizeof
         )
 
-    @memoize
-    @convert_exceptions('Could not retrieve keys from database')
     @requires_connection
+    @convert_exceptions('Could not retrieve keys from database')
     def _get_available_keys(self) -> Tuple[str, ...]:
         """Caching getter for available_keys. Assumes keys do not change during runtime."""
         conn = self._get_connection()
@@ -190,31 +176,23 @@ class SQLiteDriver(RasterDriver):
     available_keys = cast(Tuple[str], property(_get_available_keys))
 
     @convert_exceptions('Could not create tables')
-    def create(self, keys: Sequence[str], drop_if_exists: bool = False) -> None:
+    def create(self, keys: Sequence[str]) -> None:
         if not all(re.match(r'\w+', key) for key in keys):
             raise ValueError('keys can be alphanumeric only')
 
         with self.connect(check=False) as conn:
             c = conn.cursor()
 
-            if drop_if_exists:
-                c.execute('DROP TABLE IF EXISTS terracotta')
             c.execute('CREATE TABLE terracotta (version VARCHAR[255])')
             c.execute('INSERT INTO terracotta VALUES (?)', [str(__version__)])
 
-            if drop_if_exists:
-                c.execute('DROP TABLE IF EXISTS keys')
             c.execute(f'CREATE TABLE keys (keys {self.KEY_TYPE})')
             c.executemany('INSERT INTO keys VALUES (?)', [(key,) for key in keys])
 
-            if drop_if_exists:
-                c.execute('DROP TABLE IF EXISTS datasets')
             key_string = ', '.join([f'{key} {self.KEY_TYPE}' for key in keys])
             c.execute(f'CREATE TABLE datasets ({key_string}, filepath VARCHAR[8000], '
                       f'PRIMARY KEY({", ".join(keys)}))')
 
-            if drop_if_exists:
-                c.execute('DROP TABLE IF EXISTS metadata')
             column_string = ', '.join(f'{col} {col_type}' for col, col_type
                                       in self.METADATA_COLUMNS)
             c.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
@@ -248,7 +226,6 @@ class SQLiteDriver(RasterDriver):
         where_ = where and (tuple(where.keys()), tuple(where.values()))
         return self._get_datasets(where_)
 
-    # TODO: use marshmallow schema instead
     @staticmethod
     def _encode_data(decoded: Mapping[str, Any]) -> Dict[str, Any]:
         """Transform from internal format to database representation"""

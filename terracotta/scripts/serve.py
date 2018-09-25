@@ -80,10 +80,9 @@ def serve(database: str = None,
             raster_files = {push_to_last(k, rgb_idx): v for k, v in raster_files.items()}
 
         driver = get_driver(dbfile.name, provider='sqlite')
+        driver.create(keys)
 
         with driver.connect():
-            driver.create(keys)
-
             click.echo('')
             for key, filepath in tqdm.tqdm(raster_files.items(), desc="Ingesting raster files"):
                 driver.insert(key, filepath, skip_metadata=True)

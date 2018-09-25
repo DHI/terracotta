@@ -4,7 +4,7 @@ Initialize global setup
 """
 
 try:
-    from _version import version as __version__  # noqa: F401
+    from terracotta._version import version as __version__  # noqa: F401
 except ImportError:
     # package is not installed
     raise RuntimeError(

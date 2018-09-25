@@ -15,8 +15,8 @@ setup(
         'write_to': 'terracotta/_version.py'
     },
     setup_requires=[
-        'setuptools_scm', 
-        'setuptools_scm_git_archive', 
+        'setuptools_scm',
+        'setuptools_scm_git_archive',
         'numpy'
     ],
     install_requires=install_requires,

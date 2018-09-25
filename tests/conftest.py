@@ -151,10 +151,11 @@ def read_only_database(raster_file, tmpdir_factory):
 
     dbpath = tmpdir_factory.mktemp('db').join('db-readonly.sqlite')
     driver = get_driver(dbpath, provider='sqlite')
+    driver.create(keys)
 
     metadata = driver.compute_metadata(str(raster_file), extra_metadata=['extra_data'])
+
     with driver.connect():
-        driver.create(keys)
         driver.insert(('val11', 'val12'), str(raster_file), metadata=metadata)
         driver.insert(('val21', 'val22'), str(raster_file))
         driver.insert(('val21', 'val23'), str(raster_file))

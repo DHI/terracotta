@@ -28,34 +28,11 @@ def test_creation_invalid(tmpdir, provider):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_connect(tmpdir, provider):
-    from terracotta import drivers
-    dbfile = tmpdir.join('test.sqlite')
-    db = drivers.get_driver(str(dbfile), provider=provider)
-    keys = ('some', 'keys')
-
-    with db.connect():
-        db.create(keys)
-
-    assert db.available_keys == keys
-    assert db.get_datasets() == {}
-    assert dbfile.isfile()
-
-
-@pytest.mark.parametrize('provider', DRIVERS)
-def test_recreation(tmpdir, provider):
+def test_connect_before_create(tmpdir, provider):
     from terracotta import drivers, exceptions
     dbfile = tmpdir.join('test.sqlite')
     db = drivers.get_driver(str(dbfile), provider=provider)
-    keys = ('some', 'keys')
-
-    db.create(keys)
-    assert db.available_keys == keys
-    assert db.get_datasets() == {}
 
     with pytest.raises(exceptions.InvalidDatabaseError):
-        db.create(keys, drop_if_exists=False)
-
-    db.create(keys, drop_if_exists=True)
-    assert db.available_keys == keys
-    assert db.get_datasets() == {}
+        with db.connect():
+            pass
