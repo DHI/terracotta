@@ -50,13 +50,15 @@ def create_s3_db(keys, tmpdir, datasets=None):
     with open(dbfile, 'rb') as f:
         db_bytes = f.read()
 
+    bucketname = str(uuid.uuid4())
+
     conn = boto3.resource('s3')
-    conn.create_bucket(Bucket='tctest')
+    conn.create_bucket(Bucket=bucketname)
 
     s3 = boto3.client('s3')
-    s3.put_object(Bucket='tctest', Key='tc.sqlite', Body=db_bytes)
+    s3.put_object(Bucket=bucketname, Key='tc.sqlite', Body=db_bytes)
 
-    return 's3://tctest/tc.sqlite'
+    return f's3://{bucketname}/tc.sqlite'
 
 
 @mock_s3
