@@ -3,7 +3,6 @@ import pytest
 
 def test_default_transform():
     from rasterio.warp import calculate_default_transform
-    from rasterio._err import CPLE_OutOfMemoryError
 
     from terracotta.drivers.raster_base import RasterDriver
 
@@ -15,12 +14,13 @@ def test_default_transform():
         -10, -10, 10, 10
     )
 
-    # we can handle cases rasterio can't
-    with pytest.raises(CPLE_OutOfMemoryError):
-        rio_transform, rio_width, rio_height = calculate_default_transform(*args)
+    # GDAL defaults don't round-trip
+    _, rio_width, rio_height = calculate_default_transform(*args)
+    assert rio_width != args[2]
+    assert rio_height != args[3]
 
+    # we do!
     our_transform, our_width, our_height = RasterDriver._calculate_default_transform(*args)
-
     assert our_width == args[2]
     assert our_height == args[3]
 
