@@ -6,6 +6,7 @@ to be present on disk.
 
 from typing import Any, Union
 import os
+import shutil
 import operator
 import urllib.parse as urlparse
 from pathlib import Path
@@ -19,8 +20,7 @@ from terracotta.profile import trace
 
 @convert_exceptions('Could not retrieve database from S3')
 @trace('download_db_from_s3')
-def _download_from_s3_if_changed(remote_path: str, local_path: Union[str, Path],
-                                 current_hash: str) -> None:
+def _update_from_s3_if_changed(remote_path: str, current_hash: str, local_path: str) -> None:
     import boto3
     import botocore
 
@@ -36,17 +36,19 @@ def _download_from_s3_if_changed(remote_path: str, local_path: Union[str, Path],
 
         with trace('check_remote_db'):
             # raises if db matches local
-            obj_bytes = obj.get(IfNoneMatch=current_hash)['Body'].read()
-
-        with trace('write_to_disk'), open(local_path, 'wb') as f:
-            f.write(obj_bytes)
+            obj_bytes = obj.get(IfNoneMatch=current_hash)['Body']
 
     except botocore.exceptions.ClientError as exc:
-        # 304 means hash hasn't changed
-        if exc.response['Error']['Code'] != '304':
-            raise
+        if exc.response['Error']['Code'] == '304':
+            # hash hasn't changed
+            return
+        raise
 
-    assert os.path.isfile(local_path)
+    # copy over existing database; this is somewhat safe since it is read-only
+    # NOTE: replace with Connection.backup after switching to Python 3.7
+    with trace('update_db'):
+        with open(local_path, 'wb') as f:
+            shutil.copyfileobj(obj_bytes, f)
 
 
 class RemoteSQLiteDriver(SQLiteDriver):
@@ -68,8 +70,11 @@ class RemoteSQLiteDriver(SQLiteDriver):
         super().__init__(local_db_path)
 
     @cachedmethod(operator.attrgetter('_checkdb_cache'))
+    def _update_db(self) -> None:
+        _update_from_s3_if_changed(self._remote_path, self._db_hash, self.path)
+
     def _check_db(self) -> None:
-        _download_from_s3_if_changed(self._remote_path, self.path, self._db_hash)
+        self._update_db()
         super()._check_db()
 
     def create(self, *args: Any, **kwargs: Any) -> None:

@@ -4,6 +4,9 @@ Tests that apply to all drivers go to test_drivers.py.
 """
 
 import os
+import uuid
+import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -12,7 +15,7 @@ from moto import mock_s3
 from cachetools import TTLCache
 
 
-@pytest.fixture()
+@pytest.fixture(autouse=True)
 def override_aws_credentials(monkeypatch):
     with monkeypatch.context() as m:
         m.setenv('AWS_ACCESS_KEY_ID', 'FakeKey')
@@ -35,36 +38,40 @@ class Timer:
         self.time += 1
 
 
-def create_s3_db(keys, tmpdir, datasets=None):
-    import uuid
-    from terracotta import get_driver
-
-    dbfile = tmpdir / f'{uuid.uuid4()}.sqlite'
-    driver = get_driver(dbfile)
-    driver.create(keys)
-
-    if datasets:
-        for keys, path in datasets.items():
-            driver.insert(keys, path)
-
-    with open(dbfile, 'rb') as f:
-        db_bytes = f.read()
-
+@pytest.fixture()
+def s3_db_factory(tmpdir):
     bucketname = str(uuid.uuid4())
 
-    conn = boto3.resource('s3')
-    conn.create_bucket(Bucket=bucketname)
+    def _s3_db_factory(keys, datasets=None):
+        from terracotta import get_driver
 
-    s3 = boto3.client('s3')
-    s3.put_object(Bucket=bucketname, Key='tc.sqlite', Body=db_bytes)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dbfile = Path(tmpdir) / 'tc.sqlite'
+            driver = get_driver(dbfile)
+            driver.create(keys)
 
-    return f's3://{bucketname}/tc.sqlite'
+            if datasets:
+                for keys, path in datasets.items():
+                    driver.insert(keys, path)
+
+            with open(dbfile, 'rb') as f:
+                db_bytes = f.read()
+
+        conn = boto3.resource('s3')
+        conn.create_bucket(Bucket=bucketname)
+
+        s3 = boto3.client('s3')
+        s3.put_object(Bucket=bucketname, Key='tc.sqlite', Body=db_bytes)
+
+        return f's3://{bucketname}/tc.sqlite'
+
+    return _s3_db_factory
 
 
 @mock_s3
-def test_remote_database(tmpdir, override_aws_credentials):
+def test_remote_database(s3_db_factory):
     keys = ('some', 'keys')
-    dbpath = create_s3_db(keys, tmpdir)
+    dbpath = s3_db_factory(keys)
 
     from terracotta import get_driver
     driver = get_driver(dbpath)
@@ -73,48 +80,50 @@ def test_remote_database(tmpdir, override_aws_credentials):
 
 
 @mock_s3
-def test_remote_database_hash_changed(tmpdir, raster_file, override_aws_credentials):
+def test_remote_database_hash_changed(s3_db_factory, raster_file, monkeypatch):
     keys = ('some', 'keys')
-    dbpath = create_s3_db(keys, tmpdir)
+    dbpath = s3_db_factory(keys)
 
     from terracotta import get_driver
 
     driver = get_driver(dbpath)
-    # replace TTL cache timer by manual timer
-    driver._checkdb_cache = TTLCache(maxsize=1, ttl=1, timer=Timer())
+    with monkeypatch.context() as m:
+        # replace TTL cache timer by manual timer
+        m.setattr(driver, '_checkdb_cache', TTLCache(maxsize=1, ttl=1, timer=Timer()))
+        assert len(driver._checkdb_cache) == 0
 
-    with driver.connect():
-        assert driver.available_keys == keys
-        assert driver.get_datasets() == {}
-        modification_date = os.path.getmtime(driver.path)
+        with driver.connect():
+            assert driver.available_keys == keys
+            assert driver.get_datasets() == {}
+            modification_date = os.path.getmtime(driver.path)
 
-        create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
+            s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
 
-        # no change yet
-        assert driver.get_datasets() == {}
-        assert os.path.getmtime(driver.path) == modification_date
+            # no change yet
+            assert driver.get_datasets() == {}
+            assert os.path.getmtime(driver.path) == modification_date
 
-    # check if db connection is cached after one tick
-    driver._checkdb_cache.timer.tick()
-    assert len(driver._checkdb_cache) == 1
+        # check if remote db is cached after one tick
+        driver._checkdb_cache.timer.tick()
+        assert len(driver._checkdb_cache) == 1
 
-    with driver.connect():  # db connection is cached; so still no change
-        assert driver.get_datasets() == {}
-        assert os.path.getmtime(driver.path) == modification_date
+        with driver.connect():  # db connection is cached; so still no change
+            assert driver.get_datasets() == {}
+            assert os.path.getmtime(driver.path) == modification_date
 
-    # TTL cache is invalidated after second tick
-    driver._checkdb_cache.timer.tick()
-    assert len(driver._checkdb_cache) == 0
+        # TTL cache is invalidated after second tick
+        driver._checkdb_cache.timer.tick()
+        assert len(driver._checkdb_cache) == 0
 
-    with driver.connect():  # now db is updated on reconnect
-        assert list(driver.get_datasets().keys()) == [('some', 'value')]
-        assert os.path.getmtime(driver.path) != modification_date
+        with driver.connect():  # now db is updated on reconnect
+            assert list(driver.get_datasets().keys()) == [('some', 'value')]
+            assert os.path.getmtime(driver.path) != modification_date
 
 
 @mock_s3
-def test_remote_database_hash_unchanged(tmpdir, raster_file, override_aws_credentials):
+def test_remote_database_hash_unchanged(s3_db_factory, raster_file):
     keys = ('some', 'keys')
-    dbpath = create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
+    dbpath = s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
 
     from terracotta import get_driver
 
@@ -123,15 +132,15 @@ def test_remote_database_hash_unchanged(tmpdir, raster_file, override_aws_creden
     assert list(driver.get_datasets().keys()) == [('some', 'value')]
     modification_date = os.path.getmtime(driver.path)
 
-    create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
+    s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
     assert os.path.getmtime(driver.path) == modification_date
     assert list(driver.get_datasets().keys()) == [('some', 'value')]
 
 
 @mock_s3
-def test_immutability(tmpdir, raster_file, override_aws_credentials):
+def test_immutability(s3_db_factory, raster_file):
     keys = ('some', 'keys')
-    dbpath = create_s3_db(keys, tmpdir, datasets={('some', 'value'): str(raster_file)})
+    dbpath = s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
 
     from terracotta import get_driver
 
