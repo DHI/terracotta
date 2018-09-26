@@ -143,7 +143,7 @@ def test_invalid_group_insertion(tmpdir, raster_file, provider):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_insertion_cache(tmpdir, raster_file, provider):
+def test_insertion_cache_invalidation(tmpdir, raster_file, provider):
     from terracotta import drivers
 
     dbfile = tmpdir.join('test.sqlite')
