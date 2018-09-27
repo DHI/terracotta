@@ -45,8 +45,7 @@ class RasterDriver(Driver):
         self._raster_cache = LRUCache(settings.RASTER_CACHE_SIZE, getsizeof=sys.getsizeof)
         super().__init__(*args, **kwargs)
 
-    def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]
-                              ) -> List[Any]:
+    def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]) -> List[Any]:
         try:
             keys_as_mapping = cast(Mapping[str, Any], keys)
             return [keys_as_mapping[key] for key in self.available_keys]
@@ -181,12 +180,24 @@ class RasterDriver(Driver):
     def compute_metadata(raster_path: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None) -> Dict[str, Any]:
-        """Read given raster file and compute metadata from it"""
+        """Read given raster file and compute metadata from it.
+
+        This handles most of the heavy lifting during raster ingestion.
+        """
         import rasterio
         from rasterio import warp
+        from terracotta.cog import validate
 
         row_data: Dict[str, Any] = {}
         extra_metadata = extra_metadata or {}
+
+        if not validate(raster_path):
+            warnings.warn(
+                f'Raster file {raster_path} is not a valid cloud-optimized GeoTIFF. '
+                'Any interaction with it will be significantly slower. '
+                'Consider optimizing it through `terracotta optimize-rasters` before ingestion.',
+                exceptions.PerformanceWarning
+            )
 
         with rasterio.open(raster_path) as src:
             nodata = src.nodata or 0
@@ -198,8 +209,10 @@ class RasterDriver(Driver):
                 use_chunks = src.width * src.height > RasterDriver.LARGE_RASTER_THRESHOLD
 
             if use_chunks and not has_crick:
-                warnings.warn('Processing a large raster file, but crick failed to import. '
-                              'Reading whole file into memory instead.')
+                warnings.warn(
+                    'Processing a large raster file, but crick failed to import. '
+                    'Reading whole file into memory instead.', exceptions.PerformanceWarning
+                )
                 use_chunks = False
 
             if use_chunks:

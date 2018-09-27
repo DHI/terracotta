@@ -37,8 +37,8 @@ def test_serve_with_config(read_only_database, toml_file):
     from terracotta.scripts import cli
 
     runner = CliRunner()
-    result = runner.invoke(cli.cli, ['serve', '-d', str(read_only_database), '--no-browser',
-                                     '--config', str(toml_file)])
+    result = runner.invoke(cli.cli, ['--config', str(toml_file), 'serve',
+                                     '-d', str(read_only_database), '--no-browser'])
     assert result.exit_code == 0
 
 

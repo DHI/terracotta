@@ -9,12 +9,12 @@ import pytest
 
 
 @pytest.mark.parametrize('in_memory', [True, False, None])
-def test_optimize_rasters(big_raster_file, tmpdir, in_memory):
-    import validate_cloud_optimized_geotiff
+def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory):
+    from terracotta.cog import validate
     from terracotta.scripts import cli
 
-    input_pattern = str(big_raster_file.dirpath('*.tif'))
-    outfile = tmpdir / big_raster_file.basename
+    input_pattern = str(unoptimized_raster_file.dirpath('*.tif'))
+    outfile = tmpdir / unoptimized_raster_file.basename
 
     runner = CliRunner()
 
@@ -28,13 +28,15 @@ def test_optimize_rasters(big_raster_file, tmpdir, in_memory):
     assert result.exit_code == 0
     assert outfile.check()
 
-    with rasterio.open(str(big_raster_file)) as src1, rasterio.open(str(outfile)) as src2:
+    # check for data integrity
+    with rasterio.open(str(unoptimized_raster_file)) as src1, rasterio.open(str(outfile)) as src2:
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', 'invalid value encountered.*')
             np.testing.assert_array_equal(src1.read(), src2.read())
 
-    assert not validate_cloud_optimized_geotiff.cog_validate(str(big_raster_file))
-    assert validate_cloud_optimized_geotiff.cog_validate(str(outfile))
+    # validate files
+    assert not validate(str(unoptimized_raster_file))
+    assert validate(str(outfile))
 
 
 def test_optimize_rasters_nofiles(tmpdir):

@@ -56,11 +56,11 @@ def test_compute_metadata(big_raster_file, use_chunks):
     np.testing.assert_allclose(mtd['mean'], valid_data.mean())
     np.testing.assert_allclose(mtd['stdev'], valid_data.std())
 
-    # allow error of 1%, since we only compute approximate quantiles
+    # allow some error margin since we only compute approximate quantiles
     np.testing.assert_allclose(
         mtd['percentiles'],
         np.percentile(valid_data, np.arange(1, 100)),
-        rtol=0.01
+        rtol=0.02
     )
 
     assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-8

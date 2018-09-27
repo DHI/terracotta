@@ -27,9 +27,7 @@ def test_xray_tracing(caplog):
 
         # sanity check, recording without starting a segment should fail
         func_to_trace()
-        assert any(
-            ('cannot find the current segment' in record.message)
-            and (record.levelname == 'ERROR') for record in caplog.records
-        )
+        assert any('cannot find the current segment' in rec.message for rec in caplog.records)
+
     finally:
         update_settings(XRAY_PROFILE=False)

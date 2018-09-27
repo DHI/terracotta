@@ -186,8 +186,8 @@ class SQLiteDriver(RasterDriver):
 
     @convert_exceptions('Could not create database')
     def create(self, keys: Sequence[str]) -> None:
-        """Initialize database file with empty tables. 
-        
+        """Initialize database file with empty tables.
+
         This must be called before the first call to `connect()`.
         """
         if not all(re.match(r'\w+', key) for key in keys):
@@ -325,8 +325,7 @@ class SQLiteDriver(RasterDriver):
         conn = self._get_connection()
 
         if len(keys) != len(self.available_keys):
-            print(keys, self.available_keys)
-            raise ValueError('Not enough keys')
+            raise ValueError(f'Not enough keys (available keys: {self.available_keys})')
 
         if override_path is None:
             override_path = filepath
@@ -354,7 +353,7 @@ class SQLiteDriver(RasterDriver):
         conn = self._get_connection()
 
         if len(keys) != len(self.available_keys):
-            raise ValueError('Not enough keys')
+            raise ValueError(f'Not enough keys (available keys: {self.available_keys})')
 
         keys = list(self._key_dict_to_sequence(keys))
         key_dict = dict(zip(self.available_keys, keys))

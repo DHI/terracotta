@@ -5,11 +5,14 @@ A convenience tool to create a Terracotta database from some raster files.
 
 from typing import Tuple, Sequence, Any
 from pathlib import Path
+import logging
 
 import click
 import tqdm
 
 from terracotta.scripts.click_utils import RasterPattern, RasterPatternType, PathlibPath
+
+logger = logging.getLogger(__name__)
 
 
 @click.command('create-database',
@@ -54,7 +57,7 @@ def create_database(raster_pattern: RasterPatternType,
 
     if rgb_key is not None:
         if rgb_key not in keys:
-            raise click.UsageError('RGB key not found in raster pattern')
+            raise click.BadParameter('RGB key not found in raster pattern')
 
         # re-order keys
         rgb_idx = keys.index(rgb_key)
