@@ -7,6 +7,12 @@ from typing import Any
 import logging
 import logging.handlers
 
+try:
+    import colorlog
+    use_colors = True
+except ImportError:
+    use_colors = False
+
 
 LEVEL_PREFIX = {
     'DEBUG': 'd',
@@ -28,12 +34,6 @@ LOG_COLORS = {
 def set_logger(level: str, logfile: str = None,
                catch_warnings: bool = False) -> logging.Logger:
     """Initialize loggers"""
-    try:
-        import colorlog
-        use_colors = True
-    except ImportError:
-        use_colors = False
-
     package_logger = logging.getLogger('terracotta')
     package_logger.setLevel(level.upper())
 
@@ -45,9 +45,9 @@ def set_logger(level: str, logfile: str = None,
         fmt = ' {log_color!s}[{levelname!s}]{reset!s} {message!s}'
 
         class ColoredPrefixFormatter(colorlog.ColoredFormatter):
-            def format(self, record: Any) -> Any:
+            def format(self, record: Any, *args: Any) -> Any:
                 record.levelname = LEVEL_PREFIX[record.levelname]
-                return logging.Formatter.format(self, record)
+                return super().format(record, *args)
 
         ch_fmt = ColoredPrefixFormatter(fmt, log_colors=LOG_COLORS, style='{')
     else:
@@ -56,7 +56,7 @@ def set_logger(level: str, logfile: str = None,
         class PrefixFormatter(logging.Formatter):
             def format(self, record: Any) -> Any:
                 record.levelname = LEVEL_PREFIX[record.levelname]
-                return logging.Formatter.format(self, record)
+                return super().format(record)
 
         ch_fmt = PrefixFormatter(fmt, style='{')
 
