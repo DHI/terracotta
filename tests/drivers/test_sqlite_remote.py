@@ -80,7 +80,7 @@ def test_remote_database(s3_db_factory):
 
 
 @mock_s3
-def test_remote_database_hash_changed(s3_db_factory, raster_file, monkeypatch):
+def test_remote_database_cache(s3_db_factory, raster_file, monkeypatch):
     keys = ('some', 'keys')
     dbpath = s3_db_factory(keys)
 
@@ -118,23 +118,6 @@ def test_remote_database_hash_changed(s3_db_factory, raster_file, monkeypatch):
         with driver.connect():  # now db is updated on reconnect
             assert list(driver.get_datasets().keys()) == [('some', 'value')]
             assert os.path.getmtime(driver.path) != modification_date
-
-
-@mock_s3
-def test_remote_database_hash_unchanged(s3_db_factory, raster_file):
-    keys = ('some', 'keys')
-    dbpath = s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
-
-    from terracotta import get_driver
-
-    driver = get_driver(dbpath)
-    assert driver.available_keys == keys
-    assert list(driver.get_datasets().keys()) == [('some', 'value')]
-    modification_date = os.path.getmtime(driver.path)
-
-    s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
-    assert os.path.getmtime(driver.path) == modification_date
-    assert list(driver.get_datasets().keys()) == [('some', 'value')]
 
 
 @mock_s3

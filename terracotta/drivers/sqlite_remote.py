@@ -8,6 +8,7 @@ from typing import Any, Union
 import os
 import shutil
 import operator
+import logging
 import urllib.parse as urlparse
 from pathlib import Path
 
@@ -17,12 +18,11 @@ from terracotta import get_settings
 from terracotta.drivers.sqlite import SQLiteDriver, convert_exceptions
 from terracotta.profile import trace
 
+logger = logging.getLogger(__name__)
 
-@convert_exceptions('Could not retrieve database from S3')
-@trace('download_db_from_s3')
-def _update_from_s3_if_changed(remote_path: str, current_hash: str, local_path: str) -> None:
+
+def _update_from_s3(remote_path: str, local_path: str) -> None:
     import boto3
-    import botocore
 
     parsed_remote_path = urlparse.urlparse(remote_path)
     bucket_name, key = parsed_remote_path.netloc, parsed_remote_path.path.strip('/')
@@ -30,25 +30,14 @@ def _update_from_s3_if_changed(remote_path: str, current_hash: str, local_path: 
     if not parsed_remote_path.scheme == 's3':
         raise ValueError('Expected s3:// URL')
 
-    try:
-        s3 = boto3.resource('s3')
-        obj = s3.Object(bucket_name, key)
-
-        with trace('check_remote_db'):
-            # raises if db matches local
-            obj_bytes = obj.get(IfNoneMatch=current_hash)['Body']
-
-    except botocore.exceptions.ClientError as exc:
-        if exc.response['Error']['Code'] == '304':
-            # hash hasn't changed
-            return
-        raise
+    s3 = boto3.resource('s3')
+    obj = s3.Object(bucket_name, key)
+    obj_bytes = obj.get()['Body']
 
     # copy over existing database; this is somewhat safe since it is read-only
     # NOTE: replace with Connection.backup after switching to Python 3.7
-    with trace('update_db'):
-        with open(local_path, 'wb') as f:
-            shutil.copyfileobj(obj_bytes, f)
+    with open(local_path, 'wb') as f:
+        shutil.copyfileobj(obj_bytes, f)
 
 
 class RemoteSQLiteDriver(SQLiteDriver):
@@ -70,8 +59,11 @@ class RemoteSQLiteDriver(SQLiteDriver):
         super().__init__(local_db_path)
 
     @cachedmethod(operator.attrgetter('_checkdb_cache'))
+    @convert_exceptions('Could not retrieve database from S3')
+    @trace('download_db_from_s3')
     def _update_db(self) -> None:
-        _update_from_s3_if_changed(self._remote_path, self._db_hash, self.path)
+        logger.debug('Remote database cache expired, re-downloading')
+        _update_from_s3(self._remote_path, self.path)
 
     def _check_db(self) -> None:
         self._update_db()
