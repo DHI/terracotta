@@ -76,7 +76,7 @@ def test_remote_database(s3_db_factory):
     from terracotta import get_driver
     driver = get_driver(dbpath)
 
-    assert driver.available_keys == keys
+    assert driver.key_names == keys
 
 
 @mock_s3
@@ -93,7 +93,7 @@ def test_remote_database_cache(s3_db_factory, raster_file, monkeypatch):
         assert len(driver._checkdb_cache) == 0
 
         with driver.connect():
-            assert driver.available_keys == keys
+            assert driver.key_names == keys
             assert driver.get_datasets() == {}
             modification_date = os.path.getmtime(driver.path)
 

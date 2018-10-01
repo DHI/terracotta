@@ -17,6 +17,6 @@ def datasets(some_keys: Mapping[str, str] = None) -> List[Dict[str, str]]:
 
     with driver.connect():
         dataset_keys = driver.get_datasets(where=some_keys).keys()
-        key_names = driver.available_keys
+        key_names = driver.key_names
 
     return [dict(zip(key_names, ds_keys)) for ds_keys in dataset_keys]

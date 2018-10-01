@@ -61,7 +61,7 @@ def set_logger(level: str, logfile: str = None,
         ch_fmt = PrefixFormatter(fmt, style='{')
 
     ch.setFormatter(ch_fmt)
-    package_logger.handlers.append(ch)
+    package_logger.handlers = [ch]
 
     # file handler
     if logfile:

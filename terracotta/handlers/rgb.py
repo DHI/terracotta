@@ -48,9 +48,9 @@ def rgb(some_keys: Sequence[str], tile_xyz: Sequence[int], rgb_values: Sequence[
     settings = get_settings()
     driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
 
-    available_keys = driver.available_keys
+    key_names = driver.key_names
 
-    if len(some_keys) != len(available_keys) - 1:
+    if len(some_keys) != len(key_names) - 1:
         raise exceptions.InvalidArgumentsError('must specify all keys except last one')
 
     tile_size = settings.TILE_SIZE

@@ -52,3 +52,17 @@ def test_logfile(tmpdir):
         assert '[!] test' in f.read()
 
     logs.set_logger('WARNING')
+
+
+def test_double_init(caplog):
+    from terracotta import logs
+
+    caplog.set_level('DEBUG', logger='terracotta')
+
+    logs.set_logger('DEBUG')
+    logs.set_logger('DEBUG')
+
+    logger = logging.getLogger('terracotta')
+    logger.warning('test')
+
+    assert len(caplog.records) == 1

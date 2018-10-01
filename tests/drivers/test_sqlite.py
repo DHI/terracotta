@@ -13,7 +13,7 @@ def test_metadata_cache_insertion(tmpdir, raster_file):
 
     metadata_cache = db._metadata_cache
 
-    db.available_keys
+    db.key_names
     assert ('keys', db) in metadata_cache
 
     db.db_version

@@ -22,8 +22,18 @@ def client(flask_app):
 
 def test_get_keys(client, use_read_only_database):
     rv = client.get('/keys')
+
+    expected_response = [
+        {
+            'key': 'key1'
+        },
+        {
+            'key': 'key2',
+            'description': 'key2'
+        }
+    ]
     assert rv.status_code == 200
-    assert ['key1', 'key2'] == json.loads(rv.data)['keys']
+    assert expected_response == json.loads(rv.data)['keys']
 
 
 def test_get_metadata(client, use_read_only_database):
@@ -234,9 +244,12 @@ def test_get_preview(client):
 
 
 def test_get_spec(client):
+    from terracotta import __version__
+
     rv = client.get('/swagger.json')
     assert rv.status_code == 200
     assert json.loads(rv.data)
+    assert __version__ in rv.data.decode('utf-8')
 
     rv = client.get('/apidoc')
     assert rv.status_code == 200

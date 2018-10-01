@@ -3,8 +3,9 @@
 Base class for drivers.
 """
 
-from abc import ABC, abstractmethod
 from typing import Callable, Mapping, Any, Tuple, Sequence, Dict, Union, TypeVar
+from abc import ABC, abstractmethod
+from collections import OrderedDict
 import functools
 import contextlib
 
@@ -27,20 +28,26 @@ class Driver(ABC):
 
     Defines a common interface for all handlers.
     """
-    available_keys: Tuple[str]
+    key_names: Tuple[str]
 
     @abstractmethod
     def __init__(self, url_or_path: str) -> None:
         pass
 
     @abstractmethod
-    def create(self, *args: Any, **kwargs: Any) -> None:
+    def create(self, keys: Sequence[str], *args: Any,
+               key_descriptions: Mapping[str, str] = None, **kwargs: Any) -> None:
         """Create a new, empty data storage"""
         pass
 
     @abstractmethod
     def connect(self) -> contextlib.AbstractContextManager:
         """Context manager to connect to a given database and clean up on exit."""
+        pass
+
+    @abstractmethod
+    def get_keys(self) -> OrderedDict:
+        """Get all known keys and their fulltext descriptions."""
         pass
 
     @abstractmethod

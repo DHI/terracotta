@@ -14,7 +14,7 @@ def test_create_database(raster_file, tmpdir):
 
     from terracotta import get_driver
     driver = get_driver(str(outfile), provider='sqlite')
-    assert driver.available_keys == ('name',)
+    assert driver.key_names == ('name',)
     assert driver.get_datasets() == {('img',): str(raster_file)}
 
 
@@ -33,5 +33,5 @@ def test_create_database_rgb_key(raster_file, tmpdir):
 
     from terracotta import get_driver
     driver = get_driver(str(outfile), provider='sqlite')
-    assert driver.available_keys == ('foo', 'rgb')
+    assert driver.key_names == ('foo', 'rgb')
     assert driver.get_datasets() == {('g', 'i'): str(raster_file)}

@@ -15,5 +15,5 @@ def metadata(keys: Union[Sequence[str], Mapping[str, str]]) -> Mapping[str, Any]
     settings = get_settings()
     driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
     metadata = driver.get_metadata(keys)
-    metadata['keys'] = dict(zip(driver.available_keys, keys))
+    metadata['keys'] = dict(zip(driver.key_names, keys))
     return metadata

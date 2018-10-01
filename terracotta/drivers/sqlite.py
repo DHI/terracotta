@@ -17,6 +17,7 @@ from sqlite3 import Connection
 from threading import get_ident
 from pathlib import Path
 from hashlib import md5
+from collections import OrderedDict
 
 from cachetools import LFUCache, cachedmethod
 import cachetools.keys
@@ -107,6 +108,12 @@ class SQLiteDriver(RasterDriver):
         close = False
 
         if thread_id not in self._connection_pool:
+            if check and not os.path.isfile(self.path):
+                raise exceptions.InvalidDatabaseError(
+                    f'Database file {self.path} does not exist '
+                    f'(run driver.create() before connecting to a new database)'
+                )
+
             with convert_exceptions('Unable to connect to database'):
                 new_conn = sqlite3.connect(self.path, timeout=self.DB_CONNECTION_TIMEOUT)
             new_conn.row_factory = sqlite3.Row
@@ -173,32 +180,40 @@ class SQLiteDriver(RasterDriver):
     def _empty_cache(self) -> None:
         self._metadata_cache.clear()
 
-    @shared_cachedmethod('keys')
-    @requires_connection
-    @convert_exceptions('Could not retrieve keys from database')
-    def _get_available_keys(self) -> Tuple[str, ...]:
-        """Getter for available_keys"""
-        conn = self._get_connection()
-        key_rows = conn.execute('SELECT keys FROM keys').fetchall()
-        return tuple(row['keys'] for row in key_rows)
+    def _get_key_names(self) -> Tuple[str, ...]:
+        """Getter for key_names"""
+        return tuple(self.get_keys().keys())
 
-    available_keys = cast(Tuple[str], property(_get_available_keys))
+    key_names = cast(Tuple[str], property(_get_key_names))
 
     @convert_exceptions('Could not create database')
-    def create(self, keys: Sequence[str]) -> None:
+    def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> None:
         """Initialize database file with empty tables.
 
-        This must be called before the first call to `connect()`.
+        This must be called before opening the first connection.
         """
+        if key_descriptions is None:
+            key_descriptions = {}
+        else:
+            key_descriptions = dict(key_descriptions)
+
+        if not all(k in keys for k in key_descriptions.keys()):
+            raise ValueError('key description dict contains unknown keys')
+
         if not all(re.match(r'\w+', key) for key in keys):
-            raise ValueError('keys can be alphanumeric only')
+            raise ValueError('key names can be alphanumeric only')
+
+        for key in keys:
+            if key not in key_descriptions:
+                key_descriptions[key] = ''
 
         with self.connect(check=False) as conn:
             conn.execute('CREATE TABLE terracotta (version VARCHAR[255])')
             conn.execute('INSERT INTO terracotta VALUES (?)', [str(__version__)])
 
-            conn.execute(f'CREATE TABLE keys (keys {self.KEY_TYPE})')
-            conn.executemany('INSERT INTO keys VALUES (?)', [(key,) for key in keys])
+            conn.execute(f'CREATE TABLE keys (key {self.KEY_TYPE}, description VARCHAR[max])')
+            key_rows = [(key, key_descriptions[key]) for key in keys]
+            conn.executemany('INSERT INTO keys VALUES (?, ?)', key_rows)
 
             key_string = ', '.join([f'{key} {self.KEY_TYPE}' for key in keys])
             conn.execute(f'CREATE TABLE datasets ({key_string}, filepath VARCHAR[8000], '
@@ -209,6 +224,19 @@ class SQLiteDriver(RasterDriver):
             conn.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
                          f'PRIMARY KEY ({", ".join(keys)}))')
 
+    @shared_cachedmethod('keys')
+    @requires_connection
+    @convert_exceptions('Could not retrieve keys from database')
+    def get_keys(self) -> OrderedDict:
+        """Retrieve key names and descriptions from database"""
+        conn = self._get_connection()
+        key_rows = conn.execute('SELECT * FROM keys')
+
+        out: OrderedDict = OrderedDict()
+        for row in key_rows:
+            out[row['key']] = row['description']
+        return out
+
     @shared_cachedmethod('datasets')
     def _get_datasets(self, where: Tuple[Tuple[str, str], ...]) -> Dict[Tuple[str, ...], str]:
         """Cache-backed version of get_datasets"""
@@ -218,14 +246,14 @@ class SQLiteDriver(RasterDriver):
             rows = conn.execute(f'SELECT * FROM datasets')
         else:
             where_keys, where_values = zip(*where)
-            if not all(key in self.available_keys for key in where_keys):
+            if not all(key in self.key_names for key in where_keys):
                 raise exceptions.UnknownKeyError('Encountered unrecognized keys in '
                                                  'where clause')
             where_string = ' AND '.join([f'{key}=?' for key in where_keys])
             rows = conn.execute(f'SELECT * FROM datasets WHERE {where_string}', where_values)
 
         def keytuple(row: sqlite3.Row) -> Tuple[str, ...]:
-            return tuple(row[key] for key in self.available_keys)
+            return tuple(row[key] for key in self.key_names)
 
         return {keytuple(row): row['filepath'] for row in rows}
 
@@ -279,16 +307,16 @@ class SQLiteDriver(RasterDriver):
     @shared_cachedmethod('metadata')
     def _get_metadata(self, keys: Tuple[str]) -> Dict[str, Any]:
         """Cache-backed version of get_metadata"""
-        if len(keys) != len(self.available_keys):
+        if len(keys) != len(self.key_names):
             raise exceptions.UnknownKeyError('Got wrong number of keys')
 
         conn = self._get_connection()
 
-        where_string = ' AND '.join([f'{key}=?' for key in self.available_keys])
+        where_string = ' AND '.join([f'{key}=?' for key in self.key_names])
         row = conn.execute(f'SELECT * FROM metadata WHERE {where_string}', keys).fetchone()
 
         if not row:  # support lazy loading
-            filepath = self._get_datasets(tuple(zip(self.available_keys, keys)))
+            filepath = self._get_datasets(tuple(zip(self.key_names, keys)))
             if not filepath:
                 raise exceptions.DatasetNotFoundError(f'No dataset found for given keys {keys}')
             assert len(filepath) == 1
@@ -300,7 +328,7 @@ class SQLiteDriver(RasterDriver):
         assert row
 
         data_columns, _ = zip(*self.METADATA_COLUMNS)
-        encoded_data = {col: row[col] for col in self.available_keys + data_columns}
+        encoded_data = {col: row[col] for col in self.key_names + data_columns}
         return self._decode_data(encoded_data)
 
     @trace('get_metadata')
@@ -324,8 +352,8 @@ class SQLiteDriver(RasterDriver):
         """Insert a dataset into the database"""
         conn = self._get_connection()
 
-        if len(keys) != len(self.available_keys):
-            raise ValueError(f'Not enough keys (available keys: {self.available_keys})')
+        if len(keys) != len(self.key_names):
+            raise ValueError(f'Not enough keys (available keys: {self.key_names})')
 
         if override_path is None:
             override_path = filepath
@@ -342,7 +370,7 @@ class SQLiteDriver(RasterDriver):
             encoded_data = self._encode_data(metadata)
             row_keys, row_values = zip(*encoded_data.items())
             template_string = ', '.join(['?'] * (len(keys) + len(row_values)))
-            conn.execute(f'INSERT OR REPLACE INTO metadata ({", ".join(self.available_keys)}, '
+            conn.execute(f'INSERT OR REPLACE INTO metadata ({", ".join(self.key_names)}, '
                          f'{", ".join(row_keys)}) VALUES ({template_string})', [*keys, *row_values])
 
     @trace('delete')
@@ -352,15 +380,15 @@ class SQLiteDriver(RasterDriver):
         """Delete a dataset from the database"""
         conn = self._get_connection()
 
-        if len(keys) != len(self.available_keys):
-            raise ValueError(f'Not enough keys (available keys: {self.available_keys})')
+        if len(keys) != len(self.key_names):
+            raise ValueError(f'Not enough keys (available keys: {self.key_names})')
 
         keys = list(self._key_dict_to_sequence(keys))
-        key_dict = dict(zip(self.available_keys, keys))
+        key_dict = dict(zip(self.key_names, keys))
 
         if not self.get_datasets(key_dict):
             raise exceptions.DatasetNotFoundError(f'No dataset found with keys {keys}')
 
-        where_string = ' AND '.join([f'{key}=?' for key in self.available_keys])
+        where_string = ' AND '.join([f'{key}=?' for key in self.key_names])
         conn.execute(f'DELETE FROM datasets WHERE {where_string}', keys)
         conn.execute(f'DELETE FROM metadata WHERE {where_string}', keys)

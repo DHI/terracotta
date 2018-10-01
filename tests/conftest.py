@@ -14,6 +14,18 @@ def pytest_unconfigure(config):
     os.environ['TC_TESTING'] = '0'
 
 
+@pytest.fixture(autouse=True)
+def restore_settings():
+    import terracotta
+    from terracotta.config import TerracottaSettings
+
+    try:
+        yield
+    finally:
+        terracotta._settings = TerracottaSettings()
+        terracotta._overwritten_settings = set()
+
+
 def cloud_optimize(raster_file, outfile):
     import math
     import contextlib
@@ -234,11 +246,14 @@ def raster_file_xyz_lowzoom(raster_file):
 def read_only_database(raster_file, tmpdir_factory):
     from terracotta import get_driver
 
-    keys = ('key1', 'key2')
+    keys = ['key1', 'key2']
+    key_descriptions = {
+        'key2': 'key2'
+    }
 
     dbpath = tmpdir_factory.mktemp('db').join('db-readonly.sqlite')
     driver = get_driver(dbpath, provider='sqlite')
-    driver.create(keys)
+    driver.create(keys, key_descriptions=key_descriptions)
 
     metadata = driver.compute_metadata(str(raster_file), extra_metadata=['extra_data'])
 
@@ -254,7 +269,4 @@ def read_only_database(raster_file, tmpdir_factory):
 @pytest.fixture()
 def use_read_only_database(read_only_database, monkeypatch):
     import terracotta
-    settings = terracotta.config.parse_config({'DRIVER_PATH': str(read_only_database)})
-    with monkeypatch.context() as m:
-        m.setattr(terracotta, 'get_settings', lambda: settings)
-        yield
+    terracotta.update_settings(DRIVER_PATH=str(read_only_database))

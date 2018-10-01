@@ -140,7 +140,7 @@ if not os.path.isfile(DB_PATH):
 
 with driver.connect():
     # sanity check
-    assert driver.available_keys == KEYS
+    assert driver.key_names == KEYS
 
     available_datasets = driver.get_datasets()
 

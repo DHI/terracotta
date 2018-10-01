@@ -48,7 +48,7 @@ class RasterDriver(Driver):
     def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]) -> List[Any]:
         try:
             keys_as_mapping = cast(Mapping[str, Any], keys)
-            return [keys_as_mapping[key] for key in self.available_keys]
+            return [keys_as_mapping[key] for key in self.key_names]
         except TypeError:  # not a mapping
             return list(keys)
         except KeyError as exc:
@@ -316,7 +316,7 @@ class RasterDriver(Driver):
 
         dst_bounds: Tuple[float, float, float, float]
 
-        path = self.get_datasets(dict(zip(self.available_keys, keys)))
+        path = self.get_datasets(dict(zip(self.key_names, keys)))
         assert len(path) == 1
         path = path[keys]
 

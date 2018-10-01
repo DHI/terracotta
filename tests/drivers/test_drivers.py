@@ -11,7 +11,7 @@ def test_creation(tmpdir, provider):
     keys = ('some', 'keys')
     db.create(keys)
 
-    assert db.available_keys == keys
+    assert db.key_names == keys
     assert db.get_datasets() == {}
     assert dbfile.isfile()
 
