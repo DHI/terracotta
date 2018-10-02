@@ -29,7 +29,8 @@ setup(
             'codecov',
             'attrs>=17.4.0',
             'matplotlib',
-            'moto!=1.3.6',
+            'moto',
+            'boto3>=1.6.16,<1.8',  # inherited from moto
             'crick'
         ]
     },
