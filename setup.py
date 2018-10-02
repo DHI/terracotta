@@ -29,7 +29,7 @@ setup(
             'codecov',
             'attrs>=17.4.0',
             'matplotlib',
-            'moto~=1.3.6',
+            'moto!=1.3.6',
             'crick'
         ]
     },
