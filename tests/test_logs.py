@@ -57,11 +57,10 @@ def test_logfile(tmpdir):
 def test_double_init(caplog):
     from terracotta import logs
 
+    logs.set_logger('DEBUG')
+    logs.set_logger('DEBUG')
+
     caplog.set_level('DEBUG', logger='terracotta')
-
-    logs.set_logger('DEBUG')
-    logs.set_logger('DEBUG')
-
     logger = logging.getLogger('terracotta')
     logger.warning('test')
 
