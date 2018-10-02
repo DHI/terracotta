@@ -32,7 +32,7 @@ class Driver(ABC):
 
     @abstractmethod
     def __init__(self, url_or_path: str) -> None:
-        pass
+        self.path = url_or_path
 
     @abstractmethod
     def create(self, keys: Sequence[str], *args: Any,
@@ -102,3 +102,6 @@ class Driver(ABC):
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         """Remove a dataset from metadata storage."""
         pass
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(\'{self.path}\')'

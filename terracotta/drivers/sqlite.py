@@ -78,11 +78,10 @@ class SQLiteDriver(RasterDriver):
 
     def __init__(self, path: Union[str, Path]) -> None:
         """Use given database path to read and store metadata."""
+        path = str(path)
+
         settings = get_settings()
-
         self.DB_CONNECTION_TIMEOUT: int = settings.DB_CONNECTION_TIMEOUT
-
-        self.path: str = str(path)
 
         self._connection_pool: Dict[int, Connection] = {}
         self._metadata_cache: LFUCache = LFUCache(
@@ -90,8 +89,8 @@ class SQLiteDriver(RasterDriver):
         )
 
         self._db_hash: str = ''
-        if os.path.isfile(self.path):
-            self._db_hash = self._compute_hash(self.path)
+        if os.path.isfile(path):
+            self._db_hash = self._compute_hash(path)
 
         super().__init__(path)
 

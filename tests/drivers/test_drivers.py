@@ -1,6 +1,9 @@
 import pytest
 
 DRIVERS = ['sqlite']
+DRIVER_CLASSES = {
+    'sqlite': 'SQLiteDriver'
+}
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -36,3 +39,11 @@ def test_connect_before_create(tmpdir, provider):
     with pytest.raises(exceptions.InvalidDatabaseError):
         with db.connect():
             pass
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_repr(tmpdir, provider):
+    from terracotta import drivers
+    dbfile = tmpdir.join('test.sqlite')
+    db = drivers.get_driver(str(dbfile), provider=provider)
+    assert repr(db) == f'{DRIVER_CLASSES[provider]}(\'{dbfile}\')'
