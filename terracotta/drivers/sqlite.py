@@ -108,18 +108,12 @@ class SQLiteDriver(RasterDriver):
         close = False
 
         if thread_id not in self._connection_pool:
-            if check and not os.path.isfile(self.path):
-                raise exceptions.InvalidDatabaseError(
-                    f'Database file {self.path} does not exist '
-                    f'(run driver.create() before connecting to a new database)'
-                )
-
+            self._before_connection(check)
             with convert_exceptions('Unable to connect to database'):
                 new_conn = sqlite3.connect(self.path, timeout=self.DB_CONNECTION_TIMEOUT)
             new_conn.row_factory = sqlite3.Row
             self._connection_pool[thread_id] = new_conn
-            if check:
-                self._check_db()
+            self._after_connection(check)
             close = True
 
         conn = self._get_connection()
@@ -148,8 +142,27 @@ class SQLiteDriver(RasterDriver):
 
     db_version = cast(str, property(_get_db_version))
 
-    def _check_db(self) -> None:
+    def _before_connection(self, validate: bool = True) -> None:
+        """Called before opening a new connection"""
+        if not validate:
+            return
+
+        if not os.path.isfile(self.path):
+            raise exceptions.InvalidDatabaseError(
+                f'Database file {self.path} does not exist '
+                f'(run driver.create() before connecting to a new database)'
+            )
+
+    def _after_connection(self, validate: bool = True) -> None:
         """Called after opening a new connection"""
+        # invalidate cache if db has changed since last connection
+        new_hash = self._compute_hash(self.path)
+        if self._db_hash != new_hash:
+            self._empty_cache()
+            self._db_hash = new_hash
+
+        if not validate:
+            return
 
         # check for version compatibility
         def versiontuple(version_string: str) -> Sequence[str]:
@@ -163,12 +176,6 @@ class SQLiteDriver(RasterDriver):
                 f'Version conflict: database was created in v{db_version}, '
                 f'but this is v{current_version}'
             )
-
-        # invalidate cache if db has changed since last connection
-        new_hash = self._compute_hash(self.path)
-        if self._db_hash != new_hash:
-            self._empty_cache()
-            self._db_hash = new_hash
 
     @staticmethod
     def _compute_hash(path: Union[str, Path]) -> str:

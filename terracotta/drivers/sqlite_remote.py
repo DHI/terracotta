@@ -6,6 +6,7 @@ to be present on disk.
 
 from typing import Any, Union
 import os
+import tempfile
 import shutil
 import operator
 import logging
@@ -50,8 +51,8 @@ class RemoteSQLiteDriver(SQLiteDriver):
         """Use given database URL to read metadata."""
         settings = get_settings()
 
-        local_db_path = os.path.join(settings.REMOTE_DB_CACHE_DIR, 's3_db.sqlite')
-        os.makedirs(os.path.dirname(local_db_path), exist_ok=True)
+        self._tempdir = tempfile.TemporaryDirectory(dir=settings.REMOTE_DB_CACHE_DIR)
+        local_db_path = os.path.join(self._tempdir.name, 's3_db.sqlite')
 
         self._remote_path: str = str(path)
         self._checkdb_cache = TTLCache(maxsize=1, ttl=settings.REMOTE_DB_CACHE_TTL)
@@ -61,13 +62,13 @@ class RemoteSQLiteDriver(SQLiteDriver):
     @cachedmethod(operator.attrgetter('_checkdb_cache'))
     @convert_exceptions('Could not retrieve database from S3')
     @trace('download_db_from_s3')
-    def _update_db(self) -> None:
+    def _update_db(self, remote_path: str, local_path: str) -> None:
         logger.debug('Remote database cache expired, re-downloading')
-        _update_from_s3(self._remote_path, self.path)
+        _update_from_s3(remote_path, local_path)
 
-    def _check_db(self) -> None:
-        self._update_db()
-        super()._check_db()
+    def _before_connection(self, validate: bool = True) -> None:
+        self._update_db(self._remote_path, self.path)
+        super()._before_connection(validate)
 
     def create(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
@@ -77,3 +78,11 @@ class RemoteSQLiteDriver(SQLiteDriver):
 
     def delete(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
+
+    def __del__(self) -> None:
+        """Clean up temporary directory upon exit"""
+        try:
+            self._tempdir.cleanup()
+        except AttributeError:
+            # object is deleted before _tempdir is declared
+            pass
