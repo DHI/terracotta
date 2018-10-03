@@ -10,6 +10,9 @@ from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
 
 
 class KeyItemSchema(Schema):
+    class Meta:
+        ordered = True
+
     key = fields.String(description='Key name', required=True)
     description = fields.String(description='Key description')
 

@@ -23,7 +23,7 @@ def test_colormap_consistency(use_read_only_database, read_only_database, raster
     from terracotta.handlers import singleband, colormap
 
     nodata = 10000
-    ds_keys = ['val21', 'val22']
+    ds_keys = ['val21', 'x', 'val22']
 
     # get image with applied stretch and colormap
     raw_img = singleband.singleband(ds_keys, raster_file_xyz, stretch_range=stretch_range,

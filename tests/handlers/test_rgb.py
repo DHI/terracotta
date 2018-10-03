@@ -7,7 +7,7 @@ import pytest
 def test_rgb_handler(use_read_only_database, raster_file, raster_file_xyz):
     import terracotta
     from terracotta.handlers import rgb
-    raw_img = rgb.rgb(['val21'], raster_file_xyz, ['val22', 'val23', 'val24'])
+    raw_img = rgb.rgb(['val21', 'x'], raster_file_xyz, ['val22', 'val23', 'val24'])
     img_data = np.asarray(Image.open(raw_img))
     assert img_data.shape == (*terracotta.get_settings().TILE_SIZE, 3)
 
@@ -17,7 +17,7 @@ def test_rgb_out_of_bounds(use_read_only_database, raster_file):
     from terracotta.handlers import rgb
 
     with pytest.raises(terracotta.exceptions.TileOutOfBoundsError) as excinfo:
-        rgb.rgb(['val21'], (10, 0, 0), ['val22', 'val23', 'val24'])
+        rgb.rgb(['val21', 'x'], (10, 0, 0), ['val22', 'val23', 'val24'])
         assert 'data covers less than' not in str(excinfo.value)
 
 
@@ -26,7 +26,7 @@ def test_rgb_lowzoom(use_read_only_database, raster_file, raster_file_xyz_lowzoo
     from terracotta.handlers import rgb
 
     with pytest.raises(terracotta.exceptions.TileOutOfBoundsError) as excinfo:
-        rgb.rgb(['val21'], raster_file_xyz_lowzoom, ['val22', 'val23', 'val24'])
+        rgb.rgb(['val21', 'x'], raster_file_xyz_lowzoom, ['val22', 'val23', 'val24'])
         assert 'data covers less than' in str(excinfo.value)
 
 
@@ -36,9 +36,9 @@ def test_rgb_stretch(stretch_range, use_read_only_database, read_only_database, 
     from terracotta.xyz import get_tile_data
     from terracotta.handlers import rgb
 
-    ds_keys = ['val21', 'val22']
+    ds_keys = ['val21', 'x', 'val22']
 
-    raw_img = rgb.rgb(['val21'], raster_file_xyz, ['val22', 'val23', 'val24'],
+    raw_img = rgb.rgb(ds_keys[:2], raster_file_xyz, ['val22', 'val23', 'val24'],
                       stretch_ranges=[stretch_range] * 3)
     img_data = np.asarray(Image.open(raw_img))[..., 0]
 

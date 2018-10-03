@@ -81,6 +81,9 @@ def create_app(debug: bool = False,
     new_app = Flask('terracotta')
     new_app.debug = debug
 
+    # suppress implicit sort of JSON responses
+    new_app.config['JSON_SORT_KEYS'] = False
+
     # import submodules to populate blueprints
     import terracotta.api.datasets
     import terracotta.api.keys

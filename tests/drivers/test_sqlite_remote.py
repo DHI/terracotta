@@ -137,3 +137,24 @@ def test_immutability(s3_db_factory, raster_file):
 
     with pytest.raises(NotImplementedError):
         driver.delete(('some', 'value'))
+
+
+@mock_s3
+def test_destructor(s3_db_factory, raster_file, capsys):
+    keys = ('some', 'keys')
+    dbpath = s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
+
+    from terracotta import get_driver
+
+    driver = get_driver(dbpath)
+    assert os.path.isfile(driver.path)
+
+    driver.__del__()
+    assert not os.path.isfile(driver.path)
+
+    captured = capsys.readouterr()
+    assert 'Exception ignored' not in captured.err
+
+    # re-create file to prevent actual destructor from failing
+    with open(driver.path, 'w'):
+        pass

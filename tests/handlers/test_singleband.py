@@ -36,7 +36,7 @@ def test_singleband_explicit_colormap(use_read_only_database, read_only_database
     from terracotta.xyz import get_tile_data
     from terracotta.handlers import singleband
 
-    ds_keys = ['val21', 'val22']
+    ds_keys = ['val21', 'x', 'val22']
     colormap = {i: (i, i, i) for i in range(150)}
 
     raw_img = singleband.singleband(ds_keys, raster_file_xyz, colormap=colormap)

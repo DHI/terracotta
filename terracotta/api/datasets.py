@@ -47,6 +47,7 @@ def get_datasets() -> str:
     from terracotta.handlers.datasets import datasets
     keys = dict(request.args.items()) or None
     payload = {'datasets': datasets(keys)}
+    print(payload)
     schema = DatasetSchema()
     return jsonify(schema.load(payload))
 
