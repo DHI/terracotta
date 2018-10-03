@@ -30,7 +30,6 @@ setup(
             'attrs>=17.4.0',
             'matplotlib',
             'moto',
-            'boto3>=1.6.16,<1.8',  # inherited from moto
             'crick'
         ]
     },

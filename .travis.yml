@@ -3,6 +3,9 @@ language: python
 python:
   - "3.6"
 
+env:
+  - BOTO_CONFIG=/dev/null
+
 branches:
   only:
     - master
