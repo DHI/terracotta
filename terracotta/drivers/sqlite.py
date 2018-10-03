@@ -95,7 +95,7 @@ class SQLiteDriver(RasterDriver):
         if os.path.isfile(self.path):
             self._db_hash = self._compute_hash(self.path)
 
-        super().__init__(path)
+        super().__init__()
 
     @staticmethod
     def _compute_hash(path: Union[str, Path]) -> str:
