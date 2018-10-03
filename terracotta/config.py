@@ -40,7 +40,7 @@ class TerracottaSettings(NamedTuple):
 AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._field_types.keys())
 
 
-def _is_writable(path):
+def _is_writable(path: str) -> bool:
     return os.access(os.path.dirname(path) or os.getcwd(), os.W_OK)
 
 
