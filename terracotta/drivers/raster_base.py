@@ -303,7 +303,7 @@ class RasterDriver(Driver):
                          upsampling_method: str,
                          downsampling_method: str,
                          bounds: Tuple[float, float, float, float] = None,
-                         tilesize: Tuple[int, int] = (256, 256),
+                         tile_size: Tuple[int, int] = (256, 256),
                          nodata: Number = 0,
                          preserve_values: bool = False) -> np.ndarray:
         """Load a raster dataset from a file through rasterio.
@@ -385,26 +385,28 @@ class RasterDriver(Driver):
             # read data
             with warnings.catch_warnings(), trace('read_from_vrt'):
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
-                arr = vrt.read(1, resampling=resampling_enum, window=out_window, out_shape=tilesize)
+                arr = vrt.read(
+                    1, resampling=resampling_enum, window=out_window, out_shape=tile_size
+                )
 
-            assert arr.shape == tilesize, arr.shape
+            assert arr.shape == tile_size, arr.shape
 
         return arr
 
     @trace('get_raster_tile')
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
-                        tilesize: Sequence[int] = (256, 256),
-                        nodata: Number = 0,
+                        tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False) -> np.ndarray:
         """Load tile with given keys or metadata"""
         # make sure all arguments are hashable
         settings = get_settings()
         key_sequence = self._key_dict_to_sequence(keys)
+        nodata = self.get_metadata(keys)['nodata']
         return self._get_raster_tile(
             tuple(key_sequence),
             bounds=tuple(bounds) if bounds else None,
-            tilesize=tuple(tilesize),
+            tile_size=tuple(tile_size),
             nodata=nodata,
             preserve_values=preserve_values,
             upsampling_method=settings.UPSAMPLING_METHOD,

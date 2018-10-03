@@ -102,6 +102,17 @@ def test_get_singleband_cmap(client, use_read_only_database, raster_file_xyz):
     assert np.asarray(img).shape == settings.TILE_SIZE
 
 
+def test_get_singleband_preview(client, use_read_only_database):
+    import terracotta
+    settings = terracotta.get_settings()
+
+    rv = client.get(f'/singleband/val11/x/val12/preview.png?colormap=jet')
+    assert rv.status_code == 200
+
+    img = Image.open(BytesIO(rv.data))
+    assert np.asarray(img).shape == settings.TILE_SIZE
+
+
 def urlsafe_json(payload):
     payload_json = json.dumps(payload)
     return urllib.parse.quote_plus(payload_json, safe=r',.[]{}:"')
@@ -191,6 +202,17 @@ def test_get_rgb(client, use_read_only_database, raster_file_xyz):
 
     x, y, z = raster_file_xyz
     rv = client.get(f'/rgb/val21/x/{z}/{x}/{y}.png?r=val22&g=val23&b=val24')
+    assert rv.status_code == 200
+
+    img = Image.open(BytesIO(rv.data))
+    assert np.asarray(img).shape == (*settings.TILE_SIZE, 3)
+
+
+def test_get_rgb_preview(client, use_read_only_database):
+    import terracotta
+    settings = terracotta.get_settings()
+
+    rv = client.get(f'/rgb/val21/x/preview.png?r=val22&g=val23&b=val24')
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))

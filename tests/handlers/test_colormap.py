@@ -32,11 +32,10 @@ def test_colormap_consistency(use_read_only_database, read_only_database, raster
 
     # get raw data to compare to
     driver = terracotta.get_driver(read_only_database)
-    tile_x, tile_y, tile_z = raster_file_xyz
 
     with driver.connect():
-        tile_data = get_tile_data(driver, ds_keys, tile_x=tile_x, tile_y=tile_y, tile_z=tile_z,
-                                  tilesize=img_data.shape[:2])
+        tile_data = get_tile_data(driver, ds_keys, tile_xyz=raster_file_xyz,
+                                  tile_size=img_data.shape[:2])
 
     # make sure all pixel values are included in colormap
     num_values = stretch_range[1] - stretch_range[0] + 1
