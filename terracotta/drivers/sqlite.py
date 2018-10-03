@@ -92,7 +92,7 @@ class SQLiteDriver(RasterDriver):
         if os.path.isfile(path):
             self._db_hash = self._compute_hash(path)
 
-        super().__init__(path)
+        super().__init__()
 
     def _get_connection(self) -> Connection:
         """Convenience method to retrieve the correct connection for the current thread."""

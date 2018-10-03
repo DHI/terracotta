@@ -43,7 +43,6 @@ class RasterDriver(Driver):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         settings = get_settings()
         self._raster_cache = LRUCache(settings.RASTER_CACHE_SIZE, getsizeof=sys.getsizeof)
-        super().__init__(*args, **kwargs)
 
     def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]) -> List[Any]:
         try:
