@@ -2,6 +2,7 @@
 [![codecov](https://codecov.io/gh/DHI-GRAS/terracotta/branch/master/graph/badge.svg?token=u16QBwwvvn)](https://codecov.io/gh/DHI-GRAS/terracotta)
 
 # Terracotta
+
 A modern XYZ tile server, serving tiles from various data sources, built with Flask and Rasterio
 :earth_africa:
 
@@ -18,6 +19,23 @@ Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source
 [Flask](http://flask.pocoo.org), [Zappa](https://github.com/Miserlou/Zappa), and
 [Rasterio](https://github.com/mapbox/rasterio).
 
+## Contents
+
+- [Use cases](#use-cases)
+- [Why Terracotta?](#why-terracotta)
+- [Architecutre](#architecture)
+- [Installation](#installation)
+- [Ingestion](#ingestion)
+  - [1. Using `create-database`](#1-using-create-database)
+  - [2. Using the Python API](#2-using-the-python-api)
+- [Web API](#web-api)
+- [Configuration](#configuration)
+  - [Available settings](#available-settings)
+- [Advanced recipes](#advanced-recipes)
+  - [Serving categorical data](#serving-categorical-data)
+  - [Deployment to AWS λ](#deployment-to-aws-λ)
+- [Limitations](#limitations)
+
 ## Use cases
 
 Terracotta covers several use cases:
@@ -30,9 +48,8 @@ Terracotta covers several use cases:
 3. It can be deployed on serverless architectures such as AWS λ, serving tiles from S3 buckets.
    This allows you to build apps that scale infinitely while requiring minimal maintenance!
    To make it as easy as possible to deploy to AWS λ, we make use of the magic provided by
-   [Zappa](https://github.com/Miserlou/Zappa). See [Deployment on AWS](#deployment-on-aws) 
+   [Zappa](https://github.com/Miserlou/Zappa). See [Deployment on AWS](#deployment-to-aws-λ)
    for more details.
-
 
 ## Why Terracotta?
 
@@ -110,7 +127,7 @@ Metadata can be computed at three different times:
 2. Manually using `driver.compute_metadata` (in case you want to decouple computation and IO,
    or if you want to attach additional metadata); or
 3. On demand when a dataset is requested for the first time (this is what we want to avoid
-   through ingestion). 
+   through ingestion).
 
 #### An example ingestion script using the Python API
 
@@ -173,7 +190,6 @@ Every Terracotta deployment exposes the API it uses as a `swagger.json` file and
 explorer hosted at `http://server.com/swagger.json` and `http://server.com/apidoc`, respectively.
 This is the best way to find out which API *your* deployment of Terracotta uses.
 
-
 ## Configuration
 
 To allow for flexible deployments, Terracotta is fully configurable in several ways:
@@ -195,7 +211,7 @@ For all available settings, their types and default values, have a look at the f
 [config.py](https://github.com/DHI-GRAS/terracotta/blob/master/terracotta/config.py) in the
 Terracotta code.
 
-## Advances recipes
+## Advanced recipes
 
 ### Serving categorical data
 
@@ -213,8 +229,8 @@ you the tools to build your own system. Categorical data can be served by follow
 #### During ingestion
 
 1. Create an additional key to encode whether a dataset is categorical or not. E.g., if you are
-   currently using the keys `sensor`, `date`, and `band`, ingest your data with the keys 
-   `[type, sensor, date, band]`, where `type` can take one of the values `categorical`, `index`, 
+   currently using the keys `sensor`, `date`, and `band`, ingest your data with the keys
+   `[type, sensor, date, band]`, where `type` can take one of the values `categorical`, `index`,
    `reflectance`, or whatever makes sense for your given application.
 2. Attach a mapping `category name -> pixel value` to the metadata of your categorical dataset.
    Using the Python API, this could e.g. be done like this:
@@ -275,36 +291,27 @@ Terracotta server runs at `example.com`, you can use the following functionality
   for a nice color scheme for your categorical datasets, [color brewer](http://colorbrewer2.org) features 
   some excellent suggestions.
 
-## Deployment on AWS λ
+### Deployment to AWS λ
 
-The easiest way to deploy Terracotta on AWS λ is by using [Zappa](https://github.com/Miserlou/Zappa).
+The easiest way to deploy Terracotta to AWS λ is by using [Zappa](https://github.com/Miserlou/Zappa).
+This repository contains a template with sensible default values for most Zappa settings.
 
-Example `zappa_settings.json` file:
+To deploy to AWS λ, execute the following steps:
 
-```json
-{
-    "dev": {
-        "app_function": "terracotta.app.app",
-        "aws_region": "eu-central-1",
-        "profile_name": "default",
-        "project_name": "my-terracotta-deployment",
-        "runtime": "python3.6",
-        "s3_bucket": "zappa-terracotta",
-        "aws_environment_variables": {
-            "TC_DRIVER_PATH": "s3://my-bucket/terracotta.sqlite",
-            "TC_DRIVER_PROVIDER": "sqlite"
-        },
-        "callbacks": {
-            "zip": "zappa_version_callback.inject_version"
-        },
-        "exclude": [
-            "*.gz", "*.rar", "boto3*", "botocore*", "awscli*", ".mypy_cache", ".pytest_cache",
-            ".eggs"
-        ]
-    }
-}
+1. Create and activate a new virtual environment (here called `tc-deploy`).
+2. Install all relevant dependencies via `pip install -r zappa_requirements.txt`.
+3. Install the AWS command line tools via `pip install awscli`.
+4. Configure access to AWS by running `aws configure`. Make sure that you have proper access
+   to S3 and AWS λ before continuing.
+5. If you haven't already done so, create the Terracotta database you want to use, and upload your
+   raster files to S3.
+6. Copy or rename `zappa_settings.toml.in` to `zappa_settings.toml` and insert the correct path to
+   your Terracotta database.
+7. Run `zappa deploy development` or `zappa deploy production`. Congratulations, your Terracotta instance
+   should now be reachable!
 
-```
+Note that Zappa works best on Linux. Windows 10 users can use the
+[Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to deploy Terracotta.
 
 ## Limitations
 
