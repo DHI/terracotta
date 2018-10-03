@@ -4,22 +4,34 @@ SQLite-backed raster driver. Metadata is stored in an SQLite database, raster da
 to be present on disk.
 """
 
-from typing import Any, Union
+from typing import Any, Union, Iterator
 import os
 import tempfile
 import shutil
 import operator
 import logging
+import contextlib
 import urllib.parse as urlparse
 from pathlib import Path
 
 from cachetools import cachedmethod, TTLCache
 
-from terracotta import get_settings
-from terracotta.drivers.sqlite import SQLiteDriver, convert_exceptions
+from terracotta import get_settings, exceptions
+from terracotta.drivers.sqlite import SQLiteDriver
 from terracotta.profile import trace
 
 logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def convert_exceptions(msg: str) -> Iterator:
+    """Convert internal sqlite and boto exceptions to our InvalidDatabaseError"""
+    import sqlite3
+    import botocore.exceptions
+    try:
+        yield
+    except (sqlite3.OperationalError, botocore.exceptions.ClientError) as exc:
+        raise exceptions.InvalidDatabaseError(msg) from exc
 
 
 def _update_from_s3(remote_path: str, local_path: str) -> None:
@@ -51,13 +63,21 @@ class RemoteSQLiteDriver(SQLiteDriver):
         """Use given database URL to read metadata."""
         settings = get_settings()
 
-        self._tempdir = tempfile.TemporaryDirectory(dir=settings.REMOTE_DB_CACHE_DIR)
-        local_db_path = os.path.join(self._tempdir.name, 's3_db.sqlite')
+        self.__rm = os.remove  # keep reference to use in __del__
+
+        os.makedirs(settings.REMOTE_DB_CACHE_DIR, exist_ok=True)
+        local_db_file = tempfile.NamedTemporaryFile(
+            dir=settings.REMOTE_DB_CACHE_DIR,
+            prefix='tc_s3_db_',
+            suffix='.sqlite',
+            delete=False
+        )
+        local_db_file.close()
 
         self._remote_path: str = str(path)
         self._checkdb_cache = TTLCache(maxsize=1, ttl=settings.REMOTE_DB_CACHE_TTL)
 
-        super().__init__(local_db_path)
+        super().__init__(local_db_file.name)
 
     @cachedmethod(operator.attrgetter('_checkdb_cache'))
     @convert_exceptions('Could not retrieve database from S3')
@@ -80,9 +100,10 @@ class RemoteSQLiteDriver(SQLiteDriver):
         raise NotImplementedError('Remote SQLite databases are read-only')
 
     def __del__(self) -> None:
-        """Clean up temporary directory upon exit"""
+        """Clean up temporary database upon exit"""
+        rm = self.__rm
         try:
-            self._tempdir.cleanup()
+            rm(self.path)
         except AttributeError:
-            # object is deleted before _tempdir is declared
+            # object is deleted before self.path is declared
             pass
