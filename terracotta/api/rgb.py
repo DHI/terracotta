@@ -63,7 +63,7 @@ def get_rgb(tile_z: int, tile_y: int, tile_x: int, keys: str = '') -> Any:
     """Return the requested RGB tile as a PNG image.
     ---
     get:
-        summary: /rgb
+        summary: /rgb (tile)
         description: Combine three datasets to RGB image, and return tile as PNG
         parameters:
             - in: path
@@ -99,7 +99,7 @@ def get_rgb_preview(keys: str = '') -> Any:
     """Return the requested RGB dataset preview as a PNG image.
     ---
     get:
-        summary: /rgb
+        summary: /rgb (preview)
         description: Combine three datasets to RGB image, and return preview as PNG
         parameters:
             - in: path
