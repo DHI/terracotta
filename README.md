@@ -23,6 +23,7 @@ Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source
 
 - [Use cases](#use-cases)
 - [Why Terracotta?](#why-terracotta)
+- [Why not Terracotta?](#why-not-terracotta)
 - [Architecutre](#architecture)
 - [Installation](#installation)
 - [Ingestion](#ingestion)
@@ -34,7 +35,7 @@ Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source
 - [Advanced recipes](#advanced-recipes)
   - [Serving categorical data](#serving-categorical-data)
   - [Deployment to AWS λ](#deployment-to-aws-λ)
-- [Limitations](#limitations)
+- [Known issues](#known-issues)
 
 ## Use cases
 
@@ -56,15 +57,37 @@ Terracotta covers several use cases:
 There are many good reasons to ditch your ancient raster data workflow and switch to Terracotta.
 Some of them are listed here:
 
-- It is trivial to get going
-- Usability is our first priority.
+- It is trivial to get going. Got a folder full of GeoTiffs in different projections you want to
+  have a look at in your browser? Cool, `terracotta serve -p {name}.tif` gets you there!
+- Usability is our first priority. We strive to make your workflow as simple as possible, while
+  supporting many different use cases.
 - Terracotta makes minimal assumptions about your data, so *you stay in charge*. Use the tools you
   know and love to create your data - leave the rest to Terracotta.
+- Deploying Terracotta to serverless architectures is a first-priority use case, so you don't have
+  to worry about maintaining or scaling your architecture.
+- Running Terracotta instances are self-documenting. Everything the frontend needs to know about
+  your data and architecture is exposed in only a handfull of API endpoints.
 - Terracotta is built with extensibility in mind. Want to change your architecture? No problem!
   Even if Terracotta does not support your use case yet, extending it is as easy as implementing
   a single Python class.
 - We use Python 3.6 type annotations throughout the project and aim for extensive test coverage,
   to make sure we don't leave you hanging when you need us the most.
+
+## Why not Terracotta?
+
+Terracotta is light-weight and optimized for simplicity and flexibility. To achieve this, we had
+to accept some trade-offs:
+
+- The number of keys must be unique throughout a dataset, and keys have to be strings. This means
+  that it is not possible to search for datasets through any other means than setting one or more
+  key values to a fixed value (i.e., not date-range lookups or similar).
+- You can only use the last key to compose RGB images (i.e., the last key must be `band` or similar).
+- Since the names and semantics of the keys of a Terracotta deployment are flexible, there are no
+  guarantees that two different Terracotta deployments behave in the same way. However, all information
+  is transparently available from the frontend, e.g. via the `/swagger.json`, `/apidoc`, and `/keys`
+  API endpoints.
+- Terracotta favors flexibility over raw speed. If sub-second response times are a hard requirement
+  for you, Terracotta is probably not the right tool for the job.
 
 ## Architecture
 
@@ -131,52 +154,74 @@ Metadata can be computed at three different times:
 
 #### An example ingestion script using the Python API
 
-The following script populates a database with raster files located in a local directory
-`RASTER_FOLDER`. During deployment, the raster files will be located in an S3 bucket, so we
-override the target paths using that URL.
+The following script populates a database with raster files located in a local directory.
+It extracts the appropriate keys from the file name, ingests them into a database, and
+pushes the rasters and the resulting database into an S3 bucket.
 
 ```python
 #!/usr/bin/env python3
+
 import os
 import re
+import glob
+
+import tqdm
+import boto3
+s3 = boto3.resource('s3')
 
 import terracotta as tc
 
 # settings
-DB_PATH = 'terracotta.sqlite'
-RASTER_FOLDER = './rasters'
-RASTER_NAME_PATTERN = r'(?P<name>\w+)_(?P<date>\d+T\d+)_(?P<band>\w{3}).tif'
-KEYS = ('name', 'date', 'band')
-S3_PATH = 's3://tc-testdata/rasters'
+DB_NAME = 'terracotta.sqlite'
+RASTER_GLOB = r'/path/to/rasters/*.tif'
+RASTER_NAME_PATTERN = r'(?P<sensor>\w{2})_(?P<tile>\w{5})_(?P<date>\d{8})_(?P<band>\w+).tif'
+KEYS = ('sensor', 'tile', 'date', 'band')
+KEY_DESCRIPTIONS = {
+    'sensor': 'Sensor short name',
+    'tile': 'Sentinel-2 tile ID',
+    'date': 'Sensing date',
+    'band': 'Band or index name'
+}
+S3_BUCKET = 'tc-testdata'
+S3_RASTER_FOLDER = 'rasters'
+S3_PATH = f's3://{S3_BUCKET}/{S3_RASTER_FOLDER}'
 
-driver = tc.get_driver(DB_PATH)
+driver = tc.get_driver(DB_NAME)
 
 # create an empty database if it doesn't exist
-if not os.path.isfile(DB_PATH):
-    driver.create(KEYS)
+if not os.path.isfile(DB_NAME):
+    driver.create(KEYS, KEY_DESCRIPTIONS)
 
-with driver.connect():
-    # sanity check
-    assert driver.key_names == KEYS
+# sanity check
+assert driver.key_names == KEYS
 
-    available_datasets = driver.get_datasets()
+available_datasets = driver.get_datasets()
+raster_files = list(glob.glob(RASTER_GLOB))
+pbar = tqdm.tqdm(raster_files)
 
-    for raster_path in os.listdir(RASTER_FOLDER):
-        raster_filename = os.path.basename(raster_path)
+for raster_path in pbar:
+    pbar.set_postfix(file=raster_path)
 
-        # extract keys from filename
-        match = re.match(RASTER_NAME_PATTERN, raster_filename)
-        if match is None:
+    raster_filename = os.path.basename(raster_path)
+
+    # extract keys from filename
+    match = re.match(RASTER_NAME_PATTERN, raster_filename)
+    if match is None:
+        raise ValueError(f'Input file {raster_filename} does not match raster pattern')
+
+    keys = match.groups()
+
+    # skip already processed data
+    if keys in available_datasets:
             continue
 
-        keys = match.groups()
-
-        # skip already processed data
-        if keys in available_datasets:
-            continue
-
-        print(f'Ingesting file {raster_path}')
+    with driver.connect():
+        # since the rasters will be served from S3, we need to pass the correct remote path
         driver.insert(keys, raster_path, override_path=f'{S3_PATH}/{raster_filename}')
+        s3.meta.client.upload_file(raster_path, S3_BUCKET, f'{S3_RASTER_FOLDER}/{raster_filename}')
+
+# upload database to S3
+s3.meta.client.upload_file(DB_NAME, S3_BUCKET, DB_NAME)
 
 ```
 
@@ -234,10 +279,10 @@ you the tools to build your own system. Categorical data can be served by follow
    `reflectance`, or whatever makes sense for your given application.
 2. Attach a mapping `category name -> pixel value` to the metadata of your categorical dataset.
    Using the Python API, this could e.g. be done like this:
-   
+
    ```python
    import terracotta as tc
-   
+
    driver = tc.get_driver('terracotta.sqlite')
 
    # assuming keys are [type, sensor, date, band]
@@ -254,6 +299,7 @@ you the tools to build your own system. Categorical data can be served by follow
    with driver.connect():
        metadata = driver.compute_metadata(raster_path, extra_metadata={'categories': category_map})
        driver.insert(keys, raster_path, metadata=metadata)
+
    ```
 
 #### In the frontend
@@ -279,6 +325,7 @@ Terracotta server runs at `example.com`, you can use the following functionality
       }
   }
   ```
+
 - To get correctly labelled imagery, the frontend will have to pass an explicit color mapping of pixel
   values to colors by using `/singleband`'s `explicit_color_map` argument. In our case, this could look
   like this:
@@ -313,10 +360,18 @@ To deploy to AWS λ, execute the following steps:
 Note that Zappa works best on Linux. Windows 10 users can use the
 [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to deploy Terracotta.
 
-## Limitations
+## Known Issues
 
-There are some cases that Terracotta does not handle:
+The sections below outline some common issues people encounter when using Terracotta. If your problem persists,
+[feel free to open an issue](https://github.com/DHI-GRAS/terracotta/issues).
 
-- The number of keys must be unique throughout a dataset.
-- You can only use the last key to compose RGB images.
-- Several other [open issues](https://github.com/DHI-GRAS/terracotta/issues) (PRs welcome!)
+### `OSError: error while reading file` while deploying to AWS λ
+
+Rasterio Linux wheels are built on CentOS, which stores SSL certificates in `/etc/pki/tls/certs/ca-bundle.crt`.
+On other Linux flavors, certificates may be stored in a different location. On Ubuntu, you can e.g. run
+
+```bash
+$ export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+```
+
+to fix this issue. For more information, see [mapbox/rasterio#942](https://github.com/mapbox/rasterio/issues/942).
