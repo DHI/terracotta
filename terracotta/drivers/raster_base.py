@@ -37,7 +37,9 @@ class RasterDriver(Driver):
 
     get_datasets has to return path to raster file as sole dict value.
     """
+    TARGET_CRS: str = 'epsg:3857'
     LARGE_RASTER_THRESHOLD: int = 10980 * 10980
+    RIO_ENV_KEYS = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR')
 
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -175,9 +177,9 @@ class RasterDriver(Driver):
             'convex_hull': convex_hull_wgs
         }
 
-    @staticmethod
+    @classmethod
     @trace('compute_metadata')
-    def compute_metadata(raster_path: str, *,
+    def compute_metadata(cls, raster_path: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None) -> Dict[str, Any]:
         """Read given raster file and compute metadata from it.
@@ -199,7 +201,7 @@ class RasterDriver(Driver):
                 exceptions.PerformanceWarning
             )
 
-        with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR'):
+        with rasterio.Env(**cls.RIO_ENV_KEYS):
             with rasterio.open(raster_path) as src:
                 nodata = src.nodata or 0
                 bounds = warp.transform_bounds(
@@ -321,8 +323,6 @@ class RasterDriver(Driver):
         assert len(path) == 1
         path = path[keys]
 
-        target_crs = 'epsg:3857'
-
         if preserve_values:
             upsampling_enum = downsampling_enum = self._get_resampling_enum('nearest')
         else:
@@ -330,6 +330,7 @@ class RasterDriver(Driver):
             downsampling_enum = self._get_resampling_enum(downsampling_method)
 
         with contextlib.ExitStack() as es:
+            es.enter_context(rasterio.Env(**self.RIO_ENV_KEYS))
             try:
                 with trace('open_dataset'):
                     src = es.enter_context(rasterio.open(path))
@@ -338,7 +339,7 @@ class RasterDriver(Driver):
 
             # compute default bounds and transform in target CRS
             dst_transform, dst_width, dst_height = self._calculate_default_transform(
-                src.crs, target_crs, src.width, src.height, *src.bounds
+                src.crs, self.TARGET_CRS, src.width, src.height, *src.bounds
             )
             dst_res = (dst_transform.a, dst_transform.e)
             dst_bounds = transform.array_bounds(dst_height, dst_width, dst_transform)
@@ -362,7 +363,7 @@ class RasterDriver(Driver):
             # construct VRT
             vrt = es.enter_context(
                 WarpedVRT(
-                    src, crs=target_crs, resampling=upsampling_enum, init_dest_nodata=True,
+                    src, crs=self.TARGET_CRS, resampling=upsampling_enum, init_dest_nodata=True,
                     src_nodata=nodata, nodata=nodata, transform=vrt_transform, width=vrt_width,
                     height=vrt_height
                 )
