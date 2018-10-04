@@ -30,6 +30,7 @@ def test_creation_invalid(tmpdir, provider):
         db.create(keys)
 
 
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_creation_invalid_description(tmpdir, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')

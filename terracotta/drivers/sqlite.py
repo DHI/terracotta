@@ -206,8 +206,8 @@ class SQLiteDriver(RasterDriver):
         if not all(k in keys for k in key_descriptions.keys()):
             raise ValueError('key description dict contains unknown keys')
 
-        if not all(re.match(r'\w+', key) for key in keys):
-            raise ValueError('key names can be alphanumeric only')
+        if not all(re.match(r'^\w+$', key) for key in keys):
+            raise ValueError('key names must be alphanumeric')
 
         for key in keys:
             if key not in key_descriptions:
