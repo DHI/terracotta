@@ -3,8 +3,9 @@
 Base class for drivers.
 """
 
-from abc import ABC, abstractmethod
 from typing import Callable, Mapping, Any, Tuple, Sequence, Dict, Union, TypeVar
+from abc import ABC, abstractmethod
+from collections import OrderedDict
 import functools
 import contextlib
 
@@ -27,20 +28,26 @@ class Driver(ABC):
 
     Defines a common interface for all handlers.
     """
-    available_keys: Tuple[str]
+    key_names: Tuple[str]
 
     @abstractmethod
     def __init__(self, url_or_path: str) -> None:
-        pass
+        self.path = url_or_path
 
     @abstractmethod
-    def create(self, *args: Any, **kwargs: Any) -> None:
+    def create(self, keys: Sequence[str], *args: Any,
+               key_descriptions: Mapping[str, str] = None, **kwargs: Any) -> None:
         """Create a new, empty data storage"""
         pass
 
     @abstractmethod
     def connect(self) -> contextlib.AbstractContextManager:
         """Context manager to connect to a given database and clean up on exit."""
+        pass
+
+    @abstractmethod
+    def get_keys(self) -> OrderedDict:
+        """Get all known keys and their fulltext descriptions."""
         pass
 
     @abstractmethod
@@ -70,7 +77,7 @@ class Driver(ABC):
     @abstractmethod
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
-                        tilesize: Sequence[int] = (256, 256),
+                        tile_size: Sequence[int] = (256, 256),
                         nodata: Number = 0,
                         preserve_values: bool = False) -> np.ndarray:
         """Get raster tile as a NumPy array for given keys."""
@@ -95,3 +102,6 @@ class Driver(ABC):
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         """Remove a dataset from metadata storage."""
         pass
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(\'{self.path}\')'

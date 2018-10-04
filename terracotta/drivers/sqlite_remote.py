@@ -4,25 +4,38 @@ SQLite-backed raster driver. Metadata is stored in an SQLite database, raster da
 to be present on disk.
 """
 
-from typing import Any, Union
+from typing import Any, Union, Iterator
 import os
+import tempfile
+import shutil
 import operator
+import logging
+import contextlib
 import urllib.parse as urlparse
 from pathlib import Path
 
 from cachetools import cachedmethod, TTLCache
 
-from terracotta import get_settings
-from terracotta.drivers.sqlite import SQLiteDriver, convert_exceptions
+from terracotta import get_settings, exceptions
+from terracotta.drivers.sqlite import SQLiteDriver
 from terracotta.profile import trace
 
+logger = logging.getLogger(__name__)
 
-@convert_exceptions('Could not retrieve database from S3')
-@trace('download_db_from_s3')
-def _download_from_s3_if_changed(remote_path: str, local_path: Union[str, Path],
-                                 current_hash: str) -> None:
+
+@contextlib.contextmanager
+def convert_exceptions(msg: str) -> Iterator:
+    """Convert internal sqlite and boto exceptions to our InvalidDatabaseError"""
+    import sqlite3
+    import botocore.exceptions
+    try:
+        yield
+    except (sqlite3.OperationalError, botocore.exceptions.ClientError) as exc:
+        raise exceptions.InvalidDatabaseError(msg) from exc
+
+
+def _update_from_s3(remote_path: str, local_path: str) -> None:
     import boto3
-    import botocore
 
     parsed_remote_path = urlparse.urlparse(remote_path)
     bucket_name, key = parsed_remote_path.netloc, parsed_remote_path.path.strip('/')
@@ -30,23 +43,14 @@ def _download_from_s3_if_changed(remote_path: str, local_path: Union[str, Path],
     if not parsed_remote_path.scheme == 's3':
         raise ValueError('Expected s3:// URL')
 
-    try:
-        s3 = boto3.resource('s3')
-        obj = s3.Object(bucket_name, key)
+    s3 = boto3.resource('s3')
+    obj = s3.Object(bucket_name, key)
+    obj_bytes = obj.get()['Body']
 
-        with trace('check_remote_db'):
-            # raises if db matches local
-            obj_bytes = obj.get(IfNoneMatch=current_hash)['Body'].read()
-
-        with trace('write_to_disk'), open(local_path, 'wb') as f:
-            f.write(obj_bytes)
-
-    except botocore.exceptions.ClientError as exc:
-        # 304 means hash hasn't changed
-        if exc.response['Error']['Code'] != '304':
-            raise
-
-    assert os.path.isfile(local_path)
+    # copy over existing database; this is somewhat safe since it is read-only
+    # NOTE: replace with Connection.backup after switching to Python 3.7
+    with open(local_path, 'wb') as f:
+        shutil.copyfileobj(obj_bytes, f)
 
 
 class RemoteSQLiteDriver(SQLiteDriver):
@@ -59,18 +63,32 @@ class RemoteSQLiteDriver(SQLiteDriver):
         """Use given database URL to read metadata."""
         settings = get_settings()
 
-        local_db_path = os.path.join(settings.REMOTE_DB_CACHE_DIR, 's3_db.sqlite')
-        os.makedirs(os.path.dirname(local_db_path), exist_ok=True)
+        self.__rm = os.remove  # keep reference to use in __del__
+
+        os.makedirs(settings.REMOTE_DB_CACHE_DIR, exist_ok=True)
+        local_db_file = tempfile.NamedTemporaryFile(
+            dir=settings.REMOTE_DB_CACHE_DIR,
+            prefix='tc_s3_db_',
+            suffix='.sqlite',
+            delete=False
+        )
+        local_db_file.close()
 
         self._remote_path: str = str(path)
         self._checkdb_cache = TTLCache(maxsize=1, ttl=settings.REMOTE_DB_CACHE_TTL)
 
-        super().__init__(local_db_path)
+        super().__init__(local_db_file.name)
 
     @cachedmethod(operator.attrgetter('_checkdb_cache'))
-    def _check_db(self) -> None:
-        _download_from_s3_if_changed(self._remote_path, self.path, self._db_hash)
-        super()._check_db()
+    @convert_exceptions('Could not retrieve database from S3')
+    @trace('download_db_from_s3')
+    def _update_db(self, remote_path: str, local_path: str) -> None:
+        logger.debug('Remote database cache expired, re-downloading')
+        _update_from_s3(remote_path, local_path)
+
+    def _before_connection(self, validate: bool = True) -> None:
+        self._update_db(self._remote_path, self.path)
+        super()._before_connection(validate)
 
     def create(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
@@ -80,3 +98,12 @@ class RemoteSQLiteDriver(SQLiteDriver):
 
     def delete(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
+
+    def __del__(self) -> None:
+        """Clean up temporary database upon exit"""
+        rm = self.__rm
+        try:
+            rm(self.path)
+        except AttributeError:
+            # object is deleted before self.path is declared
+            pass

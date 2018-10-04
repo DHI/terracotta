@@ -1,21 +1,24 @@
 from setuptools import setup, find_packages
 import os
 
-import versioneer
-
 with open(os.path.join(os.path.dirname(__file__), 'requirements.txt')) as fp:
     install_requires = fp.read()
 
 setup(
     name='terracotta',
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
     description='A modern XYZ tile server written in Python',
     author='Philip Graae',
     author_email='phgr@dhigroup.com',
     packages=find_packages(),
-    python_requires='>=3.5',
-    setup_requires=['numpy'],
+    python_requires='>=3.6',
+    use_scm_version={
+        'write_to': 'terracotta/_version.py'
+    },
+    setup_requires=[
+        'setuptools_scm',
+        'setuptools_scm_git_archive',
+        'numpy'
+    ],
     install_requires=install_requires,
     extras_require={
         'test': [
@@ -32,7 +35,7 @@ setup(
     },
     entry_points='''
         [console_scripts]
-        terracotta=terracotta.scripts.cli:cli
+        terracotta=terracotta.scripts.cli:entrypoint
     ''',
     include_package_data=True,
     package_data={

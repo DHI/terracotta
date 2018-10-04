@@ -20,6 +20,9 @@ class TerracottaSettings(NamedTuple):
     FLASK_PROFILE: bool = False
     XRAY_PROFILE: bool = False
 
+    LOGLEVEL: str = 'warning'
+    LOGFILE: str = ''
+
     RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490 MB
     METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10 MB
 
@@ -37,6 +40,10 @@ class TerracottaSettings(NamedTuple):
 AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._field_types.keys())
 
 
+def _is_writable(path: str) -> bool:
+    return os.access(os.path.dirname(path) or os.getcwd(), os.W_OK)
+
+
 class SettingSchema(Schema):
     """Schema used to create TerracottaSettings objects"""
     DRIVER_PATH = fields.String()
@@ -46,6 +53,11 @@ class SettingSchema(Schema):
     FLASK_PROFILE = fields.Boolean()
     XRAY_PROFILE = fields.Boolean()
 
+    LOGLEVEL = fields.String(
+        validate=validate.OneOf(['trace', 'debug', 'info', 'warning', 'error', 'critical'])
+    )
+    LOGFILE = fields.String(validate=_is_writable)
+
     RASTER_CACHE_SIZE = fields.Integer()
     METADATA_CACHE_SIZE = fields.Integer()
 
@@ -53,7 +65,7 @@ class SettingSchema(Schema):
     PNG_COMPRESS_LEVEL = fields.Integer(validate=validate.Range(min=0, max=9))
 
     DB_CONNECTION_TIMEOUT = fields.Integer()
-    REMOTE_DB_CACHE_DIR = fields.String()
+    REMOTE_DB_CACHE_DIR = fields.String(validate=_is_writable)
     REMOTE_DB_CACHE_TTL = fields.Integer()
 
     UPSAMPLING_METHOD = fields.String(

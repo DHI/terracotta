@@ -43,12 +43,12 @@ class RasterDriver(Driver):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         settings = get_settings()
         self._raster_cache = LRUCache(settings.RASTER_CACHE_SIZE, getsizeof=sys.getsizeof)
+        super().__init__(*args, **kwargs)
 
-    def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]
-                              ) -> List[Any]:
+    def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]) -> List[Any]:
         try:
             keys_as_mapping = cast(Mapping[str, Any], keys)
-            return [keys_as_mapping[key] for key in self.available_keys]
+            return [keys_as_mapping[key] for key in self.key_names]
         except TypeError:  # not a mapping
             return list(keys)
         except KeyError as exc:
@@ -180,12 +180,24 @@ class RasterDriver(Driver):
     def compute_metadata(raster_path: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None) -> Dict[str, Any]:
-        """Read given raster file and compute metadata from it"""
+        """Read given raster file and compute metadata from it.
+
+        This handles most of the heavy lifting during raster ingestion.
+        """
         import rasterio
         from rasterio import warp
+        from terracotta.cog import validate
 
         row_data: Dict[str, Any] = {}
         extra_metadata = extra_metadata or {}
+
+        if not validate(raster_path):
+            warnings.warn(
+                f'Raster file {raster_path} is not a valid cloud-optimized GeoTIFF. '
+                'Any interaction with it will be significantly slower. '
+                'Consider optimizing it through `terracotta optimize-rasters` before ingestion.',
+                exceptions.PerformanceWarning
+            )
 
         with rasterio.open(raster_path) as src:
             nodata = src.nodata or 0
@@ -197,8 +209,10 @@ class RasterDriver(Driver):
                 use_chunks = src.width * src.height > RasterDriver.LARGE_RASTER_THRESHOLD
 
             if use_chunks and not has_crick:
-                warnings.warn('Processing a large raster file, but crick failed to import. '
-                              'Reading whole file into memory instead.')
+                warnings.warn(
+                    'Processing a large raster file, but crick failed to import. '
+                    'Reading whole file into memory instead.', exceptions.PerformanceWarning
+                )
                 use_chunks = False
 
             if use_chunks:
@@ -289,7 +303,7 @@ class RasterDriver(Driver):
                          upsampling_method: str,
                          downsampling_method: str,
                          bounds: Tuple[float, float, float, float] = None,
-                         tilesize: Tuple[int, int] = (256, 256),
+                         tile_size: Tuple[int, int] = (256, 256),
                          nodata: Number = 0,
                          preserve_values: bool = False) -> np.ndarray:
         """Load a raster dataset from a file through rasterio.
@@ -302,7 +316,7 @@ class RasterDriver(Driver):
 
         dst_bounds: Tuple[float, float, float, float]
 
-        path = self.get_datasets(dict(zip(self.available_keys, keys)))
+        path = self.get_datasets(dict(zip(self.key_names, keys)))
         assert len(path) == 1
         path = path[keys]
 
@@ -371,26 +385,28 @@ class RasterDriver(Driver):
             # read data
             with warnings.catch_warnings(), trace('read_from_vrt'):
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
-                arr = vrt.read(1, resampling=resampling_enum, window=out_window, out_shape=tilesize)
+                arr = vrt.read(
+                    1, resampling=resampling_enum, window=out_window, out_shape=tile_size
+                )
 
-            assert arr.shape == tilesize, arr.shape
+            assert arr.shape == tile_size, arr.shape
 
         return arr
 
     @trace('get_raster_tile')
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
-                        tilesize: Sequence[int] = (256, 256),
-                        nodata: Number = 0,
+                        tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False) -> np.ndarray:
         """Load tile with given keys or metadata"""
         # make sure all arguments are hashable
         settings = get_settings()
         key_sequence = self._key_dict_to_sequence(keys)
+        nodata = self.get_metadata(keys)['nodata']
         return self._get_raster_tile(
             tuple(key_sequence),
             bounds=tuple(bounds) if bounds else None,
-            tilesize=tuple(tilesize),
+            tile_size=tuple(tile_size),
             nodata=nodata,
             preserve_values=preserve_values,
             upsampling_method=settings.UPSAMPLING_METHOD,

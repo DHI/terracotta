@@ -10,6 +10,9 @@ from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
 
 
 class MetadataSchema(Schema):
+    class Meta:
+        ordered = True
+
     keys = fields.Dict(keys=fields.String(), values=fields.String(),
                        description='Keys identifying dataset', required=True)
     bounds = fields.List(fields.Number(), validate=validate.Length(equal=4), required=True,

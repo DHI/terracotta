@@ -1,6 +1,6 @@
 """exceptions.py
 
-Custom exceptions raised internally
+Custom warnings and exceptions raised internally
 """
 
 
@@ -21,4 +21,8 @@ class InvalidArgumentsError(Exception):
 
 
 class InvalidDatabaseError(Exception):
+    pass
+
+
+class PerformanceWarning(UserWarning):
     pass

@@ -9,8 +9,16 @@ from marshmallow import Schema, fields
 from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
 
 
+class KeyItemSchema(Schema):
+    class Meta:
+        ordered = True
+
+    key = fields.String(description='Key name', required=True)
+    description = fields.String(description='Key description')
+
+
 class KeySchema(Schema):
-    keys = fields.List(fields.String(), required=True, description='List of known keys')
+    keys = fields.Nested(KeyItemSchema, many=True, required=True)
 
 
 @metadata_api.route('/keys', methods=['GET'])
@@ -20,10 +28,10 @@ def get_keys() -> str:
     ---
     get:
         summary: /keys
-        description: List the names of all known keys.
+        description: List the names and descriptions (if available) of all known keys.
         responses:
             200:
-                description: Array containing key names
+                description: Array containing keys
                 schema: KeySchema
     """
     from terracotta.handlers.keys import keys
@@ -33,3 +41,4 @@ def get_keys() -> str:
 
 
 spec.definition('Keys', schema=KeySchema)
+spec.definition('KeyItem', schema=KeyItemSchema)

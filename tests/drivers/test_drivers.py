@@ -1,6 +1,9 @@
 import pytest
 
 DRIVERS = ['sqlite']
+DRIVER_CLASSES = {
+    'sqlite': 'SQLiteDriver'
+}
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -11,7 +14,7 @@ def test_creation(tmpdir, provider):
     keys = ('some', 'keys')
     db.create(keys)
 
-    assert db.available_keys == keys
+    assert db.key_names == keys
     assert db.get_datasets() == {}
     assert dbfile.isfile()
 
@@ -21,41 +24,37 @@ def test_creation_invalid(tmpdir, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')
     db = drivers.get_driver(str(dbfile), provider=provider)
-    keys = ('invalid key')
+    keys = ('invalid key',)
 
     with pytest.raises(ValueError):
         db.create(keys)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_connect(tmpdir, provider):
+def test_creation_invalid_description(tmpdir, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')
     db = drivers.get_driver(str(dbfile), provider=provider)
     keys = ('some', 'keys')
 
-    with db.connect():
-        db.create(keys)
-
-    assert db.available_keys == keys
-    assert db.get_datasets() == {}
-    assert dbfile.isfile()
+    with pytest.raises(ValueError):
+        db.create(keys, key_descriptions={'unknown_key': 'blah'})
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_recreation(tmpdir, provider):
+def test_connect_before_create(tmpdir, provider):
     from terracotta import drivers, exceptions
     dbfile = tmpdir.join('test.sqlite')
     db = drivers.get_driver(str(dbfile), provider=provider)
-    keys = ('some', 'keys')
-
-    db.create(keys)
-    assert db.available_keys == keys
-    assert db.get_datasets() == {}
 
     with pytest.raises(exceptions.InvalidDatabaseError):
-        db.create(keys, drop_if_exists=False)
+        with db.connect():
+            pass
 
-    db.create(keys, drop_if_exists=True)
-    assert db.available_keys == keys
-    assert db.get_datasets() == {}
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_repr(tmpdir, provider):
+    from terracotta import drivers
+    dbfile = tmpdir.join('test.sqlite')
+    db = drivers.get_driver(str(dbfile), provider=provider)
+    assert repr(db) == f'{DRIVER_CLASSES[provider]}(\'{dbfile}\')'

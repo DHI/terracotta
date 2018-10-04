@@ -1,5 +1,11 @@
+# Auto-generated
+terracotta/_version.py
+
 # Zappa
 zappa_settings.json
+zappa_settings.yaml
+zappa_settings.yml
+zappa_settings.toml
 
 # Pipenv
 Pipfile

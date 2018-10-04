@@ -9,12 +9,15 @@ import math
 import itertools
 import contextlib
 import tempfile
+import logging
 from pathlib import Path
 
 import click
 from rasterio.enums import Resampling
 
 from terracotta.scripts.click_utils import GlobbityGlob, PathlibPath
+
+logger = logging.getLogger(__name__)
 
 IN_MEMORY_THRESHOLD = 10980 * 10980
 
@@ -92,8 +95,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
     total_pixels = 0
     for f in raster_files_flat:
         if not f.is_file():
-            click.echo(f'Input raster {f!s} is not a file', err=True)
-            raise click.Abort()
+            raise click.BadParameter(f'Input raster {f!s} is not a file')
 
         with rasterio.open(str(f), 'r') as src:
             total_pixels += src.height * src.width
@@ -117,9 +119,9 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
             output_file = output_folder / input_file.with_suffix('.tif').name
 
             if not overwrite and output_file.is_file():
-                click.echo(f'Output file {output_file!s} exists (use --overwrite to ignore)',
-                           err=True)
-                raise click.Abort()
+                raise click.BadParameter(
+                    f'Output file {output_file!s} exists (use --overwrite to ignore)'
+                )
 
             with contextlib.ExitStack() as es:
                 es.enter_context(rasterio.Env(**GDAL_CONFIG))

@@ -3,21 +3,37 @@
 Use Flask development server to serve up raster files or database locally.
 """
 
-from typing import Mapping, Any, Tuple, Sequence
+from typing import Any, Tuple, Sequence
 import tempfile
+import logging
 
 import click
 import tqdm
 
-from terracotta.scripts.click_utils import RasterPattern, RasterPatternType, TOMLFile
+from terracotta.scripts.click_utils import RasterPattern, RasterPatternType
+
+logger = logging.getLogger(__name__)
+
+
+def check_socket(host: str, port: int) -> bool:
+        """Check if given port can be listened to"""
+        import socket
+        from contextlib import closing
+
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+            sock.settimeout(2)
+            try:
+                sock.bind((host, port))
+                sock.listen(1)
+                return True
+            except socket.error:
+                return False
 
 
 @click.command('serve', short_help='Serve rasters through a local Flask development server.')
 @click.option('-d', '--database', required=False, default=None, help='Database to serve from.')
 @click.option('-r', '--raster-pattern', type=RasterPattern(), required=False, default=None,
               help='A format pattern defining paths and keys of the raster files to serve.')
-@click.option('-c', '--config', type=TOMLFile(), default=None,
-              help='Update global settings from this TOML file.')
 @click.option('--rgb-key', default=None,
               help='Key to use for RGB compositing [default: last key in pattern]. '
                    'Has no effect if -r/--raster-pattern is not given.')
@@ -35,7 +51,6 @@ def serve(database: str = None,
           debug: bool = False,
           profile: bool = False,
           no_browser: bool = False,
-          config: Mapping[str, Any] = None,
           database_provider: str = None,
           allow_all_ips: bool = False,
           port: int = None,
@@ -54,9 +69,6 @@ def serve(database: str = None,
     from terracotta import get_driver, update_settings
     from terracotta.api import run_app
 
-    if config is not None:
-        update_settings(**config)
-
     if (database is None) == (raster_pattern is None):
         raise click.UsageError('Either --database or --raster-pattern must be given')
 
@@ -68,7 +80,7 @@ def serve(database: str = None,
 
         if rgb_key is not None:
             if rgb_key not in keys:
-                raise click.UsageError('RGB key not found in raster pattern')
+                raise click.BadParameter('RGB key not found in raster pattern')
 
             # re-order keys
             rgb_idx = keys.index(rgb_key)
@@ -80,10 +92,9 @@ def serve(database: str = None,
             raster_files = {push_to_last(k, rgb_idx): v for k, v in raster_files.items()}
 
         driver = get_driver(dbfile.name, provider='sqlite')
+        driver.create(keys)
 
         with driver.connect():
-            driver.create(keys)
-
             click.echo('')
             for key, filepath in tqdm.tqdm(raster_files.items(), desc="Ingesting raster files"):
                 driver.insert(key, filepath, skip_metadata=True)
@@ -95,20 +106,6 @@ def serve(database: str = None,
                     DEBUG=debug, FLASK_PROFILE=profile)
 
     # find open port
-    def check_socket(host: str, port: int) -> bool:
-        """Check if given port can be listened to"""
-        import socket
-        from contextlib import closing
-
-        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
-            sock.settimeout(2)
-            try:
-                sock.bind((host, port))
-                sock.listen(1)
-                return True
-            except socket.error:
-                return False
-
     port_range = [port] if port is not None else range(5000, 5100)
     for port_candidate in port_range:
         if check_socket('localhost', port_candidate):
