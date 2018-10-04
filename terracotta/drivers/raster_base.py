@@ -199,31 +199,32 @@ class RasterDriver(Driver):
                 exceptions.PerformanceWarning
             )
 
-        with rasterio.open(raster_path) as src:
-            nodata = src.nodata or 0
-            bounds = warp.transform_bounds(
-                *[src.crs, 'epsg:4326'] + list(src.bounds), densify_pts=21
-            )
-
-            if use_chunks is None:
-                use_chunks = src.width * src.height > RasterDriver.LARGE_RASTER_THRESHOLD
-
-            if use_chunks and not has_crick:
-                warnings.warn(
-                    'Processing a large raster file, but crick failed to import. '
-                    'Reading whole file into memory instead.', exceptions.PerformanceWarning
+        with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR'):
+            with rasterio.open(raster_path) as src:
+                nodata = src.nodata or 0
+                bounds = warp.transform_bounds(
+                    *[src.crs, 'epsg:4326'] + list(src.bounds), densify_pts=21
                 )
-                use_chunks = False
 
-            if use_chunks:
-                raster_stats = RasterDriver._compute_image_stats_chunked(src, nodata)
-            else:
-                raster_stats = RasterDriver._compute_image_stats(src, nodata)
+                if use_chunks is None:
+                    use_chunks = src.width * src.height > RasterDriver.LARGE_RASTER_THRESHOLD
 
-            if raster_stats is None:
-                raise ValueError(f'Raster file {raster_path} does not contain any valid data')
+                if use_chunks and not has_crick:
+                    warnings.warn(
+                        'Processing a large raster file, but crick failed to import. '
+                        'Reading whole file into memory instead.', exceptions.PerformanceWarning
+                    )
+                    use_chunks = False
 
-            row_data.update(raster_stats)
+                if use_chunks:
+                    raster_stats = RasterDriver._compute_image_stats_chunked(src, nodata)
+                else:
+                    raster_stats = RasterDriver._compute_image_stats(src, nodata)
+
+        if raster_stats is None:
+            raise ValueError(f'Raster file {raster_path} does not contain any valid data')
+
+        row_data.update(raster_stats)
 
         row_data['bounds'] = bounds
         row_data['nodata'] = nodata
