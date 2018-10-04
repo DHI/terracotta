@@ -33,6 +33,14 @@ def test_serve_from_database(read_only_database):
     assert result.exit_code == 0
 
 
+def test_serve_no_args(read_only_database):
+    from terracotta.scripts import cli
+
+    runner = CliRunner()
+    result = runner.invoke(cli.cli, ['serve'])
+    assert result.exit_code != 0
+
+
 def test_serve_with_config(read_only_database, toml_file):
     from terracotta.scripts import cli
 
@@ -52,6 +60,18 @@ def test_serve_rgb_key(raster_file):
         cli.cli, ['serve', '-r', input_pattern, '--no-browser', '--rgb-key', 'rgb']
     )
     assert result.exit_code == 0
+
+
+def test_serve_invalid_rgb_key(raster_file):
+    from terracotta.scripts import cli
+
+    input_pattern = str(raster_file.dirpath('{rgb}m{foo}.tif'))
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli.cli, ['serve', '-r', input_pattern, '--no-browser', '--rgb-key', 'bar']
+    )
+    assert result.exit_code != 0
 
 
 def test_serve_find_socket(raster_file):

@@ -12,6 +12,30 @@ def test_rgb_handler(use_read_only_database, raster_file, raster_file_xyz):
     assert img_data.shape == (*terracotta.get_settings().TILE_SIZE, 3)
 
 
+def test_rgb_tile_size(use_read_only_database, raster_file, raster_file_xyz):
+    from terracotta.handlers import rgb
+    raw_img = rgb.rgb(['val21', 'x'], ['val22', 'val23', 'val24'], raster_file_xyz,
+                      tile_size=(100, 100))
+    img_data = np.asarray(Image.open(raw_img))
+    assert img_data.shape == (100, 100, 3)
+
+
+def test_rgb_invalid_keys(use_read_only_database, raster_file_xyz):
+    from terracotta import exceptions
+    from terracotta.handlers import rgb
+
+    with pytest.raises(exceptions.InvalidArgumentsError):
+        rgb.rgb(['val21', 'x', 'y', 'z'], ['val22', 'val23', 'val24'], raster_file_xyz)
+
+
+def test_rgb_invalid_rgb_values(use_read_only_database, raster_file_xyz):
+    from terracotta import exceptions
+    from terracotta.handlers import rgb
+
+    with pytest.raises(exceptions.InvalidArgumentsError):
+        rgb.rgb(['val21', 'x'], ['val22', 'val23'], raster_file_xyz)
+
+
 def test_rgb_out_of_bounds(use_read_only_database, raster_file):
     import terracotta
     from terracotta.handlers import rgb
@@ -60,6 +84,18 @@ def test_rgb_stretch(stretch_range, use_read_only_database, read_only_database, 
     stretch_range_mask = (valid_data > stretch_range[0]) & (valid_data < stretch_range[1])
     assert not np.any(np.isin(valid_img[stretch_range_mask], [1, 255]))
     assert np.all(valid_img[valid_data > stretch_range[1]] == 255)
+
+
+def test_rgb_invalid_stretch(use_read_only_database, raster_file_xyz):
+    from terracotta import exceptions
+    from terracotta.handlers import rgb
+
+    stretch_range = [100, 0]
+    ds_keys = ['val21', 'x', 'val22']
+
+    with pytest.raises(exceptions.InvalidArgumentsError):
+        rgb.rgb(ds_keys[:2], ['val22', 'val23', 'val24'], raster_file_xyz,
+                stretch_ranges=[stretch_range] * 3)
 
 
 def test_rgb_preview(use_read_only_database):

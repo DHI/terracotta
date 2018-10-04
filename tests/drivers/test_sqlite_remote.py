@@ -79,6 +79,22 @@ def test_remote_database(s3_db_factory):
     assert driver.key_names == keys
 
 
+def test_invalid_url():
+    from terracotta import get_driver
+    driver = get_driver('foo', provider='sqlite-remote')
+    with pytest.raises(ValueError):
+        with driver.connect():
+            pass
+
+
+def test_nonexisting_url():
+    from terracotta import get_driver, exceptions
+    driver = get_driver('s3://foo/db.sqlite')
+    with pytest.raises(exceptions.InvalidDatabaseError):
+        with driver.connect():
+            pass
+
+
 @mock_s3
 def test_remote_database_cache(s3_db_factory, raster_file, monkeypatch):
     keys = ('some', 'keys')
