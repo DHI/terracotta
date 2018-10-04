@@ -2,7 +2,7 @@
 app_function = "terracotta.app.app"
 aws_region = "eu-central-1"
 profile_name = "default"
-project_name = "terracotta"
+project_name = "tc-test"
 runtime = "python3.6"
 s3_bucket = "zappa-teracotta-dev"
 exclude = [
@@ -15,12 +15,16 @@ exclude = [
     ".pytest_cache",
     ".eggs"
 ]
-debug = false
-log_level = "WARNING"
+debug = true
+log_level = "DEBUG"
 xray_tracing = true
+touch_path = "/keys"
+
+timeout_seconds = 30
+memory_size = 500
 
     [development.aws_environment_variables]
-    TC_DRIVER_PATH = "s3://mybucket/db.sqlite"
+    TC_DRIVER_PATH = "s3://tc-testdata/terracotta.sqlite"
     TC_DRIVER_PROVIDER = "sqlite-remote"
     TC_UPSAMPLING_METHOD = "cubic"
     TC_XRAY_PROFILE = "true"
@@ -28,23 +32,9 @@ xray_tracing = true
     [development.callbacks]
     settings = "zappa_settings_callback.check_integrity"
 
+
 [production]
-app_function = "terracotta.app.app"
-aws_region = "eu-central-1"
-profile_name = "default"
-project_name = "terracotta"
-runtime = "python3.6"
-s3_bucket = "zappa-teracotta-prod"
-exclude = [
-    "*.gz",
-    "*.rar",
-    "boto3*",
-    "botocore*",
-    "awscli*",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".eggs"
-]
+extends = "development"
 
 # WARNING: using a cache cluster incurs additional costs (not covered by AWS free tier)
 cache_cluster_enabled = true
@@ -54,12 +44,3 @@ cache_cluster_ttl = 3600.0
 debug = false
 log_level = "WARNING"
 xray_tracing = true
-
-    [production.aws_environment_variables]
-    TC_DRIVER_PATH = "s3://mybucket/db.sqlite"
-    TC_DRIVER_PROVIDER = "sqlite-remote"
-    TC_UPSAMPLING_METHOD = "cubic"
-    TC_XRAY_PROFILE = "true"
-
-    [production.callbacks]
-    settings = "zappa_settings_callback.check_integrity"
