@@ -81,6 +81,9 @@ def create_app(debug: bool = False,
     new_app = Flask('terracotta')
     new_app.debug = debug
 
+    # suppress implicit sort of JSON responses
+    new_app.config['JSON_SORT_KEYS'] = False
+
     # import submodules to populate blueprints
     import terracotta.api.datasets
     import terracotta.api.keys
@@ -99,7 +102,9 @@ def create_app(debug: bool = False,
         spec.add_path(view=terracotta.api.colormap.get_colormap)
         spec.add_path(view=terracotta.api.metadata.get_metadata)
         spec.add_path(view=terracotta.api.rgb.get_rgb)
+        spec.add_path(view=terracotta.api.rgb.get_rgb_preview)
         spec.add_path(view=terracotta.api.singleband.get_singleband)
+        spec.add_path(view=terracotta.api.singleband.get_singleband_preview)
 
     if preview:
         import terracotta.api.map
@@ -118,7 +123,9 @@ def create_app(debug: bool = False,
 
 def run_app(*args: Any, allow_all_ips: bool = False, port: int = 5000, **kwargs: Any) -> None:
     """Create an app and run it.
-    All args are passed to create_app."""
+
+    All args are passed to create_app.
+    """
 
     app = create_app(*args, **kwargs)
 

@@ -37,12 +37,15 @@ class RasterDriver(Driver):
 
     get_datasets has to return path to raster file as sole dict value.
     """
+    TARGET_CRS: str = 'epsg:3857'
     LARGE_RASTER_THRESHOLD: int = 10980 * 10980
+    RIO_ENV_KEYS = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR')
 
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         settings = get_settings()
         self._raster_cache = LRUCache(settings.RASTER_CACHE_SIZE, getsizeof=sys.getsizeof)
+        super().__init__(*args, **kwargs)
 
     def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]) -> List[Any]:
         try:
@@ -174,9 +177,9 @@ class RasterDriver(Driver):
             'convex_hull': convex_hull_wgs
         }
 
-    @staticmethod
+    @classmethod
     @trace('compute_metadata')
-    def compute_metadata(raster_path: str, *,
+    def compute_metadata(cls, raster_path: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None) -> Dict[str, Any]:
         """Read given raster file and compute metadata from it.
@@ -198,31 +201,32 @@ class RasterDriver(Driver):
                 exceptions.PerformanceWarning
             )
 
-        with rasterio.open(raster_path) as src:
-            nodata = src.nodata or 0
-            bounds = warp.transform_bounds(
-                *[src.crs, 'epsg:4326'] + list(src.bounds), densify_pts=21
-            )
-
-            if use_chunks is None:
-                use_chunks = src.width * src.height > RasterDriver.LARGE_RASTER_THRESHOLD
-
-            if use_chunks and not has_crick:
-                warnings.warn(
-                    'Processing a large raster file, but crick failed to import. '
-                    'Reading whole file into memory instead.', exceptions.PerformanceWarning
+        with rasterio.Env(**cls.RIO_ENV_KEYS):
+            with rasterio.open(raster_path) as src:
+                nodata = src.nodata or 0
+                bounds = warp.transform_bounds(
+                    *[src.crs, 'epsg:4326'] + list(src.bounds), densify_pts=21
                 )
-                use_chunks = False
 
-            if use_chunks:
-                raster_stats = RasterDriver._compute_image_stats_chunked(src, nodata)
-            else:
-                raster_stats = RasterDriver._compute_image_stats(src, nodata)
+                if use_chunks is None:
+                    use_chunks = src.width * src.height > RasterDriver.LARGE_RASTER_THRESHOLD
 
-            if raster_stats is None:
-                raise ValueError(f'Raster file {raster_path} does not contain any valid data')
+                if use_chunks and not has_crick:
+                    warnings.warn(
+                        'Processing a large raster file, but crick failed to import. '
+                        'Reading whole file into memory instead.', exceptions.PerformanceWarning
+                    )
+                    use_chunks = False
 
-            row_data.update(raster_stats)
+                if use_chunks:
+                    raster_stats = RasterDriver._compute_image_stats_chunked(src, nodata)
+                else:
+                    raster_stats = RasterDriver._compute_image_stats(src, nodata)
+
+        if raster_stats is None:
+            raise ValueError(f'Raster file {raster_path} does not contain any valid data')
+
+        row_data.update(raster_stats)
 
         row_data['bounds'] = bounds
         row_data['nodata'] = nodata
@@ -302,7 +306,7 @@ class RasterDriver(Driver):
                          upsampling_method: str,
                          downsampling_method: str,
                          bounds: Tuple[float, float, float, float] = None,
-                         tilesize: Tuple[int, int] = (256, 256),
+                         tile_size: Tuple[int, int] = (256, 256),
                          nodata: Number = 0,
                          preserve_values: bool = False) -> np.ndarray:
         """Load a raster dataset from a file through rasterio.
@@ -319,8 +323,6 @@ class RasterDriver(Driver):
         assert len(path) == 1
         path = path[keys]
 
-        target_crs = 'epsg:3857'
-
         if preserve_values:
             upsampling_enum = downsampling_enum = self._get_resampling_enum('nearest')
         else:
@@ -328,6 +330,7 @@ class RasterDriver(Driver):
             downsampling_enum = self._get_resampling_enum(downsampling_method)
 
         with contextlib.ExitStack() as es:
+            es.enter_context(rasterio.Env(**self.RIO_ENV_KEYS))
             try:
                 with trace('open_dataset'):
                     src = es.enter_context(rasterio.open(path))
@@ -336,7 +339,7 @@ class RasterDriver(Driver):
 
             # compute default bounds and transform in target CRS
             dst_transform, dst_width, dst_height = self._calculate_default_transform(
-                src.crs, target_crs, src.width, src.height, *src.bounds
+                src.crs, self.TARGET_CRS, src.width, src.height, *src.bounds
             )
             dst_res = (dst_transform.a, dst_transform.e)
             dst_bounds = transform.array_bounds(dst_height, dst_width, dst_transform)
@@ -360,7 +363,7 @@ class RasterDriver(Driver):
             # construct VRT
             vrt = es.enter_context(
                 WarpedVRT(
-                    src, crs=target_crs, resampling=upsampling_enum, init_dest_nodata=True,
+                    src, crs=self.TARGET_CRS, resampling=upsampling_enum, init_dest_nodata=True,
                     src_nodata=nodata, nodata=nodata, transform=vrt_transform, width=vrt_width,
                     height=vrt_height
                 )
@@ -384,26 +387,28 @@ class RasterDriver(Driver):
             # read data
             with warnings.catch_warnings(), trace('read_from_vrt'):
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
-                arr = vrt.read(1, resampling=resampling_enum, window=out_window, out_shape=tilesize)
+                arr = vrt.read(
+                    1, resampling=resampling_enum, window=out_window, out_shape=tile_size
+                )
 
-            assert arr.shape == tilesize, arr.shape
+            assert arr.shape == tile_size, arr.shape
 
         return arr
 
     @trace('get_raster_tile')
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
-                        tilesize: Sequence[int] = (256, 256),
-                        nodata: Number = 0,
+                        tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False) -> np.ndarray:
         """Load tile with given keys or metadata"""
         # make sure all arguments are hashable
         settings = get_settings()
         key_sequence = self._key_dict_to_sequence(keys)
+        nodata = self.get_metadata(keys)['nodata']
         return self._get_raster_tile(
             tuple(key_sequence),
             bounds=tuple(bounds) if bounds else None,
-            tilesize=tuple(tilesize),
+            tile_size=tuple(tile_size),
             nodata=nodata,
             preserve_values=preserve_values,
             upsampling_method=settings.UPSAMPLING_METHOD,

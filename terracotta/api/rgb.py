@@ -3,7 +3,7 @@
 Flask route to handle /rgb calls.
 """
 
-from typing import Any, Mapping, Dict
+from typing import Any, Mapping, Dict, Tuple
 import json
 
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
@@ -38,11 +38,15 @@ class RGBOptionSchema(Schema):
         fields.Number(allow_none=True), validate=validate.Length(equal=2), example='[0,1]',
         missing=None, description='Stretch range [min, max] to use for blue band as JSON array'
     )
+    tile_size = fields.List(
+        fields.Integer(), validate=validate.Length(equal=2), example='[256,256]',
+        description='Pixel dimensions of the returned PNG image as JSON list.'
+    )
 
     @pre_load
     def process_ranges(self, data: Mapping[str, Any]) -> Dict[str, Any]:
         data = dict(data.items())
-        for var in ('r_range', 'g_range', 'b_range'):
+        for var in ('r_range', 'g_range', 'b_range', 'tile_size'):
             val = data.get(var)
             if val:
                 try:
@@ -52,14 +56,14 @@ class RGBOptionSchema(Schema):
         return data
 
 
-@tile_api.route('/rgb/<int:tile_z>/<int:tile_x>/<int:tile_y>.png')
+@tile_api.route('/rgb/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
 @tile_api.route('/rgb/<path:keys>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
 @convert_exceptions
 def get_rgb(tile_z: int, tile_y: int, tile_x: int, keys: str = '') -> Any:
     """Return the requested RGB tile as a PNG image.
     ---
     get:
-        summary: /rgb
+        summary: /rgb (tile)
         description: Combine three datasets to RGB image, and return tile as PNG
         parameters:
             - in: path
@@ -77,22 +81,58 @@ def get_rgb(tile_z: int, tile_y: int, tile_x: int, keys: str = '') -> Any:
                 description:
                     No dataset found for given key combination
     """
-    from terracotta.handlers.rgb import rgb
-
-    some_keys = [key for key in keys.split('/') if key]
     tile_xyz = (tile_x, tile_y, tile_z)
+    return _get_rgb_image(keys, tile_xyz=tile_xyz)
+
+
+spec.definition('RGBOptions', schema=RGBOptionSchema)
+
+
+class RGBPreviewQuerySchema(Schema):
+    keys = fields.String(required=True, description='Keys identifying dataset, in order')
+
+
+@tile_api.route('/rgb/preview.png', methods=['GET'])
+@tile_api.route('/rgb/<path:keys>/preview.png', methods=['GET'])
+@convert_exceptions
+def get_rgb_preview(keys: str = '') -> Any:
+    """Return the requested RGB dataset preview as a PNG image.
+    ---
+    get:
+        summary: /rgb (preview)
+        description: Combine three datasets to RGB image, and return preview as PNG
+        parameters:
+            - in: path
+              schema: RGBPreviewQuerySchema
+            - in: query
+              schema: RGBOptionSchema
+        responses:
+            200:
+                description:
+                    PNG image of requested tile
+            400:
+                description:
+                    Invalid query parameters
+            404:
+                description:
+                    No dataset found for given key combination
+    """
+    return _get_rgb_image(keys)
+
+
+def _get_rgb_image(keys: str, tile_xyz: Tuple[int, int, int] = None) -> Any:
+    from terracotta.handlers.rgb import rgb
 
     option_schema = RGBOptionSchema()
     options = option_schema.load(request.args)
 
-    rgb_values = (options['r'], options['g'], options['b'])
-    stretch_ranges = tuple(options[k] for k in ('r_range', 'g_range', 'b_range'))
+    some_keys = [key for key in keys.split('/') if key]
+
+    rgb_values = (options.pop('r'), options.pop('g'), options.pop('b'))
+    stretch_ranges = tuple(options.pop(k) for k in ('r_range', 'g_range', 'b_range'))
 
     image = rgb(
-        some_keys, tile_xyz, rgb_values, stretch_ranges=stretch_ranges
+        some_keys, rgb_values, stretch_ranges=stretch_ranges, tile_xyz=tile_xyz, **options
     )
 
     return send_file(image, mimetype='image/png')
-
-
-spec.definition('RGBOptions', schema=RGBOptionSchema)

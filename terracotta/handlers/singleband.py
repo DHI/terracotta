@@ -17,17 +17,13 @@ RGB = Tuple[Number, Number, Number]
 
 @trace('singleband_handler')
 def singleband(keys: Union[Sequence[str], Mapping[str, str]],
-               tile_xyz: Sequence[int], *,
+               tile_xyz: Tuple[int, int, int] = None, *,
                colormap: Union[str, Mapping[Number, RGB], None] = None,
-               stretch_range: Tuple[Number, Number] = None) -> BinaryIO:
+               stretch_range: Tuple[Number, Number] = None,
+               tile_size: Tuple[int, int] = None) -> BinaryIO:
     """Return singleband image as PNG"""
 
     cmap_or_palette: Union[str, Sequence[RGB], None]
-
-    try:
-        tile_x, tile_y, tile_z = tile_xyz
-    except ValueError:
-        raise ValueError('xyz argument must contain three values')
 
     if stretch_range is None:
         stretch_min, stretch_max = None, None
@@ -37,14 +33,16 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]],
     preserve_values = isinstance(colormap, collections.Mapping)
 
     settings = get_settings()
+    if tile_size is None:
+        tile_size = settings.TILE_SIZE
+
     driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
 
     with driver.connect():
         metadata = driver.get_metadata(keys)
-        tile_size = settings.TILE_SIZE
         tile_data = xyz.get_tile_data(
-            driver, keys, tile_x=tile_x, tile_y=tile_y, tile_z=tile_z,
-            tilesize=tile_size, preserve_values=preserve_values
+            driver, keys, tile_xyz,
+            tile_size=tile_size, preserve_values=preserve_values
         )
 
     valid_mask = image.get_valid_mask(tile_data, nodata=metadata['nodata'])

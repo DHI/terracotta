@@ -78,11 +78,10 @@ class SQLiteDriver(RasterDriver):
 
     def __init__(self, path: Union[str, Path]) -> None:
         """Use given database path to read and store metadata."""
+        path = str(path)
+
         settings = get_settings()
-
         self.DB_CONNECTION_TIMEOUT: int = settings.DB_CONNECTION_TIMEOUT
-
-        self.path: str = str(path)
 
         self._connection_pool: Dict[int, Connection] = {}
         self._metadata_cache: LFUCache = LFUCache(
@@ -90,10 +89,10 @@ class SQLiteDriver(RasterDriver):
         )
 
         self._db_hash: str = ''
-        if os.path.isfile(self.path):
-            self._db_hash = self._compute_hash(self.path)
+        if os.path.isfile(path):
+            self._db_hash = self._compute_hash(path)
 
-        super().__init__()
+        super().__init__(path)
 
     def _get_connection(self) -> Connection:
         """Convenience method to retrieve the correct connection for the current thread."""
@@ -207,8 +206,8 @@ class SQLiteDriver(RasterDriver):
         if not all(k in keys for k in key_descriptions.keys()):
             raise ValueError('key description dict contains unknown keys')
 
-        if not all(re.match(r'\w+', key) for key in keys):
-            raise ValueError('key names can be alphanumeric only')
+        if not all(re.match(r'^\w+$', key) for key in keys):
+            raise ValueError('key names must be alphanumeric')
 
         for key in keys:
             if key not in key_descriptions:

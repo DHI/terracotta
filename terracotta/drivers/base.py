@@ -32,7 +32,7 @@ class Driver(ABC):
 
     @abstractmethod
     def __init__(self, url_or_path: str) -> None:
-        pass
+        self.path = url_or_path
 
     @abstractmethod
     def create(self, keys: Sequence[str], *args: Any,
@@ -77,7 +77,7 @@ class Driver(ABC):
     @abstractmethod
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
-                        tilesize: Sequence[int] = (256, 256),
+                        tile_size: Sequence[int] = (256, 256),
                         nodata: Number = 0,
                         preserve_values: bool = False) -> np.ndarray:
         """Get raster tile as a NumPy array for given keys."""
@@ -102,3 +102,6 @@ class Driver(ABC):
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         """Remove a dataset from metadata storage."""
         pass
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(\'{self.path}\')'

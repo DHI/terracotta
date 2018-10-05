@@ -14,14 +14,6 @@ except ImportError:
     ) from None
 
 
-# setup environment
-import os
-os.environ.update(
-    GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR'  # do not look for auxiliary files
-)
-del os
-
-
 # initialize settings
 from typing import Mapping, Any, Set
 from terracotta.config import parse_config, TerracottaSettings

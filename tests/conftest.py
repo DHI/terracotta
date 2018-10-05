@@ -246,7 +246,7 @@ def raster_file_xyz_lowzoom(raster_file):
 def read_only_database(raster_file, tmpdir_factory):
     from terracotta import get_driver
 
-    keys = ['key1', 'key2']
+    keys = ['key1', 'akey', 'key2']
     key_descriptions = {
         'key2': 'key2'
     }
@@ -258,10 +258,10 @@ def read_only_database(raster_file, tmpdir_factory):
     metadata = driver.compute_metadata(str(raster_file), extra_metadata=['extra_data'])
 
     with driver.connect():
-        driver.insert(('val11', 'val12'), str(raster_file), metadata=metadata)
-        driver.insert(('val21', 'val22'), str(raster_file))
-        driver.insert(('val21', 'val23'), str(raster_file))
-        driver.insert(('val21', 'val24'), str(raster_file))
+        driver.insert(('val11', 'x', 'val12'), str(raster_file), metadata=metadata)
+        driver.insert(('val21', 'x', 'val22'), str(raster_file))
+        driver.insert(('val21', 'x', 'val23'), str(raster_file))
+        driver.insert(('val21', 'x', 'val24'), str(raster_file))
 
     return dbpath
 

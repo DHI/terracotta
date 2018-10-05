@@ -1,6 +1,7 @@
 from io import BytesIO
 import json
 import urllib.parse
+from collections import OrderedDict
 
 from PIL import Image
 import numpy as np
@@ -24,33 +25,30 @@ def test_get_keys(client, use_read_only_database):
     rv = client.get('/keys')
 
     expected_response = [
-        {
-            'key': 'key1'
-        },
-        {
-            'key': 'key2',
-            'description': 'key2'
-        }
+        {'key': 'key1'},
+        {'key': 'akey'},
+        {'key': 'key2', 'description': 'key2'}
     ]
     assert rv.status_code == 200
     assert expected_response == json.loads(rv.data)['keys']
 
 
 def test_get_metadata(client, use_read_only_database):
-    rv = client.get('/metadata/val11/val12/')
+    rv = client.get('/metadata/val11/x/val12/')
     assert rv.status_code == 200
     assert ['extra_data'] == json.loads(rv.data)['metadata']
 
 
 def test_get_metadata_nonexisting(client, use_read_only_database):
-    rv = client.get('/metadata/val11/NONEXISTING/')
+    rv = client.get('/metadata/val11/x/NONEXISTING/')
     assert rv.status_code == 404
 
 
 def test_get_datasets(client, use_read_only_database):
     rv = client.get('/datasets')
     assert rv.status_code == 200
-    assert {'key1': 'val11', 'key2': 'val12'} in json.loads(rv.data)['datasets']
+    datasets = json.loads(rv.data, object_pairs_hook=OrderedDict)['datasets']
+    assert OrderedDict([('key1', 'val11'), ('akey', 'x'), ('key2', 'val12')]) in datasets
 
 
 def test_get_datasets_selective(client, use_read_only_database):
@@ -73,7 +71,7 @@ def test_get_singleband_greyscale(client, use_read_only_database, raster_file_xy
     settings = terracotta.get_settings()
 
     x, y, z = raster_file_xyz
-    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png')
+    rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png')
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
@@ -85,7 +83,7 @@ def test_get_singleband_extra_args(client, use_read_only_database, raster_file_x
     settings = terracotta.get_settings()
 
     x, y, z = raster_file_xyz
-    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?foo=bar&baz=quz')
+    rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?foo=bar&baz=quz')
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
@@ -97,7 +95,18 @@ def test_get_singleband_cmap(client, use_read_only_database, raster_file_xyz):
     settings = terracotta.get_settings()
 
     x, y, z = raster_file_xyz
-    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=jet')
+    rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?colormap=jet')
+    assert rv.status_code == 200
+
+    img = Image.open(BytesIO(rv.data))
+    assert np.asarray(img).shape == settings.TILE_SIZE
+
+
+def test_get_singleband_preview(client, use_read_only_database):
+    import terracotta
+    settings = terracotta.get_settings()
+
+    rv = client.get(f'/singleband/val11/x/val12/preview.png?colormap=jet')
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
@@ -116,7 +125,7 @@ def test_get_singleband_explicit_cmap(client, use_read_only_database, raster_fil
     x, y, z = raster_file_xyz
     explicit_cmap = {1: (0, 0, 0), 2.0: (255, 255, 255), 3: '#ffffff', 4: 'abcabc'}
 
-    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+    rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?colormap=explicit'
                     f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
     assert rv.status_code == 200, rv.data.decode('utf-8')
 
@@ -128,28 +137,28 @@ def test_get_singleband_explicit_cmap_invalid(client, use_read_only_database, ra
     x, y, z = raster_file_xyz
     explicit_cmap = {1: (0, 0, 0), 2: (255, 255, 255), 3: '#ffffff', 4: 'abcabc'}
 
-    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?'
+    rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?'
                     f'explicit_color_map={urlsafe_json(explicit_cmap)}')
     assert rv.status_code == 400
 
-    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=jet'
+    rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?colormap=jet'
                     f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
     assert rv.status_code == 400
 
-    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit')
+    rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?colormap=explicit')
     assert rv.status_code == 400
 
     explicit_cmap[3] = 'omgomg'
-    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+    rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?colormap=explicit'
                     f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
     assert rv.status_code == 400
 
     explicit_cmap = [(255, 255, 255)]
-    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+    rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?colormap=explicit'
                     f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
     assert rv.status_code == 400
 
-    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=explicit'
+    rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?colormap=explicit'
                     f'&explicit_color_map=foo')
     assert rv.status_code == 400
 
@@ -161,7 +170,7 @@ def test_get_singleband_stretch(client, use_read_only_database, raster_file_xyz)
     x, y, z = raster_file_xyz
 
     for stretch_range in ('[0,1]', '[0,null]', '[null, 1]', '[null,null]', 'null'):
-        rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?stretch_range={stretch_range}')
+        rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?stretch_range={stretch_range}')
         assert rv.status_code == 200
 
         img = Image.open(BytesIO(rv.data))
@@ -173,7 +182,7 @@ def test_get_singleband_out_of_bounds(client, use_read_only_database):
     settings = terracotta.get_settings()
 
     x, y, z = (0, 0, 10)
-    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png')
+    rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png')
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
@@ -183,7 +192,7 @@ def test_get_singleband_out_of_bounds(client, use_read_only_database):
 
 def test_get_singleband_unknown_cmap(client, use_read_only_database, raster_file_xyz):
     x, y, z = raster_file_xyz
-    rv = client.get(f'/singleband/val11/val12/{z}/{x}/{y}.png?colormap=UNKNOWN')
+    rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?colormap=UNKNOWN')
     assert rv.status_code == 400
 
 
@@ -192,7 +201,18 @@ def test_get_rgb(client, use_read_only_database, raster_file_xyz):
     settings = terracotta.get_settings()
 
     x, y, z = raster_file_xyz
-    rv = client.get(f'/rgb/val21/{z}/{x}/{y}.png?r=val22&g=val23&b=val24')
+    rv = client.get(f'/rgb/val21/x/{z}/{x}/{y}.png?r=val22&g=val23&b=val24')
+    assert rv.status_code == 200
+
+    img = Image.open(BytesIO(rv.data))
+    assert np.asarray(img).shape == (*settings.TILE_SIZE, 3)
+
+
+def test_get_rgb_preview(client, use_read_only_database):
+    import terracotta
+    settings = terracotta.get_settings()
+
+    rv = client.get(f'/rgb/val21/x/preview.png?r=val22&g=val23&b=val24')
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
@@ -204,7 +224,7 @@ def test_get_rgb_extra_args(client, use_read_only_database, raster_file_xyz):
     settings = terracotta.get_settings()
 
     x, y, z = raster_file_xyz
-    rv = client.get(f'/rgb/val21/{z}/{x}/{y}.png?r=val22&g=val23&b=val24&foo=bar&baz=quz')
+    rv = client.get(f'/rgb/val21/x/{z}/{x}/{y}.png?r=val22&g=val23&b=val24&foo=bar&baz=quz')
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
@@ -218,7 +238,7 @@ def test_get_rgb_stretch(client, use_read_only_database, raster_file_xyz):
     x, y, z = raster_file_xyz
 
     for stretch_range in ('[0,10000]', '[0,null]', '[null, 10000]', '[null,null]', 'null'):
-        rv = client.get(f'/rgb/val21/{z}/{x}/{y}.png?r=val22&g=val23&b=val24&'
+        rv = client.get(f'/rgb/val21/x/{z}/{x}/{y}.png?r=val22&g=val23&b=val24&'
                         f'r_range={stretch_range}&b_range={stretch_range}&g_range={stretch_range}')
         assert rv.status_code == 200, rv.data
 

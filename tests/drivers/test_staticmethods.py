@@ -60,7 +60,7 @@ def test_compute_metadata(big_raster_file, use_chunks):
     np.testing.assert_allclose(
         mtd['percentiles'],
         np.percentile(valid_data, np.arange(1, 100)),
-        rtol=1e-2
+        rtol=2e-2
     )
 
     assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-8
@@ -104,7 +104,7 @@ def test_compute_metadata_nocrick(big_raster_file, monkeypatch):
     np.testing.assert_allclose(
         mtd['percentiles'],
         np.percentile(valid_data, np.arange(1, 100)),
-        rtol=0.01
+        rtol=2e-2
     )
 
     assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-8
@@ -136,7 +136,7 @@ def test_compute_metadata_unoptimized(unoptimized_raster_file):
     np.testing.assert_allclose(
         mtd['percentiles'],
         np.percentile(valid_data, np.arange(1, 100)),
-        rtol=1e-2
+        rtol=2e-2
     )
 
     assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-8

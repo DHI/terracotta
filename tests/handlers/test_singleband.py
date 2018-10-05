@@ -5,7 +5,7 @@ import pytest
 
 
 @pytest.mark.parametrize('upsampling_method', ['nearest', 'linear', 'cubic', 'average'])
-def test_singleband_handler(use_read_only_database, raster_file, raster_file_xyz,
+def test_singleband_handler(use_read_only_database, raster_file_xyz,
                             upsampling_method):
     import terracotta
     terracotta.update_settings(UPSAMPLING_METHOD=upsampling_method)
@@ -20,7 +20,7 @@ def test_singleband_handler(use_read_only_database, raster_file, raster_file_xyz
         assert img_data.shape == settings.TILE_SIZE
 
 
-def test_singleband_out_of_bounds(use_read_only_database, raster_file):
+def test_singleband_out_of_bounds(use_read_only_database):
     import terracotta
     from terracotta.handlers import datasets, singleband
     ds = datasets.datasets()
@@ -36,7 +36,7 @@ def test_singleband_explicit_colormap(use_read_only_database, read_only_database
     from terracotta.xyz import get_tile_data
     from terracotta.handlers import singleband
 
-    ds_keys = ['val21', 'val22']
+    ds_keys = ['val21', 'x', 'val22']
     colormap = {i: (i, i, i) for i in range(150)}
 
     raw_img = singleband.singleband(ds_keys, raster_file_xyz, colormap=colormap)
@@ -45,11 +45,9 @@ def test_singleband_explicit_colormap(use_read_only_database, read_only_database
     # get unstretched data to compare to
     driver = terracotta.get_driver(read_only_database)
 
-    tile_x, tile_y, tile_z = raster_file_xyz
-
     with driver.connect():
-        tile_data = get_tile_data(driver, ds_keys, tile_x=tile_x, tile_y=tile_y, tile_z=tile_z,
-                                  tilesize=img_data.shape[:2])
+        tile_data = get_tile_data(driver, ds_keys, tile_xyz=raster_file_xyz,
+                                  tile_size=img_data.shape[:2])
 
     # check that labels are mapped to colors correctly
     for cmap_label, cmap_color in colormap.items():
@@ -57,3 +55,16 @@ def test_singleband_explicit_colormap(use_read_only_database, read_only_database
 
     # check that all data outside of labels is transparent
     assert np.all(img_data[~np.isin(tile_data, colormap.keys()), -1] == 0)
+
+
+def test_singleband_noxyz(use_read_only_database):
+    from terracotta import get_settings
+    from terracotta.handlers import singleband
+
+    settings = get_settings()
+    ds_keys = ['val21', 'x', 'val22']
+
+    raw_img = singleband.singleband(ds_keys)
+    img_data = np.asarray(Image.open(raw_img))
+
+    assert img_data.shape == settings.TILE_SIZE

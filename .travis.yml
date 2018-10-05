@@ -3,6 +3,11 @@ language: python
 python:
   - "3.6"
 
+env:
+  # boto config is dirty on some travis images
+  # https://github.com/travis-ci/travis-ci/issues/7940
+  - BOTO_CONFIG=/dev/null
+
 branches:
   only:
     - master
@@ -22,7 +27,8 @@ install:
   - pip install -e .[test]
 
 script:
-  - python -m pytest --color=yes -v
+  - python -m pytest --color=yes --cov=terracotta
+  - python -m pytest --color=yes tests/benchmarks.py
 
 after_success:
   - codecov

@@ -22,11 +22,17 @@
 		http_request.open("GET", "/keys", false);
 		http_request.send();
 
+		var keys = [];
+
 		if (http_request.status === 200) {
-			return JSON.parse(http_request.responseText)["keys"];
+			var response = JSON.parse(http_request.responseText)["keys"];
+
+			for(var i = 0; i < response.length; i++) {
+				keys[i] = response[i].key;
+			}
 		}
 
-		return [];
+		return keys;
 	}
 
   function getDatasets(){

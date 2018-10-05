@@ -25,7 +25,7 @@ except DistributionNotFound:  # terracotta was not installed, fall back to file 
     def _get_cmap_data(name: str) -> BinaryIO:
         return open(os.path.join(PACKAGE_DIR, f'{name}{SUFFIX}'), 'rb')
 
-AVAILABLE_CMAPS = {f[:-len(SUFFIX)] for f in CMAP_FILES if f.endswith(SUFFIX)}
+AVAILABLE_CMAPS = sorted(set(f[:-len(SUFFIX)] for f in CMAP_FILES if f.endswith(SUFFIX)))
 
 
 def get_cmap(name: str) -> np.ndarray:
