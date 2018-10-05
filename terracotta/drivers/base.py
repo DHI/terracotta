@@ -80,9 +80,9 @@ class Driver(ABC):
                         nodata: Number = 0,
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
-        """Get raster tile as a NumPy array for given keys.
+        """Get raster tile as a NumPy array for given keys and bounds.
 
-        If asynchronous=True, returns a Future containing the result.
+        If asynchronous=True, returns a Future containing the result instead.
         """
         pass
 

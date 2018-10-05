@@ -401,7 +401,7 @@ class RasterDriver(Driver):
                         tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
-        """Load tile with given keys or metadata asynchronously"""
+        """Load tile with given keys and bounds"""
         settings = get_settings()
         nodata = self.get_metadata(keys)['nodata']
 
