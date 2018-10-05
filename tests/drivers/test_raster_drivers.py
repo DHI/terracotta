@@ -170,36 +170,6 @@ def insertion_worker(key, dbfile, raster_file, provider):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_multithreaded_insertion(tmpdir, raster_file, provider):
-    import functools
-    import concurrent.futures
-    from terracotta import drivers
-
-    dbfile = tmpdir.join('test.sqlite')
-    db = drivers.get_driver(str(dbfile), provider=provider)
-    keys = ('key',)
-
-    db.create(keys)
-
-    key_vals = [str(i) for i in range(100)]
-
-    worker = functools.partial(insertion_worker, dbfile=dbfile, raster_file=raster_file,
-                               provider=provider)
-
-    with concurrent.futures.ThreadPoolExecutor(10) as executor:
-        for result in executor.map(worker, key_vals):
-            pass
-
-    datasets = db.get_datasets()
-    assert all((key,) in datasets for key in key_vals), datasets.keys()
-
-    data1 = db.get_metadata(['77'])
-    data2 = db.get_metadata({'key': '99'})
-    assert list(data1.keys()) == list(data2.keys())
-    assert all(np.all(data1[k] == data2[k]) for k in data1.keys())
-
-
-@pytest.mark.parametrize('provider', DRIVERS)
 def test_multiprocess_insertion(tmpdir, raster_file, provider):
     import functools
     import concurrent.futures

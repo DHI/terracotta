@@ -6,7 +6,10 @@ Base class for drivers operating on physical raster files.
 from typing import (Any, Union, Mapping, Sequence, Dict, List, Tuple,
                     TypeVar, Optional, cast, TYPE_CHECKING)
 from abc import abstractmethod
+import concurrent.futures
+from concurrent.futures import Future
 import contextlib
+import functools
 import operator
 import math
 import sys
@@ -45,6 +48,7 @@ class RasterDriver(Driver):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         settings = get_settings()
         self._raster_cache = LRUCache(settings.RASTER_CACHE_SIZE, getsizeof=sys.getsizeof)
+        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
         super().__init__(*args, **kwargs)
 
     def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]) -> List[Any]:
@@ -301,8 +305,8 @@ class RasterDriver(Driver):
         return dst_transform, dst_width, dst_height
 
     @cachedmethod(operator.attrgetter('_raster_cache'))
-    @requires_connection
-    def _get_raster_tile(self, keys: Tuple[str], *,
+    @trace('get_raster_tile')
+    def _get_raster_tile(self, path: str, *,
                          upsampling_method: str,
                          downsampling_method: str,
                          bounds: Tuple[float, float, float, float] = None,
@@ -318,10 +322,6 @@ class RasterDriver(Driver):
         from rasterio.vrt import WarpedVRT
 
         dst_bounds: Tuple[float, float, float, float]
-
-        path = self.get_datasets(dict(zip(self.key_names, keys)))
-        assert len(path) == 1
-        path = path[keys]
 
         if preserve_values:
             upsampling_enum = downsampling_enum = self._get_resampling_enum('nearest')
@@ -395,18 +395,25 @@ class RasterDriver(Driver):
 
         return arr
 
-    @trace('get_raster_tile')
-    def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
-                        bounds: Sequence[float] = None,
-                        tile_size: Sequence[int] = (256, 256),
-                        preserve_values: bool = False) -> np.ndarray:
-        """Load tile with given keys or metadata"""
-        # make sure all arguments are hashable
+    @requires_connection
+    def get_raster_tile_async(self,
+                              keys: Union[Sequence[str], Mapping[str, str]], *,
+                              bounds: Sequence[float] = None,
+                              tile_size: Sequence[int] = (256, 256),
+                              preserve_values: bool = False) -> Future:
+        """Load tile with given keys or metadata asynchronously"""
         settings = get_settings()
-        key_sequence = self._key_dict_to_sequence(keys)
         nodata = self.get_metadata(keys)['nodata']
-        return self._get_raster_tile(
-            tuple(key_sequence),
+
+        key_tuple = tuple(self._key_dict_to_sequence(keys))
+        path = self.get_datasets(dict(zip(self.key_names, key_tuple)))
+        assert len(path) == 1
+        path = path[key_tuple]
+
+        # make sure all arguments are hashable
+        task = functools.partial(
+            self._get_raster_tile,
+            path,
             bounds=tuple(bounds) if bounds else None,
             tile_size=tuple(tile_size),
             nodata=nodata,
@@ -414,3 +421,4 @@ class RasterDriver(Driver):
             upsampling_method=settings.UPSAMPLING_METHOD,
             downsampling_method=settings.DOWNSAMPLING_METHOD
         )
+        return self._executor.submit(task)

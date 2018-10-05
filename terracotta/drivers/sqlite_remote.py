@@ -86,9 +86,9 @@ class RemoteSQLiteDriver(SQLiteDriver):
         logger.debug('Remote database cache expired, re-downloading')
         _update_from_s3(remote_path, local_path)
 
-    def _before_connection(self, validate: bool = True) -> None:
+    def _connection_callback(self, validate: bool = True) -> None:
         self._update_db(self._remote_path, self.path)
-        super()._before_connection(validate)
+        super()._connection_callback(validate)
 
     def create(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')

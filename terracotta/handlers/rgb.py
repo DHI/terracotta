@@ -44,51 +44,51 @@ def rgb(some_keys: Sequence[str],
         raise exceptions.InvalidArgumentsError('rgb_values argument must contain 3 values')
 
     settings = get_settings()
-    driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
-
-    key_names = driver.key_names
-
-    if len(some_keys) != len(key_names) - 1:
-        raise exceptions.InvalidArgumentsError('must specify all keys except last one')
 
     if tile_size is None:
         tile_size_ = settings.TILE_SIZE
     else:
         tile_size_ = tile_size
 
-    out = np.empty((*tile_size_, 3), dtype='uint8')
-    valid_mask = np.ones(tile_size_, dtype='bool')
+    driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
 
-    def get_tile(band_key: str, stretch_override: Tuple[Number, Number]) -> np.ndarray:
-        keys = (*some_keys, band_key)
+    with driver.connect():
+        key_names = driver.key_names
 
-        with driver.connect():
+        if len(some_keys) != len(key_names) - 1:
+            raise exceptions.InvalidArgumentsError('must specify all keys except last one')
+
+        out = np.empty((*tile_size_, 3), dtype='uint8')
+        valid_mask = np.ones(tile_size_, dtype='bool')
+
+        futures = []
+        for band_key in rgb_values:
+            keys = (*some_keys, band_key)
+            tile_data = xyz.get_tile_data(driver, keys, tile_xyz=tile_xyz, tile_size=tile_size_, lazy=True)
+            futures.append(tile_data)
+
+        results = (future.result() for future in concurrent.futures.wait(futures)[0])
+
+        for i, (band_key, stretch_override, band_data) in enumerate(zip(rgb_values, stretch_ranges, results)):
+            keys = (*some_keys, band_key)
             metadata = driver.get_metadata(keys)
-            tile_data = xyz.get_tile_data(driver, keys, tile_xyz=tile_xyz, tile_size=tile_size_)
+            valid_mask &= image.get_valid_mask(band_data, nodata=metadata['nodata'])
 
-        valid_mask = image.get_valid_mask(tile_data, nodata=metadata['nodata'])
+            stretch_range = list(metadata['range'])
 
-        stretch_range = list(metadata['range'])
+            scale_min, scale_max = stretch_override
 
-        scale_min, scale_max = stretch_override
+            if scale_min is not None:
+                stretch_range[0] = scale_min
 
-        if scale_min is not None:
-            stretch_range[0] = scale_min
+            if scale_max is not None:
+                stretch_range[1] = scale_max
 
-        if scale_max is not None:
-            stretch_range[1] = scale_max
+            if stretch_range[1] < stretch_range[0]:
+                raise exceptions.InvalidArgumentsError(
+                    'Upper stretch bound must be higher than lower bound'
+                )
 
-        if stretch_range[1] < stretch_range[0]:
-            raise exceptions.InvalidArgumentsError(
-                'Upper stretch bound must be higher than lower bound'
-            )
-
-        return image.to_uint8(tile_data, *stretch_range), valid_mask
-
-    with concurrent.futures.ThreadPoolExecutor(3) as executor:
-        results = executor.map(get_tile, rgb_values, stretch_ranges)
-        for i, (band_data, band_valid_mask) in enumerate(results):
-            out[..., i] = band_data
-            valid_mask &= band_valid_mask
+            out[..., i] = image.to_uint8(band_data, *stretch_range)
 
     return image.array_to_png(out, transparency_mask=~valid_mask)

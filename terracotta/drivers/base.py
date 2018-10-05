@@ -5,6 +5,7 @@ Base class for drivers.
 
 from typing import Callable, Mapping, Any, Tuple, Sequence, Dict, Union, TypeVar
 from abc import ABC, abstractmethod
+from concurrent.futures import Future
 from collections import OrderedDict
 import functools
 import contextlib
@@ -74,12 +75,16 @@ class Driver(ABC):
         """
         pass
 
+    def get_raster_tile(self, *args, **kwargs) -> np.ndarray:
+        """Get raster tile as a NumPy array for given keys."""
+        return self.get_raster_tile_async(*args, **kwargs).result()
+
     @abstractmethod
-    def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
+    def get_raster_tile_async(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
                         tile_size: Sequence[int] = (256, 256),
                         nodata: Number = 0,
-                        preserve_values: bool = False) -> np.ndarray:
+                        preserve_values: bool = False) -> Future:
         """Get raster tile as a NumPy array for given keys."""
         pass
 

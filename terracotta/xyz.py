@@ -16,12 +16,17 @@ def get_tile_data(driver: Driver,
                   keys: Union[Sequence[str], Mapping[str, str]],
                   tile_xyz: Tuple[int, int, int] = None,
                   *, tile_size: Tuple[int, int] = (256, 256),
-                  preserve_values: bool = False) -> np.ndarray:
+                  preserve_values: bool = False,
+                  lazy: bool = False) -> np.ndarray:
     """Retrieve physical bounds for given XYZ tile"""
+    if lazy:
+        processor = driver.get_raster_tile_async
+    else:
+        processor = driver.get_raster_tile
 
     if tile_xyz is None:
         # read whole dataset
-        return driver.get_raster_tile(
+        return processor(
             keys, tile_size=tile_size, preserve_values=preserve_values
         )
 
@@ -39,8 +44,8 @@ def get_tile_data(driver: Driver,
     mercator_tile = mercantile.Tile(x=tile_x, y=tile_y, z=tile_z)
     target_bounds = mercantile.xy_bounds(mercator_tile)
 
-    return driver.get_raster_tile(keys, bounds=target_bounds, tile_size=tile_size,
-                                  preserve_values=preserve_values)
+    return processor(keys, bounds=target_bounds, tile_size=tile_size,
+                     preserve_values=preserve_values)
 
 
 def tile_exists(bounds: Sequence[float], tile_x: int, tile_y: int, tile_z: int) -> bool:
