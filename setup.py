@@ -26,6 +26,7 @@ setup(
             'pytest-cov',
             'pytest-mypy',
             'pytest-flake8',
+            'pytest-benchmark',
             'codecov',
             'attrs>=17.4.0',
             'matplotlib',
