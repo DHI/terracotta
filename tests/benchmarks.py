@@ -1,18 +1,16 @@
-"""
-Benchmarks for all performance-critical use cases
+"""Benchmarks for all performance-critical use cases
+
+Run separately via `pytest tests/benchmarks.py`.
 """
 
 import pytest
 from click.testing import CliRunner
 
-from io import BytesIO
-from PIL import Image
-
 import shutil
 
 ZOOM_XYZ = {
     'birds-eye': 13,
-    'subpixel': 20,
+    'subpixel': 22,
     'preview': None
 }
 
@@ -64,8 +62,6 @@ def test_bench_rgb(benchmark, zoom, resampling, raster_file, new_read_only_datab
             rv = benchmark(client.get, f'/rgb/val21/x/preview.png?r=val22&g=val23&b=val24')
 
     assert rv.status_code == 200
-
-    Image.open(BytesIO(rv.data)).save(f'rgb-{resampling}-{zoom}.png')
 
 
 def test_bench_rgb_out_of_bounds(benchmark, raster_file, new_read_only_database):
