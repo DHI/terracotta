@@ -195,7 +195,7 @@ For all available settings, their types and default values, have a look at the f
 [config.py](https://github.com/DHI-GRAS/terracotta/blob/master/terracotta/config.py) in the
 Terracotta code.
 
-## Advances recipes
+## Advanced recipes
 
 ### Serving categorical data
 
