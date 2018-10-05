@@ -27,7 +27,8 @@ install:
   - pip install -e .[test]
 
 script:
-  - python -m pytest --color=yes -v
+  - python -m pytest --color=yes --cov=terracotta
+  - python -m pytest --color=yes tests/benchmarks.py
 
 after_success:
   - codecov
