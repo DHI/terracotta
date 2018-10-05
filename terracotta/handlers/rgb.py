@@ -57,7 +57,7 @@ def rgb(some_keys: Sequence[str],
         def get_band_future(band_key: str) -> Future:
             band_keys = (*some_keys, band_key)
             return xyz.get_tile_data(driver, band_keys, tile_xyz=tile_xyz,
-                                     tile_size=tile_size_, lazy=True)
+                                     tile_size=tile_size_, asynchronous=True)
 
         futures = [get_band_future(key) for key in rgb_values]
         band_items = zip(rgb_values, stretch_ranges_, futures)

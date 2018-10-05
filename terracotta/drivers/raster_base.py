@@ -400,7 +400,7 @@ class RasterDriver(Driver):
                         bounds: Sequence[float] = None,
                         tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False,
-                        lazy: bool = False) -> Any:
+                        asynchronous: bool = False) -> Any:
         """Load tile with given keys or metadata asynchronously"""
         settings = get_settings()
         nodata = self.get_metadata(keys)['nodata']
@@ -423,7 +423,7 @@ class RasterDriver(Driver):
         )
 
         future = self._executor.submit(task)
-        if lazy:
+        if asynchronous:
             return future
         else:
             return future.result()

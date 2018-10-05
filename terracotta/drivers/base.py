@@ -79,10 +79,10 @@ class Driver(ABC):
                         tile_size: Sequence[int] = (256, 256),
                         nodata: Number = 0,
                         preserve_values: bool = False,
-                        lazy: bool = False) -> Any:
+                        asynchronous: bool = False) -> Any:
         """Get raster tile as a NumPy array for given keys.
 
-        If lazy=True, returns a Future containing the result.
+        If asynchronous=True, returns a Future containing the result.
         """
         pass
 
