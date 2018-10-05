@@ -421,8 +421,9 @@ class RasterDriver(Driver):
             upsampling_method=settings.UPSAMPLING_METHOD,
             downsampling_method=settings.DOWNSAMPLING_METHOD
         )
+
         future = self._executor.submit(task)
         if lazy:
             return future
-
-        return future.result()
+        else:
+            return future.result()

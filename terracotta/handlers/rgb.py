@@ -34,8 +34,7 @@ def rgb(some_keys: Sequence[str],
     if len(stretch_ranges) != 3:
         raise exceptions.InvalidArgumentsError('stretch_ranges argument must contain 3 values')
 
-    stretch_ranges_ = [stretch_range if stretch_range is not None else (None, None)
-                       for stretch_range in stretch_ranges]
+    stretch_ranges_ = [stretch_range or (None, None) for stretch_range in stretch_ranges]
 
     if len(rgb_values) != 3:
         raise exceptions.InvalidArgumentsError('rgb_values argument must contain 3 values')
@@ -60,7 +59,7 @@ def rgb(some_keys: Sequence[str],
             return xyz.get_tile_data(driver, band_keys, tile_xyz=tile_xyz,
                                      tile_size=tile_size_, lazy=True)
 
-        futures = map(get_band_future, rgb_values)
+        futures = [get_band_future(key) for key in rgb_values]
         band_items = zip(rgb_values, stretch_ranges_, futures)
 
         out = np.empty((*tile_size_, 3), dtype='uint8')
