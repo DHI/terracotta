@@ -3,31 +3,27 @@
 Utilities to work with XYZ Mercator tiles.
 """
 
-from typing import Sequence, Union, Mapping, Tuple
+from typing import Sequence, Union, Mapping, Tuple, Any
 
-import numpy as np
 import mercantile
 
 from terracotta import exceptions
 from terracotta.drivers.base import Driver
 
 
+# TODO: add accurate signature if mypy ever supports conditional return types
 def get_tile_data(driver: Driver,
                   keys: Union[Sequence[str], Mapping[str, str]],
                   tile_xyz: Tuple[int, int, int] = None,
                   *, tile_size: Tuple[int, int] = (256, 256),
                   preserve_values: bool = False,
-                  lazy: bool = False) -> np.ndarray:
-    """Retrieve physical bounds for given XYZ tile"""
-    if lazy:
-        processor = driver.get_raster_tile_async
-    else:
-        processor = driver.get_raster_tile
+                  lazy: bool = False) -> Any:
+    """Retrieve raster image for given XYZ tile"""
 
     if tile_xyz is None:
         # read whole dataset
-        return processor(
-            keys, tile_size=tile_size, preserve_values=preserve_values
+        return driver.get_raster_tile(
+            keys, tile_size=tile_size, preserve_values=preserve_values, lazy=lazy
         )
 
     # determine bounds for given tile
@@ -44,8 +40,10 @@ def get_tile_data(driver: Driver,
     mercator_tile = mercantile.Tile(x=tile_x, y=tile_y, z=tile_z)
     target_bounds = mercantile.xy_bounds(mercator_tile)
 
-    return processor(keys, bounds=target_bounds, tile_size=tile_size,
-                     preserve_values=preserve_values)
+    return driver.get_raster_tile(
+        keys, bounds=target_bounds, tile_size=tile_size,
+        preserve_values=preserve_values, lazy=lazy
+    )
 
 
 def tile_exists(bounds: Sequence[float], tile_x: int, tile_y: int, tile_z: int) -> bool:

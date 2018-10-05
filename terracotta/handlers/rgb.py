@@ -5,7 +5,7 @@ Handle /rgb API endpoint. Band file retrieval is multi-threaded.
 
 from typing import Sequence, Tuple, Optional, TypeVar
 from typing.io import BinaryIO
-import concurrent.futures
+from concurrent.futures import Future
 
 from terracotta import get_settings, get_driver, image, xyz, exceptions
 from terracotta.profile import trace
@@ -31,14 +31,11 @@ def rgb(some_keys: Sequence[str],
     if stretch_ranges is None:
         stretch_ranges = [None, None, None]
 
-    stretch_ranges = list(stretch_ranges)
-
     if len(stretch_ranges) != 3:
         raise exceptions.InvalidArgumentsError('stretch_ranges argument must contain 3 values')
 
-    for i, stretch_range in enumerate(stretch_ranges):
-        if stretch_range is None:
-            stretch_ranges[i] = (None, None)
+    stretch_ranges_ = [stretch_range if stretch_range is not None else (None, None)
+                       for stretch_range in stretch_ranges]
 
     if len(rgb_values) != 3:
         raise exceptions.InvalidArgumentsError('rgb_values argument must contain 3 values')
@@ -58,37 +55,37 @@ def rgb(some_keys: Sequence[str],
         if len(some_keys) != len(key_names) - 1:
             raise exceptions.InvalidArgumentsError('must specify all keys except last one')
 
+        def get_band_future(band_key: str) -> Future:
+            band_keys = (*some_keys, band_key)
+            return xyz.get_tile_data(driver, band_keys, tile_xyz=tile_xyz,
+                                     tile_size=tile_size_, lazy=True)
+
+        futures = map(get_band_future, rgb_values)
+        band_items = zip(rgb_values, stretch_ranges_, futures)
+
         out = np.empty((*tile_size_, 3), dtype='uint8')
         valid_mask = np.ones(tile_size_, dtype='bool')
 
-        futures = []
-        for band_key in rgb_values:
-            keys = (*some_keys, band_key)
-            tile_data = xyz.get_tile_data(driver, keys, tile_xyz=tile_xyz, tile_size=tile_size_, lazy=True)
-            futures.append(tile_data)
-
-        results = (future.result() for future in concurrent.futures.wait(futures)[0])
-
-        for i, (band_key, stretch_override, band_data) in enumerate(zip(rgb_values, stretch_ranges, results)):
+        for i, (band_key, band_stretch_override, band_data_future) in enumerate(band_items):
             keys = (*some_keys, band_key)
             metadata = driver.get_metadata(keys)
-            valid_mask &= image.get_valid_mask(band_data, nodata=metadata['nodata'])
 
-            stretch_range = list(metadata['range'])
-
-            scale_min, scale_max = stretch_override
+            band_stretch_range = list(metadata['range'])
+            scale_min, scale_max = band_stretch_override
 
             if scale_min is not None:
-                stretch_range[0] = scale_min
+                band_stretch_range[0] = scale_min
 
             if scale_max is not None:
-                stretch_range[1] = scale_max
+                band_stretch_range[1] = scale_max
 
-            if stretch_range[1] < stretch_range[0]:
+            if band_stretch_range[1] < band_stretch_range[0]:
                 raise exceptions.InvalidArgumentsError(
                     'Upper stretch bound must be higher than lower bound'
                 )
 
-            out[..., i] = image.to_uint8(band_data, *stretch_range)
+            band_data = band_data_future.result()
+            valid_mask &= image.get_valid_mask(band_data, nodata=metadata['nodata'])
+            out[..., i] = image.to_uint8(band_data, *band_stretch_range)
 
     return image.array_to_png(out, transparency_mask=~valid_mask)

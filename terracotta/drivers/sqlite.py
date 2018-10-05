@@ -5,7 +5,7 @@ to be present on disk.
 """
 
 from typing import (Any, Sequence, Mapping, Tuple, Union, Iterator, Dict,
-                    Callable, Optional, cast)
+                    Callable, cast)
 import sys
 import os
 import operator
@@ -83,7 +83,8 @@ class SQLiteDriver(RasterDriver):
         settings = get_settings()
         self.DB_CONNECTION_TIMEOUT: int = settings.DB_CONNECTION_TIMEOUT
 
-        self._connection: Optional[Connection] = None
+        self._connection: Connection
+        self._connected = False
 
         self._metadata_cache: LFUCache = LFUCache(
             settings.METADATA_CACHE_SIZE, getsizeof=sys.getsizeof
@@ -99,13 +100,13 @@ class SQLiteDriver(RasterDriver):
     def connect(self, check: bool = True) -> Iterator:
         try:
             close = False
-            if self._connection is None:
+            if not self._connected:
                 with convert_exceptions('Unable to connect to database'):
                     self._connection = sqlite3.connect(
                         self.path, timeout=self.DB_CONNECTION_TIMEOUT
                     )
                 self._connection.row_factory = sqlite3.Row
-                close = True
+                self._connected = close = True
 
                 if check and not os.path.isfile(self.path):
                     raise exceptions.InvalidDatabaseError(
@@ -122,7 +123,7 @@ class SQLiteDriver(RasterDriver):
             if close:
                 self._connection.commit()
                 self._connection.close()
-                self._connection = None
+                self._connected = False
 
     @shared_cachedmethod('db_version')
     @requires_connection

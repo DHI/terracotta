@@ -7,7 +7,6 @@ from typing import (Any, Union, Mapping, Sequence, Dict, List, Tuple,
                     TypeVar, Optional, cast, TYPE_CHECKING)
 from abc import abstractmethod
 import concurrent.futures
-from concurrent.futures import Future
 import contextlib
 import functools
 import operator
@@ -396,11 +395,12 @@ class RasterDriver(Driver):
         return arr
 
     @requires_connection
-    def get_raster_tile_async(self,
-                              keys: Union[Sequence[str], Mapping[str, str]], *,
-                              bounds: Sequence[float] = None,
-                              tile_size: Sequence[int] = (256, 256),
-                              preserve_values: bool = False) -> Future:
+    def get_raster_tile(self,
+                        keys: Union[Sequence[str], Mapping[str, str]], *,
+                        bounds: Sequence[float] = None,
+                        tile_size: Sequence[int] = (256, 256),
+                        preserve_values: bool = False,
+                        lazy: bool = False) -> Any:
         """Load tile with given keys or metadata asynchronously"""
         settings = get_settings()
         nodata = self.get_metadata(keys)['nodata']
@@ -421,4 +421,8 @@ class RasterDriver(Driver):
             upsampling_method=settings.UPSAMPLING_METHOD,
             downsampling_method=settings.DOWNSAMPLING_METHOD
         )
-        return self._executor.submit(task)
+        future = self._executor.submit(task)
+        if lazy:
+            return future
+
+        return future.result()
