@@ -28,6 +28,7 @@ install:
 
 script:
   - python -m pytest --color=yes -v
+  - python -m pytest --color=yes tests/benchmarks.py
 
 after_success:
   - codecov
