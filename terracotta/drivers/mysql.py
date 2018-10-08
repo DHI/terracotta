@@ -144,7 +144,11 @@ class MySQLDriver(RasterDriver):
 
         if self._connection is None:
             with convert_exceptions('Unable to connect to database'):
-                new_conn = pymysql.connect(read_timeout=self.DB_CONNECTION_TIMEOUT,
+                new_conn = pymysql.connect(host=self._db_host,
+                                           db=self._db_name,
+                                           user=self._db_user,
+                                           password=self._db_password,
+                                           read_timeout=self.DB_CONNECTION_TIMEOUT,
                                            write_timeout=self.DB_CONNECTION_TIMEOUT)
             self._connection = new_conn
             self._after_connection(check)
