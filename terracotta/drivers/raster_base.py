@@ -201,7 +201,7 @@ class RasterDriver(Driver):
                 f'Raster file {raster_path} is not a valid cloud-optimized GeoTIFF. '
                 'Any interaction with it will be significantly slower. '
                 'Consider optimizing it through `terracotta optimize-rasters` before ingestion.',
-                exceptions.PerformanceWarning
+                exceptions.PerformanceWarning, stacklevel=3
             )
 
         with rasterio.Env(**cls.RIO_ENV_KEYS):
@@ -422,8 +422,7 @@ class RasterDriver(Driver):
             downsampling_method=settings.DOWNSAMPLING_METHOD
         )
 
-        future = self._executor.submit(task)
         if asynchronous:
-            return future
+            return self._executor.submit(task)
         else:
-            return future.result()
+            return task()

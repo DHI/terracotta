@@ -36,7 +36,7 @@ def cli(ctx: click.Context,
     if loglevel is None:
         loglevel = settings.LOGLEVEL
 
-    logs.set_logger(loglevel, settings.LOGFILE, catch_warnings=True)
+    logs.set_logger(loglevel, catch_warnings=True)
 
 
 def entrypoint() -> None:

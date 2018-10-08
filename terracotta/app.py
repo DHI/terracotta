@@ -10,11 +10,11 @@ settings = get_settings()
 
 logs.set_logger(
     settings.LOGLEVEL,
-    settings.LOGFILE,
     catch_warnings=True
 )
 
 app = create_app(
     debug=settings.DEBUG,
-    profile=settings.FLASK_PROFILE
+    profile=settings.FLASK_PROFILE,
+    preview=True
 )

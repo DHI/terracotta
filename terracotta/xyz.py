@@ -18,7 +18,7 @@ def get_tile_data(driver: Driver,
                   *, tile_size: Tuple[int, int] = (256, 256),
                   preserve_values: bool = False,
                   asynchronous: bool = False) -> Any:
-    """Retrieve raster image for given XYZ tile"""
+    """Retrieve raster image from driver for given XYZ tile and keys"""
 
     if tile_xyz is None:
         # read whole dataset

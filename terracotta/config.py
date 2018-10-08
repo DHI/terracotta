@@ -21,7 +21,6 @@ class TerracottaSettings(NamedTuple):
     XRAY_PROFILE: bool = False
 
     LOGLEVEL: str = 'warning'
-    LOGFILE: str = ''
 
     RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490 MB
     METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10 MB
@@ -33,8 +32,8 @@ class TerracottaSettings(NamedTuple):
     REMOTE_DB_CACHE_DIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
     REMOTE_DB_CACHE_TTL: int = 10 * 60  # 10 min
 
-    UPSAMPLING_METHOD: str = 'nearest'
-    DOWNSAMPLING_METHOD: str = 'average'
+    UPSAMPLING_METHOD: str = 'cubic'
+    DOWNSAMPLING_METHOD: str = 'nearest'
 
 
 AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._field_types.keys())
@@ -56,7 +55,6 @@ class SettingSchema(Schema):
     LOGLEVEL = fields.String(
         validate=validate.OneOf(['trace', 'debug', 'info', 'warning', 'error', 'critical'])
     )
-    LOGFILE = fields.String(validate=_is_writable)
 
     RASTER_CACHE_SIZE = fields.Integer()
     METADATA_CACHE_SIZE = fields.Integer()
