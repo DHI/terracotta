@@ -7,13 +7,18 @@ METADATA_KEYS = ('bounds', 'nodata', 'range', 'mean', 'stdev', 'percentiles', 'm
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_insertion_and_retrieval(tmpdir, raster_file, provider):
+@pytest.mark.parametrize('native_crs', [False, True])
+def test_insertion_and_retrieval(tmpdir, raster_file, raster_file_3857, native_crs, provider):
     from terracotta import drivers
     dbfile = tmpdir.join('test.sqlite')
     db = drivers.get_driver(str(dbfile), provider=provider)
     keys = ('some', 'keys')
 
     db.create(keys)
+
+    if native_crs:
+        raster_file = raster_file_3857
+
     db.insert(['some', 'value'], str(raster_file))
 
     data = db.get_datasets()

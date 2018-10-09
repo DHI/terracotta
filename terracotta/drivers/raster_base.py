@@ -10,6 +10,7 @@ import concurrent.futures
 import contextlib
 import functools
 import operator
+import logging
 import math
 import sys
 import warnings
@@ -32,6 +33,8 @@ from terracotta.drivers.base import requires_connection, Driver
 from terracotta.profile import trace
 
 Number = TypeVar('Number', int, float)
+
+logger = logging.getLogger(__name__)
 
 
 class RasterDriver(Driver):
@@ -214,6 +217,13 @@ class RasterDriver(Driver):
                 if use_chunks is None:
                     use_chunks = src.width * src.height > RasterDriver.LARGE_RASTER_THRESHOLD
 
+                    if use_chunks:
+                        logger.debug(
+                            f'Raster file {raster_path} contains more than '
+                            f'{RasterDriver.LARGE_RASTER_THRESHOLD // 10**6}M pixels, computing '
+                            'metadata by iterating over chunks'
+                        )
+
                 if use_chunks and not has_crick:
                     warnings.warn(
                         'Processing a large raster file, but crick failed to import. '
@@ -317,7 +327,7 @@ class RasterDriver(Driver):
         Heavily inspired by mapbox/rio-tiler
         """
         import rasterio
-        from rasterio import transform, windows
+        from rasterio import transform, windows, crs
         from rasterio.vrt import WarpedVRT
 
         dst_bounds: Tuple[float, float, float, float]
@@ -336,37 +346,49 @@ class RasterDriver(Driver):
             except OSError:
                 raise IOError('error while reading file {}'.format(path))
 
-            # compute default bounds and transform in target CRS
-            dst_transform, dst_width, dst_height = self._calculate_default_transform(
-                src.crs, self.TARGET_CRS, src.width, src.height, *src.bounds
-            )
-            dst_res = (dst_transform.a, dst_transform.e)
-            dst_bounds = transform.array_bounds(dst_height, dst_width, dst_transform)
-
-            if bounds is None:
-                bounds = dst_bounds
-
-            # update bounds to fit the whole tile
-            vrt_bounds = [
-                min(dst_bounds[0], bounds[0]),
-                min(dst_bounds[1], bounds[1]),
-                max(dst_bounds[2], bounds[2]),
-                max(dst_bounds[3], bounds[3])
-            ]
-
-            # re-compute shape and transform with updated bounds
-            vrt_width = math.ceil((vrt_bounds[2] - vrt_bounds[0]) / dst_res[0])
-            vrt_height = math.ceil((vrt_bounds[1] - vrt_bounds[3]) / dst_res[1])
-            vrt_transform = transform.from_bounds(*vrt_bounds, width=vrt_width, height=vrt_height)
-
-            # construct VRT
-            vrt = es.enter_context(
-                WarpedVRT(
-                    src, crs=self.TARGET_CRS, resampling=upsampling_enum, init_dest_nodata=True,
-                    src_nodata=nodata, nodata=nodata, transform=vrt_transform, width=vrt_width,
-                    height=vrt_height
+            extra_args: Dict = {}
+            if src.crs != crs.CRS(init=self.TARGET_CRS):
+                logger.debug(f'Constructing VRT for {path}')
+                # compute default bounds and transform in target CRS
+                dst_transform, dst_width, dst_height = self._calculate_default_transform(
+                    src.crs, self.TARGET_CRS, src.width, src.height, *src.bounds
                 )
-            )
+                dst_res = (dst_transform.a, dst_transform.e)
+                dst_bounds = transform.array_bounds(dst_height, dst_width, dst_transform)
+
+                if bounds is None:
+                    bounds = dst_bounds
+
+                # update bounds to fit the whole tile
+                vrt_bounds = [
+                    min(dst_bounds[0], bounds[0]),
+                    min(dst_bounds[1], bounds[1]),
+                    max(dst_bounds[2], bounds[2]),
+                    max(dst_bounds[3], bounds[3])
+                ]
+
+                # re-compute shape and transform with updated bounds
+                vrt_width = math.ceil((vrt_bounds[2] - vrt_bounds[0]) / dst_res[0])
+                vrt_height = math.ceil((vrt_bounds[1] - vrt_bounds[3]) / dst_res[1])
+                vrt_transform = transform.from_bounds(
+                    *vrt_bounds, width=vrt_width, height=vrt_height
+                )
+
+                # construct VRT
+                vrt = es.enter_context(
+                    WarpedVRT(
+                        src, crs=self.TARGET_CRS, resampling=upsampling_enum, init_dest_nodata=True,
+                        src_nodata=nodata, nodata=nodata, transform=vrt_transform, width=vrt_width,
+                        height=vrt_height
+                    )
+                )
+            else:
+                logger.debug(f'Raster file {path} is already in target CRS')
+                vrt, vrt_transform = src, src.transform
+                dst_height, dst_width = src.shape
+                if bounds is None:
+                    bounds = src.bounds
+                extra_args.update(boundless=True, fill_value=nodata)
 
             # compute output window
             out_window = windows.from_bounds(*bounds, transform=vrt_transform)
@@ -387,7 +409,8 @@ class RasterDriver(Driver):
             with warnings.catch_warnings(), trace('read_from_vrt'):
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
                 arr = vrt.read(
-                    1, resampling=resampling_enum, window=out_window, out_shape=tile_size
+                    1, resampling=resampling_enum, window=out_window,
+                    out_shape=tile_size, **extra_args
                 )
 
             assert arr.shape == tile_size, arr.shape
