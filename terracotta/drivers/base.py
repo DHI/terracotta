@@ -9,8 +9,6 @@ from collections import OrderedDict
 import functools
 import contextlib
 
-import numpy as np
-
 Number = TypeVar('Number', int, float)
 T = TypeVar('T')
 
@@ -75,12 +73,17 @@ class Driver(ABC):
         pass
 
     @abstractmethod
+    # TODO: add accurate signature if mypy ever supports conditional return types
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
                         tile_size: Sequence[int] = (256, 256),
                         nodata: Number = 0,
-                        preserve_values: bool = False) -> np.ndarray:
-        """Get raster tile as a NumPy array for given keys."""
+                        preserve_values: bool = False,
+                        asynchronous: bool = False) -> Any:
+        """Get raster tile as a NumPy array for given keys and bounds.
+
+        If asynchronous=True, returns a Future containing the result instead.
+        """
         pass
 
     @staticmethod

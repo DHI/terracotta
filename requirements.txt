@@ -9,7 +9,7 @@ mercantile
 numpy
 pillow
 shapely
-rasterio>=1.0
+rasterio>=1.0,<1.0.7
 shapely
 toml
 tqdm

@@ -304,10 +304,10 @@ you the tools to build your own system. Categorical data can be served by follow
 
 #### In the frontend
 
-Ingesting categorical data this way allows us to access it from the frontend. Given that your 
+Ingesting categorical data this way allows us to access it from the frontend. Given that your
 Terracotta server runs at `example.com`, you can use the following functionality:
 
-- To get a list of all categorical data, simply send a GET request to 
+- To get a list of all categorical data, simply send a GET request to
   `example.com/datasets?type=categorical`.
 - To get the available categories of a dataset, query
   `example.com/metadata/categorical/S2/20181010/cloudmask`. The returned JSON object will contain
@@ -315,7 +315,7 @@ Terracotta server runs at `example.com`, you can use the following functionality
 
   ```json
   {
-      "extra_metadata": {
+      "metadata": {
           "categories": {
               "clear land": 0,
               "clear water": 1,

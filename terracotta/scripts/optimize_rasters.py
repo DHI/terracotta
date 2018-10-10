@@ -13,6 +13,8 @@ import logging
 from pathlib import Path
 
 import click
+from rasterio.io import DatasetReader
+from rasterio.vrt import WarpedVRT
 from rasterio.enums import Resampling
 
 from terracotta.scripts.click_utils import GlobbityGlob, PathlibPath
@@ -51,6 +53,19 @@ RESAMPLING_METHODS = {
 }
 
 
+def _get_vrt(src: DatasetReader, rs_method: int) -> WarpedVRT:
+    from terracotta.drivers.raster_base import RasterDriver
+    target_crs = RasterDriver.TARGET_CRS
+    vrt_transform, vrt_width, vrt_height = RasterDriver._calculate_default_transform(
+        src.crs, target_crs, src.width, src.height, *src.bounds
+    )
+    vrt = WarpedVRT(
+        src, crs=target_crs, resampling=rs_method, transform=vrt_transform,
+        width=vrt_width, height=vrt_height
+    )
+    return vrt
+
+
 @click.command('optimize-rasters',
                short_help='Optimize a collection of raster files for use with Terracotta.')
 @click.argument('raster-files', nargs=-1, type=GlobbityGlob(), required=True)
@@ -60,6 +75,8 @@ RESAMPLING_METHODS = {
               help='Force overwrite of existing files')
 @click.option('--resampling-method', type=click.Choice(RESAMPLING_METHODS.keys()),
               default='average', help='Resampling method for overviews', show_default=True)
+@click.option('--reproject', is_flag=True, default=False, show_default=True,
+              help='Reproject raster file to Web Mercator for faster access')
 @click.option('--in-memory/--no-in-memory', default=None,
               help='Force processing raster in memory / not in memory [default: process in memory '
                    f'if smaller than {IN_MEMORY_THRESHOLD // 1e6:.0f} million pixels]')
@@ -69,6 +86,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      output_folder: Path,
                      overwrite: bool = False,
                      resampling_method: str = 'average',
+                     reproject: bool = False,
                      in_memory: bool = None,
                      quiet: bool = False) -> None:
     """Optimize a collection of raster files for use with Terracotta.
@@ -87,6 +105,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
     from rasterio.shutil import copy
 
     raster_files_flat = sorted(set(itertools.chain.from_iterable(raster_files)))
+    rs_method = RESAMPLING_METHODS[resampling_method]
 
     if not raster_files_flat:
         click.echo('No files given')
@@ -127,11 +146,16 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 es.enter_context(rasterio.Env(**GDAL_CONFIG))
                 src = es.enter_context(rasterio.open(str(input_file)))
 
-                profile = src.profile.copy()
+                if reproject:
+                    vrt = es.enter_context(_get_vrt(src, rs_method=rs_method))
+                else:
+                    vrt = src
+
+                profile = vrt.profile.copy()
                 profile.update(COG_PROFILE)
 
                 if in_memory is None:
-                    in_memory = src.width * src.height < IN_MEMORY_THRESHOLD
+                    in_memory = vrt.width * vrt.height < IN_MEMORY_THRESHOLD
 
                 if in_memory:
                     memfile = es.enter_context(MemoryFile())
@@ -145,9 +169,9 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 windows = list(dst.block_windows(1))
 
                 for _, w in windows:
-                    block_data = src.read(window=w, indexes=[1])
+                    block_data = vrt.read(window=w, indexes=[1])
                     dst.write(block_data, window=w)
-                    block_mask = src.dataset_mask(window=w)
+                    block_mask = vrt.dataset_mask(window=w)
                     dst.write_mask(block_mask, window=w)
                     pbar.update(w.height * w.width)
 
@@ -159,7 +183,6 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 )))
 
                 overviews = [2 ** j for j in range(1, max_overview_level + 1)]
-                rs_method = RESAMPLING_METHODS[resampling_method]
                 dst.build_overviews(overviews, rs_method)
                 dst.update_tags(ns='tc_overview', resampling=rs_method.value)
 

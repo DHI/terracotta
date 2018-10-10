@@ -8,8 +8,9 @@ from click.testing import CliRunner
 import pytest
 
 
-@pytest.mark.parametrize('in_memory', [True, False, None])
-def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory):
+@pytest.mark.parametrize('in_memory', [True, False])
+@pytest.mark.parametrize('reproject', [True, False])
+def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory, reproject):
     from terracotta.cog import validate
     from terracotta.scripts import cli
 
@@ -18,25 +19,32 @@ def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory):
 
     runner = CliRunner()
 
-    if in_memory is None:
-        result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o', str(tmpdir)])
+    flags = []
+    if in_memory:
+        flags.append('--in-memory')
     else:
-        in_memory_flag = '--in-memory' if in_memory else '--no-in-memory'
-        result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o',
-                                         str(tmpdir), in_memory_flag])
+        flags.append('--no-in-memory')
+
+    if reproject:
+        flags.append('--reproject')
+
+    result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o', str(tmpdir), *flags])
 
     assert result.exit_code == 0
     assert outfile.check()
+
+    # validate files
+    assert not validate(str(unoptimized_raster_file))
+    assert validate(str(outfile))
+
+    if reproject:
+        return
 
     # check for data integrity
     with rasterio.open(str(unoptimized_raster_file)) as src1, rasterio.open(str(outfile)) as src2:
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', 'invalid value encountered.*')
             np.testing.assert_array_equal(src1.read(), src2.read())
-
-    # validate files
-    assert not validate(str(unoptimized_raster_file))
-    assert validate(str(outfile))
 
 
 def test_optimize_rasters_nofiles(tmpdir):

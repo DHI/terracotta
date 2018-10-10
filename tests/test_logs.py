@@ -1,57 +1,44 @@
 import logging
 
 
-def test_logstream(caplog):
-    caplog.set_level('DEBUG', logger='terracotta')
-
+def test_logstream(caplog, capsys):
     from terracotta import logs
-    logs.set_logger('DEBUG')
+    assert logs.use_colors
 
-    logger = logging.getLogger('terracotta')
+    logger = logs.set_logger('DEBUG')
+    caplog.set_level('DEBUG', logger='terracotta')
     logger.warning('test')
 
-    out = caplog.records
-    assert len(out) == 1
-    out = out[0]
-    assert 'test' in out.message
-    assert logs.LEVEL_PREFIX['WARNING'] == out.levelname
+    log_out = caplog.records
+    assert len(log_out) == 1
+    log_out = log_out[0]
+    assert 'test' == log_out.message
+    assert logs.LEVEL_PREFIX['WARNING'] == log_out.levelshortname
 
-    logs.set_logger('WARNING')
+    captured = capsys.readouterr()
+    assert '[!]' in captured.err
+    assert 'test' in captured.err
 
 
-def test_logstream_nocolors(monkeypatch, caplog):
-    caplog.set_level('DEBUG', logger='terracotta')
-
+def test_logstream_nocolors(monkeypatch, caplog, capsys):
     with monkeypatch.context() as m:
         from terracotta import logs
         m.setattr(logs, 'use_colors', False)
 
-        logs.set_logger('DEBUG')
+        assert not logs.use_colors
 
-        logger = logging.getLogger('terracotta')
+        logger = logs.set_logger('DEBUG')
+        caplog.set_level('DEBUG', logger='terracotta')
         logger.warning('test')
 
-        out = caplog.records
-        assert len(out) == 1
-        out = out[0]
-        assert 'test' in out.message
-        assert logs.LEVEL_PREFIX['WARNING'] == out.levelname
+        log_out = caplog.records
+        assert len(log_out) == 1
+        log_out = log_out[0]
+        assert 'test' == log_out.message
+        assert logs.LEVEL_PREFIX['WARNING'] == log_out.levelshortname
 
-        logs.set_logger('WARNING')
-
-
-def test_logfile(tmpdir):
-    from terracotta import logs
-    logfile = str(tmpdir / 'tc_log.txt')
-    logs.set_logger('DEBUG', logfile)
-
-    logger = logging.getLogger('terracotta')
-    logger.warning('test')
-
-    with open(logfile) as f:
-        assert '[!] test' in f.read()
-
-    logs.set_logger('WARNING')
+        captured = capsys.readouterr()
+        assert ' [!] test\n' == captured.err
 
 
 def test_double_init(caplog):
