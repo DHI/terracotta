@@ -107,7 +107,7 @@ def raster_file_3857(tmpdir_factory, raster_file):
     import rasterio.warp
     from terracotta.drivers.raster_base import RasterDriver
 
-    target_crs = {'init': 'epsg:3857'}
+    target_crs = RasterDriver.TARGET_CRS
     outpath = tmpdir_factory.mktemp('raster')
     unoptimized_raster = outpath.join('img-raw.tif')
 
@@ -128,6 +128,7 @@ def raster_file_3857(tmpdir_factory, raster_file):
 
     optimized_raster = outpath.join('img.tif')
     cloud_optimize(unoptimized_raster, optimized_raster)
+
     return optimized_raster
 
 

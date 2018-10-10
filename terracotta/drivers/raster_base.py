@@ -211,7 +211,7 @@ class RasterDriver(Driver):
             with rasterio.open(raster_path) as src:
                 nodata = src.nodata or 0
                 bounds = warp.transform_bounds(
-                    *[src.crs, 'epsg:4326'] + list(src.bounds), densify_pts=21
+                    src.crs, 'epsg:4326', *src.bounds, densify_pts=21
                 )
 
                 if use_chunks is None:
@@ -347,6 +347,7 @@ class RasterDriver(Driver):
                 raise IOError('error while reading file {}'.format(path))
 
             extra_args: Dict = {}
+
             if src.crs != crs.CRS(init=self.TARGET_CRS):
                 logger.debug(f'Constructing VRT for {path}')
                 # compute default bounds and transform in target CRS
