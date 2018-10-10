@@ -8,7 +8,7 @@ from click.testing import CliRunner
 import pytest
 
 
-@pytest.mark.parametrize('in_memory', [True, False])
+@pytest.mark.parametrize('in_memory', [True, None, False])
 @pytest.mark.parametrize('reproject', [True, False])
 def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory, reproject):
     from terracotta.cog import validate
@@ -20,10 +20,9 @@ def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory, reproject)
     runner = CliRunner()
 
     flags = []
-    if in_memory:
-        flags.append('--in-memory')
-    else:
-        flags.append('--no-in-memory')
+
+    if in_memory is not None:
+        flags.append('--in-memory' if in_memory else '--no-in-memory')
 
     if reproject:
         flags.append('--reproject')
