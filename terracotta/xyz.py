@@ -51,4 +51,4 @@ def tile_exists(bounds: Sequence[float], tile_x: int, tile_y: int, tile_z: int) 
     mintile = mercantile.tile(bounds[0], bounds[3], tile_z)
     maxtile = mercantile.tile(bounds[2], bounds[1], tile_z)
 
-    return mintile.x <= tile_x <= maxtile.x + 1 and mintile.y <= tile_y <= maxtile.y + 1
+    return mintile.x <= tile_x <= maxtile.x and mintile.y <= tile_y <= maxtile.y
