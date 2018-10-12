@@ -69,7 +69,8 @@ class MySQLDriver(RasterDriver):
         ('metadata', 'LONGTEXT')
     )
 
-    def __init__(self, host: str = 'localhost', user: str = None, password: str = None) -> None:
+    def __init__(self, host: str = 'localhost', user: str = None,
+                 password: str = None, port: int = 0) -> None:
         settings = get_settings()
 
         self.DB_CONNECTION_TIMEOUT: int = settings.DB_CONNECTION_TIMEOUT
@@ -77,6 +78,7 @@ class MySQLDriver(RasterDriver):
         self._db_host: str = host
         self._db_user: Optional[str] = user
         self._db_password: Optional[str] = password
+        self._db_port: int = port
         self._db_last_update: datetime = datetime.min
         self._connection: Optional[Connection] = None
         self._cursor: Optional[Cursor] = None
@@ -146,6 +148,7 @@ class MySQLDriver(RasterDriver):
                                            db='terracotta',
                                            user=self._db_user,
                                            password=self._db_password,
+                                           port=self._db_port,
                                            read_timeout=self.DB_CONNECTION_TIMEOUT,
                                            write_timeout=self.DB_CONNECTION_TIMEOUT)
             self._connection = new_conn
