@@ -207,6 +207,8 @@ class MySQLDriver(RasterDriver):
                 key_descriptions[key] = ''
 
         cursor = self._cursor
+        cursor.execute(f'CREATE DATABASE terracotta')
+        cursor.execute(f'USE terracotta')
         cursor.execute('CREATE TABLE terracotta (version VARCHAR(255))')
         cursor.execute('INSERT INTO terracotta VALUES (?)', [str(__version__)])
 
