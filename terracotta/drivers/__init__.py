@@ -3,20 +3,47 @@
 Define an interface to retrieve Terracotta drivers.
 """
 
-from typing import Callable, Any, Union, Dict
+from typing import Callable, Any, Union, Dict, Optional, NamedTuple
 import functools
 import urllib.parse as urlparse
 from pathlib import Path
+import re
 
 from terracotta.drivers.base import Driver
 from terracotta.drivers.sqlite import SQLiteDriver
 from terracotta.drivers.sqlite_remote import RemoteSQLiteDriver
+from terracotta.drivers.mysql import MySQLDriver
 
 
 DRIVERS = {
     'sqlite': SQLiteDriver,
-    'sqlite-remote': RemoteSQLiteDriver
+    'sqlite-remote': RemoteSQLiteDriver,
+    'mysql': MySQLDriver
 }
+
+
+class ConnectionInfo(NamedTuple):
+    user: str
+    password: str
+    host: str
+    port: Optional[int]
+
+
+def parse_connection(con_str: str) -> Optional[ConnectionInfo]:
+    con_reg = re.compile('(\w*?):?(\w+)@([^\s:]+):?([0-9]*)')
+    m = con_reg.match(con_str)
+
+    if m is None:
+        return None
+
+    port: Optional[int]
+    try:
+        port = int(m.group(4))
+    except ValueError:
+        port = None
+
+    return ConnectionInfo(user=m.group(1), password=m.group(2),
+                          host=m.group(3), port=port)
 
 
 def singleton(fun: Callable) -> Callable:
@@ -38,6 +65,9 @@ def auto_detect_provider(url_or_path: Union[str, Path]) -> str:
     if parsed_path.scheme == 's3':
         return 'sqlite-remote'
 
+    if parse_connection(str(url_or_path)) is not None:
+        return 'mysql'
+
     return 'sqlite'
 
 
@@ -50,5 +80,12 @@ def get_driver(url_or_path: Union[str, Path], provider: str = None) -> Driver:
         DriverClass = DRIVERS[provider]
     except KeyError as exc:
         raise ValueError(f'Unknown database provider {provider}') from exc
+
+    if DriverClass is MySQLDriver:
+        con_info = parse_connection(str(url_or_path))
+        if con_info is not None:  # required to shut up type checker
+            port = con_info.port or 0
+            return DriverClass(host=con_info.host, user=con_info.user,
+                               password=con_info.password, port=port)
 
     return DriverClass(url_or_path)
