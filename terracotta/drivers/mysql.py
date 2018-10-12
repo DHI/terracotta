@@ -69,13 +69,11 @@ class MySQLDriver(RasterDriver):
         ('metadata', 'LONGTEXT')
     )
 
-    def __init__(self, host: str = 'localhost', db_name: str = 'terracotta',
-                 user: str = None, password: str = None) -> None:
+    def __init__(self, host: str = 'localhost', user: str = None, password: str = None) -> None:
         settings = get_settings()
 
         self.DB_CONNECTION_TIMEOUT: int = settings.DB_CONNECTION_TIMEOUT
 
-        self._db_name: str = db_name
         self._db_host: str = host
         self._db_user: Optional[str] = user
         self._db_password: Optional[str] = password
@@ -107,7 +105,7 @@ class MySQLDriver(RasterDriver):
         cursor = self._cursor
         cursor.execute(f'SELECT MAX(UPDATE_TIME)'
                        'FROM information_schema.tables'
-                       'WHERE TABLE_SCHEMA = "{self._db_name}"')
+                       'WHERE TABLE_SCHEMA = "terracotta"')
         result = cursor.fetchone()[0]
         if result > self._db_last_update:
             self._empty_cache()
@@ -145,7 +143,7 @@ class MySQLDriver(RasterDriver):
         if self._connection is None:
             with convert_exceptions('Unable to connect to database'):
                 new_conn = pymysql.connect(host=self._db_host,
-                                           db=self._db_name,
+                                           db='terracotta',
                                            user=self._db_user,
                                            password=self._db_password,
                                            read_timeout=self.DB_CONNECTION_TIMEOUT,
