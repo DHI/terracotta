@@ -7,9 +7,8 @@ mercantile
 numpy
 pillow
 shapely
-rasterio[s3]>=1.0
+rasterio>=1.0,<1.0.7
 
 aws_xray_sdk
 boto3
 botocore
-zappa
