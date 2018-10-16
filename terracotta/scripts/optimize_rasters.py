@@ -69,10 +69,10 @@ def _get_vrt(src: DatasetReader, rs_method: int) -> WarpedVRT:
 @click.command('optimize-rasters',
                short_help='Optimize a collection of raster files for use with Terracotta.')
 @click.argument('raster-files', nargs=-1, type=GlobbityGlob(), required=True)
-@click.option('-o', '--output-folder', type=PathlibPath(file_okay=False), required=True,
+@click.option('-o', '--output-folder', required=True,
+              type=PathlibPath(file_okay=False, writable=True),
               help='Output folder for cloud-optimized rasters. Subdirectories will be flattened.')
-@click.option('--overwrite', is_flag=True, default=False,
-              help='Force overwrite of existing files')
+@click.option('--overwrite', is_flag=True, default=False, help='Force overwrite of existing files')
 @click.option('--resampling-method', type=click.Choice(RESAMPLING_METHODS.keys()),
               default='average', help='Resampling method for overviews', show_default=True)
 @click.option('--reproject', is_flag=True, default=False, show_default=True,

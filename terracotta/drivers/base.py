@@ -26,6 +26,8 @@ class Driver(ABC):
 
     Defines a common interface for all handlers.
     """
+    RESERVED_KEYS = ('limit', 'page')
+
     key_names: Tuple[str]
 
     @abstractmethod
@@ -49,10 +51,11 @@ class Driver(ABC):
         pass
 
     @abstractmethod
-    def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], Any]:
+    def get_datasets(self, where: Mapping[str, str] = None,
+                     limit: int = 500, page: int = 1) -> Dict[Tuple[str, ...], Any]:
         """Get all known dataset key combinations matching the given pattern (all if not given).
 
-        Values are a handle to retrieve data.
+        Return dict values are a handle to retrieve data (e.g. file path or callback).
         """
         pass
 

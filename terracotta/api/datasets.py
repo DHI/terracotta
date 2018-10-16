@@ -4,21 +4,35 @@ Flask route to handle /datasets calls.
 """
 
 from flask import request, jsonify
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, INCLUDE
 
 from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
 
 
-class WhereSchema(Schema):
-    key1 = fields.String(example='value1', description='Value of key1')
-    key2 = fields.String(example='value2', description='Value of key2')
+class DatasetOptionSchema(Schema):
+    class Meta:
+        unknown = INCLUDE
+
+    # placeholder values to document keys
+    key1 = fields.String(example='value1', description='Value of key1', dump_only=True)
+    key2 = fields.String(example='value2', description='Value of key2', dump_only=True)
+
+    # real options
+    limit = fields.Integer(
+        description='Maximum number of returned datasets per page', missing=100
+    )
+    page = fields.Integer(missing=0, description='Current dataset page')
 
 
 class DatasetSchema(Schema):
-    datasets = fields.List(fields.Dict(values=fields.String(example='value1'),
-                                       keys=fields.String(example='key1')),
-                           required=True,
-                           description='Array containing all available key combinations')
+    datasets = fields.List(
+        fields.Dict(values=fields.String(example='value1'),
+                    keys=fields.String(example='key1')),
+        required=True,
+        description='Array containing all available key combinations'
+    )
+    limit = fields.Integer(description='Maximum number of returned items', required=True)
+    page = fields.Integer(description='Current page', required=True)
 
 
 @metadata_api.route('/datasets', methods=['GET'])
@@ -30,11 +44,11 @@ def get_datasets() -> str:
         summary: /datasets
         description:
             Get keys of all available datasets that match given key constraint.
-            Constraints may be combined freely. Returns all known datasets if not query parameters
+            Constraints may be combined freely. Returns all known datasets if no query parameters
             are given.
         parameters:
           - in: query
-            schema: WhereSchema
+            schema: DatasetOptionSchema
         responses:
             200:
                 description: All available key combinations
@@ -45,8 +59,19 @@ def get_datasets() -> str:
                 description: Query parameters contain unrecognized keys
     """
     from terracotta.handlers.datasets import datasets
-    keys = dict(request.args.items()) or None
-    payload = {'datasets': datasets(keys)}
+    option_schema = DatasetOptionSchema()
+    options = option_schema.load(request.args)
+
+    limit = options.pop('limit')
+    page = options.pop('page')
+    keys = options or None
+
+    payload = {
+        'datasets': datasets(keys, page=page, limit=limit),
+        'limit': limit,
+        'page': page
+    }
+
     schema = DatasetSchema()
     return jsonify(schema.load(payload))
 

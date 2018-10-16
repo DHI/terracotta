@@ -5,7 +5,7 @@ to be present on disk.
 """
 
 from typing import (Any, Sequence, Mapping, Tuple, Union, Iterator, Dict,
-                    Callable, cast)
+                    Optional, Callable, cast)
 import sys
 import os
 import operator
@@ -193,6 +193,9 @@ class SQLiteDriver(RasterDriver):
         if not all(re.match(r'^\w+$', key) for key in keys):
             raise ValueError('key names must be alphanumeric')
 
+        if any(key in self.RESERVED_KEYS for key in keys):
+            raise ValueError(f'key names cannot be one of {self.RESERVED_KEYS!s}')
+
         for key in keys:
             if key not in key_descriptions:
                 key_descriptions[key] = ''
@@ -229,19 +232,26 @@ class SQLiteDriver(RasterDriver):
         return out
 
     @shared_cachedmethod('datasets')
-    def _get_datasets(self, where: Tuple[Tuple[str, str], ...]) -> Dict[Tuple[str, ...], str]:
+    def _get_datasets(self, where: Optional[Tuple[Tuple[str, str], ...]],
+                      page: int, limit: int) -> Dict[Tuple[str, ...], str]:
         """Cache-backed version of get_datasets"""
         conn = self._connection
 
+        # explicitly cast to int to prevent SQL injection
+        page_query = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
+
         if where is None:
-            rows = conn.execute(f'SELECT * FROM datasets')
+            rows = conn.execute(f'SELECT * FROM datasets {page_query}')
         else:
             where_keys, where_values = zip(*where)
             if not all(key in self.key_names for key in where_keys):
-                raise exceptions.UnknownKeyError('Encountered unrecognized keys in '
-                                                 'where clause')
+                raise exceptions.UnknownKeyError(
+                    'Encountered unrecognized keys in where clause'
+                )
             where_string = ' AND '.join([f'{key}=?' for key in where_keys])
-            rows = conn.execute(f'SELECT * FROM datasets WHERE {where_string}', where_values)
+            rows = conn.execute(
+                f'SELECT * FROM datasets WHERE {where_string} {page_query}', where_values
+            )
 
         def keytuple(row: sqlite3.Row) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
@@ -251,13 +261,14 @@ class SQLiteDriver(RasterDriver):
     @trace('get_datasets')
     @requires_connection
     @convert_exceptions('Could not retrieve datasets')
-    def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], str]:
+    def get_datasets(self, where: Mapping[str, str] = None,
+                     page: int = 0, limit: int = 100) -> Dict[Tuple[str, ...], str]:
         """Retrieve keys of datasets matching given pattern"""
         # make sure arguments are hashable
         if where is None:
-            return self._get_datasets(None)
+            return self._get_datasets(None, page, limit)
 
-        return self._get_datasets(tuple(where.items()))
+        return self._get_datasets(tuple(where.items()), page, limit)
 
     @staticmethod
     def _encode_data(decoded: Mapping[str, Any]) -> Dict[str, Any]:
@@ -307,10 +318,9 @@ class SQLiteDriver(RasterDriver):
         row = conn.execute(f'SELECT * FROM metadata WHERE {where_string}', keys).fetchone()
 
         if not row:  # support lazy loading
-            filepath = self._get_datasets(tuple(zip(self.key_names, keys)))
+            filepath = self._get_datasets(tuple(zip(self.key_names, keys)), page=0, limit=1)
             if not filepath:
                 raise exceptions.DatasetNotFoundError(f'No dataset found for given keys {keys}')
-            assert len(filepath) == 1
 
             # compute metadata and try again
             self.insert(keys, filepath[keys], skip_metadata=False)

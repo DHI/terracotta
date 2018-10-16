@@ -17,7 +17,6 @@ from terracotta import exceptions, __version__
 # define blueprints, will be populated by submodules
 tile_api = Blueprint('tile_api', 'terracotta')
 metadata_api = Blueprint('metadata_api', 'terracotta')
-preview_api = Blueprint('preview_api', 'terracotta')
 spec_api = Blueprint('spec_api', 'terracotta')
 
 CORS(metadata_api)  # allow access to metadata from all sources
@@ -73,9 +72,7 @@ def convert_exceptions(fun: Callable) -> Callable:
     return inner
 
 
-def create_app(debug: bool = False,
-               profile: bool = False,
-               preview: bool = False) -> Flask:
+def create_app(debug: bool = False, profile: bool = False) -> Flask:
     """Returns a Flask app"""
 
     new_app = Flask('terracotta')
@@ -106,10 +103,6 @@ def create_app(debug: bool = False,
         spec.add_path(view=terracotta.api.singleband.get_singleband)
         spec.add_path(view=terracotta.api.singleband.get_singleband_preview)
 
-    if preview:
-        import terracotta.api.map
-        new_app.register_blueprint(preview_api, url_prefix='')
-
     import terracotta.api.spec
     new_app.register_blueprint(spec_api, url_prefix='')
 
@@ -130,14 +123,6 @@ def run_app(*args: Any, allow_all_ips: bool = False, port: int = 5000, **kwargs:
     app = create_app(*args, **kwargs)
 
     host = '0.0.0.0' if allow_all_ips else 'localhost'
-    if kwargs.get('preview') and 'WERKZEUG_RUN_MAIN' not in os.environ:
-        import threading
-        import webbrowser
-
-        def open_browser() -> None:
-            webbrowser.open(f'http://127.0.0.1:{port}/')
-
-        threading.Timer(2, open_browser).start()
 
     if os.environ.get('TC_TESTING'):  # set during pytest runs
         return
