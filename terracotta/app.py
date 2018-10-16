@@ -15,6 +15,5 @@ logs.set_logger(
 
 app = create_app(
     debug=settings.DEBUG,
-    profile=settings.FLASK_PROFILE,
-    preview=True
+    profile=settings.FLASK_PROFILE
 )
