@@ -3,7 +3,7 @@
 Define an interface to retrieve Terracotta drivers.
 """
 
-from typing import Callable, Any, Union, Dict, Optional, NamedTuple
+from typing import Callable, Any, Union, Dict, Optional, NamedTuple, cast
 import functools
 import urllib.parse as urlparse
 from pathlib import Path
@@ -82,8 +82,7 @@ def get_driver(url_or_path: Union[str, Path], provider: str = None) -> Driver:
         raise ValueError(f'Unknown database provider {provider}') from exc
 
     if DriverClass is MySQLDriver:
-        con_info = parse_connection(str(url_or_path))
-        if con_info is not None:  # required to shut up type checker
+        con_info = cast(ConnectionInfo, parse_connection(str(url_or_path)))  # We know it's not None
             port = con_info.port or 0
             return DriverClass(host=con_info.host, user=con_info.user,
                                password=con_info.password, port=port)
