@@ -21,7 +21,7 @@ addons:
       - libgdal-dev
 
 before_install:
-  - pip install cython
+  - pip install "cython!=0.29"
 
 install:
   - pip install -e .[test]
