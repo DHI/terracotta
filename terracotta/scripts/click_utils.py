@@ -97,4 +97,4 @@ class Hostname(click.ParamType):
             parsed_url = urlparse(value_with_scheme)
 
         # remove everything we don't need
-        return urlunparse([parsed_url.scheme, parsed_url.netloc, parsed_url.path])
+        return urlunparse([parsed_url.scheme, parsed_url.netloc, parsed_url.path, '', '', ''])

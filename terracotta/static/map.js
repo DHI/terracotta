@@ -82,7 +82,7 @@ function getDatasetCenter(metadata){
 }
 
 
-function initUI(keys){
+function initUI(keys) {
     // initialize list of keys and key descriptions
     var keyList = document.getElementById('key-list');
     keyList.innerHTML = '';
@@ -284,7 +284,7 @@ function toggleSinglebandMapLayer(ds_keys) {
     }
     if (metadata != null) {
         var last = metadata.percentiles.length - 1;
-        layer_options.range = JSON.stringify([
+        layer_options.stretch_range = JSON.stringify([
             metadata.percentiles[2],
             metadata.percentiles[last - 2]
         ]);
@@ -333,9 +333,9 @@ function updateSearchResults() {
 
 
 function resetRGBSelectors(enabled) {
-    var rgbSelectors = document.querySelectorAll('select#rgb-selector');
+    var rgbSelectors = document.querySelectorAll('.rgb-selector');
     for (var i = 0; i < rgbSelectors.length; i++) {
-        rgbSelectors[i].innerHTML = '';
+        rgbSelectors[i].innerHTML = '<option value="null">-</option>';
         rgbSelectors[i].disabled = !enabled;
     }
 }
@@ -368,8 +368,13 @@ function populateRGBPickers(request) {
     var rgbDatasets = JSON.parse(request.responseText).datasets;
     var lastKey = keys[keys.length - 1].key;
 
-    var rgbSelectors = document.querySelectorAll('select#rgb-selector');
     resetRGBSelectors(true);
+
+    var rgbSelectors = [
+        document.querySelector('.rgb-selector#R'),
+        document.querySelector('.rgb-selector#G'),
+        document.querySelector('.rgb-selector#B')
+    ];
 
     for (var i = 0; i < rgbDatasets.length; i++) {
         var ds = rgbDatasets[i];
@@ -393,6 +398,12 @@ function populateRGBPickers(request) {
 }
 
 
+function updateActiveLayer() {
+    // parse UI state and set active layer
+
+}
+
+
 function toggleRGBLayer() {
     if (activeRGBLayer != null) {
         map.removeLayer(activeRGBLayer.layer);
@@ -405,7 +416,11 @@ function toggleRGBLayer() {
         firstKeys[i] = searchFields[i].value;
     }
 
-    var rgbSelectors = document.querySelectorAll('select#rgb-selector');
+    var rgbSelectors = [
+        document.querySelector('.rgb-selector#R'),
+        document.querySelector('.rgb-selector#G'),
+        document.querySelector('.rgb-selector#B')
+    ];
     var lastKeys = [];
     for (var i = 0; i < rgbSelectors.length; i++) {
         if (rgbSelectors[i].value == 'null')
@@ -413,15 +428,18 @@ function toggleRGBLayer() {
         lastKeys[i] = rgbSelectors[i].value;
     }
 
-    var dsID = serializeKeys(firstKeys.concat([lastKeys[0]]));
-    var metadata = dataset_metadata[dsID];
+    var someKeys = serializeKeys(firstKeys.concat([lastKeys[0]]));
+    var metadata = dataset_metadata[someKeys];
     var layerOptions = {};
     if (metadata != null) {
         var last = metadata.percentiles.length - 1;
-        layerOptions.range = JSON.stringify([
+        var range = JSON.stringify([
             metadata.percentiles[2],
             metadata.percentiles[last - 2]
         ]);
+        layerOptions.r_range = range;
+        layerOptions.g_range = range;
+        layerOptions.b_range = range;
     }
     var layer_url = assembleRGBURL(firstKeys, lastKeys, layerOptions, false);
 

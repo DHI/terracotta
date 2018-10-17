@@ -14,18 +14,23 @@ html, body {
 
 #controls {
   position: absolute;
-  width: 450px;
+  width: 400px;
   top: 0;
   right: 450px;
   bottom: 0;
   left: 0;
-  padding: 20px;
-  overflow-x: wrap;
+  padding: 25px;
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+
+.scrolling-list {
+  height: 400px;
   overflow-y: scroll;
 }
 
 table#search-results {
-  border-collapse:collapse;
+  border-collapse: collapse;
   width: 100%;
 }
 
