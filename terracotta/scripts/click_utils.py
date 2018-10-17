@@ -84,10 +84,9 @@ class Hostname(click.ParamType):
     """Parses a string to a valid hostname"""
     name = 'url'
 
-    def __init__(self, *args, default_port: int = 5000, default_scheme: str ='http', **kwargs):
+    def __init__(self, default_port: int = 5000, default_scheme: str = 'http') -> None:
         self.default_port = default_port
         self.default_scheme = default_scheme
-        super().__init__(*args, **kwargs)
 
     def convert(self, value: str, *args: Any) -> str:
         from urllib.parse import urlparse, urlunparse
@@ -98,6 +97,4 @@ class Hostname(click.ParamType):
             parsed_url = urlparse(value_with_scheme)
 
         # remove everything we don't need
-        return urlunparse([
-            parsed_url.scheme, parsed_url.netloc, parsed_url.path, None, None, None
-        ])
+        return urlunparse([parsed_url.scheme, parsed_url.netloc, parsed_url.path])

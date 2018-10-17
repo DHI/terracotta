@@ -4,7 +4,7 @@ Flask route to handle /datasets calls.
 """
 
 from flask import request, jsonify
-from marshmallow import Schema, fields, INCLUDE
+from marshmallow import Schema, fields, validate, INCLUDE
 
 from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
 
@@ -19,9 +19,12 @@ class DatasetOptionSchema(Schema):
 
     # real options
     limit = fields.Integer(
-        description='Maximum number of returned datasets per page', missing=100
+        description='Maximum number of returned datasets per page', missing=100,
+        validate=validate.Range(min=0)
     )
-    page = fields.Integer(missing=0, description='Current dataset page')
+    page = fields.Integer(
+        missing=0, description='Current dataset page', validate=validate.Range(min=0)
+    )
 
 
 class DatasetSchema(Schema):

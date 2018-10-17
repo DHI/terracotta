@@ -10,9 +10,10 @@ from pathlib import Path
 
 import pytest
 
-import boto3
-from moto import mock_s3
 from cachetools import TTLCache
+
+boto3 = pytest.importorskip('boto3')
+moto = pytest.importorskip('moto')
 
 
 @pytest.fixture(autouse=True)
@@ -68,7 +69,7 @@ def s3_db_factory(tmpdir):
     return _s3_db_factory
 
 
-@mock_s3
+@moto.mock_s3
 def test_remote_database(s3_db_factory):
     keys = ('some', 'keys')
     dbpath = s3_db_factory(keys)
@@ -95,7 +96,7 @@ def test_nonexisting_url():
             pass
 
 
-@mock_s3
+@moto.mock_s3
 def test_remote_database_cache(s3_db_factory, raster_file, monkeypatch):
     keys = ('some', 'keys')
     dbpath = s3_db_factory(keys)
@@ -136,7 +137,7 @@ def test_remote_database_cache(s3_db_factory, raster_file, monkeypatch):
             assert os.path.getmtime(driver.path) != modification_date
 
 
-@mock_s3
+@moto.mock_s3
 def test_immutability(s3_db_factory, raster_file):
     keys = ('some', 'keys')
     dbpath = s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
@@ -155,7 +156,7 @@ def test_immutability(s3_db_factory, raster_file):
         driver.delete(('some', 'value'))
 
 
-@mock_s3
+@moto.mock_s3
 def test_destructor(s3_db_factory, raster_file, capsys):
     keys = ('some', 'keys')
     dbpath = s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})

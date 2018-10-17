@@ -12,7 +12,7 @@ import pytest
 @pytest.fixture(scope='module')
 def flask_app():
     from terracotta.api import create_app
-    return create_app(preview=True)
+    return create_app()
 
 
 @pytest.fixture(scope='module')
@@ -49,6 +49,43 @@ def test_get_datasets(client, use_read_only_database):
     assert rv.status_code == 200
     datasets = json.loads(rv.data, object_pairs_hook=OrderedDict)['datasets']
     assert OrderedDict([('key1', 'val11'), ('akey', 'x'), ('key2', 'val12')]) in datasets
+
+
+def test_get_datasets_pagination(client, use_read_only_database):
+    # no page (implicit 0)
+    rv = client.get('/datasets?limit=2')
+    assert rv.status_code == 200
+    response = json.loads(rv.data, object_pairs_hook=OrderedDict)
+    assert response['limit'] == 2
+    assert response['page'] == 0
+
+    first_datasets = response['datasets']
+    assert len(first_datasets) == 2
+    assert OrderedDict([('key1', 'val11'), ('akey', 'x'), ('key2', 'val12')]) in first_datasets
+
+    # second page
+    rv = client.get('/datasets?limit=2&page=1')
+    assert rv.status_code == 200
+    response = json.loads(rv.data, object_pairs_hook=OrderedDict)
+    assert response['limit'] == 2
+    assert response['page'] == 1
+
+    last_datasets = response['datasets']
+    assert len(last_datasets) == 2
+    assert OrderedDict([('key1', 'val11'), ('akey', 'x'), ('key2', 'val12')]) not in last_datasets
+
+    # page out of range
+    rv = client.get('/datasets?limit=2&page=1000')
+    assert rv.status_code == 200
+    assert not json.loads(rv.data)['datasets']
+
+    # invalid page
+    rv = client.get('/datasets?page=-1')
+    assert rv.status_code == 400
+
+    # invalid limit
+    rv = client.get('/datasets?limit=-1')
+    assert rv.status_code == 400
 
 
 def test_get_datasets_selective(client, use_read_only_database):
@@ -256,11 +293,6 @@ def test_get_colormap_extra_args(client):
     rv = client.get('/colormap?stretch_range=[0,1]&num_values=100&foo=bar&baz=quz')
     assert rv.status_code == 200
     assert len(json.loads(rv.data)['colormap']) == 100
-
-
-def test_get_preview(client):
-    rv = client.get('/')
-    assert rv.status_code == 200
 
 
 def test_get_spec(client):

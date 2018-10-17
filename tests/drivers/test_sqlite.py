@@ -19,8 +19,8 @@ def test_metadata_cache_insertion(tmpdir, raster_file):
     db.db_version
     assert ('db_version', db) in metadata_cache
 
-    db.get_datasets()
-    assert ('datasets', db, None) in metadata_cache
+    db.get_datasets(page=0, limit=10)
+    assert ('datasets', db, None, 0, 10) in metadata_cache
 
     db.get_metadata(['some', 'value'])
     assert ('metadata', db, ('some', 'value')) in metadata_cache

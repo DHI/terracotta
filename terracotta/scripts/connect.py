@@ -12,17 +12,20 @@ from terracotta.scripts.http_utils import find_open_port
 
 @click.command(
     'connect',
-    short_help='Connect to a running Terracotta instance and interactively '
-               'explore data in it. First argument is hostname and port to connect '
-               'to (e.g. localhost:5000).'
+    short_help=(
+        'Connect to a running Terracotta instance and interactively '
+        'explore data in it. First argument is hostname and port to connect '
+        'to (e.g. localhost:5000).'
+    )
 )
 @click.argument('terracotta-hostname', required=True, type=Hostname())
 @click.option('--no-browser', is_flag=True, default=False, help='Do not open browser')
 @click.option('--port', type=click.INT, default=None,
               help='Port to use [default: first free port between 5100 and 5199].')
-def connect(terracotta_hostname, no_browser=False, port=None):
-
+def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None) -> None:
+    """Connect to a running Terracotta and interactively explore data in it."""
     test_url = f'{terracotta_hostname}/keys'
+
     with requests.get(test_url) as response:
         if not response.status_code == 200:
             click.echo(
