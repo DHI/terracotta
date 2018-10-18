@@ -139,13 +139,18 @@ class MySQLDriver(RasterDriver):
     key_names = cast(Tuple[str], property(_get_key_names))
 
     @contextlib.contextmanager
-    def connect(self, check: bool = True) -> Iterator[Connection]:
+    def connect(self, check: bool = True, nodb: bool = False) -> Iterator[Connection]:
         close = False
+
+        if nodb:
+            db = None
+        else:
+            db = 'terracotta'
 
         if self._connection is None:
             with convert_exceptions('Unable to connect to database'):
                 new_conn = pymysql.connect(host=self._db_host,
-                                           db='terracotta',
+                                           db=db,
                                            user=self._db_user,
                                            password=self._db_password,
                                            port=self._db_port,
@@ -170,24 +175,23 @@ class MySQLDriver(RasterDriver):
                 conn.close()
                 self._connection = None
 
-    @requires_connection
     @contextlib.contextmanager
-    def cursor(self, check: bool = True) -> Iterator[Cursor]:
+    def cursor(self, check: bool = True, nodb: bool = False) -> Iterator[Cursor]:
         close = False
 
-        if self._cursor is None:
-            self._cursor = self._connection.cursor()
-            close = True
+        with self.connect(nodb=nodb):
+            if self._cursor is None:
+                self._cursor = self._connection.cursor()
+                close = True
 
-        try:
-            yield self._cursor
+            try:
+                yield self._cursor
 
-        finally:
-            if close:
-                self._cursor.close()
-                self._cursor = None
+            finally:
+                if close:
+                    self._cursor.close()
+                    self._cursor = None
 
-    @requires_cursor
     @convert_exceptions('Could not create database')
     def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> None:
         """Initialize database file with empty tables.
@@ -209,24 +213,24 @@ class MySQLDriver(RasterDriver):
             if key not in key_descriptions:
                 key_descriptions[key] = ''
 
-        cursor = self._cursor
-        cursor.execute(f'CREATE DATABASE terracotta')
-        cursor.execute(f'USE terracotta')
-        cursor.execute('CREATE TABLE terracotta (version VARCHAR(255))')
-        cursor.execute('INSERT INTO terracotta VALUES (?)', [str(__version__)])
+        with self.cursor() as cursor:
+            cursor.execute(f'CREATE DATABASE terracotta')
+            cursor.execute(f'USE terracotta')
+            cursor.execute('CREATE TABLE terracotta (version VARCHAR(255))')
+            cursor.execute('INSERT INTO terracotta VALUES (?)', [str(__version__)])
 
-        cursor.execute(f'CREATE TABLE keys (key {self.KEY_TYPE}, description VARCHAR(8000))')
-        key_rows = [(key, key_descriptions[key]) for key in keys]
-        cursor.executemany('INSERT INTO keys VALUES (?, ?)', key_rows)
+            cursor.execute(f'CREATE TABLE keys (key {self.KEY_TYPE}, description VARCHAR(8000))')
+            key_rows = [(key, key_descriptions[key]) for key in keys]
+            cursor.executemany('INSERT INTO keys VALUES (?, ?)', key_rows)
 
-        key_string = ', '.join([f'{key} {self.KEY_TYPE}' for key in keys])
-        cursor.execute(f'CREATE TABLE datasets ({key_string}, filepath VARCHAR(8000), '
-                       f'PRIMARY KEY({", ".join(keys)}))')
+            key_string = ', '.join([f'{key} {self.KEY_TYPE}' for key in keys])
+            cursor.execute(f'CREATE TABLE datasets ({key_string}, filepath VARCHAR(8000), '
+                           f'PRIMARY KEY({", ".join(keys)}))')
 
-        column_string = ', '.join(f'{col} {col_type}' for col, col_type
-                                  in self.METADATA_COLUMNS)
-        cursor.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
-                       f'PRIMARY KEY ({", ".join(keys)}))')
+            column_string = ', '.join(f'{col} {col_type}' for col, col_type
+                                      in self.METADATA_COLUMNS)
+            cursor.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
+                           f'PRIMARY KEY ({", ".join(keys)}))')
 
     @shared_cachedmethod('keys')
     @requires_cursor
