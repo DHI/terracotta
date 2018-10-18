@@ -1,10 +1,8 @@
-from typing import Any
 import threading
 import webbrowser
 
 import click
 import requests
-from flask import Flask, render_template
 
 from terracotta.scripts.click_utils import Hostname
 from terracotta.scripts.http_utils import find_open_port
@@ -24,6 +22,8 @@ from terracotta.scripts.http_utils import find_open_port
               help='Port to use [default: first free port between 5100 and 5199].')
 def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None) -> None:
     """Connect to a running Terracotta and interactively explore data in it."""
+    from terracotta.client.flask_api import run_app
+
     test_url = f'{terracotta_hostname}/keys'
 
     with requests.get(test_url) as response:
@@ -33,12 +33,6 @@ def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None
                 'that Terracotta is running on the server', err=True
             )
             raise click.Abort()
-
-    preview_app = Flask('terracotta')
-
-    @preview_app.route('/', methods=['GET'])
-    def get_map() -> Any:
-        return render_template('map.html', hostname=terracotta_hostname)
 
     # find suitable port
     port_range = [port] if port is not None else range(5100, 5200)
@@ -53,4 +47,4 @@ def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None
     if not no_browser:
         threading.Timer(2, open_browser).start()
 
-    preview_app.run(port=port)
+    run_app(terracotta_hostname, port=port)

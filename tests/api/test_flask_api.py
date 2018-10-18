@@ -11,7 +11,7 @@ import pytest
 
 @pytest.fixture(scope='module')
 def flask_app():
-    from terracotta.api import create_app
+    from terracotta.server import create_app
     return create_app()
 
 

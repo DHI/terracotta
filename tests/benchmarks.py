@@ -47,7 +47,7 @@ def get_xyz(raster_file, zoom):
 @pytest.mark.parametrize('resampling', ['nearest', 'linear', 'cubic', 'average'])
 @pytest.mark.parametrize('zoom', ZOOM_XYZ.keys())
 def test_bench_rgb(benchmark, zoom, resampling, raster_file, benchmark_database):
-    from terracotta.api import create_app
+    from terracotta.server import create_app
     from terracotta import update_settings
 
     update_settings(
@@ -72,7 +72,7 @@ def test_bench_rgb(benchmark, zoom, resampling, raster_file, benchmark_database)
 
 
 def test_bench_rgb_out_of_bounds(benchmark, raster_file, benchmark_database):
-    from terracotta.api import create_app
+    from terracotta.server import create_app
     from terracotta import update_settings
 
     update_settings(
@@ -95,7 +95,7 @@ def test_bench_rgb_out_of_bounds(benchmark, raster_file, benchmark_database):
 @pytest.mark.parametrize('native_crs', [False, True])
 def test_bench_singleband(benchmark, native_crs, zoom, resampling, raster_file, raster_file_3857,
                           benchmark_database):
-    from terracotta.api import create_app
+    from terracotta.server import create_app
     from terracotta import update_settings
 
     update_settings(
@@ -121,7 +121,7 @@ def test_bench_singleband(benchmark, native_crs, zoom, resampling, raster_file, 
 
 
 def test_bench_singleband_out_of_bounds(benchmark, raster_file, benchmark_database):
-    from terracotta.api import create_app
+    from terracotta.server import create_app
     from terracotta import update_settings
 
     update_settings(

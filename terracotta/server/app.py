@@ -1,10 +1,10 @@
-"""app.py
+"""server/app.py
 
 Instantiated version of the Flask API.
 """
 
 from terracotta import get_settings, logs
-from terracotta.api import create_app
+from terracotta.server import create_app
 
 settings = get_settings()
 

@@ -51,7 +51,7 @@ def serve(database: str = None,
     a WSGI or serverless app instead.
     """
     from terracotta import get_driver, update_settings
-    from terracotta.api import run_app
+    from terracotta.server import run_app
 
     if (database is None) == (raster_pattern is None):
         raise click.UsageError('Either --database or --raster-pattern must be given')

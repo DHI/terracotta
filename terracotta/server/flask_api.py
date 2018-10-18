@@ -15,9 +15,9 @@ from terracotta import exceptions, __version__
 
 
 # define blueprints, will be populated by submodules
-tile_api = Blueprint('tile_api', 'terracotta')
-metadata_api = Blueprint('metadata_api', 'terracotta')
-spec_api = Blueprint('spec_api', 'terracotta')
+tile_api = Blueprint('tile_api', 'terracotta.server')
+metadata_api = Blueprint('metadata_api', 'terracotta.server')
+spec_api = Blueprint('spec_api', 'terracotta.server')
 
 CORS(metadata_api)  # allow access to metadata from all sources
 
@@ -75,35 +75,35 @@ def convert_exceptions(fun: Callable) -> Callable:
 def create_app(debug: bool = False, profile: bool = False) -> Flask:
     """Returns a Flask app"""
 
-    new_app = Flask('terracotta')
+    new_app = Flask('terracotta.server')
     new_app.debug = debug
 
     # suppress implicit sort of JSON responses
     new_app.config['JSON_SORT_KEYS'] = False
 
     # import submodules to populate blueprints
-    import terracotta.api.datasets
-    import terracotta.api.keys
-    import terracotta.api.colormap
-    import terracotta.api.metadata
-    import terracotta.api.rgb
-    import terracotta.api.singleband
+    import terracotta.server.datasets
+    import terracotta.server.keys
+    import terracotta.server.colormap
+    import terracotta.server.metadata
+    import terracotta.server.rgb
+    import terracotta.server.singleband
 
     new_app.register_blueprint(tile_api, url_prefix='')
     new_app.register_blueprint(metadata_api, url_prefix='')
 
     # register routes on API spec
     with new_app.test_request_context():
-        spec.add_path(view=terracotta.api.datasets.get_datasets)
-        spec.add_path(view=terracotta.api.keys.get_keys)
-        spec.add_path(view=terracotta.api.colormap.get_colormap)
-        spec.add_path(view=terracotta.api.metadata.get_metadata)
-        spec.add_path(view=terracotta.api.rgb.get_rgb)
-        spec.add_path(view=terracotta.api.rgb.get_rgb_preview)
-        spec.add_path(view=terracotta.api.singleband.get_singleband)
-        spec.add_path(view=terracotta.api.singleband.get_singleband_preview)
+        spec.add_path(view=terracotta.server.datasets.get_datasets)
+        spec.add_path(view=terracotta.server.keys.get_keys)
+        spec.add_path(view=terracotta.server.colormap.get_colormap)
+        spec.add_path(view=terracotta.server.metadata.get_metadata)
+        spec.add_path(view=terracotta.server.rgb.get_rgb)
+        spec.add_path(view=terracotta.server.rgb.get_rgb_preview)
+        spec.add_path(view=terracotta.server.singleband.get_singleband)
+        spec.add_path(view=terracotta.server.singleband.get_singleband_preview)
 
-    import terracotta.api.spec
+    import terracotta.server.spec
     new_app.register_blueprint(spec_api, url_prefix='')
 
     if profile:

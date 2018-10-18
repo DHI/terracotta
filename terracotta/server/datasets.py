@@ -1,4 +1,4 @@
-"""api/datasets.py
+"""server/datasets.py
 
 Flask route to handle /datasets calls.
 """
@@ -6,7 +6,7 @@ Flask route to handle /datasets calls.
 from flask import request, jsonify
 from marshmallow import Schema, fields, validate, INCLUDE
 
-from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
+from terracotta.server.flask_api import convert_exceptions, metadata_api, spec
 
 
 class DatasetOptionSchema(Schema):

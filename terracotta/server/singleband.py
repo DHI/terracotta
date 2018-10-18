@@ -1,4 +1,4 @@
-"""api/singleband.py
+"""server/singleband.py
 
 Flask route to handle /singleband calls.
 """
@@ -10,7 +10,7 @@ from marshmallow import (Schema, fields, validate, validates_schema,
                          pre_load, ValidationError, EXCLUDE)
 from flask import request, send_file
 
-from terracotta.api.flask_api import convert_exceptions, tile_api, spec
+from terracotta.server.flask_api import convert_exceptions, tile_api, spec
 from terracotta.cmaps import AVAILABLE_CMAPS
 
 
