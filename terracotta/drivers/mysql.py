@@ -261,7 +261,6 @@ class MySQLDriver(RasterDriver):
         return {keytuple(row): row['filepath'] for row in rows}
 
     @trace('get_datasets')
-    @requires_connection
     @convert_exceptions('Could not retrieve datasets')
     def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], str]:
         """Retrieve keys of datasets matching given pattern"""
