@@ -22,7 +22,7 @@ setup(
     install_requires=install_requires,
     extras_require={
         'test': [
-            'pytest>=3.5,<3.9',
+            'pytest>=3.5',
             'pytest-cov',
             'pytest-mypy',
             'pytest-flake8',
