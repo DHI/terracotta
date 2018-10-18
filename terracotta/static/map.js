@@ -103,7 +103,7 @@ function initUI(keys) {
         searchField.type = 'text';
         searchField.placeholder = keys[i].key;
         searchField.name = keys[i].key;
-        searchField.addEventListener('change', updateSearchResults);
+        searchField.addEventListener('change', searchFieldChanged);
         searchContainer.appendChild(searchField);
     }
 
@@ -124,7 +124,7 @@ function initUI(keys) {
     for (var i = 0; i < keys.length - 1; i++) {
         searchField = document.createElement('input');
         searchField.placeholder = keys[i].key;
-        searchField.addEventListener('change', updateRGBSearchResults);
+        searchField.addEventListener('change', RGBSearchFieldChanged);
         searchContainer.appendChild(searchField);
     }
     resetRGBSelectors(false);
@@ -224,6 +224,12 @@ function updateDatasetList(request) {
 
 function incrementResultsPage(step) {
     current_dataset_page += step;
+    updatePageControls();
+    updateSearchResults();
+}
+
+
+function updatePageControls() {
     document.getElementById('page-counter').innerHTML = current_dataset_page + 1;
     var prevPageButton = document.getElementById('prev-page');
     if (current_dataset_page > 0) {
@@ -231,7 +237,6 @@ function incrementResultsPage(step) {
     } else {
         prevPageButton.disabled = true;
     }
-    updateSearchResults();
 }
 
 
@@ -302,6 +307,13 @@ function toggleSinglebandMapLayer(ds_keys) {
 }
 
 
+function searchFieldChanged() {
+    current_dataset_page = 0;
+    updatePageControls();
+    updateSearchResults();
+}
+
+
 function updateSearchResults() {
     // initialize table header for search results
     var datasetTable = document.getElementById('search-results');
@@ -341,7 +353,7 @@ function resetRGBSelectors(enabled) {
 }
 
 
-function updateRGBSearchResults() {
+function RGBSearchFieldChanged() {
     // if all RGB search fields are filled in, populate band selectors
     var searchFields = document.querySelectorAll('#rgb-search-fields > input');
 

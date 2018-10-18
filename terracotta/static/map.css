@@ -29,6 +29,12 @@ html, body {
   overflow-y: scroll;
 }
 
+.horizontal-list {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
 table#search-results {
   border-collapse: collapse;
   width: 100%;
@@ -40,4 +46,24 @@ tr.active {
 
 .error {
   color: #dd0000;
+}
+
+.rgb-slider {
+  flex-grow: 1;
+}
+
+.rgb-label, .rgb-selector {
+  min-width: 100px;
+}
+
+#R .noUi-connect {
+	background: #c0392b;
+}
+
+#G .noUi-connect {
+	background: #27ae60;
+}
+
+#B .noUi-connect {
+	background: #2980b9;
 }

@@ -19,7 +19,8 @@
 	<h1>Terracotta @ {{ hostname }}</h1>
 
 	<h2>What is this?</h2>
-	
+	This applet lets you explore the data on any running Terracotta server.
+	Just search for a dataset to get started!
 
 	<h2>Available keys</h2>
 	<ul id="key-list">
@@ -50,17 +51,17 @@
 	</div>
 	<div id="rgb-selectors">
 		<div class="horizontal-list">
-			<span>R</span>
+			<span class="rgb-label">R</span>
 			<select class="rgb-selector" id="R" onchange="toggleRGBLayer();" disabled></select>
 			<div class="rgb-slider" id="R"></div>
 		</div>
 		<div class="horizontal-list">
-			<span>G</span>
+			<span class="rgb-label">G</span>
 			<select class="rgb-selector" id="G" onchange="toggleRGBLayer();" disabled></select>
 			<div class="rgb-slider" id="G"></div>
 		</div>
 		<div class="horizontal-list">
-			<span>B</span>
+			<span class="rgb-label">B</span>
 			<select class="rgb-selector" id="B" onchange="toggleRGBLayer();" disabled></select>
 			<div class="rgb-slider" id="B"></div>
 		</div>
@@ -72,7 +73,12 @@
 <script type="text/javascript">
 	window.onload = function() {
 		// create sliders
-		var sliderDummyOptions = {'start': 0, 'range': {'min': 0, 'max': 100}};
+		var sliderDummyOptions = {
+			'start': [0.0, 1.0],
+			'range': {'min': 0, 'max': 1},
+			'connect': true,
+			'behaviour': 'drag'
+		};
 
 		var singlebandSlider = document.querySelector('.singleband-slider');
 		noUiSlider.create(singlebandSlider, sliderDummyOptions);
