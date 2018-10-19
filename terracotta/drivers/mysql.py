@@ -46,7 +46,7 @@ def shared_cachedmethod(key: str) -> Callable[..., Callable[..., Any]]:
 
 def requires_cursor(fun: Callable[..., T]) -> Callable[..., T]:
     @functools.wraps(fun)
-    def inner(self: MySQLDriver, *args: Any, **kwargs: Any) -> T:
+    def inner(self: 'MySQLDriver', *args: Any, **kwargs: Any) -> T:
         with self.cursor():
             return fun(self, *args, **kwargs)
     return inner
