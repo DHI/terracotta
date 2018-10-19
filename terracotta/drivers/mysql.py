@@ -4,8 +4,9 @@ MySQL-backed raster driver. Metadata is stored in a MySQL database, raster data 
 to be present on disk.
 """
 
-from Typing import (Tuple, Dict, Iterator, Callable, Sequence, Union,
-                    Mapping, Any, OrderedDict, Optional, cast)
+from typing import (Tuple, Dict, Iterator, Callable, Sequence, Union,
+                    Mapping, Any, Optional, cast)
+from collections import OrderedDict
 import sys
 import operator
 import contextlib
@@ -18,6 +19,7 @@ from cachetools import LFUCache, cachedmethod
 import cachetools.keys
 import pymysql
 from pymysql.connections import Connection, Cursor
+from pymysql.cursors import DictCursor
 import numpy as np
 
 from terracotta import get_settings, __version__
@@ -93,8 +95,9 @@ class MySQLDriver(RasterDriver):
     @convert_exceptions('Could not retrieve version from database')
     def _get_db_version(self) -> str:
         """Getter for db_version"""
-        cursor = self._cursor
-        db_row = cursor.execute('SELECT version from terracotta').fetchone()
+        cursor = cast(DictCursor, self._cursor)
+        cursor.execute('SELECT version from terracotta')
+        db_row = cast(Dict[str, str], cursor.fetchone())
         return db_row['version']
 
     db_version = cast(str, property(_get_db_version))
@@ -104,14 +107,15 @@ class MySQLDriver(RasterDriver):
         """Called after opening a new connection"""
         # invalidate cache if db has changed since last connection
 
-        cursor = self._cursor
+        cursor = cast(Cursor, self._cursor)
         cursor.execute(f'SELECT MAX(UPDATE_TIME)'
                        'FROM information_schema.tables'
                        'WHERE TABLE_SCHEMA = "terracotta"')
-        result = cursor.fetchone()[0]
-        if result > self._db_last_update:
+        result = cast(Dict[str, datetime], cursor.fetchone())
+        upd_time = result['MAX(UPDATE_TIME)']
+        if upd_time > self._db_last_update:
             self._empty_cache()
-            self._db_last_update = result
+            self._db_last_update = upd_time
 
         if not validate:
             return
@@ -181,15 +185,16 @@ class MySQLDriver(RasterDriver):
 
         with self.connect(nodb=nodb):
             if self._cursor is None:
-                self._cursor = self._connection.cursor()
+                cursor = cast(Connection, self._connection).cursor(DictCursor)
+                self._cursor = cursor
                 close = True
 
             try:
-                yield self._cursor
+                yield cursor
 
             finally:
                 if close:
-                    self._cursor.close()
+                    cursor.close()
                     self._cursor = None
 
     @convert_exceptions('Could not create database')
@@ -237,29 +242,34 @@ class MySQLDriver(RasterDriver):
     @convert_exceptions('Could not retrieve keys from database')
     def get_keys(self) -> OrderedDict:
         """Retrieve key names and descriptions from database"""
-        cursor = self._cursor
+        cursor = cast(DictCursor, self._cursor)
         cursor.execute('SELECT * FROM keys')
-        key_rows = cursor.fetchall()
+        key_rows = cursor.fetchall() or []
 
-        return OrderedDict(key_rows)
+        out: OrderedDict = OrderedDict()
+        for row in key_rows:
+            out[row['key']] = row['description']
+        return out
 
     @shared_cachedmethod('datasets')
     @requires_cursor
     def _get_datasets(self, where: Tuple[Tuple[str, str], ...]) -> Dict[Tuple[str, ...], str]:
         """Cache-backed version of get_datasets"""
-        cursor = self._cursor
+        cursor = cast(DictCursor, self._cursor)
 
         if where is None:
-            rows = cursor.execute(f'SELECT * FROM datasets')
+            cursor.execute(f'SELECT * FROM datasets')
+            rows = cursor.fetchall()
         else:
             where_keys, where_values = zip(*where)
             if not all(key in self.key_names for key in where_keys):
                 raise exceptions.UnknownKeyError('Encountered unrecognized keys in '
                                                  'where clause')
             where_string = ' AND '.join([f'{key}=?' for key in where_keys])
-            rows = cursor.execute(f'SELECT * FROM datasets WHERE {where_string}', where_values)
+            cursor.execute(f'SELECT * FROM datasets WHERE {where_string}', where_values)
+            rows = cursor.fetchall() or []
 
-        def keytuple(row: tuple) -> Tuple[str, ...]:
+        def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
 
         return {keytuple(row): row['filepath'] for row in rows}
@@ -317,10 +327,11 @@ class MySQLDriver(RasterDriver):
         if len(keys) != len(self.key_names):
             raise exceptions.UnknownKeyError('Got wrong number of keys')
 
-        cursor = self._cursor
+        cursor = cast(DictCursor, self._cursor)
 
         where_string = ' AND '.join([f'{key}=?' for key in self.key_names])
-        row = cursor.execute(f'SELECT * FROM metadata WHERE {where_string}', keys).fetchone()
+        cursor.execute(f'SELECT * FROM metadata WHERE {where_string}', keys)
+        row = cursor.fetchone()
 
         if not row:  # support lazy loading
             filepath = self._get_datasets(tuple(zip(self.key_names, keys)))
@@ -330,7 +341,8 @@ class MySQLDriver(RasterDriver):
 
             # compute metadata and try again
             self.insert(keys, filepath[keys], skip_metadata=False)
-            row = cursor.execute(f'SELECT * FROM metadata WHERE {where_string}', keys).fetchone()
+            cursor.execute(f'SELECT * FROM metadata WHERE {where_string}', keys)
+            row = cursor.fetchone()
 
         assert row
 
@@ -357,7 +369,7 @@ class MySQLDriver(RasterDriver):
                skip_metadata: bool = False,
                override_path: str = None) -> None:
         """Insert a dataset into the database"""
-        cursor = self._cursor
+        cursor = cast(Cursor, self._cursor)
 
         if len(keys) != len(self.key_names):
             raise ValueError(f'Not enough keys (available keys: {self.key_names})')
@@ -386,7 +398,7 @@ class MySQLDriver(RasterDriver):
     @convert_exceptions('Could not write to database')
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         """Delete a dataset from the database"""
-        cursor = self._cursor
+        cursor = cast(Cursor, self._cursor)
 
         if len(keys) != len(self.key_names):
             raise ValueError(f'Not enough keys (available keys: {self.key_names})')
