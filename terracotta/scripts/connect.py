@@ -31,13 +31,15 @@ def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None
 
     test_url = f'{terracotta_hostname}/keys'
 
-    with requests.get(test_url) as response:
-        if not response.status_code == 200:
-            click.echo(
-                f'Could not connect to {test_url}, check hostname and ensure '
-                'that Terracotta is running on the server', err=True
-            )
-            raise click.Abort()
+    try:
+        with requests.get(test_url, timeout=2) as response:
+            response.raise_for_status()
+    except requests.exceptions.RequestException:
+        click.echo(
+            f'Could not connect to {test_url}, check hostname and ensure '
+            'that Terracotta is running on the server', err=True
+        )
+        raise click.Abort()
 
     # find suitable port
     port_range = [port] if port is not None else range(5100, 5200)
