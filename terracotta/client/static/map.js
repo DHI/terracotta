@@ -1,3 +1,28 @@
+/* BEWARE! THERE BE DRAGONS!
+
+The following file was written by a Python programmer with minimal exposure 
+to idiomatic Javascript. It should not serve as an authoritive reference on
+how a frontend for Terracotta should be written.
+*/
+
+
+/* Constants */
+
+var datasets_per_page = 5;
+var colormaps = [
+    {display_name: 'Greyscale', id: 'greys_r'},
+    {display_name: 'Viridis', id: 'viridis'},
+    {display_name: 'Red-Blue', id: 'rdbu'},
+    {display_name: 'Blue-Green', id: 'bugn'},
+    {display_name: 'Yellow-Green', id: 'ylgn'},
+    {display_name: 'Magma', id: 'magma'},
+    {display_name: 'Earth', id: 'gist_earth'},
+    {display_name: 'Ocean', id: 'ocean'}
+];
+
+
+/* Convenience functions to get valid Terracotta URLs */
+
 function getKeys() {
     var http_request = new XMLHttpRequest();
     http_request.open('GET', remote_host + '/keys', false);
@@ -55,7 +80,7 @@ function assembleSinglebandURL(keys, options, preview) {
 }
 
 
-function assembleRGBURL(first_keys, rgb_keys, options, preview) {
+function assembleRgbUrl(first_keys, rgb_keys, options, preview) {
     if (preview) {
         var request_url = remote_host + '/rgb/' + first_keys.join('/') + '/preview.png';
     } else {
@@ -75,10 +100,30 @@ function assembleRGBURL(first_keys, rgb_keys, options, preview) {
     return request_url;
 }
 
+function assembleColormapUrl(colormap, num_values) {
+    return remote_host + '/colormap?colormap=' + colormap + 
+           '&stretch_range=[0,1]&num_values=' + num_values;
+}
 
-function getDatasetCenter(metadata){
-    var bounds = metadata.bounds;
-    return [(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2];
+
+/* Initializers */
+
+function getColorbars() {
+    for (var i = 0; i < colormaps.length; i++) {
+        var cmap = colormaps[i].id;
+        var req = new XMLHttpRequest();
+        req.open('GET', assembleColormapUrl(cmap, 100));
+        req.addEventListener('load', function (req, cmap) {
+            var response = JSON.parse(req.responseText).colormap;
+            if (response != null) {
+                colorbars[cmap] = [];
+                for (var j = 0; j < 100; j++) {
+                    colorbars[cmap][j] = response[j].rgb;
+                }
+            }
+        }.bind(null, req, cmap));
+        req.send();
+    }
 }
 
 
@@ -93,6 +138,19 @@ function initUI(keys) {
             keyEntry.innerHTML += ': ' + keys[i].description;
         }
         keyList.appendChild(keyEntry);
+    }
+
+    // initialize colormap selector
+    var colormapSelector = document.getElementById('colormap-selector');
+    colormapSelector.innerHTML = '';
+    for (var i = 0; i < colormaps.length; i++) {
+        var cmapOption = document.createElement('option');
+        cmapOption.value = colormaps[i].id;
+        cmapOption.innerHTML = colormaps[i].display_name;
+        if (i == 0) {
+            cmapOption.selected = true;
+        }
+        colormapSelector.appendChild(cmapOption);
     }
 
     // initialize search fields
@@ -124,30 +182,80 @@ function initUI(keys) {
     for (var i = 0; i < keys.length - 1; i++) {
         searchField = document.createElement('input');
         searchField.placeholder = keys[i].key;
-        searchField.addEventListener('change', RGBSearchFieldChanged);
+        searchField.addEventListener('change', rgbSearchFieldChanged);
         searchContainer.appendChild(searchField);
     }
-    resetRGBSelectors(false);
+
+    resetRgbSelectors(false);
+
+    // create sliders
+    var sliderDummyOptions = {
+        'start': [0.0, 1.0],
+        'range': { 'min': 0, 'max': 1 },
+        'connect': true,
+        'behaviour': 'drag'
+    };
+
+    var singlebandSlider = document.querySelector('.singleband-slider');
+    noUiSlider.create(
+        singlebandSlider, sliderDummyOptions
+    ).on('change.one', function () {
+        current_singleband_stretch = singlebandSlider.noUiSlider.get();
+        var currentKeys = activeSinglebandLayer.keys;
+        // reload layer
+        toggleSinglebandMapLayer();
+        addSinglebandMapLayer(currentKeys, false);
+    });
+    singlebandSlider.noUiSlider.on('update', function (values, handle) {
+        var showValue = [
+            document.getElementById('singleband-value-lower'), 
+            document.getElementById('singleband-value-upper')
+        ];
+        showValue[handle].innerHTML = values[handle];
+    });
+    singlebandSlider.setAttribute('disabled', true);
+
+    var rgbSliders = document.querySelectorAll('.rgb-slider');
+    var rgbIds = ['R', 'G', 'B'];
+    for (var i = 0; i < rgbSliders.length; i++) {
+        noUiSlider.create(
+            rgbSliders[i], sliderDummyOptions
+        ).on('change.one', function () {
+            current_rgb_stretch = [
+                rgbSliders[0].noUiSlider.get(),
+                rgbSliders[1].noUiSlider.get(),
+                rgbSliders[2].noUiSlider.get()
+            ];
+            var currentIndexKeys = activeRgbLayer.index_keys;
+            var currentRgbKeys = activeRgbLayer.rgb_keys;
+            // reload layer
+            toggleRgbMapLayer();
+            addRgbMapLayer(currentIndexKeys, currentRgbKeys, false);
+        });
+        rgbSliders[i].noUiSlider.on('update', function (values, handle) {
+            var showValue = [
+                document.querySelector('.rgb-value-lower#' + rgbIds[i]),
+                document.querySelector('.rgb-value-upper#' + rgbIds[i]),
+            ];
+            showValue[handle].innerHTML = values[handle];
+        });
+        rgbSliders[i].setAttribute('disabled', true);
+    }
+
     updateColormap();
 }
 
 
-function updateColormap() {
-    var colormapSelector = document.getElementById('colormap-selector');
-    current_colormap = colormapSelector.selectedOptions[0].value;
+/* Helper functions */
 
-    if (activeSinglebandLayer == null)
-        return;
-
-    // toggle layer on and off to reload
-    var ds_keys = activeSinglebandLayer.keys;
-    toggleSinglebandMapLayer(ds_keys);
-    toggleSinglebandMapLayer(ds_keys);
+function serializeKeys(ds_keys) {
+    return ds_keys.join('/');
 }
 
 
-function serializeKeys(ds_keys) {
-    return ds_keys.join('__');
+function getDatasetCenter(metadata) {
+    var bounds = metadata.bounds;
+    return [(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2];
 }
 
 
@@ -156,6 +264,38 @@ function storeMetadata(e) {
     var metadata = JSON.parse(req.responseText);
     var ds_keys = serializeKeys(Object.values(metadata.keys));
     dataset_metadata[ds_keys] = metadata;
+}
+
+
+/* Handle search results and singleband layers*/
+
+function updateSearchResults() {
+    // initialize table header for search results
+    var datasetTable = document.getElementById('search-results');
+    datasetTable.innerHTML = '';
+    var tableHeader = document.createElement('tr');
+    for (var i = 0; i < keys.length; i++) {
+        headerEntry = document.createElement('th');
+        headerEntry.innerHTML = keys[i].key;
+        tableHeader.appendChild(headerEntry);
+    }
+    datasetTable.appendChild(tableHeader);
+
+    // get key constraints from UI
+    var key_constraints = [];
+    var datasetSearchFields = document.querySelectorAll('#search-fields input');
+    for (var i = 0; i < datasetSearchFields.length; i++) {
+        var ds_field = datasetSearchFields[i];
+        if (ds_field.value != '') {
+            key_constraints.push({ key: ds_field.name, value: ds_field.value });
+        }
+    }
+
+    // request datasets
+    var req = new XMLHttpRequest();
+    req.open('GET', assembleDatasetURL(key_constraints, datasets_per_page, current_dataset_page));
+    req.addEventListener('load', updateDatasetList.bind(null, req));
+    req.send();
 }
 
 
@@ -240,6 +380,29 @@ function updatePageControls() {
 }
 
 
+function updateColormap() {
+    var colormapSelector = document.getElementById('colormap-selector');
+    current_colormap = colormapSelector.selectedOptions[0].value;
+
+    var slider = document.querySelector('.singleband-slider .noUi-connect');
+    var colorbar = colorbars[current_colormap];
+    var gradient = 'linear-gradient(to right'
+    for (var i = 0; i < colorbar.length; i++) {
+        gradient += ', rgb(' + colorbar[i].join(',') + ')';
+    }
+    gradient += ')'
+    slider.style.backgroundImage = gradient;
+
+    if (activeSinglebandLayer == null)
+        return;
+
+    // toggle layer on and off to reload
+    var ds_keys = activeSinglebandLayer.keys;
+    toggleSinglebandMapLayer();
+    addSinglebandMapLayer(ds_keys, false);
+}
+
+
 function toggleFootprintOverlay(keys) {
     if (overlayLayer != null) {
         map.removeLayer(overlayLayer);
@@ -264,35 +427,64 @@ function toggleFootprintOverlay(keys) {
 }
 
 
-function toggleSinglebandMapLayer(ds_keys) {
-    var layer_id = serializeKeys(ds_keys);
-    var resultRow = document.getElementById('dataset-' + layer_id);
+function toggleSinglebandMapLayer(ds_keys, resetView = true) {
+    var singlebandSlider = document.querySelector('.singleband-slider');
 
-    if (activeSinglebandLayer != null) {
+    if (activeSinglebandLayer != null || ds_keys == null) {
         map.removeLayer(activeSinglebandLayer.layer);
+        var currentKeys = activeSinglebandLayer.keys;
         activeSinglebandLayer = null;
 
         var currentActiveRow = document.querySelector('#search-results > .active');
         if (currentActiveRow != null) {
             currentActiveRow.classList.remove('active');
+        }
 
-            if (currentActiveRow == resultRow) {
-                return;
-            }
+        singlebandSlider.setAttribute('disabled', true);
+
+        if (ds_keys == null || currentKeys == ds_keys) {
+            return;
         }
     }
 
+    if (activeRgbLayer != null) {
+        toggleRgbLayer();
+    }
+
+    var layer_id = serializeKeys(ds_keys);
     var metadata = dataset_metadata[layer_id];
+
+    if (metadata != null) {
+        var last = metadata.percentiles.length - 1;
+        current_singleband_stretch = [
+            metadata.percentiles[2],
+            metadata.percentiles[last - 2]
+        ];
+        singlebandSlider.noUiSlider.updateOptions({
+            'start': current_singleband_stretch,
+            'range': {
+                'min': metadata.range[0],
+                '30%': metadata.percentiles[5],
+                '70%': metadata.percentiles[last - 5],
+                'max': metadata.range[1]
+            }
+        });
+    }
+
+    addSinglebandMapLayer(ds_keys, resetView);
+}
+
+
+function addSinglebandMapLayer(ds_keys, resetView = true) {
+    var layer_id = serializeKeys(ds_keys);
+    var metadata = dataset_metadata[layer_id];
+
     var layer_options = {};
     if (current_colormap != null) {
         layer_options.colormap = current_colormap;
     }
-    if (metadata != null) {
-        var last = metadata.percentiles.length - 1;
-        layer_options.stretch_range = JSON.stringify([
-            metadata.percentiles[2],
-            metadata.percentiles[last - 2]
-        ]);
+    if (current_singleband_stretch != null) {
+        layer_options.stretch_range = JSON.stringify(current_singleband_stretch);
     }
     var layer_url = assembleSinglebandURL(ds_keys, layer_options);
     
@@ -300,8 +492,11 @@ function toggleSinglebandMapLayer(ds_keys) {
         keys: ds_keys,
         layer: L.tileLayer(layer_url).addTo(map)
     };
-    resultRow.classList.add('active');
-    if (metadata != null) {
+
+    document.getElementById('dataset-' + layer_id).classList.add('active');
+    document.querySelector('.singleband-slider').removeAttribute('disabled');
+
+    if (resetView && metadata != null) {
         map.flyTo(getDatasetCenter(metadata), 9);
     }
 }
@@ -314,53 +509,26 @@ function searchFieldChanged() {
 }
 
 
-function updateSearchResults() {
-    // initialize table header for search results
-    var datasetTable = document.getElementById('search-results');
-    datasetTable.innerHTML = '';
-    var tableHeader = document.createElement('tr');
-    for (var i = 0; i < keys.length; i++) {
-        headerEntry = document.createElement('th');
-        headerEntry.innerHTML = keys[i].key;
-        tableHeader.appendChild(headerEntry);
-    }
-    datasetTable.appendChild(tableHeader);
 
-    // get key constraints from UI
-    var key_constraints = [];
-    var datasetSearchFields = document.querySelectorAll('#search-fields input');
-    for (var i = 0; i < datasetSearchFields.length; i++) {
-        var ds_field = datasetSearchFields[i];
-        if (ds_field.value != '') {
-            key_constraints.push({key: ds_field.name, value: ds_field.value});
-        }
-    }
+/* Handle RGB layer controls */
 
-    // request datasets
-    var req = new XMLHttpRequest();
-    req.open('GET', assembleDatasetURL(key_constraints, datasets_per_page, current_dataset_page));
-    req.addEventListener('load', updateDatasetList.bind(null, req));
-    req.send();
-}
-
-
-function resetRGBSelectors(enabled) {
+function resetRgbSelectors(enabled) {
     var rgbSelectors = document.querySelectorAll('.rgb-selector');
     for (var i = 0; i < rgbSelectors.length; i++) {
-        rgbSelectors[i].innerHTML = '<option value="null">-</option>';
+        rgbSelectors[i].innerHTML = '<option value="">-</option>';
         rgbSelectors[i].disabled = !enabled;
     }
 }
 
 
-function RGBSearchFieldChanged() {
+function rgbSearchFieldChanged() {
     // if all RGB search fields are filled in, populate band selectors
     var searchFields = document.querySelectorAll('#rgb-search-fields > input');
 
     var searchKeys = [];
     for (var i = 0; i < searchFields.length; i++) {
         if (!searchFields[i].value) {
-            resetRGBSelectors(false);
+            resetRgbSelectors(false);
             return;
         }
         searchKeys[i] = {
@@ -371,16 +539,16 @@ function RGBSearchFieldChanged() {
 
     var req = new XMLHttpRequest();
     req.open('GET', assembleDatasetURL(searchKeys, 1000, 0));
-    req.addEventListener('load', populateRGBPickers.bind(null, req));
+    req.addEventListener('load', populateRgbPickers.bind(null, req));
     req.send();
 }
 
 
-function populateRGBPickers(request) {
+function populateRgbPickers(request) {
     var rgbDatasets = JSON.parse(request.responseText).datasets;
     var lastKey = keys[keys.length - 1].key;
 
-    resetRGBSelectors(true);
+    resetRgbSelectors(true);
 
     var rgbSelectors = [
         document.querySelector('.rgb-selector#R'),
@@ -410,18 +578,7 @@ function populateRGBPickers(request) {
 }
 
 
-function updateActiveLayer() {
-    // parse UI state and set active layer
-
-}
-
-
-function toggleRGBLayer() {
-    if (activeRGBLayer != null) {
-        map.removeLayer(activeRGBLayer.layer);
-        activeRGBLayer = null;
-    }
-
+function rgbSelectorChanged() {
     var searchFields = document.querySelectorAll('#rgb-search-fields > input');
     var firstKeys = [];
     for (var i = 0; i < searchFields.length; i++) {
@@ -435,50 +592,94 @@ function toggleRGBLayer() {
     ];
     var lastKeys = [];
     for (var i = 0; i < rgbSelectors.length; i++) {
-        if (rgbSelectors[i].value == 'null')
-            return;
+        if (!rgbSelectors[i].value)
+            return toggleRgbLayer();
         lastKeys[i] = rgbSelectors[i].value;
     }
 
-    var someKeys = serializeKeys(firstKeys.concat([lastKeys[0]]));
-    var metadata = dataset_metadata[someKeys];
-    var layerOptions = {};
-    if (metadata != null) {
-        var last = metadata.percentiles.length - 1;
-        var range = JSON.stringify([
-            metadata.percentiles[2],
-            metadata.percentiles[last - 2]
-        ]);
-        layerOptions.r_range = range;
-        layerOptions.g_range = range;
-        layerOptions.b_range = range;
-    }
-    var layer_url = assembleRGBURL(firstKeys, lastKeys, layerOptions, false);
+    toggleRgbLayer(firstKeys, lastKeys);
+}
 
-    activeRGBLayer = {
+
+function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
+    var rgbControls = document.getElementById('rgb');
+
+    if (activeRgbLayer != null) {
+        map.removeLayer(activeRgbLayer.layer);
+        var currentFirstKeys = activeRgbLayer.index_keys;
+        var currentLastKeys = activeRgbLayer.rgb_keys;
+        activeRgbLayer = null;
+        rgbControls.classList.remove('active');
+        if (firstKeys == null || lastKeys == null) {
+            return;
+        }
+        if (serializeKeys(currentFirstKeys) == serializeKeys(firstKeys)
+            && serializeKeys(currentLastKeys) == serializeKeys(lastKeys)) {
+            return;
+        }
+    }
+
+    if (firstKeys == null || lastKeys == null) {
+        return;
+    }
+
+    if (activeSinglebandLayer != null) {
+        toggleSinglebandMapLayer(activeSinglebandLayer.keys);
+    }
+
+    var layerOptions = {};
+    var stretchOptions = [];
+    for (var i = 0; i < 3; i++) {
+        var someKeys = serializeKeys(firstKeys.concat([lastKeys[i]]));
+        var metadata = dataset_metadata[someKeys];
+        if (metadata != null) {
+            var rgbSlider = document.querySelector()
+            var last = metadata.percentiles.length - 1;
+            current_rgb_stretch[i] = [
+                metadata.percentiles[2],
+                metadata.percentiles[last - 2]
+            ];
+            rgbSlider.noUiSlider.updateOptions({
+                'start': current_singleband_stretch,
+                'range': {
+                    'min': metadata.range[0],
+                    '30%': metadata.percentiles[5],
+                    '70%': metadata.percentiles[last - 5],
+                    'max': metadata.range[1]
+                }
+            });
+        }
+    }
+    var layer_url = assembleRgbUrl(firstKeys, lastKeys, layerOptions, false);
+
+    activeRgbLayer = {
         index_keys: firstKeys,
         rgb_keys: lastKeys,
         layer: L.tileLayer(layer_url).addTo(map)
     };
+    rgbControls.classList.add('active');
 
-    if (metadata != null) {
+    if (resetView && metadata != null) {
         map.flyTo(getDatasetCenter(metadata), 9);
     }
 }
 
-// constants
-var datasets_per_page = 5;
+/* Initialize global state */
 
-// initialize global state
 var remote_host;
 var keys, datasets, dataset_metadata;
-var current_dataset_page, current_colormap;
-var map, overlayLayer, activeSinglebandLayer, activeRGBLayer;
+var colorbars;
+var current_dataset_page, current_colormap, current_singleband_stretch, current_rgb_stretch;
+var map, overlayLayer, activeSinglebandLayer, activeRgbLayer;
 
 
+/* Main entrypoint */
 function initializeApp(hostname){
     remote_host = hostname;
 
+    colorbars = {};
+    getColorbars();
+    
     keys = getKeys();
     initUI(keys);
 

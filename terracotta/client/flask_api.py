@@ -1,4 +1,5 @@
 from typing import Any
+import os
 
 from flask import Flask, render_template, current_app, Blueprint
 
@@ -20,4 +21,9 @@ def create_app(hostname: str) -> Flask:
 
 
 def run_app(hostname: str, port: int = 5100) -> None:
-    create_app(hostname).run(port=port)
+    client_app = create_app(hostname)
+
+    if os.environ.get('TC_TESTING'):
+        return
+
+    client_app.run(port=port)  # pragma: no cover

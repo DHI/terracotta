@@ -1,3 +1,8 @@
+"""scripts/http_utils.py
+
+Various utilities to work with HTTP connections
+"""
+
 from typing import Optional, Sequence
 
 

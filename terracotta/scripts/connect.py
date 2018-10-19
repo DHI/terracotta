@@ -1,3 +1,8 @@
+"""scripts/connect.py
+
+Use Flask development server to serve Terracotta client app.
+"""
+
 import threading
 import webbrowser
 

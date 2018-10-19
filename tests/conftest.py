@@ -1,4 +1,7 @@
 import os
+import multiprocessing
+import time
+from functools import partial
 
 import pytest
 
@@ -300,3 +303,30 @@ def read_only_database(raster_file, raster_file_3857, tmpdir_factory):
 def use_read_only_database(read_only_database, monkeypatch):
     import terracotta
     terracotta.update_settings(DRIVER_PATH=str(read_only_database))
+
+
+def run_test_server(driver_path, port):
+    from terracotta import update_settings
+    update_settings(DRIVER_PATH=driver_path)
+
+    from terracotta.server.flask_api import create_app
+    create_app().run(port=port)
+
+
+@pytest.fixture(scope='session')
+def test_server(read_only_database):
+    """Spawn a Terracotta server in a separate process"""
+    port = 5555
+    server_proc = multiprocessing.Process(
+        target=partial(run_test_server, driver_path=str(read_only_database), port=port)
+    )
+    server_proc.start()
+    try:
+        # make sure server has started up
+        time.sleep(1)
+        assert server_proc.is_alive()
+        yield f'localhost:{port}'
+    finally:
+        server_proc.terminate()
+        server_proc.join(5)
+        assert not server_proc.is_alive()

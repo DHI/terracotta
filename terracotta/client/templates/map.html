@@ -38,32 +38,39 @@
 
 	<h3>Choose a colormap</h3>
 	<select id="colormap-selector" onchange="updateColormap();">
-		<option value="greys_r" selected>Greyscale</option>
-		<option value="viridis">Viridis</option>
-		<option value="rdbu">Red-Blue</option>
 	</select>
 
 	<h3>Adjust contrast</h3>
+	<span id="singleband-value-lower"></span>
 	<div class="singleband-slider"></div>
+	<span id="singleband-value-upper"></span>
 
-	<h2>Show RGB image</h2>
-	<div id="rgb-search-fields">
-	</div>
-	<div id="rgb-selectors">
-		<div class="horizontal-list">
-			<span class="rgb-label">R</span>
-			<select class="rgb-selector" id="R" onchange="toggleRGBLayer();" disabled></select>
-			<div class="rgb-slider" id="R"></div>
+	<div id="rgb" onmousedown="rgbSelectorChanged();">
+		<h2>Show RGB image</h2>
+		<div id="rgb-search-fields">
 		</div>
-		<div class="horizontal-list">
-			<span class="rgb-label">G</span>
-			<select class="rgb-selector" id="G" onchange="toggleRGBLayer();" disabled></select>
-			<div class="rgb-slider" id="G"></div>
-		</div>
-		<div class="horizontal-list">
-			<span class="rgb-label">B</span>
-			<select class="rgb-selector" id="B" onchange="toggleRGBLayer();" disabled></select>
-			<div class="rgb-slider" id="B"></div>
+		<div id="rgb-selectors">
+			<div class="horizontal-list">
+				<span class="rgb-label">R</span>
+				<select class="rgb-selector" id="R" onchange="rgbSelectorChanged();" disabled></select>
+				<span id="rgb-value-lower" id="R"></span>
+				<div class="rgb-slider" id="R"></div>
+				<span id="rgb-value-upper" id="R"></span>
+			</div>
+			<div class="horizontal-list">
+				<span class="rgb-label">G</span>
+				<select class="rgb-selector" id="G" onchange="rgbSelectorChanged();" disabled></select>
+				<span id="rgb-value-lower" id="G"></span>
+				<div class="rgb-slider" id="G"></div>
+				<span id="rgb-value-upper" id="G"></span>
+			</div>
+			<div class="horizontal-list">
+				<span class="rgb-label">B</span>
+				<select class="rgb-selector" id="B" onchange="rgbSelectorChanged();" disabled></select>
+				<span id="rgb-value-lower" id="B"></span>
+				<div class="rgb-slider" id="B"></div>
+				<span id="rgb-value-upper" id="B"></span>
+			</div>
 		</div>
 	</div>
 </div>
@@ -71,26 +78,7 @@
 <div id="map"></div>
 
 <script type="text/javascript">
-	window.onload = function() {
-		// create sliders
-		var sliderDummyOptions = {
-			'start': [0.0, 1.0],
-			'range': {'min': 0, 'max': 1},
-			'connect': true,
-			'behaviour': 'drag'
-		};
-
-		var singlebandSlider = document.querySelector('.singleband-slider');
-		noUiSlider.create(singlebandSlider, sliderDummyOptions);
-
-		var rgbSliders = document.querySelectorAll('.rgb-slider');
-		for (var i = 0; i < rgbSliders.length; i++) {
-			noUiSlider.create(rgbSliders[i], sliderDummyOptions);
-		}
-
-		// everything else
-		initializeApp('{{ hostname }}');
-	};
+	window.onload = initializeApp.bind(null, '{{ hostname }}');
 </script>
 
 </body>

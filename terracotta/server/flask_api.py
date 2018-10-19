@@ -127,4 +127,4 @@ def run_app(*args: Any, allow_all_ips: bool = False, port: int = 5000, **kwargs:
     if os.environ.get('TC_TESTING'):  # set during pytest runs
         return
 
-    app.run(host=host, port=port, threaded=False)
+    app.run(host=host, port=port, threaded=False)  # pragma: no cover

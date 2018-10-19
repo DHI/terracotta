@@ -40,7 +40,7 @@ table#search-results {
   width: 100%;
 }
 
-tr.active {
+.active {
   background-color: #66bb22;
 }
 
