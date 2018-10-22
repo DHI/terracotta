@@ -9,6 +9,7 @@ how a frontend for Terracotta should be written.
 /* Constants */
 
 var datasets_per_page = 5;
+var thumbnail_size = [128, 128];
 var colormaps = [
     {display_name: 'Greyscale', id: 'greys_r'},
     {display_name: 'Viridis', id: 'viridis'},
@@ -56,7 +57,8 @@ function assembleMetadataURL(ds_keys) {
 
 function assembleSinglebandURL(keys, options, preview) {
     if (preview) {
-        var request_url = remote_host + '/singleband/' + keys.join('/') + '/preview.png?tile_size=[128,128]';
+        var request_url = remote_host + '/singleband/' + keys.join('/') + '/preview.png?tile_size='
+                          + JSON.stringify(thumbnail_size);
     } else {
         var request_url = remote_host + '/singleband/' + keys.join('/') + '/{z}/{x}/{y}.png';
     }
@@ -82,7 +84,8 @@ function assembleSinglebandURL(keys, options, preview) {
 
 function assembleRgbUrl(first_keys, rgb_keys, options, preview) {
     if (preview) {
-        var request_url = remote_host + '/rgb/' + first_keys.join('/') + '/preview.png?tile_size=[128,128]';
+        var request_url = remote_host + '/rgb/' + first_keys.join('/') + '/preview.png?tile_size='
+                          + JSON.stringify(thumbnail_size);
     } else {
         var request_url = remote_host + '/rgb/' + first_keys.join('/') + '/{z}/{x}/{y}.png';
     }
@@ -350,7 +353,8 @@ function updateDatasetList(request) {
 
         // show thumbnails
         var detailsRow = document.createElement('tr');
-        detailsRow.innerHTML = '<td colspan=' + keys.length + '><img src="' + assembleSinglebandURL(ds_keys, null, true) + '"></td>'
+        var thumbnailUrl = assembleSinglebandURL(ds_keys, null, true);
+        detailsRow.innerHTML = '<td colspan=' + keys.length + '><img src="' + thumbnailUrl + '"></td>';
         resultRow.appendChild(detailsRow);
 
         datasetTable.appendChild(resultRow);
