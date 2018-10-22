@@ -111,8 +111,8 @@ class MySQLDriver(RasterDriver):
         cursor.execute(f'SELECT MAX(UPDATE_TIME) '
                        'FROM information_schema.tables '
                        'WHERE TABLE_SCHEMA = "terracotta"')
-        result = cast(Dict[str, datetime], cursor.fetchone())
-        upd_time = result['MAX(UPDATE_TIME)']
+        result = cast(Dict[str, str], cursor.fetchone())
+        upd_time = datetime.strptime(result['MAX(UPDATE_TIME)'], '%Y-%m-%d %H:%M:%S')
         if upd_time > self._db_last_update:
             self._empty_cache()
             self._db_last_update = upd_time
