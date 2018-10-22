@@ -186,9 +186,9 @@ class MySQLDriver(RasterDriver):
 
         with self.connect(nodb=nodb):
             if self._cursor is None:
-                cursor = cast(Connection, self._connection).cursor(DictCursor)
-                self._cursor = cursor
+                self._cursor = cast(Connection, self._connection).cursor(DictCursor)
                 close = True
+            cursor = cast(Cursor, self._cursor)
 
             try:
                 yield cursor
