@@ -161,6 +161,7 @@ class MySQLDriver(RasterDriver):
                                            read_timeout=self.DB_CONNECTION_TIMEOUT,
                                            write_timeout=self.DB_CONNECTION_TIMEOUT)
             self._connection = new_conn
+            if not nodb:
             self._after_connection(check)
             close = True
 
@@ -218,7 +219,7 @@ class MySQLDriver(RasterDriver):
             if key not in key_descriptions:
                 key_descriptions[key] = ''
 
-        with self.cursor() as cursor:
+        with self.cursor(nodb=True) as cursor:
             cursor.execute(f'CREATE DATABASE terracotta')
             cursor.execute(f'USE terracotta')
             cursor.execute('CREATE TABLE terracotta (version VARCHAR(255))')
