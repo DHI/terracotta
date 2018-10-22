@@ -2,6 +2,10 @@ import os
 
 
 def check_integrity(zappa_cli):
+    command = zappa_cli.command
+    if command not in ('deploy', 'update'):
+        return
+
     env = zappa_cli.aws_environment_variables or {}
 
     db_provider = env.get('TC_DRIVER_PROVIDER')

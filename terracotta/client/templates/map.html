@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Terracotta Explorer</title>
+
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="stylesheet" href="{{ url_for('static', filename='leaflet.css') }}"/>
+	<link rel="stylesheet" href="{{ url_for('static', filename='nouislider.min.css') }}"/>
+	<link rel="stylesheet" href="{{ url_for('static', filename='map.css') }}"/>
+	<script src="{{ url_for('static', filename='leaflet.js') }}"></script>
+	<script src="{{ url_for('static', filename='nouislider.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='map.js') }}"></script>
+</head>
+<body>
+
+<div id='controls'>
+	<h1>Terracotta @ {{ hostname }}</h1>
+
+	<h2>What is this?</h2>
+	<p>
+		This applet lets you explore the data on any running Terracotta server.
+		Just search for a dataset to get started!
+	</p>
+
+	<h2>Available keys</h2>
+	<ul id="key-list">
+	</ul>
+
+	<h2>Search for datasets</h2>
+	<div id="search-fields"></div>
+	<table class="scrolling-list" id="search-results">
+	</table>
+	<div id="search-result-controls">
+		<button id="prev-page" onclick="incrementResultsPage(-1);" disabled>&lt;</button>
+		Page <span id="page-counter">1</span>
+		<button id="next-page" onclick="incrementResultsPage(1);">&gt;</button>
+	</div>
+
+	<h3>Choose a colormap</h3>
+	<select id="colormap-selector" onchange="updateColormap();">
+	</select>
+
+	<h3>Adjust contrast</h3>
+	<span id="singleband-value-lower"></span>
+	<div class="singleband-slider"></div>
+	<span id="singleband-value-upper"></span>
+
+	<div id="rgb">
+		<h2 class="clickable" onclick="rgbSelectorChanged();">Show RGB image</h2>
+		<div id="rgb-search-fields">
+		</div>
+		<div id="rgb-selectors">
+			<div class="horizontal-list">
+				<span class="rgb-label">R</span>
+				<select class="rgb-selector" id="R" onchange="rgbSelectorChanged();" disabled></select>
+				<span class="rgb-value-lower" id="R"></span>
+				<div class="rgb-slider" id="R"></div>
+				<span class="rgb-value-upper" id="R"></span>
+			</div>
+			<div class="horizontal-list">
+				<span class="rgb-label">G</span>
+				<select class="rgb-selector" id="G" onchange="rgbSelectorChanged();" disabled></select>
+				<span class="rgb-value-lower" id="G"></span>
+				<div class="rgb-slider" id="G"></div>
+				<span class="rgb-value-upper" id="G"></span>
+			</div>
+			<div class="horizontal-list">
+				<span class="rgb-label">B</span>
+				<select class="rgb-selector" id="B" onchange="rgbSelectorChanged();" disabled></select>
+				<span class="rgb-value-lower" id="B"></span>
+				<div class="rgb-slider" id="B"></div>
+				<span class="rgb-value-upper" id="B"></span>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div id="map"></div>
+
+<script type="text/javascript">
+	window.onload = initializeApp.bind(null, '{{ hostname }}');
+</script>
+
+</body>
+</html>

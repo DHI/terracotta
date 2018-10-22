@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 @click.command('create-database',
                short_help='Create a new SQLite raster database from a collection of raster files.')
 @click.argument('raster-pattern', type=RasterPattern(), required=True)
-@click.option('-o', '--output-file', type=PathlibPath(dir_okay=False), required=True,
-              help='Path to output file.')
+@click.option('-o', '--output-file', required=True, help='Path to output file',
+              type=PathlibPath(dir_okay=False, writable=True))
 @click.option('--overwrite', is_flag=True, default=False,
               help='Always overwrite existing database without asking')
 @click.option('--skip-metadata', is_flag=True, default=False,

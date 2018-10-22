@@ -1,4 +1,4 @@
-"""api/keys.py
+"""server/keys.py
 
 Flask route to handle /colormap calls.
 """
@@ -9,7 +9,7 @@ import json
 from flask import jsonify, request
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 
-from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
+from terracotta.server.flask_api import convert_exceptions, metadata_api, spec
 from terracotta.cmaps import AVAILABLE_CMAPS
 
 

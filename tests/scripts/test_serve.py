@@ -21,7 +21,7 @@ def test_serve_from_pattern(raster_file):
     input_pattern = str(raster_file.dirpath('{name}.tif'))
 
     runner = CliRunner()
-    result = runner.invoke(cli.cli, ['serve', '-r', input_pattern, '--no-browser'])
+    result = runner.invoke(cli.cli, ['serve', '-r', input_pattern])
     assert result.exit_code == 0
 
 
@@ -29,7 +29,7 @@ def test_serve_from_database(read_only_database):
     from terracotta.scripts import cli
 
     runner = CliRunner()
-    result = runner.invoke(cli.cli, ['serve', '-d', str(read_only_database), '--no-browser'])
+    result = runner.invoke(cli.cli, ['serve', '-d', str(read_only_database)])
     assert result.exit_code == 0
 
 
@@ -46,7 +46,7 @@ def test_serve_with_config(read_only_database, toml_file):
 
     runner = CliRunner()
     result = runner.invoke(cli.cli, ['--config', str(toml_file), 'serve',
-                                     '-d', str(read_only_database), '--no-browser'])
+                                     '-d', str(read_only_database)])
     assert result.exit_code == 0
 
 
@@ -57,7 +57,7 @@ def test_serve_rgb_key(raster_file):
 
     runner = CliRunner()
     result = runner.invoke(
-        cli.cli, ['serve', '-r', input_pattern, '--no-browser', '--rgb-key', 'rgb']
+        cli.cli, ['serve', '-r', input_pattern, '--rgb-key', 'rgb']
     )
     assert result.exit_code == 0
 
@@ -69,7 +69,7 @@ def test_serve_invalid_rgb_key(raster_file):
 
     runner = CliRunner()
     result = runner.invoke(
-        cli.cli, ['serve', '-r', input_pattern, '--no-browser', '--rgb-key', 'bar']
+        cli.cli, ['serve', '-r', input_pattern, '--rgb-key', 'bar']
     )
     assert result.exit_code != 0
 
@@ -90,11 +90,11 @@ def test_serve_find_socket(raster_file):
 
         runner = CliRunner()
         result = runner.invoke(
-            cli.cli, ['serve', '-r', input_pattern, '--no-browser', '--port', '5000']
+            cli.cli, ['serve', '-r', input_pattern, '--port', '5000']
         )
         assert result.exit_code != 0
         assert 'Could not find open port to bind to' in result.output
 
         runner = CliRunner()
-        result = runner.invoke(cli.cli, ['serve', '-r', input_pattern, '--no-browser'])
+        result = runner.invoke(cli.cli, ['serve', '-r', input_pattern])
         assert result.exit_code == 0

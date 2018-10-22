@@ -1,4 +1,4 @@
-"""api/metadata.py
+"""server/metadata.py
 
 Flask route to handle /metadata calls.
 """
@@ -6,7 +6,7 @@ Flask route to handle /metadata calls.
 from marshmallow import Schema, fields, validate
 from flask import jsonify
 
-from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
+from terracotta.server.flask_api import convert_exceptions, metadata_api, spec
 
 
 class MetadataSchema(Schema):

@@ -39,6 +39,9 @@ def geometry_mismatch(shape1, shape2):
 def test_compute_metadata(big_raster_file, use_chunks):
     from terracotta.drivers.raster_base import RasterDriver
 
+    if use_chunks:
+        pytest.importorskip('crick')
+
     with rasterio.open(str(big_raster_file)) as src:
         data = src.read(1)
         valid_data = data[np.isfinite(data) & (data != src.nodata)]
@@ -70,6 +73,9 @@ def test_compute_metadata(big_raster_file, use_chunks):
 def test_compute_metadata_invalid(invalid_raster_file, use_chunks):
     from terracotta.drivers.raster_base import RasterDriver
 
+    if use_chunks:
+        pytest.importorskip('crick')
+
     with pytest.raises(ValueError):
         RasterDriver.compute_metadata(str(invalid_raster_file), use_chunks=use_chunks)
 
@@ -92,7 +98,8 @@ def test_compute_metadata_nocrick(big_raster_file, monkeypatch):
 
         with pytest.warns(exceptions.PerformanceWarning):
             mtd = terracotta.drivers.raster_base.RasterDriver.compute_metadata(
-                str(big_raster_file), use_chunks=True)
+                str(big_raster_file), use_chunks=True
+            )
 
     # compare
     np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)
@@ -125,7 +132,7 @@ def test_compute_metadata_unoptimized(unoptimized_raster_file):
 
     # compare
     with pytest.warns(exceptions.PerformanceWarning):
-        mtd = RasterDriver.compute_metadata(str(unoptimized_raster_file))
+        mtd = RasterDriver.compute_metadata(str(unoptimized_raster_file), use_chunks=False)
 
     np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)
     np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()))

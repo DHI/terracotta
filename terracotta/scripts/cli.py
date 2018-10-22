@@ -49,6 +49,9 @@ def entrypoint() -> None:
         sys.exit(1)
 
 
+from terracotta.scripts.connect import connect
+cli.add_command(connect)
+
 from terracotta.scripts.create_database import create_database
 cli.add_command(create_database)
 

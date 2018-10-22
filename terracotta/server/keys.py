@@ -1,4 +1,4 @@
-"""api/keys.py
+"""server/keys.py
 
 Flask route to handle /keys calls.
 """
@@ -6,7 +6,7 @@ Flask route to handle /keys calls.
 from flask import jsonify
 from marshmallow import Schema, fields
 
-from terracotta.api.flask_api import convert_exceptions, metadata_api, spec
+from terracotta.server.flask_api import convert_exceptions, metadata_api, spec
 
 
 class KeyItemSchema(Schema):

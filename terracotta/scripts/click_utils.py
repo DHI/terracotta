@@ -78,3 +78,23 @@ class TOMLFile(click.ParamType):
     def convert(self, value: str, *args: Any) -> Dict[str, Any]:
         import toml
         return dict(toml.load(value))
+
+
+class Hostname(click.ParamType):
+    """Parses a string to a valid hostname"""
+    name = 'url'
+
+    def __init__(self, default_port: int = 5000, default_scheme: str = 'http') -> None:
+        self.default_port = default_port
+        self.default_scheme = default_scheme
+
+    def convert(self, value: str, *args: Any) -> str:
+        from urllib.parse import urlparse, urlunparse
+        parsed_url = urlparse(value)
+
+        if not parsed_url.netloc:
+            value_with_scheme = '://'.join([self.default_scheme, value])
+            parsed_url = urlparse(value_with_scheme)
+
+        # remove everything we don't need
+        return urlunparse([parsed_url.scheme, parsed_url.netloc, parsed_url.path, '', '', ''])
