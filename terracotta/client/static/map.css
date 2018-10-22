@@ -53,7 +53,7 @@ table#search-results {
 }
 
 .rgb-label, .rgb-selector {
-  min-width: 100px;
+  min-width: 50px;
 }
 
 #R .noUi-connect {

@@ -229,16 +229,16 @@ function initUI(keys) {
             var currentIndexKeys = activeRgbLayer.index_keys;
             var currentRgbKeys = activeRgbLayer.rgb_keys;
             // reload layer
-            toggleRgbMapLayer();
-            addRgbMapLayer(currentIndexKeys, currentRgbKeys, false);
+            toggleRgbLayer();
+            toggleRgbLayer(currentIndexKeys, currentRgbKeys, false);
         });
-        rgbSliders[i].noUiSlider.on('update', function (values, handle) {
+        rgbSliders[i].noUiSlider.on('update', function (id, values, handle) {
             var showValue = [
-                document.querySelector('.rgb-value-lower#' + rgbIds[i]),
-                document.querySelector('.rgb-value-upper#' + rgbIds[i]),
+                document.querySelector('.rgb-value-lower#' + id),
+                document.querySelector('.rgb-value-upper#' + id),
             ];
             showValue[handle].innerHTML = values[handle];
-        });
+        }.bind(null, rgbIds[i]));
         rgbSliders[i].setAttribute('disabled', true);
     }
 
@@ -464,8 +464,8 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
             'start': current_singleband_stretch,
             'range': {
                 'min': metadata.range[0],
-                '30%': metadata.percentiles[5],
-                '70%': metadata.percentiles[last - 5],
+                '20%': metadata.percentiles[5],
+                '80%': metadata.percentiles[last - 5],
                 'max': metadata.range[1]
             }
         });
@@ -597,6 +597,34 @@ function rgbSelectorChanged() {
         lastKeys[i] = rgbSelectors[i].value;
     }
 
+    // initialize sliders
+    var rgbSliders = [
+        document.querySelector('.rgb-slider#R'),
+        document.querySelector('.rgb-slider#G'),
+        document.querySelector('.rgb-slider#B')
+    ];
+    current_rgb_stretch = [];
+    for (var i = 0; i < 3; i++) {
+        var someKeys = serializeKeys(firstKeys.concat([lastKeys[i]]));
+        var metadata = dataset_metadata[someKeys];
+        if (metadata != null) {
+            var last = metadata.percentiles.length - 1;
+            current_rgb_stretch[i] = [
+                metadata.percentiles[2],
+                metadata.percentiles[last - 2]
+            ];
+            rgbSliders[i].noUiSlider.updateOptions({
+                'start': current_rgb_stretch[i],
+                'range': {
+                    'min': metadata.range[0],
+                    '20%': metadata.percentiles[5],
+                    '80%': metadata.percentiles[last - 5],
+                    'max': metadata.range[1]
+                }
+            });
+        }
+    }
+
     toggleRgbLayer(firstKeys, lastKeys);
 }
 
@@ -628,28 +656,12 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
     }
 
     var layerOptions = {};
-    var stretchOptions = [];
-    for (var i = 0; i < 3; i++) {
-        var someKeys = serializeKeys(firstKeys.concat([lastKeys[i]]));
-        var metadata = dataset_metadata[someKeys];
-        if (metadata != null) {
-            var rgbSlider = document.querySelector()
-            var last = metadata.percentiles.length - 1;
-            current_rgb_stretch[i] = [
-                metadata.percentiles[2],
-                metadata.percentiles[last - 2]
-            ];
-            rgbSlider.noUiSlider.updateOptions({
-                'start': current_singleband_stretch,
-                'range': {
-                    'min': metadata.range[0],
-                    '30%': metadata.percentiles[5],
-                    '70%': metadata.percentiles[last - 5],
-                    'max': metadata.range[1]
-                }
-            });
-        }
-    }
+    if (current_rgb_stretch != null) {
+        layerOptions.r_range = JSON.stringify(current_rgb_stretch[0]);
+        layerOptions.g_range = JSON.stringify(current_rgb_stretch[1]);
+        layerOptions.b_range = JSON.stringify(current_rgb_stretch[2]);
+    };
+
     var layer_url = assembleRgbUrl(firstKeys, lastKeys, layerOptions, false);
 
     activeRgbLayer = {
@@ -657,8 +669,15 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
         rgb_keys: lastKeys,
         layer: L.tileLayer(layer_url).addTo(map)
     };
-    rgbControls.classList.add('active');
 
+    rgbControls.classList.add('active');
+    var rgbSliders = document.querySelectorAll('.rgb-slider');
+    for (var i = 0; i < rgbSliders.length; i++) {
+        rgbSliders[i].removeAttribute('disabled');
+    }
+
+    var someKeys = serializeKeys(firstKeys.concat([lastKeys[0]]));
+    var metadata = dataset_metadata[someKeys];
     if (resetView && metadata != null) {
         map.flyTo(getDatasetCenter(metadata), 9);
     }
