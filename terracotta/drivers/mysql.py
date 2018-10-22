@@ -222,11 +222,12 @@ class MySQLDriver(RasterDriver):
             cursor.execute(f'CREATE DATABASE terracotta')
             cursor.execute(f'USE terracotta')
             cursor.execute('CREATE TABLE terracotta (version VARCHAR(255))')
-            cursor.execute('INSERT INTO terracotta VALUES (?)', [str(__version__)])
+            cursor.execute('INSERT INTO terracotta VALUES (%s)', [str(__version__)])
 
-            cursor.execute(f'CREATE TABLE keys (key {self.KEY_TYPE}, description VARCHAR(8000))')
+            cursor.execute(f'CREATE TABLE key_names (key_name {self.KEY_TYPE}, '
+                           'description VARCHAR(8000))')
             key_rows = [(key, key_descriptions[key]) for key in keys]
-            cursor.executemany('INSERT INTO keys VALUES (?, ?)', key_rows)
+            cursor.executemany('INSERT INTO key_names VALUES (%s, %s)', key_rows)
 
             key_string = ', '.join([f'{key} {self.KEY_TYPE}' for key in keys])
             cursor.execute(f'CREATE TABLE datasets ({key_string}, filepath VARCHAR(8000), '
@@ -243,12 +244,12 @@ class MySQLDriver(RasterDriver):
     def get_keys(self) -> OrderedDict:
         """Retrieve key names and descriptions from database"""
         cursor = cast(DictCursor, self._cursor)
-        cursor.execute('SELECT * FROM keys')
+        cursor.execute('SELECT * FROM key_names')
         key_rows = cursor.fetchall() or []
 
         out: OrderedDict = OrderedDict()
         for row in key_rows:
-            out[row['key']] = row['description']
+            out[row['key_name']] = row['description']
         return out
 
     @shared_cachedmethod('datasets')
@@ -265,7 +266,7 @@ class MySQLDriver(RasterDriver):
             if not all(key in self.key_names for key in where_keys):
                 raise exceptions.UnknownKeyError('Encountered unrecognized keys in '
                                                  'where clause')
-            where_string = ' AND '.join([f'{key}=?' for key in where_keys])
+            where_string = ' AND '.join([f'{key}=%s' for key in where_keys])
             cursor.execute(f'SELECT * FROM datasets WHERE {where_string}', where_values)
             rows = cursor.fetchall() or []
 
@@ -329,7 +330,7 @@ class MySQLDriver(RasterDriver):
 
         cursor = cast(DictCursor, self._cursor)
 
-        where_string = ' AND '.join([f'{key}=?' for key in self.key_names])
+        where_string = ' AND '.join([f'{key}=%s' for key in self.key_names])
         cursor.execute(f'SELECT * FROM metadata WHERE {where_string}', keys)
         row = cursor.fetchone()
 
@@ -378,8 +379,8 @@ class MySQLDriver(RasterDriver):
             override_path = filepath
 
         keys = list(self._key_dict_to_sequence(keys))
-        template_string = ', '.join(['?'] * (len(keys) + 1))
-        cursor.execute(f'INSERT OR REPLACE INTO datasets VALUES ({template_string})',
+        template_string = ', '.join(['%s'] * (len(keys) + 1))
+        cursor.execute(f'REPLACE INTO datasets VALUES ({template_string})',
                        [*keys, override_path])
 
         if metadata is None and not skip_metadata:
@@ -388,8 +389,8 @@ class MySQLDriver(RasterDriver):
         if metadata is not None:
             encoded_data = self._encode_data(metadata)
             row_keys, row_values = zip(*encoded_data.items())
-            template_string = ', '.join(['?'] * (len(keys) + len(row_values)))
-            cursor.execute(f'INSERT OR REPLACE INTO metadata ({", ".join(self.key_names)}, '
+            template_string = ', '.join(['%s'] * (len(keys) + len(row_values)))
+            cursor.execute(f'REPLACE INTO metadata ({", ".join(self.key_names)}, '
                            f'{", ".join(row_keys)}) VALUES ({template_string})',
                            [*keys, *row_values])
 
@@ -409,6 +410,6 @@ class MySQLDriver(RasterDriver):
         if not self.get_datasets(key_dict):
             raise exceptions.DatasetNotFoundError(f'No dataset found with keys {keys}')
 
-        where_string = ' AND '.join([f'{key}=?' for key in self.key_names])
+        where_string = ' AND '.join([f'{key}=%s' for key in self.key_names])
         cursor.execute(f'DELETE FROM datasets WHERE {where_string}', keys)
         cursor.execute(f'DELETE FROM metadata WHERE {where_string}', keys)
