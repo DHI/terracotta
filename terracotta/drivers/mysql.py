@@ -162,7 +162,7 @@ class MySQLDriver(RasterDriver):
                                            write_timeout=self.DB_CONNECTION_TIMEOUT)
             self._connection = new_conn
             if not nodb:
-            self._after_connection(check)
+                self._after_connection(check)
             close = True
 
         conn = self._connection
