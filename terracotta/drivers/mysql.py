@@ -88,7 +88,7 @@ class MySQLDriver(RasterDriver):
             settings.METADATA_CACHE_SIZE, getsizeof=sys.getsizeof
         )
 
-        super().__init__()
+        super().__init__(f'{user}:{password}@{host}:{port}')
 
     @shared_cachedmethod('db_version')
     @requires_cursor
