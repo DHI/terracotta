@@ -108,8 +108,8 @@ class MySQLDriver(RasterDriver):
         # invalidate cache if db has changed since last connection
 
         cursor = cast(Cursor, self._cursor)
-        cursor.execute(f'SELECT MAX(UPDATE_TIME)'
-                       'FROM information_schema.tables'
+        cursor.execute(f'SELECT MAX(UPDATE_TIME) '
+                       'FROM information_schema.tables '
                        'WHERE TABLE_SCHEMA = "terracotta"')
         result = cast(Dict[str, datetime], cursor.fetchone())
         upd_time = result['MAX(UPDATE_TIME)']
