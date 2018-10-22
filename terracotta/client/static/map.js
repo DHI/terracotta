@@ -56,7 +56,7 @@ function assembleMetadataURL(ds_keys) {
 
 function assembleSinglebandURL(keys, options, preview) {
     if (preview) {
-        var request_url = remote_host + '/singleband/' + keys.join('/') + '/preview.png';
+        var request_url = remote_host + '/singleband/' + keys.join('/') + '/preview.png?tile_size=[128,128]';
     } else {
         var request_url = remote_host + '/singleband/' + keys.join('/') + '/{z}/{x}/{y}.png';
     }
@@ -82,7 +82,7 @@ function assembleSinglebandURL(keys, options, preview) {
 
 function assembleRgbUrl(first_keys, rgb_keys, options, preview) {
     if (preview) {
-        var request_url = remote_host + '/rgb/' + first_keys.join('/') + '/preview.png';
+        var request_url = remote_host + '/rgb/' + first_keys.join('/') + '/preview.png?tile_size=[128,128]';
     } else {
         var request_url = remote_host + '/rgb/' + first_keys.join('/') + '/{z}/{x}/{y}.png';
     }
@@ -343,6 +343,7 @@ function updateDatasetList(request) {
             resultRow.appendChild(resultEntry);
         }
         resultRow.id = 'dataset-' + serializeKeys(ds_keys);
+        resultRow.classList.add('clickable');
         resultRow.addEventListener('click', toggleSinglebandMapLayer.bind(null, ds_keys));
         resultRow.addEventListener('mouseenter', toggleFootprintOverlay.bind(null, ds_keys));
         resultRow.addEventListener('mouseleave', toggleFootprintOverlay.bind(null, null));
@@ -464,8 +465,8 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
             'start': current_singleband_stretch,
             'range': {
                 'min': metadata.range[0],
-                '20%': metadata.percentiles[5],
-                '80%': metadata.percentiles[last - 5],
+                '20%': metadata.percentiles[2],
+                '80%': metadata.percentiles[last - 2],
                 'max': metadata.range[1]
             }
         });
@@ -617,8 +618,8 @@ function rgbSelectorChanged() {
                 'start': current_rgb_stretch[i],
                 'range': {
                     'min': metadata.range[0],
-                    '20%': metadata.percentiles[5],
-                    '80%': metadata.percentiles[last - 5],
+                    '20%': metadata.percentiles[2],
+                    '80%': metadata.percentiles[last - 2],
                     'max': metadata.range[1]
                 }
             });

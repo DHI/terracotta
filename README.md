@@ -58,7 +58,8 @@ There are many good reasons to ditch your ancient raster data workflow and switc
 Some of them are listed here:
 
 - It is trivial to get going. Got a folder full of GeoTiffs in different projections you want to
-  have a look at in your browser? Cool, `terracotta serve -p {name}.tif` gets you there!
+  have a look at in your browser? Cool, `terracotta serve -p {name}.tif` and
+  `terracotta connect localhost:5000` get you there!
 - Usability is our first priority. We strive to make your workflow as simple as possible, while
   supporting many different use cases.
 - Terracotta makes minimal assumptions about your data, so *you stay in charge*. Use the tools you
@@ -87,7 +88,7 @@ to accept some trade-offs:
   is transparently available from the frontend, e.g. via the `/swagger.json`, `/apidoc`, and `/keys`
   API endpoints.
 - Terracotta favors flexibility over raw speed. If sub-second response times are a hard requirement
-  for you, Terracotta is probably not the right tool for the job.
+  for you, Terracotta might not be the right tool for the job.
 
 ## Architecture
 
@@ -103,19 +104,21 @@ Already implemented drivers include:
 
 ## Installation
 
-On most systems, installation is as easy as
+On most systems, the easiest way to install Terracotta is
+[through the Conda package manager](https://conda.io/miniconda.html). After installing `conda`, the
+following command creates a new environment containing all dependencies and Terracotta:
 
 ```bash
-$ pip install terracotta
+$ conda env create -f environment.yml
 ```
 
-To install additional requirements needed to deploy to AWS, run
+If you already have a Python 3.6 installation that you want to use, you can just run
 
 ```bash
-$ pip install terracotta[aws]
+$ pip install -e .
 ```
 
-instead.
+in the root of this repository instead.
 
 ## Ingestion
 

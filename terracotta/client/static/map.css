@@ -1,8 +1,68 @@
+/* General styles */
+
 html, body {
   height: 100%;
   margin: 0;
   position: relative;
+  font-family: "Roboto", Arial, Helvetica, sans-serif;
+  color: #222;
 }
+
+h1{
+    color: #0B4566;
+    font-weight: bold;
+    font-size: 32px;
+}
+
+h2, h3{
+  color: #0B4566;
+  font-weight: bold;
+  font-size: 18px;
+  line-height: 26px;
+}
+
+h3{
+  margin: 10px 0px 10px 0px;
+  font-size: 14px;
+}
+
+li{
+  list-style-type: none;
+}
+    
+a{
+  text-decoration: none;
+  color: #0B4566;
+}
+
+input[type=text]{
+  border: 1px solid #86A2B3;
+}
+
+button{
+  border: none;
+  text-align: center;
+  text-decoration: none;
+  font-size: 10px;
+  margin: 18px 0px;
+  cursor: pointer;
+}
+
+button:hover{
+  background-color: #86A2B3;
+}
+
+table{
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  padding: 4px 5px;
+  text-align: left;
+}
+
+/* Specific elements */
 
 #map {
   position: absolute;
@@ -25,7 +85,7 @@ html, body {
 }
 
 .scrolling-list {
-  height: 400px;
+  max-height: 400px;
   overflow-y: scroll;
 }
 
@@ -35,12 +95,11 @@ html, body {
   flex-direction: row;
 }
 
-table#search-results {
-  border-collapse: collapse;
-  width: 100%;
+.active {
+  background-color: #66bb22;
 }
 
-.active {
+.clickable:hover {
   background-color: #66bb22;
 }
 

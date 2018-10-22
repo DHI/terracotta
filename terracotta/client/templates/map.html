@@ -19,8 +19,10 @@
 	<h1>Terracotta @ {{ hostname }}</h1>
 
 	<h2>What is this?</h2>
-	This applet lets you explore the data on any running Terracotta server.
-	Just search for a dataset to get started!
+	<p>
+		This applet lets you explore the data on any running Terracotta server.
+		Just search for a dataset to get started!
+	</p>
 
 	<h2>Available keys</h2>
 	<ul id="key-list">
@@ -28,7 +30,7 @@
 
 	<h2>Search for datasets</h2>
 	<div id="search-fields"></div>
-	<table id="search-results">
+	<table class="scrolling-list" id="search-results">
 	</table>
 	<div id="search-result-controls">
 		<button id="prev-page" onclick="incrementResultsPage(-1);" disabled>&lt;</button>
@@ -46,7 +48,7 @@
 	<span id="singleband-value-upper"></span>
 
 	<div id="rgb">
-		<h2 onclick="rgbSelectorChanged();">Show RGB image</h2>
+		<h2 class="clickable" onclick="rgbSelectorChanged();">Show RGB image</h2>
 		<div id="rgb-search-fields">
 		</div>
 		<div id="rgb-selectors">
