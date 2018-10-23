@@ -5,7 +5,7 @@ to be present on disk.
 """
 
 from typing import (Tuple, Dict, Iterator, Callable, Sequence, Union,
-                    Mapping, Any, Optional, cast)
+                    Mapping, Any, Optional, cast, TYPE_CHECKING)
 from collections import OrderedDict
 import sys
 import operator
@@ -17,9 +17,6 @@ import json
 
 from cachetools import LFUCache, cachedmethod
 import cachetools.keys
-import pymysql
-from pymysql.connections import Connection, Cursor
-from pymysql.cursors import DictCursor
 import numpy as np
 
 from terracotta import get_settings, __version__
@@ -28,13 +25,18 @@ from terracotta.drivers.raster_base import RasterDriver
 from terracotta import exceptions
 from terracotta.profile import trace
 
+if TYPE_CHECKING:
+    from pymysql.connections import Connection, Cursor
+    from pymysql.cursors import DictCursor
+
 
 @contextlib.contextmanager
 def convert_exceptions(msg: str) -> Iterator:
     """Convert internal sqlite exceptions to our InvalidDatabaseError"""
+    from pymysql import OperationalError
     try:
         yield
-    except pymysql.OperationalError as exc:
+    except OperationalError as exc:
         raise exceptions.InvalidDatabaseError(msg) from exc
 
 
@@ -108,7 +110,7 @@ class MySQLDriver(RasterDriver):
     @convert_exceptions('Could not retrieve version from database')
     def _get_db_version(self) -> str:
         """Getter for db_version"""
-        cursor = cast(DictCursor, self._cursor)
+        cursor = cast('DictCursor', self._cursor)
         cursor.execute('SELECT version from terracotta')
         db_row = cast(Dict[str, str], cursor.fetchone())
         return db_row['version']
@@ -156,7 +158,9 @@ class MySQLDriver(RasterDriver):
     key_names = cast(Tuple[str], property(_get_key_names))
 
     @contextlib.contextmanager
-    def connect(self, check: bool = True, nodb: bool = False) -> Iterator[Connection]:
+    def connect(self, check: bool = True, nodb: bool = False) -> 'Iterator[Connection]':
+        import pymysql
+
         close = False
 
         if nodb:
@@ -194,7 +198,7 @@ class MySQLDriver(RasterDriver):
                 self._connection = None
 
     @contextlib.contextmanager
-    def cursor(self, check: bool = True, nodb: bool = False) -> Iterator[Cursor]:
+    def cursor(self, check: bool = True, nodb: bool = False) -> 'Iterator[Cursor]':
         close = False
 
         with self.connect(nodb=nodb):

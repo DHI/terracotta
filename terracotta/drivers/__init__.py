@@ -3,7 +3,7 @@
 Define an interface to retrieve Terracotta drivers.
 """
 
-from typing import Callable, Any, Union, Dict, Optional, NamedTuple, Type, cast
+from typing import Callable, Any, Union, Dict, Optional, NamedTuple, cast
 import functools
 import urllib.parse as urlparse
 from pathlib import Path
@@ -15,7 +15,7 @@ from terracotta.drivers.sqlite_remote import RemoteSQLiteDriver
 from terracotta.drivers.mysql import MySQLDriver
 
 
-DRIVERS: Dict[str, Type[Driver]] = {
+DRIVERS = {
     'sqlite': SQLiteDriver,
     'sqlite-remote': RemoteSQLiteDriver,
     'mysql': MySQLDriver

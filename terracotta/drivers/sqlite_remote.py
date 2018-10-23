@@ -58,6 +58,7 @@ class RemoteSQLiteDriver(SQLiteDriver):
 
     This driver is read-only.
     """
+    path: str
 
     def __init__(self, path: Union[str, Path]) -> None:
         """Use given database URL to read metadata."""
