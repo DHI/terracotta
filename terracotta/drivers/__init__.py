@@ -30,7 +30,7 @@ class ConnectionInfo(NamedTuple):
 
 
 def parse_connection(con_str: str) -> Optional[ConnectionInfo]:
-    con_reg = re.compile('(\w*?):?(\w+)@([^\s:]+):?([0-9]*)')
+    con_reg = re.compile(r'(\w*?):?(\w+)@([^\s:]+):?([0-9]*)')
     m = con_reg.match(con_str)
 
     if m is None:
