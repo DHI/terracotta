@@ -1,29 +1,50 @@
 import pytest
 
-DRIVERS = ['sqlite']
+DRIVERS = ['sqlite', 'mysql']
 DRIVER_CLASSES = {
-    'sqlite': 'SQLiteDriver'
+    'sqlite': 'SQLiteDriver',
+    'mysql': 'MySQLDriver'
 }
 
 
+@pytest.fixture()
+def driver_path(provider, tmpdir, mysql_server):
+    if provider == 'sqlite':
+        dbfile = tmpdir.join('test.sqlite')
+        yield str(dbfile)
+
+    elif provider == 'mysql':
+        try:
+            import pymysql
+            with pymysql.connect(mysql_server):
+                pass
+        except (ImportError, pymysql.OperationalError):
+            return pytest.skip()
+        try:
+            yield mysql_server
+        finally:
+            with pymysql.connect(mysql_server) as conn, conn.cursor() as cursor:
+                cursor.execute('DROP TABLE IF EXISTS terracotta')
+
+    else:
+        return NotImplementedError()
+
+
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_creation(tmpdir, provider):
+def test_creation(driver_path, provider):
     from terracotta import drivers
-    dbfile = tmpdir.join('test.sqlite')
-    db = drivers.get_driver(str(dbfile), provider=provider)
+    db = drivers.get_driver(driver_path, provider=provider)
     keys = ('some', 'keys')
     db.create(keys)
 
     assert db.key_names == keys
     assert db.get_datasets() == {}
-    assert dbfile.isfile()
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_creation_invalid(tmpdir, provider):
+def test_creation_invalid(driver_path, provider):
     from terracotta import drivers
-    dbfile = tmpdir.join('test.sqlite')
-    db = drivers.get_driver(str(dbfile), provider=provider)
+    db = drivers.get_driver(driver_path, provider=provider)
     keys = ('invalid key',)
 
     with pytest.raises(ValueError):
@@ -31,10 +52,9 @@ def test_creation_invalid(tmpdir, provider):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_creation_invalid_description(tmpdir, provider):
+def test_creation_invalid_description(driver_path, provider):
     from terracotta import drivers
-    dbfile = tmpdir.join('test.sqlite')
-    db = drivers.get_driver(str(dbfile), provider=provider)
+    db = drivers.get_driver(driver_path, provider=provider)
     keys = ('some', 'keys')
 
     with pytest.raises(ValueError):
@@ -42,10 +62,9 @@ def test_creation_invalid_description(tmpdir, provider):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_connect_before_create(tmpdir, provider):
+def test_connect_before_create(driver_path, provider):
     from terracotta import drivers, exceptions
-    dbfile = tmpdir.join('test.sqlite')
-    db = drivers.get_driver(str(dbfile), provider=provider)
+    db = drivers.get_driver(driver_path, provider=provider)
 
     with pytest.raises(exceptions.InvalidDatabaseError):
         with db.connect():
@@ -53,8 +72,7 @@ def test_connect_before_create(tmpdir, provider):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_repr(tmpdir, provider):
+def test_repr(driver_path, provider):
     from terracotta import drivers
-    dbfile = tmpdir.join('test.sqlite')
-    db = drivers.get_driver(str(dbfile), provider=provider)
-    assert repr(db) == f'{DRIVER_CLASSES[provider]}(\'{dbfile}\')'
+    db = drivers.get_driver(driver_path, provider=provider)
+    assert repr(db) == f'{DRIVER_CLASSES[provider]}(\'{driver_path}\')'
