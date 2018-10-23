@@ -53,7 +53,20 @@ def requires_cursor(fun: Callable[..., T]) -> Callable[..., T]:
 
 
 class MySQLDriver(RasterDriver):
+    """MySQL-backed raster driver.
 
+    Thread-safe by opening a single connection per thread.
+
+    The MySQL database consists of 4 different tables:
+
+    - `terracotta`: Metadata about the database itself.
+    - `keys`: Contains a single column holding all available keys.
+    - `datasets`: Maps indices to raster file path.
+    - `metadata`: Contains actual metadata as separate columns. Indexed via keys.
+
+    This driver caches both raster and metadata (in separate caches).
+
+    """
     KEY_TYPE: str = 'VARCHAR(255)'
     METADATA_COLUMNS: Tuple[Tuple[str, ...], ...] = (
         ('bounds_north', 'REAL'),
