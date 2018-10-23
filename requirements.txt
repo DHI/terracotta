@@ -8,6 +8,7 @@ marshmallow>=3.0.0b12
 mercantile
 numpy
 pillow
+pymysql
 shapely
 rasterio>=1.0,<1.0.7
 shapely
