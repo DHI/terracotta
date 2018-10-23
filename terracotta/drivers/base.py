@@ -9,8 +9,6 @@ from collections import OrderedDict
 import functools
 import contextlib
 
-import numpy as np
-
 Number = TypeVar('Number', int, float)
 T = TypeVar('T')
 
@@ -28,6 +26,8 @@ class Driver(ABC):
 
     Defines a common interface for all handlers.
     """
+    RESERVED_KEYS = ('limit', 'page')
+
     key_names: Tuple[str]
 
     @abstractmethod
@@ -51,10 +51,11 @@ class Driver(ABC):
         pass
 
     @abstractmethod
-    def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], Any]:
+    def get_datasets(self, where: Mapping[str, str] = None,
+                     limit: int = 500, page: int = 1) -> Dict[Tuple[str, ...], Any]:
         """Get all known dataset key combinations matching the given pattern (all if not given).
 
-        Values are a handle to retrieve data.
+        Return dict values are a handle to retrieve data (e.g. file path or callback).
         """
         pass
 
@@ -75,12 +76,17 @@ class Driver(ABC):
         pass
 
     @abstractmethod
+    # TODO: add accurate signature if mypy ever supports conditional return types
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
                         tile_size: Sequence[int] = (256, 256),
                         nodata: Number = 0,
-                        preserve_values: bool = False) -> np.ndarray:
-        """Get raster tile as a NumPy array for given keys."""
+                        preserve_values: bool = False,
+                        asynchronous: bool = False) -> Any:
+        """Get raster tile as a NumPy array for given keys and bounds.
+
+        If asynchronous=True, returns a Future containing the result instead.
+        """
         pass
 
     @staticmethod

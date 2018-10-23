@@ -1,4 +1,4 @@
-"""api/spec.py
+"""server/spec.py
 
 Flask routes to serve API spec
 """
@@ -7,7 +7,7 @@ from typing import Any
 
 from flask import jsonify, render_template
 
-from terracotta.api.flask_api import spec_api, spec
+from terracotta.server.flask_api import spec_api, spec
 
 
 @spec_api.route('/swagger.json', methods=['GET'])

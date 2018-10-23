@@ -16,10 +16,17 @@ ZOOM_XYZ = {
 
 
 @pytest.fixture
-def new_read_only_database(read_only_database, tmpdir_factory):
+def benchmark_database(read_only_database, raster_file_3857, tmpdir):
     """Always yields a fresh database to prevent caching"""
-    dbpath = tmpdir_factory.mktemp('db').join('db-readonly.sqlite')
+    dbpath = tmpdir.join('db-readonly.sqlite')
     shutil.copy(read_only_database, dbpath)
+
+    from terracotta import get_driver
+    driver = get_driver(dbpath)
+
+    with driver.connect():
+        driver.insert(('val21', 'x', '3857'), str(raster_file_3857))
+
     return dbpath
 
 
@@ -39,12 +46,12 @@ def get_xyz(raster_file, zoom):
 
 @pytest.mark.parametrize('resampling', ['nearest', 'linear', 'cubic', 'average'])
 @pytest.mark.parametrize('zoom', ZOOM_XYZ.keys())
-def test_bench_rgb(benchmark, zoom, resampling, raster_file, new_read_only_database):
-    from terracotta.api import create_app
+def test_bench_rgb(benchmark, zoom, resampling, raster_file, benchmark_database):
+    from terracotta.server import create_app
     from terracotta import update_settings
 
     update_settings(
-        DRIVER_PATH=str(new_read_only_database),
+        DRIVER_PATH=str(benchmark_database),
         UPSAMPLING_METHOD=resampling,
         DOWNSAMPLING_METHOD=resampling,
         RASTER_CACHE_SIZE=0,
@@ -64,12 +71,12 @@ def test_bench_rgb(benchmark, zoom, resampling, raster_file, new_read_only_datab
     assert rv.status_code == 200
 
 
-def test_bench_rgb_out_of_bounds(benchmark, raster_file, new_read_only_database):
-    from terracotta.api import create_app
+def test_bench_rgb_out_of_bounds(benchmark, raster_file, benchmark_database):
+    from terracotta.server import create_app
     from terracotta import update_settings
 
     update_settings(
-        DRIVER_PATH=str(new_read_only_database),
+        DRIVER_PATH=str(benchmark_database),
         RASTER_CACHE_SIZE=0,
         METADATA_CACHE_SIZE=0
     )
@@ -85,12 +92,14 @@ def test_bench_rgb_out_of_bounds(benchmark, raster_file, new_read_only_database)
 
 @pytest.mark.parametrize('resampling', ['nearest', 'linear', 'cubic', 'average'])
 @pytest.mark.parametrize('zoom', ZOOM_XYZ.keys())
-def test_bench_singleband(benchmark, zoom, resampling, raster_file, new_read_only_database):
-    from terracotta.api import create_app
+@pytest.mark.parametrize('native_crs', [False, True])
+def test_bench_singleband(benchmark, native_crs, zoom, resampling, raster_file, raster_file_3857,
+                          benchmark_database):
+    from terracotta.server import create_app
     from terracotta import update_settings
 
     update_settings(
-        DRIVER_PATH=str(new_read_only_database),
+        DRIVER_PATH=str(benchmark_database),
         UPSAMPLING_METHOD=resampling,
         DOWNSAMPLING_METHOD=resampling,
         RASTER_CACHE_SIZE=0,
@@ -98,24 +107,25 @@ def test_bench_singleband(benchmark, zoom, resampling, raster_file, new_read_onl
     )
 
     zoom_level = ZOOM_XYZ[zoom]
+    third_key = '3857' if native_crs else 'val22'
 
     flask_app = create_app()
     with flask_app.test_client() as client:
         if zoom_level is not None:
             x, y, z = get_xyz(raster_file, zoom_level)
-            rv = benchmark(client.get, f'/singleband/val21/x/val22/{z}/{x}/{y}.png')
+            rv = benchmark(client.get, f'/singleband/val21/x/{third_key}/{z}/{x}/{y}.png')
         else:
-            rv = benchmark(client.get, f'/singleband/val21/x/val22/preview.png')
+            rv = benchmark(client.get, f'/singleband/val21/x/{third_key}/preview.png')
 
     assert rv.status_code == 200
 
 
-def test_bench_singleband_out_of_bounds(benchmark, raster_file, new_read_only_database):
-    from terracotta.api import create_app
+def test_bench_singleband_out_of_bounds(benchmark, raster_file, benchmark_database):
+    from terracotta.server import create_app
     from terracotta import update_settings
 
     update_settings(
-        DRIVER_PATH=str(new_read_only_database),
+        DRIVER_PATH=str(benchmark_database),
         RASTER_CACHE_SIZE=0,
         METADATA_CACHE_SIZE=0
     )

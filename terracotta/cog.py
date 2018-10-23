@@ -1,4 +1,7 @@
-"""
+"""cog.py
+
+Provides a validator for cloud-optimized GeoTiff.
+
 Implementation from
 https://github.com/mapbox/rio-cogeo/blob/eefb3487002042114876e49ce1f86da9c6cef30a/rio_cogeo/cogeo.py
 
@@ -13,7 +16,7 @@ from rasterio.env import GDALVersion
 
 
 def validate(src_path: str) -> bool:
-    """Validate given Cloud Optimized GeoTIFF"""
+    """Validate given cloud-optimized GeoTIFF"""
 
     if not GDALVersion.runtime().at_least('2.2'):
         raise RuntimeError('GDAL 2.2 or above required')

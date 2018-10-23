@@ -1,0 +1,13 @@
+name: terracotta
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python>=3.6
+  - numpy
+  - rasterio>=1.0,<1.0.7
+  - shapely
+  - crick
+  - pip:
+    - -r requirements.txt
+    - -e .

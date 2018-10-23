@@ -1,5 +1,2 @@
 # Force LF
 * text eol=lf
-
-
-terracotta/_version.py export-subst

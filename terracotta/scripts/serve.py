@@ -11,23 +11,9 @@ import click
 import tqdm
 
 from terracotta.scripts.click_utils import RasterPattern, RasterPatternType
+from terracotta.scripts.http_utils import find_open_port
 
 logger = logging.getLogger(__name__)
-
-
-def check_socket(host: str, port: int) -> bool:
-        """Check if given port can be listened to"""
-        import socket
-        from contextlib import closing
-
-        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
-            sock.settimeout(2)
-            try:
-                sock.bind((host, port))
-                sock.listen(1)
-                return True
-            except socket.error:
-                return False
 
 
 @click.command('serve', short_help='Serve rasters through a local Flask development server.')
@@ -37,7 +23,6 @@ def check_socket(host: str, port: int) -> bool:
 @click.option('--rgb-key', default=None,
               help='Key to use for RGB compositing [default: last key in pattern]. '
                    'Has no effect if -r/--raster-pattern is not given.')
-@click.option('--no-browser', is_flag=True, default=False, help='Do not serve preview page.')
 @click.option('--debug', is_flag=True, default=False, help='Enable Flask debugging.')
 @click.option('--profile', is_flag=True, default=False, help='Enable Flask profiling.')
 @click.option('--database-provider', default=None,
@@ -50,7 +35,6 @@ def serve(database: str = None,
           raster_pattern: RasterPatternType = None,
           debug: bool = False,
           profile: bool = False,
-          no_browser: bool = False,
           database_provider: str = None,
           allow_all_ips: bool = False,
           port: int = None,
@@ -67,7 +51,7 @@ def serve(database: str = None,
     a WSGI or serverless app instead.
     """
     from terracotta import get_driver, update_settings
-    from terracotta.api import run_app
+    from terracotta.server import run_app
 
     if (database is None) == (raster_pattern is None):
         raise click.UsageError('Either --database or --raster-pattern must be given')
@@ -105,15 +89,11 @@ def serve(database: str = None,
     update_settings(DRIVER_PATH=database, DRIVER_PROVIDER=database_provider,
                     DEBUG=debug, FLASK_PROFILE=profile)
 
-    # find open port
+    # find suitable port
     port_range = [port] if port is not None else range(5000, 5100)
-    for port_candidate in port_range:
-        if check_socket('localhost', port_candidate):
-            port = port_candidate
-            break
-    else:
+    port = find_open_port(port_range)
+    if port is None:
         click.echo(f'Could not find open port to bind to (ports tried: {port_range})', err=True)
         raise click.Abort()
 
-    run_app(port=port, allow_all_ips=allow_all_ips, debug=debug,
-            profile=profile, preview=not no_browser)
+    run_app(port=port, allow_all_ips=allow_all_ips, debug=debug, profile=profile)

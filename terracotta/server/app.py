@@ -1,16 +1,15 @@
-"""app.py
+"""server/app.py
 
 Instantiated version of the Flask API.
 """
 
 from terracotta import get_settings, logs
-from terracotta.api import create_app
+from terracotta.server import create_app
 
 settings = get_settings()
 
 logs.set_logger(
     settings.LOGLEVEL,
-    settings.LOGFILE,
     catch_warnings=True
 )
 

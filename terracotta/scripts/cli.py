@@ -36,7 +36,7 @@ def cli(ctx: click.Context,
     if loglevel is None:
         loglevel = settings.LOGLEVEL
 
-    logs.set_logger(loglevel, settings.LOGFILE, catch_warnings=True)
+    logs.set_logger(loglevel, catch_warnings=True)
 
 
 def entrypoint() -> None:
@@ -48,6 +48,9 @@ def entrypoint() -> None:
         logger.exception('Uncaught exception!', exc_info=True)
         sys.exit(1)
 
+
+from terracotta.scripts.connect import connect
+cli.add_command(connect)
 
 from terracotta.scripts.create_database import create_database
 cli.add_command(create_database)

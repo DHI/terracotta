@@ -1,4 +1,7 @@
 import os
+import multiprocessing
+import time
+from functools import partial
 
 import pytest
 
@@ -95,6 +98,36 @@ def raster_file(tmpdir_factory):
     unoptimized_raster = outpath.join('img-raw.tif')
     with rasterio.open(str(unoptimized_raster), 'w', **profile) as dst:
         dst.write(raster_data, 1)
+
+    optimized_raster = outpath.join('img.tif')
+    cloud_optimize(unoptimized_raster, optimized_raster)
+
+    return optimized_raster
+
+
+@pytest.fixture(scope='session')
+def raster_file_3857(tmpdir_factory, raster_file):
+    import rasterio.warp
+    from terracotta.drivers.raster_base import RasterDriver
+
+    target_crs = RasterDriver.TARGET_CRS
+    outpath = tmpdir_factory.mktemp('raster')
+    unoptimized_raster = outpath.join('img-raw.tif')
+
+    with rasterio.open(str(raster_file)) as src:
+        out_transform, out_width, out_height = RasterDriver._calculate_default_transform(
+            src.crs, target_crs, src.width, src.height, *src.bounds
+        )
+        out_profile = src.profile.copy()
+        out_profile.update(
+            width=out_width,
+            height=out_height,
+            crs=target_crs,
+            transform=out_transform
+        )
+
+        with rasterio.open(str(unoptimized_raster), 'w', **out_profile) as dst:
+            rasterio.warp.reproject(rasterio.band(src, 1), rasterio.band(dst, 1))
 
     optimized_raster = outpath.join('img.tif')
     cloud_optimize(unoptimized_raster, optimized_raster)
@@ -243,7 +276,7 @@ def raster_file_xyz_lowzoom(raster_file):
 
 
 @pytest.fixture(scope='session')
-def read_only_database(raster_file, tmpdir_factory):
+def read_only_database(raster_file, raster_file_3857, tmpdir_factory):
     from terracotta import get_driver
 
     keys = ['key1', 'akey', 'key2']
@@ -270,3 +303,30 @@ def read_only_database(raster_file, tmpdir_factory):
 def use_read_only_database(read_only_database, monkeypatch):
     import terracotta
     terracotta.update_settings(DRIVER_PATH=str(read_only_database))
+
+
+def run_test_server(driver_path, port):
+    from terracotta import update_settings
+    update_settings(DRIVER_PATH=driver_path)
+
+    from terracotta.server.flask_api import create_app
+    create_app().run(port=port)
+
+
+@pytest.fixture(scope='session')
+def test_server(read_only_database):
+    """Spawn a Terracotta server in a separate process"""
+    port = 5555
+    server_proc = multiprocessing.Process(
+        target=partial(run_test_server, driver_path=str(read_only_database), port=port)
+    )
+    server_proc.start()
+    try:
+        # make sure server has started up
+        time.sleep(1)
+        assert server_proc.is_alive()
+        yield f'localhost:{port}'
+    finally:
+        server_proc.terminate()
+        server_proc.join(5)
+        assert not server_proc.is_alive()

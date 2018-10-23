@@ -4,7 +4,8 @@ SQLite-backed raster driver. Metadata is stored in an SQLite database, raster da
 to be present on disk.
 """
 
-from typing import Any, Sequence, Mapping, Tuple, Union, Iterator, Dict, Callable, cast
+from typing import (Any, Sequence, Mapping, Tuple, Union, Iterator, Dict,
+                    Optional, Callable, cast)
 import sys
 import os
 import operator
@@ -14,7 +15,6 @@ import json
 import re
 import sqlite3
 from sqlite3 import Connection
-from threading import get_ident
 from pathlib import Path
 from hashlib import md5
 from collections import OrderedDict
@@ -83,7 +83,9 @@ class SQLiteDriver(RasterDriver):
         settings = get_settings()
         self.DB_CONNECTION_TIMEOUT: int = settings.DB_CONNECTION_TIMEOUT
 
-        self._connection_pool: Dict[int, Connection] = {}
+        self._connection: Connection
+        self._connected = False
+
         self._metadata_cache: LFUCache = LFUCache(
             settings.METADATA_CACHE_SIZE, getsizeof=sys.getsizeof
         )
@@ -94,65 +96,47 @@ class SQLiteDriver(RasterDriver):
 
         super().__init__(path)
 
-    def _get_connection(self) -> Connection:
-        """Convenience method to retrieve the correct connection for the current thread."""
-        thread_id = get_ident()
-        if thread_id not in self._connection_pool:
-            raise RuntimeError('No open connection for current thread')
-        return self._connection_pool[thread_id]
-
     @contextlib.contextmanager
     def connect(self, check: bool = True) -> Iterator:
-        thread_id = get_ident()
-        close = False
-
-        if thread_id not in self._connection_pool:
-            self._before_connection(check)
-            with convert_exceptions('Unable to connect to database'):
-                new_conn = sqlite3.connect(self.path, timeout=self.DB_CONNECTION_TIMEOUT)
-            new_conn.row_factory = sqlite3.Row
-            self._connection_pool[thread_id] = new_conn
-            self._after_connection(check)
-            close = True
-
-        conn = self._get_connection()
-
         try:
-            yield conn
+            close = False
+            if not self._connected:
+                with convert_exceptions('Unable to connect to database'):
+                    self._connection = sqlite3.connect(
+                        self.path, timeout=self.DB_CONNECTION_TIMEOUT
+                    )
+                self._connection.row_factory = sqlite3.Row
+                self._connected = close = True
 
-        except Exception:
-            conn.rollback()
-            raise
-
+                if check and not os.path.isfile(self.path):
+                    raise exceptions.InvalidDatabaseError(
+                        f'Database file {self.path} does not exist '
+                        f'(run driver.create() before connecting to a new database)'
+                    )
+                self._connection_callback(check)
+            try:
+                yield
+            except Exception:
+                self._connection.rollback()
+                raise
         finally:
             if close:
-                conn.commit()
-                conn.close()
-                self._connection_pool.pop(thread_id)
+                self._connection.commit()
+                self._connection.close()
+                self._connected = False
 
     @shared_cachedmethod('db_version')
     @requires_connection
     @convert_exceptions('Could not retrieve version from database')
     def _get_db_version(self) -> str:
         """Getter for db_version"""
-        conn = self._get_connection()
+        conn = self._connection
         db_row = conn.execute('SELECT version from terracotta').fetchone()
         return db_row['version']
 
     db_version = cast(str, property(_get_db_version))
 
-    def _before_connection(self, validate: bool = True) -> None:
-        """Called before opening a new connection"""
-        if not validate:
-            return
-
-        if not os.path.isfile(self.path):
-            raise exceptions.InvalidDatabaseError(
-                f'Database file {self.path} does not exist '
-                f'(run driver.create() before connecting to a new database)'
-            )
-
-    def _after_connection(self, validate: bool = True) -> None:
+    def _connection_callback(self, validate: bool = True) -> None:
         """Called after opening a new connection"""
         # invalidate cache if db has changed since last connection
         new_hash = self._compute_hash(self.path)
@@ -209,11 +193,15 @@ class SQLiteDriver(RasterDriver):
         if not all(re.match(r'^\w+$', key) for key in keys):
             raise ValueError('key names must be alphanumeric')
 
+        if any(key in self.RESERVED_KEYS for key in keys):
+            raise ValueError(f'key names cannot be one of {self.RESERVED_KEYS!s}')
+
         for key in keys:
             if key not in key_descriptions:
                 key_descriptions[key] = ''
 
-        with self.connect(check=False) as conn:
+        with self.connect(check=False):
+            conn = self._connection
             conn.execute('CREATE TABLE terracotta (version VARCHAR[255])')
             conn.execute('INSERT INTO terracotta VALUES (?)', [str(__version__)])
 
@@ -235,7 +223,7 @@ class SQLiteDriver(RasterDriver):
     @convert_exceptions('Could not retrieve keys from database')
     def get_keys(self) -> OrderedDict:
         """Retrieve key names and descriptions from database"""
-        conn = self._get_connection()
+        conn = self._connection
         key_rows = conn.execute('SELECT * FROM keys')
 
         out: OrderedDict = OrderedDict()
@@ -244,19 +232,26 @@ class SQLiteDriver(RasterDriver):
         return out
 
     @shared_cachedmethod('datasets')
-    def _get_datasets(self, where: Tuple[Tuple[str, str], ...]) -> Dict[Tuple[str, ...], str]:
+    def _get_datasets(self, where: Optional[Tuple[Tuple[str, str], ...]],
+                      page: int, limit: int) -> Dict[Tuple[str, ...], str]:
         """Cache-backed version of get_datasets"""
-        conn = self._get_connection()
+        conn = self._connection
+
+        # explicitly cast to int to prevent SQL injection
+        page_query = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
 
         if where is None:
-            rows = conn.execute(f'SELECT * FROM datasets')
+            rows = conn.execute(f'SELECT * FROM datasets {page_query}')
         else:
             where_keys, where_values = zip(*where)
             if not all(key in self.key_names for key in where_keys):
-                raise exceptions.UnknownKeyError('Encountered unrecognized keys in '
-                                                 'where clause')
+                raise exceptions.UnknownKeyError(
+                    'Encountered unrecognized keys in where clause'
+                )
             where_string = ' AND '.join([f'{key}=?' for key in where_keys])
-            rows = conn.execute(f'SELECT * FROM datasets WHERE {where_string}', where_values)
+            rows = conn.execute(
+                f'SELECT * FROM datasets WHERE {where_string} {page_query}', where_values
+            )
 
         def keytuple(row: sqlite3.Row) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
@@ -266,13 +261,14 @@ class SQLiteDriver(RasterDriver):
     @trace('get_datasets')
     @requires_connection
     @convert_exceptions('Could not retrieve datasets')
-    def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], str]:
+    def get_datasets(self, where: Mapping[str, str] = None,
+                     page: int = 0, limit: int = 100) -> Dict[Tuple[str, ...], str]:
         """Retrieve keys of datasets matching given pattern"""
         # make sure arguments are hashable
         if where is None:
-            return self._get_datasets(None)
+            return self._get_datasets(None, page, limit)
 
-        return self._get_datasets(tuple(where.items()))
+        return self._get_datasets(tuple(where.items()), page, limit)
 
     @staticmethod
     def _encode_data(decoded: Mapping[str, Any]) -> Dict[str, Any]:
@@ -316,16 +312,15 @@ class SQLiteDriver(RasterDriver):
         if len(keys) != len(self.key_names):
             raise exceptions.UnknownKeyError('Got wrong number of keys')
 
-        conn = self._get_connection()
+        conn = self._connection
 
         where_string = ' AND '.join([f'{key}=?' for key in self.key_names])
         row = conn.execute(f'SELECT * FROM metadata WHERE {where_string}', keys).fetchone()
 
         if not row:  # support lazy loading
-            filepath = self._get_datasets(tuple(zip(self.key_names, keys)))
+            filepath = self._get_datasets(tuple(zip(self.key_names, keys)), page=0, limit=1)
             if not filepath:
                 raise exceptions.DatasetNotFoundError(f'No dataset found for given keys {keys}')
-            assert len(filepath) == 1
 
             # compute metadata and try again
             self.insert(keys, filepath[keys], skip_metadata=False)
@@ -356,7 +351,7 @@ class SQLiteDriver(RasterDriver):
                skip_metadata: bool = False,
                override_path: str = None) -> None:
         """Insert a dataset into the database"""
-        conn = self._get_connection()
+        conn = self._connection
 
         if len(keys) != len(self.key_names):
             raise ValueError(f'Not enough keys (available keys: {self.key_names})')
@@ -384,7 +379,7 @@ class SQLiteDriver(RasterDriver):
     @convert_exceptions('Could not write to database')
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         """Delete a dataset from the database"""
-        conn = self._get_connection()
+        conn = self._connection
 
         if len(keys) != len(self.key_names):
             raise ValueError(f'Not enough keys (available keys: {self.key_names})')

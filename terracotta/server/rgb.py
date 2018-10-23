@@ -1,4 +1,4 @@
-"""api/rgb.py
+"""server/rgb.py
 
 Flask route to handle /rgb calls.
 """
@@ -9,7 +9,7 @@ import json
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 from flask import request, send_file
 
-from terracotta.api.flask_api import convert_exceptions, tile_api, spec
+from terracotta.server.flask_api import convert_exceptions, tile_api, spec
 
 
 class RGBQuerySchema(Schema):
