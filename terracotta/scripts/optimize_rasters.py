@@ -26,7 +26,6 @@ IN_MEMORY_THRESHOLD = 10980 * 10980
 CACHEMAX = 1024 * 1024 * 512  # 512 MB
 
 GDAL_CONFIG = {
-    'GDAL_NUM_THREADS': 'ALL_CPUS',
     'GDAL_TIFF_INTERNAL_MASK': True,
     'GDAL_TIFF_OVR_BLOCKSIZE': 256,
     'GDAL_CACHEMAX': CACHEMAX,
@@ -41,6 +40,7 @@ COG_PROFILE = {
     'blockxsize': 256,
     'blockysize': 256,
     'compress': 'DEFLATE',
+    'ZLEVEL': 1,
     'photometric': 'MINISBLACK',
     'BIGTIFF': 'IF_SAFER'
 }
@@ -64,6 +64,21 @@ def _get_vrt(src: DatasetReader, rs_method: int) -> WarpedVRT:
         width=vrt_width, height=vrt_height
     )
     return vrt
+
+
+@contextlib.contextmanager
+def named_tempfile(basedir: str = None) -> str:
+    if basedir is None:
+        basedir = tempfile.gettempdir()
+    fileobj = tempfile.NamedTemporaryFile(delete=False, dir=basedir)
+    fileobj.close()
+    try:
+        yield fileobj.name
+    finally:
+        os.remove(fileobj.name)
+
+
+TemporaryRasterFile = named_tempfile
 
 
 @click.command('optimize-rasters',
