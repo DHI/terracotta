@@ -3,7 +3,7 @@
 Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 """
 
-from typing import Sequence
+from typing import Sequence, Dict, Any
 import os
 import math
 import itertools
@@ -39,7 +39,7 @@ COG_PROFILE = {
     'tiled': True,
     'blockxsize': 256,
     'blockysize': 256,
-    'compress': 'DEFLATE',
+    #'compress': 'DEFLATE',
     'ZLEVEL': 1,
     'photometric': 'MINISBLACK',
     'BIGTIFF': 'IF_SAFER'
@@ -51,6 +51,10 @@ RESAMPLING_METHODS = {
     'bilinear': Resampling.bilinear,
     'cubic': Resampling.cubic
 }
+
+
+def _prefered_compression_method() -> Dict[str, Any]:
+    import rasterio
 
 
 def _get_vrt(src: DatasetReader, rs_method: int) -> WarpedVRT:
@@ -70,7 +74,7 @@ def _get_vrt(src: DatasetReader, rs_method: int) -> WarpedVRT:
 def named_tempfile(basedir: str = None) -> str:
     if basedir is None:
         basedir = tempfile.gettempdir()
-    fileobj = tempfile.NamedTemporaryFile(delete=False, dir=basedir)
+    fileobj = tempfile.NamedTemporaryFile(dir=basedir, suffix='.tif')
     fileobj.close()
     try:
         yield fileobj.name
@@ -95,6 +99,7 @@ TemporaryRasterFile = named_tempfile
 @click.option('--in-memory/--no-in-memory', default=None,
               help='Force processing raster in memory / not in memory [default: process in memory '
                    f'if smaller than {IN_MEMORY_THRESHOLD // 1e6:.0f} million pixels]')
+@click.option('--compression', default='auto', type=click.Choice(['auto', 'deflate', 'lzw', 'zstd', 'none']))
 @click.option('-q', '--quiet', is_flag=True, default=False, show_default=True,
               help='Suppress all output to stdout')
 def optimize_rasters(raster_files: Sequence[Sequence[Path]],
@@ -103,6 +108,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      resampling_method: str = 'average',
                      reproject: bool = False,
                      in_memory: bool = None,
+                     compression: str = 'auto',
                      quiet: bool = False) -> None:
     """Optimize a collection of raster files for use with Terracotta.
 
@@ -140,15 +146,14 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         # insert newline for nicer progress bar style
         click.echo('')
 
-    with tqdm.tqdm(total=total_pixels, smoothing=0, unit_scale=True, disable=quiet) as pbar:
+    with tqdm.tqdm(total=total_pixels, smoothing=0, unit_scale=True, disable=quiet, desc='Optimizing rasters') as pbar, rasterio.Env(**GDAL_CONFIG):
         for input_file in raster_files_flat:
-            if len(input_file.name) > 20:
-                short_name = input_file.name[:8] + '...' + input_file.name[-8:]
+            if len(input_file.name) > 30:
+                short_name = input_file.name[:13] + '...' + input_file.name[-13:]
             else:
                 short_name = input_file.name
 
             pbar.set_postfix(file=short_name)
-            pbar.set_description('Reading')
 
             output_file = output_folder / input_file.with_suffix('.tif').name
 
@@ -158,8 +163,13 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 )
 
             with contextlib.ExitStack() as es:
-                es.enter_context(rasterio.Env(**GDAL_CONFIG))
                 src = es.enter_context(rasterio.open(str(input_file)))
+
+                if src.count > 1:
+                    click.echo(
+                        f'Warning: raster file {input_file!s} has more than one band. '
+                        'Only the first one will be used.', err=True
+                    )
 
                 if reproject:
                     vrt = es.enter_context(_get_vrt(src, rs_method=rs_method))
@@ -176,31 +186,32 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     memfile = es.enter_context(MemoryFile())
                     dst = es.enter_context(memfile.open(**profile))
                 else:
-                    tempdir = es.enter_context(tempfile.TemporaryDirectory())
-                    tempraster = os.path.join(tempdir, 'tc-raster.tif')
+                    tempraster = es.enter_context(TemporaryRasterFile(basedir=output_folder))
                     dst = es.enter_context(rasterio.open(tempraster, 'w', **profile))
 
                 # iterate over blocks
                 windows = list(dst.block_windows(1))
 
-                for _, w in windows:
+                for _, w in tqdm.tqdm(windows, desc='Reading'):
                     block_data = vrt.read(window=w, indexes=[1])
                     dst.write(block_data, window=w)
                     block_mask = vrt.dataset_mask(window=w)
                     dst.write_mask(block_mask, window=w)
-                    pbar.update(w.height * w.width)
 
                 # add overviews
-                pbar.set_description('Creating overviews')
                 max_overview_level = math.ceil(math.log2(max(
                     dst.height // profile['blockysize'],
                     dst.width // profile['blockxsize']
                 )))
 
                 overviews = [2 ** j for j in range(1, max_overview_level + 1)]
-                dst.build_overviews(overviews, rs_method)
+                for overview in tqdm.tqdm(overviews, desc='Creating overviews'):
+                    dst.build_overviews([overview], rs_method)
                 dst.update_tags(ns='tc_overview', resampling=rs_method.value)
 
-                # copy to destination (this is necessary to produce a consistent file)
-                pbar.set_description('Copying')
-                copy(dst, str(output_file), copy_src_overviews=True, **COG_PROFILE)
+                # copy to destination (this is necessary to push overviews to start of file)
+                with tqdm.tqdm(desc='Compressing') as compbar:
+                    copy(dst, str(output_file), copy_src_overviews=True, **COG_PROFILE, compress='deflate')
+                    compbar.update(1)
+
+            pbar.update(dst.height * dst.width)
