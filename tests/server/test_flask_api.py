@@ -48,6 +48,7 @@ def test_get_datasets(client, use_read_only_database):
     rv = client.get('/datasets')
     assert rv.status_code == 200
     datasets = json.loads(rv.data, object_pairs_hook=OrderedDict)['datasets']
+    assert len(datasets) == 3
     assert OrderedDict([('key1', 'val11'), ('akey', 'x'), ('key2', 'val12')]) in datasets
 
 

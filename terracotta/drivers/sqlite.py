@@ -237,8 +237,11 @@ class SQLiteDriver(RasterDriver):
         """Cache-backed version of get_datasets"""
         conn = self._connection
 
-        # explicitly cast to int to prevent SQL injection
-        page_query = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
+        if limit is not None:
+            # explicitly cast parameters to int to prevent SQL injection
+            page_query = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
+        else:
+            page_query = ''
 
         if where is None:
             rows = conn.execute(f'SELECT * FROM datasets {page_query}')
@@ -262,7 +265,7 @@ class SQLiteDriver(RasterDriver):
     @requires_connection
     @convert_exceptions('Could not retrieve datasets')
     def get_datasets(self, where: Mapping[str, str] = None,
-                     page: int = 0, limit: int = 100) -> Dict[Tuple[str, ...], str]:
+                     page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
         """Retrieve keys of datasets matching given pattern"""
         # make sure arguments are hashable
         if where is None:
