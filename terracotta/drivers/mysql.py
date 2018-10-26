@@ -5,7 +5,7 @@ to be present on disk.
 """
 
 from typing import (Tuple, Dict, Iterator, Callable, Sequence, Union,
-                    Mapping, Any, Optional, cast, TYPE_CHECKING)
+                    Mapping, Any, Optional, cast)
 from collections import OrderedDict
 import sys
 import operator
@@ -25,7 +25,6 @@ from terracotta.drivers.raster_base import RasterDriver
 from terracotta import exceptions
 from terracotta.profile import trace
 
-if TYPE_CHECKING:
     from pymysql.connections import Connection, Cursor
     from pymysql.cursors import DictCursor
 
