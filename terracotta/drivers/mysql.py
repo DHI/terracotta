@@ -31,11 +31,11 @@ from terracotta.profile import trace
 
 @contextlib.contextmanager
 def convert_exceptions(msg: str) -> Iterator:
-    """Convert internal sqlite exceptions to our InvalidDatabaseError"""
-    from pymysql import OperationalError
+    """Convert internal mysql exceptions to our InvalidDatabaseError"""
+    from pymysql import OperationalError, InternalError, ProgrammingError
     try:
         yield
-    except OperationalError as exc:
+    except (OperationalError, InternalError, ProgrammingError) as exc:
         raise exceptions.InvalidDatabaseError(msg) from exc
 
 
