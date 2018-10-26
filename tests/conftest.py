@@ -17,6 +17,17 @@ def pytest_unconfigure(config):
     os.environ['TC_TESTING'] = '0'
 
 
+@pytest.fixture(scope='session')
+def has_mysql():
+    try:
+        import pymysql
+        with pymysql.connect('localhost', user='root', password='mysql', connect_timeout=3):
+            pass
+        return True
+    except (ImportError, pymysql.OperationalError):
+        return False
+
+
 @pytest.fixture(autouse=True)
 def restore_settings():
     import terracotta
