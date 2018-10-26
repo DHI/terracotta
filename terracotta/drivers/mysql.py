@@ -25,8 +25,8 @@ from terracotta.drivers.raster_base import RasterDriver
 from terracotta import exceptions
 from terracotta.profile import trace
 
-    from pymysql.connections import Connection, Cursor
-    from pymysql.cursors import DictCursor
+from pymysql.connections import Connection, Cursor
+from pymysql.cursors import DictCursor
 
 
 @contextlib.contextmanager
