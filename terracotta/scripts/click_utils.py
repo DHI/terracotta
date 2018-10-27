@@ -36,7 +36,7 @@ class RasterPattern(click.ParamType):
     name = 'raster-pattern'
 
     def convert(self, value: str, *args: Any) -> RasterPatternType:
-        value = os.path.realpath(value).replace('\\', '\\\\')
+        value = os.path.realpath(value)
 
         try:
             parsed_value = list(string.Formatter().parse(value))
@@ -44,21 +44,30 @@ class RasterPattern(click.ParamType):
             self.fail(f'Invalid pattern: {exc!s}')
 
         # extract keys from format string and assemble glob and regex patterns matching it
-        keys = [field_name for _, field_name, _, _ in parsed_value if field_name]
-        glob_pattern = value.format(**{k: '*' for k in keys})
-        regex_pattern = value.format(**{k: f'(?P<{k}>\\w+)' for k in keys})
+        keys = []
+        glob_pattern = ''
+        regex_pattern = ''
+        for before_field, field_name, _, _ in parsed_value:
+            glob_pattern += before_field
+            regex_pattern += re.escape(before_field)
+            if field_name is None:
+                continue
+            if field_name == '':
+                regex_pattern += '.*?'
+            elif field_name in keys:
+                key_group_number = keys.index(field_name) + 1
+                regex_pattern += f'\\{key_group_number}'
+            else:
+                keys.append(field_name)
+                regex_pattern += f'(?P<{field_name}>[a-zA-Z0-9]+)'
+            glob_pattern += '*'
 
         if not keys:
             self.fail('Pattern must contain at least one placeholder')
 
-        try:
-            compiled_pattern = re.compile(regex_pattern)
-        except re.error as exc:
-            self.fail(f'Could not parse pattern to regex: {exc!s}')
-
         # use glob to find candidates, regex to extract placeholder values
         candidates = [os.path.realpath(candidate) for candidate in glob.glob(glob_pattern)]
-        matched_candidates = [compiled_pattern.match(candidate) for candidate in candidates]
+        matched_candidates = [re.match(regex_pattern, candidate) for candidate in candidates]
 
         if not any(matched_candidates):
             self.fail('Given pattern matches no files')

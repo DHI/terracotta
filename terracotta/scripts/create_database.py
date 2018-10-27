@@ -37,11 +37,13 @@ def create_database(raster_pattern: RasterPatternType,
                     quiet: bool = False) -> None:
     """Create a new SQLite raster database from a collection of raster files.
 
-    First arguments is a format pattern defining paths and keys of all raster files.
+    First argument is a format pattern defining paths and keys of all raster files.
 
     Example:
 
-        terracotta create-database /path/to/rasters/{name}/{date}_{band}.tif -o out.sqlite
+        terracotta create-database /path/to/rasters/{name}/{date}_{band}{}.tif -o out.sqlite
+
+    The empty group {} is replaced by a wildcard matching anything (similar to * in glob patterns).
 
     This command only supports the creation of a simple SQLite database without any additional
     metadata. For more sophisticated use cases use the Terracotta Python API.
