@@ -41,39 +41,61 @@ TEST_CASES = (
         'expected_keys': ['name'],
         'expected_datasets': [('foo',)]
     },
-    {  # unicode
+    {  # case-sensitivity
+        'filenames': ['bAr.tif', 'FOO.tif'],
+        'input_pattern': '{nAmE}.tif',
+        'expected_keys': ['nAmE'],
+        'expected_datasets': [('bAr',), ('FOO',)]
+    },
+    {  # unicode path
         'filenames': ['$*)-?:_«}ä»/foo.tif'],
         'input_pattern': '{}/{name}.tif',
         'expected_keys': ['name'],
         'expected_datasets': [('foo',)]
+    },
+    {  # unicode key
+        'filenames': ['günther.tif'],
+        'input_pattern': '{bärbel}.tif',
+        'expected_keys': ['bärbel'],
+        'expected_datasets': [('günther',)]
     }
 )
 
 INVALID_TEST_CASES = (
-    {
+    {  # no matching files
         'filenames': [],
-        'input_pattern': 'notafile{key}.tif',
+        'input_pattern': '{key}.tif',
         'error_contains': 'matches no files'
     },
-    {
+    {  # duplicate keys in different folders
         'filenames': ['dir1/foo.tif', 'dir2/foo.tif'],
         'input_pattern': '{}/{name}.tif',
         'error_contains': 'duplicate keys'
     },
-    {
+    {  # duplicate keys through wildcard
         'filenames': ['S2_B04.tif', 'S2_20180101_B04.tif'],
         'input_pattern': '{sensor}_{}.tif',
         'error_contains': 'duplicate keys'
     },
-    {
+    {  # no groups in pattern
         'filenames': [],
         'input_pattern': 'notafile.tif',
         'error_contains': 'at least one placeholder'
     },
-    {
+    {  # only wildcards in pattern
+        'filenames': [],
+        'input_pattern': '{}.tif',
+        'error_contains': 'at least one placeholder'
+    },
+    {  # stray {
         'filenames': [],
         'input_pattern': 'notafile{.tif',
         'error_contains': 'invalid pattern'
+    },
+    {  # invalid placeholder name
+        'filenames': ['foo.tif'],
+        'input_pattern': '{(foo)}.tif',
+        'error_contains': 'must be alphanumeric'
     }
 )
 
@@ -130,7 +152,7 @@ def test_create_database_pattern(case, abspath, raster_file, tmpworkdir):
     from terracotta import get_driver
     driver = get_driver(str(outfile), provider='sqlite')
     assert driver.key_names == tuple(case['expected_keys'])
-    assert tuple(driver.get_datasets().keys()) == tuple(case['expected_datasets'])
+    assert all(ds in driver.get_datasets() for ds in case['expected_datasets'])
 
 
 @pytest.mark.parametrize('case', INVALID_TEST_CASES)

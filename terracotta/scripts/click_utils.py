@@ -50,23 +50,26 @@ class RasterPattern(click.ParamType):
         for before_field, field_name, _, _ in parsed_value:
             glob_pattern += before_field
             regex_pattern += re.escape(before_field)
-            if field_name is None:
+            if field_name is None:  # no placeholder
                 continue
-            if field_name == '':
+            glob_pattern += '*'
+            if field_name == '':  # unnamed placeholder
                 regex_pattern += '.*?'
-            elif field_name in keys:
+            elif field_name in keys:  # duplicate placeholder
                 key_group_number = keys.index(field_name) + 1
                 regex_pattern += f'\\{key_group_number}'
-            else:
+            else:  # new placeholder
                 keys.append(field_name)
-                regex_pattern += f'(?P<{field_name}>[a-zA-Z0-9]+)'
-            glob_pattern += '*'
+                regex_pattern += f'(?P<{field_name}>[^\\W_]+)'
 
         if not keys:
             self.fail('Pattern must contain at least one placeholder')
 
+        if not all(re.match(r'\w', key) for key in keys):
+            self.fail('Key names must be alphanumeric')
+
         # use glob to find candidates, regex to extract placeholder values
-        candidates = [os.path.realpath(candidate) for candidate in glob.glob(glob_pattern)]
+        candidates = map(os.path.realpath, glob.glob(glob_pattern))
         matched_candidates = [re.match(regex_pattern, candidate) for candidate in candidates]
 
         if not any(matched_candidates):
