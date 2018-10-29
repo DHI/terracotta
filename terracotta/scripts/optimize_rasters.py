@@ -3,7 +3,7 @@
 Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 """
 
-from typing import Sequence, Dict, Any
+from typing import Sequence, Iterator, Union
 import os
 import math
 import itertools
@@ -17,7 +17,7 @@ from rasterio.io import DatasetReader
 from rasterio.vrt import WarpedVRT
 from rasterio.enums import Resampling
 
-from terracotta.scripts.click_utils import GlobbityGlob, PathlibPath
+from terracotta.scripts.click_types import GlobbityGlob, PathlibPath
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +39,9 @@ COG_PROFILE = {
     'tiled': True,
     'blockxsize': 256,
     'blockysize': 256,
-    #'compress': 'DEFLATE',
-    'ZLEVEL': 1,
     'photometric': 'MINISBLACK',
+    'ZLEVEL': 1,
+    'ZSTD_LEVEL': 9,
     'BIGTIFF': 'IF_SAFER'
 }
 
@@ -53,8 +53,13 @@ RESAMPLING_METHODS = {
 }
 
 
-def _prefered_compression_method() -> Dict[str, Any]:
-    import rasterio
+def _prefered_compression_method() -> str:
+    from rasterio.env import GDALVersion
+
+    if GDALVersion.runtime() < GDALVersion.parse('2.3'):
+        return 'ZSTD'
+
+    return 'DEFLATE'
 
 
 def _get_vrt(src: DatasetReader, rs_method: int) -> WarpedVRT:
@@ -71,10 +76,10 @@ def _get_vrt(src: DatasetReader, rs_method: int) -> WarpedVRT:
 
 
 @contextlib.contextmanager
-def named_tempfile(basedir: str = None) -> str:
+def _named_tempfile(basedir: Union[str, Path] = None) -> Iterator[str]:
     if basedir is None:
         basedir = tempfile.gettempdir()
-    fileobj = tempfile.NamedTemporaryFile(dir=basedir, suffix='.tif')
+    fileobj = tempfile.NamedTemporaryFile(dir=str(basedir), suffix='.tif')
     fileobj.close()
     try:
         yield fileobj.name
@@ -82,26 +87,43 @@ def named_tempfile(basedir: str = None) -> str:
         os.remove(fileobj.name)
 
 
-TemporaryRasterFile = named_tempfile
+TemporaryRasterFile = _named_tempfile
 
 
-@click.command('optimize-rasters',
-               short_help='Optimize a collection of raster files for use with Terracotta.')
+@click.command(
+    'optimize-rasters',
+    short_help='Optimize a collection of raster files for use with Terracotta.'
+)
 @click.argument('raster-files', nargs=-1, type=GlobbityGlob(), required=True)
-@click.option('-o', '--output-folder', required=True,
-              type=PathlibPath(file_okay=False, writable=True),
-              help='Output folder for cloud-optimized rasters. Subdirectories will be flattened.')
-@click.option('--overwrite', is_flag=True, default=False, help='Force overwrite of existing files')
-@click.option('--resampling-method', type=click.Choice(RESAMPLING_METHODS.keys()),
-              default='average', help='Resampling method for overviews', show_default=True)
-@click.option('--reproject', is_flag=True, default=False, show_default=True,
-              help='Reproject raster file to Web Mercator for faster access')
-@click.option('--in-memory/--no-in-memory', default=None,
-              help='Force processing raster in memory / not in memory [default: process in memory '
-                   f'if smaller than {IN_MEMORY_THRESHOLD // 1e6:.0f} million pixels]')
-@click.option('--compression', default='auto', type=click.Choice(['auto', 'deflate', 'lzw', 'zstd', 'none']))
-@click.option('-q', '--quiet', is_flag=True, default=False, show_default=True,
-              help='Suppress all output to stdout')
+@click.option(
+    '-o', '--output-folder', required=True,
+    type=PathlibPath(file_okay=False, writable=True),
+    help='Output folder for cloud-optimized rasters. Subdirectories will be flattened.'
+)
+@click.option(
+    '--overwrite', is_flag=True, default=False, help='Force overwrite of existing files'
+)
+@click.option(
+    '--resampling-method', type=click.Choice(RESAMPLING_METHODS.keys()),
+    default='average', help='Resampling method for overviews', show_default=True
+)
+@click.option(
+    '--reproject', is_flag=True, default=False, show_default=True,
+    help='Reproject raster file to Web Mercator for faster access'
+)
+@click.option(
+    '--in-memory/--no-in-memory', default=None,
+    help='Force processing raster in memory / not in memory [default: process in memory '
+         f'if smaller than {IN_MEMORY_THRESHOLD // 1e6:.0f} million pixels]'
+)
+@click.option(
+    '--compression', default='auto', type=click.Choice(['auto', 'deflate', 'lzw', 'zstd', 'none']),
+    help='Compression algorithm to use [default: auto (ZSTD if available, DEFLATE otherwise)'
+)
+@click.option(
+    '-q', '--quiet', is_flag=True, default=False, show_default=True,
+    help='Suppress all output to stdout'
+)
 def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      output_folder: Path,
                      overwrite: bool = False,
@@ -126,11 +148,15 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
     from rasterio.shutil import copy
 
     raster_files_flat = sorted(set(itertools.chain.from_iterable(raster_files)))
-    rs_method = RESAMPLING_METHODS[resampling_method]
 
     if not raster_files_flat:
         click.echo('No files given')
         return
+
+    rs_method = RESAMPLING_METHODS[resampling_method]
+
+    if compression == 'auto':
+        compression = _prefered_compression_method()
 
     total_pixels = 0
     for f in raster_files_flat:
@@ -138,6 +164,11 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
             raise click.BadParameter(f'Input raster {f!s} is not a file')
 
         with rasterio.open(str(f), 'r') as src:
+            if src.count > 1 and not quiet:
+                click.echo(
+                    f'Warning: raster file {f!s} has more than one band. '
+                    'Only the first one will be used.', err=True
+                )
             total_pixels += src.height * src.width
 
     output_folder.mkdir(exist_ok=True)
@@ -146,7 +177,14 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         # insert newline for nicer progress bar style
         click.echo('')
 
-    with tqdm.tqdm(total=total_pixels, smoothing=0, unit_scale=True, disable=quiet, desc='Optimizing rasters') as pbar, rasterio.Env(**GDAL_CONFIG):
+    with contextlib.ExitStack() as outer_env:
+        pbar = outer_env.enter_context(tqdm.tqdm(
+            total=total_pixels, smoothing=0, disable=quiet,
+            bar_format='{l_bar}{bar}| [{elapsed}<{remaining}{postfix}]',
+            desc='Optimizing rasters'
+        ))
+        outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
+
         for input_file in raster_files_flat:
             if len(input_file.name) > 30:
                 short_name = input_file.name[:13] + '...' + input_file.name[-13:]
@@ -164,12 +202,6 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
             with contextlib.ExitStack() as es:
                 src = es.enter_context(rasterio.open(str(input_file)))
-
-                if src.count > 1:
-                    click.echo(
-                        f'Warning: raster file {input_file!s} has more than one band. '
-                        'Only the first one will be used.', err=True
-                    )
 
                 if reproject:
                     vrt = es.enter_context(_get_vrt(src, rs_method=rs_method))
@@ -192,7 +224,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 # iterate over blocks
                 windows = list(dst.block_windows(1))
 
-                for _, w in tqdm.tqdm(windows, desc='Reading'):
+                for _, w in tqdm.tqdm(windows, desc='Reading', leave=False):
                     block_data = vrt.read(window=w, indexes=[1])
                     dst.write(block_data, window=w)
                     block_mask = vrt.dataset_mask(window=w)
@@ -205,13 +237,16 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 )))
 
                 overviews = [2 ** j for j in range(1, max_overview_level + 1)]
-                for overview in tqdm.tqdm(overviews, desc='Creating overviews'):
+                for overview in tqdm.tqdm(overviews, desc='Creating overviews', leave=False):
                     dst.build_overviews([overview], rs_method)
-                dst.update_tags(ns='tc_overview', resampling=rs_method.value)
+
+                dst.update_tags(ns='rio_overview', resampling=rs_method.value)
 
                 # copy to destination (this is necessary to push overviews to start of file)
-                with tqdm.tqdm(desc='Compressing') as compbar:
-                    copy(dst, str(output_file), copy_src_overviews=True, **COG_PROFILE, compress='deflate')
-                    compbar.update(1)
+                with tqdm.tqdm(desc='Compressing', leave=False):
+                    copy(
+                        dst, str(output_file), copy_src_overviews=True,
+                        compress=compression, **COG_PROFILE
+                    )
 
             pbar.update(dst.height * dst.width)

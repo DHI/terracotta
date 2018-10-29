@@ -110,14 +110,14 @@ def tmpworkdir(tmpdir):
         os.chdir(orig_dir)
 
 
-def test_create_database(raster_file, tmpdir):
+def test_ingest(raster_file, tmpdir):
     from terracotta.scripts import cli
 
     outfile = tmpdir / 'out.sqlite'
     input_pattern = str(raster_file.dirpath('{name}.tif'))
 
     runner = CliRunner()
-    result = runner.invoke(cli.cli, ['create-database', input_pattern, '-o', str(outfile)])
+    result = runner.invoke(cli.cli, ['ingest', input_pattern, '-o', str(outfile)])
     assert result.exit_code == 0
     assert outfile.check()
 
@@ -127,9 +127,54 @@ def test_create_database(raster_file, tmpdir):
     assert driver.get_datasets() == {('img',): str(raster_file)}
 
 
+def test_ingest_append(raster_file, tmpworkdir):
+    from terracotta.scripts import cli
+
+    for infile in ('dir1/img1.tif', 'dir2/img2.tif'):
+        temp_infile = tmpworkdir / infile
+        os.makedirs(temp_infile.dirpath(), exist_ok=True)
+        shutil.copy(raster_file, temp_infile)
+
+    outfile = tmpworkdir / 'out.sqlite'
+
+    runner = CliRunner()
+    result = runner.invoke(cli.cli, ['ingest', 'dir1/{name}.tif', '-o', str(outfile)])
+    assert result.exit_code == 0
+    assert outfile.check()
+
+    result = runner.invoke(cli.cli, ['ingest', 'dir2/{name}.tif', '-o', str(outfile)])
+    assert result.exit_code == 0
+    assert outfile.check()
+
+    from terracotta import get_driver
+    driver = get_driver(str(outfile), provider='sqlite')
+    assert driver.key_names == ('name',)
+    assert all((ds,) in driver.get_datasets() for ds in ('img1', 'img2'))
+
+
+def test_ingest_append_invalid(raster_file, tmpworkdir):
+    from terracotta.scripts import cli
+
+    for infile in ('dir1/img1.tif', 'dir2/img2.tif'):
+        temp_infile = tmpworkdir / infile
+        os.makedirs(temp_infile.dirpath(), exist_ok=True)
+        shutil.copy(raster_file, temp_infile)
+
+    outfile = tmpworkdir / 'out.sqlite'
+
+    runner = CliRunner()
+    result = runner.invoke(cli.cli, ['ingest', 'dir1/{name}.tif', '-o', str(outfile)])
+    assert result.exit_code == 0
+    assert outfile.check()
+
+    result = runner.invoke(cli.cli, ['ingest', '{dir}/{name}.tif', '-o', str(outfile)])
+    assert result.exit_code != 0
+    assert 'incompatible key names' in result.output
+
+
 @pytest.mark.parametrize('case', TEST_CASES)
 @pytest.mark.parametrize('abspath', [True, False])
-def test_create_database_pattern(case, abspath, raster_file, tmpworkdir):
+def test_ingest_pattern(case, abspath, raster_file, tmpworkdir):
     from terracotta.scripts import cli
 
     for infile in case['filenames']:
@@ -145,7 +190,7 @@ def test_create_database_pattern(case, abspath, raster_file, tmpworkdir):
         input_pattern = case['input_pattern']
 
     runner = CliRunner()
-    result = runner.invoke(cli.cli, ['create-database', input_pattern, '-o', str(outfile)])
+    result = runner.invoke(cli.cli, ['ingest', input_pattern, '-o', str(outfile)])
     assert result.exit_code == 0, result.output
     assert outfile.check()
 
@@ -156,7 +201,7 @@ def test_create_database_pattern(case, abspath, raster_file, tmpworkdir):
 
 
 @pytest.mark.parametrize('case', INVALID_TEST_CASES)
-def test_create_database_invalid_pattern(case, raster_file, tmpworkdir):
+def test_ingest_invalid_pattern(case, raster_file, tmpworkdir):
     from terracotta.scripts import cli
 
     for infile in case['filenames']:
@@ -168,12 +213,12 @@ def test_create_database_invalid_pattern(case, raster_file, tmpworkdir):
     input_pattern = case['input_pattern']
 
     runner = CliRunner()
-    result = runner.invoke(cli.cli, ['create-database', input_pattern, '-o', str(outfile)])
+    result = runner.invoke(cli.cli, ['ingest', input_pattern, '-o', str(outfile)])
     assert result.exit_code != 0
     assert case['error_contains'].lower() in result.output.lower()
 
 
-def test_create_database_rgb_key(raster_file, tmpdir):
+def test_ingest_rgb_key(raster_file, tmpdir):
     from terracotta.scripts import cli
 
     outfile = tmpdir / 'out.sqlite'
@@ -181,7 +226,7 @@ def test_create_database_rgb_key(raster_file, tmpdir):
 
     runner = CliRunner()
     result = runner.invoke(
-        cli.cli, ['create-database', input_pattern, '-o', str(outfile), '--rgb-key', 'rgb']
+        cli.cli, ['ingest', input_pattern, '-o', str(outfile), '--rgb-key', 'rgb']
     )
     assert result.exit_code == 0
     assert outfile.check()
@@ -192,7 +237,7 @@ def test_create_database_rgb_key(raster_file, tmpdir):
     assert driver.get_datasets() == {('g', 'i'): str(raster_file)}
 
 
-def test_create_database_invalid_rgb_key(raster_file, tmpdir):
+def test_ingest_invalid_rgb_key(raster_file, tmpdir):
     from terracotta.scripts import cli
 
     outfile = tmpdir / 'out.sqlite'
@@ -200,7 +245,7 @@ def test_create_database_invalid_rgb_key(raster_file, tmpdir):
 
     runner = CliRunner()
     result = runner.invoke(
-        cli.cli, ['create-database', input_pattern, '-o', str(outfile), '--rgb-key', 'bar']
+        cli.cli, ['ingest', input_pattern, '-o', str(outfile), '--rgb-key', 'bar']
     )
     assert result.exit_code != 0
     assert not outfile.check()

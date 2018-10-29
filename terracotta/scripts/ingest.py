@@ -1,4 +1,4 @@
-"""scripts/create_database.py
+"""scripts/ingest.py
 
 A convenience tool to create a Terracotta database from some raster files.
 """
@@ -10,32 +10,29 @@ import logging
 import click
 import tqdm
 
-from terracotta.scripts.click_utils import RasterPattern, RasterPatternType, PathlibPath
+from terracotta.scripts.click_types import RasterPattern, RasterPatternType, PathlibPath
 
 logger = logging.getLogger(__name__)
 
 
-@click.command('create-database',
-               short_help='Create a new SQLite raster database from a collection of raster files.')
+@click.command('ingest',
+               short_help='Ingest a collection of raster files into a SQLite database.')
 @click.argument('raster-pattern', type=RasterPattern(), required=True)
 @click.option('-o', '--output-file', required=True, help='Path to output file',
               type=PathlibPath(dir_okay=False, writable=True))
-@click.option('--overwrite', is_flag=True, default=False,
-              help='Always overwrite existing database without asking')
 @click.option('--skip-metadata', is_flag=True, default=False,
-              help='Speed up ingestion by not pre-computing metadata '
+              help='Speed up ingestion by skipping computation of metadata '
                    '(will be computed on first request instead)')
 @click.option('--rgb-key', default=None,
               help='Key to use for RGB compositing [default: last key in pattern]')
 @click.option('-q', '--quiet', is_flag=True, default=False, show_default=True,
               help='Suppress all output to stdout')
-def create_database(raster_pattern: RasterPatternType,
-                    output_file: Path,
-                    overwrite: bool = False,
-                    skip_metadata: bool = False,
-                    rgb_key: str = None,
-                    quiet: bool = False) -> None:
-    """Create a new SQLite raster database from a collection of raster files.
+def ingest(raster_pattern: RasterPatternType,
+           output_file: Path,
+           skip_metadata: bool = False,
+           rgb_key: str = None,
+           quiet: bool = False) -> None:
+    """Ingest a collection of raster files into a SQLite database.
 
     First argument is a format pattern defining paths and keys of all raster files.
 
@@ -45,15 +42,12 @@ def create_database(raster_pattern: RasterPatternType,
 
     The empty group {} is replaced by a wildcard matching anything (similar to * in glob patterns).
 
+    Existing datasets are silently overwritten.
+
     This command only supports the creation of a simple SQLite database without any additional
     metadata. For more sophisticated use cases use the Terracotta Python API.
     """
     from terracotta import get_driver
-
-    if output_file.is_file() and not overwrite:
-        click.confirm(f'Existing output file {output_file} will be overwritten. Continue?',
-                      abort=True)
-        output_file.unlink()
 
     keys, raster_files = raster_pattern
 
@@ -71,7 +65,16 @@ def create_database(raster_pattern: RasterPatternType,
         raster_files = {push_to_last(k, rgb_idx): v for k, v in raster_files.items()}
 
     driver = get_driver(output_file)
-    driver.create(keys)
+
+    if not output_file.is_file():
+        driver.create(keys)
+
+    if tuple(keys) != driver.key_names:
+        click.echo(
+            f'Database file {output_file!s} has incompatible key names {driver.key_names}',
+            err=True
+        )
+        click.Abort()
 
     with driver.connect():
         progress = tqdm.tqdm(raster_files.items(), desc='Ingesting raster files', disable=quiet)

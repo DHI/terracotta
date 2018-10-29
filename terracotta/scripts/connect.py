@@ -10,7 +10,7 @@ from urllib.error import HTTPError, URLError
 
 import click
 
-from terracotta.scripts.click_utils import Hostname
+from terracotta.scripts.click_types import Hostname
 from terracotta.scripts.http_utils import find_open_port
 
 
