@@ -39,7 +39,7 @@ def parse_connection(con_str: str) -> Optional[ConnectionInfo]:
     port: Optional[int]
     try:
         port = int(m.group(4))
-    except ValueError:
+    except (TypeError, ValueError):
         port = 3306
 
     return ConnectionInfo(user=m.group(1), password=m.group(2),
