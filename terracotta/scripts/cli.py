@@ -42,7 +42,7 @@ def cli(ctx: click.Context,
 def entrypoint() -> None:
     try:
         cli(obj={})
-    except Exception as exc:
+    except Exception:
         import logging
         logger = logging.getLogger(__name__)
         logger.exception('Uncaught exception!', exc_info=True)
