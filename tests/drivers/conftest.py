@@ -30,7 +30,11 @@ def driver_path(provider, tmpdir, mysql_server):
         finally:  # cleanup
             with pymysql.connect(con_info.host, user=con_info.user,
                                  password=con_info.password) as con:
-                con.execute('DROP DATABASE IF EXISTS terracotta')
+                try:
+                    con.execute('DROP DATABASE terracotta')
+                except pymysql.InternalError:
+                    # test didn't create a db
+                    pass
 
     else:
         return NotImplementedError(f'unknown provider {provider}')

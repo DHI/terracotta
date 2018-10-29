@@ -150,10 +150,10 @@ def test_insertion_cache_invalidation(driver_path, provider, raster_file):
     assert ('foo',) in datasets_after and ('foo',) not in datasets_before
 
 
-def insertion_worker(key, driver_path, raster_file, provider):
+def insertion_worker(key, path, raster_file, provider):
     import time
     from terracotta import drivers
-    db = drivers.get_driver(driver_path, provider=provider)
+    db = drivers.get_driver(path, provider=provider)
     with db.connect():
         db.insert([key], str(raster_file), skip_metadata=True)
         # keep connection open for a while to increase the chance of
