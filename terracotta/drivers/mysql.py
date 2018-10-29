@@ -252,7 +252,10 @@ class MySQLDriver(RasterDriver):
                                                  'where clause')
             where_string = ' AND '.join([f'{key}=%s' for key in where.keys()])
             cursor.execute(f'SELECT * FROM datasets WHERE {where_string}', where.values())
-            rows = cursor.fetchall() or []
+            rows = cursor.fetchall()
+
+        if rows is None:
+            rows = tuple()
 
         def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
@@ -312,7 +315,7 @@ class MySQLDriver(RasterDriver):
         row = cursor.fetchone()
 
         if not row:  # support lazy loading
-            filepath = self._get_datasets(tuple(zip(self.key_names, keys)))
+            filepath = self.get_datasets(dict(zip(self.key_names, keys)))
             if not filepath:
                 raise exceptions.DatasetNotFoundError(f'No dataset found for given keys {keys}')
             assert len(filepath) == 1

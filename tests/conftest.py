@@ -41,12 +41,6 @@ def mysql_server(request):
     return request.config.getoption('mysql_server')
 
 
-def pytest_generate_tests(metafunc):
-    if 'mysql_server' in metafunc.fixturenames:
-        value = metafunc.config.getoption('mysql_server')
-        metafunc.parametrize('mysql_server', [value])
-
-
 def cloud_optimize(raster_file, outfile):
     import math
     import contextlib

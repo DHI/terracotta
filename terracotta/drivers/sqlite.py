@@ -271,7 +271,7 @@ class SQLiteDriver(RasterDriver):
         row = conn.execute(f'SELECT * FROM metadata WHERE {where_string}', keys).fetchone()
 
         if not row:  # support lazy loading
-            filepath = self._get_datasets(tuple(zip(self.key_names, keys)), page=0, limit=1)
+            filepath = self.get_datasets(dict(zip(self.key_names, keys)), page=0, limit=1)
             if not filepath:
                 raise exceptions.DatasetNotFoundError(f'No dataset found for given keys {keys}')
 
