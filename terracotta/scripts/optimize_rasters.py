@@ -13,7 +13,10 @@ import logging
 from pathlib import Path
 
 import click
-from rasterio.io import DatasetReader
+import tqdm
+import rasterio
+from rasterio.shutil import copy
+from rasterio.io import DatasetReader, MemoryFile
 from rasterio.vrt import WarpedVRT
 from rasterio.enums import Resampling
 
@@ -54,10 +57,15 @@ RESAMPLING_METHODS = {
 
 
 def _prefered_compression_method() -> str:
-    from rasterio.env import GDALVersion
+    dummy_profile = dict(driver='GTiff', height=1, width=1, count=1, dtype='uint8')
 
-    if GDALVersion.runtime() < GDALVersion.parse('2.3'):
-        return 'ZSTD'
+    # check if we can use ZSTD
+    try:
+        with MemoryFile() as memfile, memfile.open(compress='ZSTD', **dummy_profile):
+            return 'ZSTD'
+    except Exception as exc:
+        if 'missing codec' not in str(exc):
+            raise
 
     return 'DEFLATE'
 
@@ -76,9 +84,7 @@ def _get_vrt(src: DatasetReader, rs_method: int) -> WarpedVRT:
 
 
 @contextlib.contextmanager
-def _named_tempfile(basedir: Union[str, Path] = None) -> Iterator[str]:
-    if basedir is None:
-        basedir = tempfile.gettempdir()
+def _named_tempfile(basedir: Union[str, Path]) -> Iterator[str]:
     fileobj = tempfile.NamedTemporaryFile(dir=str(basedir), suffix='.tif')
     fileobj.close()
     try:
@@ -142,11 +148,6 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     Note that all rasters may only contain a single band.
     """
-    import tqdm
-    import rasterio
-    from rasterio.io import MemoryFile
-    from rasterio.shutil import copy
-
     raster_files_flat = sorted(set(itertools.chain.from_iterable(raster_files)))
 
     if not raster_files_flat:
