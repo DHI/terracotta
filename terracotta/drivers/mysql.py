@@ -5,7 +5,7 @@ to be present on disk.
 """
 
 from typing import (Tuple, Dict, Iterator, Callable, Sequence, Union,
-                    Mapping, Any, Optional, cast)
+                    Mapping, Any, Optional, cast, TYPE_CHECKING)
 from collections import OrderedDict
 import contextlib
 from datetime import datetime
@@ -21,8 +21,9 @@ from terracotta.drivers.raster_base import RasterDriver
 from terracotta import exceptions
 from terracotta.profile import trace
 
-from pymysql.connections import Connection, Cursor
-from pymysql.cursors import DictCursor
+if TYPE_CHECKING:
+    from pymysql.connections import Connection, Cursor
+    from pymysql.cursors import DictCursor  # noqa: F401
 
 
 @contextlib.contextmanager
@@ -54,8 +55,6 @@ class MySQLDriver(RasterDriver):
     - `keys`: Contains a single column holding all available keys.
     - `datasets`: Maps indices to raster file path.
     - `metadata`: Contains actual metadata as separate columns. Indexed via keys.
-
-    This driver caches raster data in RasterDriver.
 
     """
     KEY_TYPE: str = 'VARCHAR(255)'
@@ -140,8 +139,9 @@ class MySQLDriver(RasterDriver):
             with convert_exceptions('Unable to connect to database'):
                 new_conn = pymysql.connect(
                     host=self._db_host, db=db, user=self._db_user, password=self._db_password,
-                    port=self._db_port, charset='utf8', read_timeout=self.DB_CONNECTION_TIMEOUT,
-                    write_timeout=self.DB_CONNECTION_TIMEOUT
+                    port=self._db_port, read_timeout=self.DB_CONNECTION_TIMEOUT,
+                    write_timeout=self.DB_CONNECTION_TIMEOUT, binary_prefix=True,
+                    charset='utf8mb4'
                 )
 
             self._connection = new_conn
@@ -166,6 +166,8 @@ class MySQLDriver(RasterDriver):
 
     @contextlib.contextmanager
     def cursor(self, check: bool = True, nodb: bool = False) -> 'Iterator[Cursor]':
+        from pymysql.cursors import DictCursor  # noqa: F811
+
         close = False
 
         with self.connect(nodb=nodb):
@@ -227,7 +229,7 @@ class MySQLDriver(RasterDriver):
     @convert_exceptions('Could not retrieve keys from database')
     def get_keys(self) -> OrderedDict:
         """Retrieve key names and descriptions from database"""
-        cursor = cast(DictCursor, self._cursor)
+        cursor = cast('DictCursor', self._cursor)
         cursor.execute('SELECT * FROM key_names')
         key_rows = cursor.fetchall() or []
 
@@ -241,7 +243,7 @@ class MySQLDriver(RasterDriver):
     @convert_exceptions('Could not retrieve datasets')
     def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], str]:
         """Retrieve keys of datasets matching given pattern"""
-        cursor = cast(DictCursor, self._cursor)
+        cursor = cast('DictCursor', self._cursor)
 
         if where is None:
             cursor.execute(f'SELECT * FROM datasets')
@@ -308,7 +310,7 @@ class MySQLDriver(RasterDriver):
         if len(keys) != len(self.key_names):
             raise exceptions.UnknownKeyError('Got wrong number of keys')
 
-        cursor = cast(DictCursor, self._cursor)
+        cursor = cast('DictCursor', self._cursor)
 
         where_string = ' AND '.join([f'{key}=%s' for key in self.key_names])
         cursor.execute(f'SELECT * FROM metadata WHERE {where_string}', keys)
