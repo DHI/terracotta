@@ -211,7 +211,7 @@ class SQLiteDriver(RasterDriver):
                 )
             where_string = ' AND '.join([f'{key}=?' for key in where.keys()])
             rows = conn.execute(
-                f'SELECT * FROM datasets WHERE {where_string} {page_query}', where.values()
+                f'SELECT * FROM datasets WHERE {where_string} {page_query}', list(where.values())
             )
 
         def keytuple(row: sqlite3.Row) -> Tuple[str, ...]:
@@ -260,7 +260,7 @@ class SQLiteDriver(RasterDriver):
     @convert_exceptions('Could not retrieve metadata')
     def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
         """Retrieve metadata for given keys"""
-        keys = self._key_dict_to_sequence(keys)
+        keys = tuple(self._key_dict_to_sequence(keys))
 
         if len(keys) != len(self.key_names):
             raise exceptions.UnknownKeyError('Got wrong number of keys')
@@ -303,7 +303,7 @@ class SQLiteDriver(RasterDriver):
         if override_path is None:
             override_path = filepath
 
-        keys = list(self._key_dict_to_sequence(keys))
+        keys = self._key_dict_to_sequence(keys)
         template_string = ', '.join(['?'] * (len(keys) + 1))
         conn.execute(f'INSERT OR REPLACE INTO datasets VALUES ({template_string})',
                      [*keys, override_path])
@@ -328,7 +328,7 @@ class SQLiteDriver(RasterDriver):
         if len(keys) != len(self.key_names):
             raise ValueError(f'Not enough keys (available keys: {self.key_names})')
 
-        keys = list(self._key_dict_to_sequence(keys))
+        keys = self._key_dict_to_sequence(keys)
         key_dict = dict(zip(self.key_names, keys))
 
         if not self.get_datasets(key_dict):
