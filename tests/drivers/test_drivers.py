@@ -21,11 +21,10 @@ def test_creation(driver_path, provider):
 @pytest.mark.parametrize('provider', DRIVERS)
 def test_creation_invalid(driver_path, provider):
     from terracotta import drivers
-    from terracotta.exceptions import InvalidDatabaseError
     db = drivers.get_driver(driver_path, provider=provider)
     keys = ('invalid keyname',)
 
-    with pytest.raises(ValueError, InvalidDatabaseError):
+    with pytest.raises(ValueError):
         db.create(keys)
 
 
