@@ -5,7 +5,7 @@ to be present on disk.
 """
 
 from typing import (Tuple, Dict, Iterator, Callable, Sequence, Union,
-                    Mapping, Any, Optional, cast, TYPE_CHECKING)
+                    Mapping, Any, Optional, cast)
 from collections import OrderedDict
 import sys
 import operator
@@ -25,18 +25,17 @@ from terracotta.drivers.raster_base import RasterDriver
 from terracotta import exceptions
 from terracotta.profile import trace
 
-if TYPE_CHECKING:
-    from pymysql.connections import Connection, Cursor
-    from pymysql.cursors import DictCursor
+from pymysql.connections import Connection, Cursor
+from pymysql.cursors import DictCursor
 
 
 @contextlib.contextmanager
 def convert_exceptions(msg: str) -> Iterator:
-    """Convert internal sqlite exceptions to our InvalidDatabaseError"""
-    from pymysql import OperationalError
+    """Convert internal mysql exceptions to our InvalidDatabaseError"""
+    from pymysql import OperationalError, InternalError, ProgrammingError
     try:
         yield
-    except OperationalError as exc:
+    except (OperationalError, InternalError, ProgrammingError) as exc:
         raise exceptions.InvalidDatabaseError(msg) from exc
 
 
