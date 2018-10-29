@@ -7,16 +7,12 @@ to be present on disk.
 from typing import (Tuple, Dict, Iterator, Callable, Sequence, Union,
                     Mapping, Any, Optional, cast)
 from collections import OrderedDict
-import sys
-import operator
 import contextlib
 from datetime import datetime
 import functools
 import re
 import json
 
-from cachetools import LFUCache, cachedmethod
-import cachetools.keys
 import numpy as np
 
 from terracotta import get_settings, __version__
@@ -39,12 +35,6 @@ def convert_exceptions(msg: str) -> Iterator:
         raise exceptions.InvalidDatabaseError(msg) from exc
 
 
-def shared_cachedmethod(key: str) -> Callable[..., Callable[..., Any]]:
-    """Decorator that supports a shared metadata cache"""
-    return cachedmethod(operator.attrgetter('_metadata_cache'),
-                        key=functools.partial(cachetools.keys.hashkey, key))
-
-
 def requires_cursor(fun: Callable[..., T]) -> Callable[..., T]:
     @functools.wraps(fun)
     def inner(self: 'MySQLDriver', *args: Any, **kwargs: Any) -> T:
@@ -65,7 +55,7 @@ class MySQLDriver(RasterDriver):
     - `datasets`: Maps indices to raster file path.
     - `metadata`: Contains actual metadata as separate columns. Indexed via keys.
 
-    This driver caches both raster and metadata (in separate caches).
+    This driver caches raster data in RasterDriver.
 
     """
     KEY_TYPE: str = 'VARCHAR(255)'
@@ -98,13 +88,9 @@ class MySQLDriver(RasterDriver):
         self._db_last_update: datetime = datetime.min
         self._connection: Optional[Connection] = None
         self._cursor: Optional[Cursor] = None
-        self._metadata_cache: LFUCache = LFUCache(
-            settings.METADATA_CACHE_SIZE, getsizeof=sys.getsizeof
-        )
 
         super().__init__(f'{user}:{password}@{host}:{port}')
 
-    @shared_cachedmethod('db_version')
     @requires_cursor
     @convert_exceptions('Could not retrieve version from database')
     def _get_db_version(self) -> str:
@@ -117,22 +103,8 @@ class MySQLDriver(RasterDriver):
     db_version = cast(str, property(_get_db_version))
 
     @requires_cursor
-    def _after_connection(self, validate: bool = True) -> None:
+    def _after_connection(self) -> None:
         """Called after opening a new connection"""
-        # invalidate cache if db has changed since last connection
-
-        cursor = cast(Cursor, self._cursor)
-        cursor.execute(f'SELECT MAX(UPDATE_TIME) '
-                       'FROM information_schema.tables '
-                       'WHERE TABLE_SCHEMA = "terracotta"')
-        result = cast(Dict[str, str], cursor.fetchone())
-        upd_time = datetime.strptime(result['MAX(UPDATE_TIME)'], '%Y-%m-%d %H:%M:%S')
-        if upd_time > self._db_last_update:
-            self._empty_cache()
-            self._db_last_update = upd_time
-
-        if not validate:
-            return
 
         # check for version compatibility
         def versiontuple(version_string: str) -> Sequence[str]:
@@ -146,9 +118,6 @@ class MySQLDriver(RasterDriver):
                 f'Version conflict: database was created in v{db_version}, '
                 f'but this is v{current_version}'
             )
-
-    def _empty_cache(self) -> None:
-        self._metadata_cache.clear()
 
     def _get_key_names(self) -> Tuple[str, ...]:
         """Getter for key_names"""
@@ -177,8 +146,8 @@ class MySQLDriver(RasterDriver):
                                            read_timeout=self.DB_CONNECTION_TIMEOUT,
                                            write_timeout=self.DB_CONNECTION_TIMEOUT)
             self._connection = new_conn
-            if not nodb:
-                self._after_connection(check)
+            if not nodb and check:
+                self._after_connection()
             close = True
 
         conn = self._connection
@@ -255,7 +224,6 @@ class MySQLDriver(RasterDriver):
             cursor.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
                            f'PRIMARY KEY ({", ".join(keys)}))')
 
-    @shared_cachedmethod('keys')
     @requires_cursor
     @convert_exceptions('Could not retrieve keys from database')
     def get_keys(self) -> OrderedDict:
@@ -269,10 +237,8 @@ class MySQLDriver(RasterDriver):
             out[row['key_name']] = row['description']
         return out
 
-    @shared_cachedmethod('datasets')
     @requires_cursor
     def _get_datasets(self, where: Tuple[Tuple[str, str], ...]) -> Dict[Tuple[str, ...], str]:
-        """Cache-backed version of get_datasets"""
         cursor = cast(DictCursor, self._cursor)
 
         if where is None:
@@ -338,10 +304,8 @@ class MySQLDriver(RasterDriver):
         }
         return decoded
 
-    @shared_cachedmethod('metadata')
     @requires_cursor
     def _get_metadata(self, keys: Tuple[str]) -> Dict[str, Any]:
-        """Cache-backed version of get_metadata"""
         if len(keys) != len(self.key_names):
             raise exceptions.UnknownKeyError('Got wrong number of keys')
 

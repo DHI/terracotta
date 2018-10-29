@@ -89,7 +89,8 @@ class RemoteSQLiteDriver(SQLiteDriver):
 
     def _connection_callback(self, validate: bool = True) -> None:
         self._update_db(self._remote_path, self.path)
-        super()._connection_callback(validate)
+        if validate:
+            super()._connection_callback()
 
     def create(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')

@@ -5,11 +5,8 @@ to be present on disk.
 """
 
 from typing import (Any, Sequence, Mapping, Tuple, Union, Iterator, Dict,
-                    Optional, Callable, cast)
-import sys
+                    Optional, cast)
 import os
-import operator
-import functools
 import contextlib
 import json
 import re
@@ -19,8 +16,6 @@ from pathlib import Path
 from hashlib import md5
 from collections import OrderedDict
 
-from cachetools import LFUCache, cachedmethod
-import cachetools.keys
 import numpy as np
 
 from terracotta import get_settings, exceptions, __version__
@@ -38,12 +33,6 @@ def convert_exceptions(msg: str) -> Iterator:
         raise exceptions.InvalidDatabaseError(msg) from exc
 
 
-def shared_cachedmethod(key: str) -> Callable[..., Callable[..., Any]]:
-    """Decorator that supports a shared metadata cache"""
-    return cachedmethod(operator.attrgetter('_metadata_cache'),
-                        key=functools.partial(cachetools.keys.hashkey, key))
-
-
 class SQLiteDriver(RasterDriver):
     """SQLite-backed raster driver.
 
@@ -56,7 +45,7 @@ class SQLiteDriver(RasterDriver):
     - `datasets`: Maps indices to raster file path.
     - `metadata`: Contains actual metadata as separate columns. Indexed via keys.
 
-    This driver caches both raster and metadata (in separate caches).
+    This driver caches raster data in RasterDriver.
 
     """
     KEY_TYPE: str = 'VARCHAR[256]'
@@ -86,10 +75,6 @@ class SQLiteDriver(RasterDriver):
         self._connection: Connection
         self._connected = False
 
-        self._metadata_cache: LFUCache = LFUCache(
-            settings.METADATA_CACHE_SIZE, getsizeof=sys.getsizeof
-        )
-
         self._db_hash: str = ''
         if os.path.isfile(path):
             self._db_hash = self._compute_hash(path)
@@ -108,12 +93,13 @@ class SQLiteDriver(RasterDriver):
                 self._connection.row_factory = sqlite3.Row
                 self._connected = close = True
 
-                if check and not os.path.isfile(self.path):
-                    raise exceptions.InvalidDatabaseError(
-                        f'Database file {self.path} does not exist '
-                        f'(run driver.create() before connecting to a new database)'
-                    )
-                self._connection_callback(check)
+                if check:
+                    if not os.path.isfile(self.path):
+                        raise exceptions.InvalidDatabaseError(
+                            f'Database file {self.path} does not exist '
+                            f'(run driver.create() before connecting to a new database)'
+                        )
+                    self._connection_callback()
             try:
                 yield
             except Exception:
@@ -125,7 +111,6 @@ class SQLiteDriver(RasterDriver):
                 self._connection.close()
                 self._connected = False
 
-    @shared_cachedmethod('db_version')
     @requires_connection
     @convert_exceptions('Could not retrieve version from database')
     def _get_db_version(self) -> str:
@@ -136,16 +121,8 @@ class SQLiteDriver(RasterDriver):
 
     db_version = cast(str, property(_get_db_version))
 
-    def _connection_callback(self, validate: bool = True) -> None:
+    def _connection_callback(self) -> None:
         """Called after opening a new connection"""
-        # invalidate cache if db has changed since last connection
-        new_hash = self._compute_hash(self.path)
-        if self._db_hash != new_hash:
-            self._empty_cache()
-            self._db_hash = new_hash
-
-        if not validate:
-            return
 
         # check for version compatibility
         def versiontuple(version_string: str) -> Sequence[str]:
@@ -166,9 +143,6 @@ class SQLiteDriver(RasterDriver):
         with open(path, 'rb') as f:
             m.update(f.read())
         return m.hexdigest()
-
-    def _empty_cache(self) -> None:
-        self._metadata_cache.clear()
 
     def _get_key_names(self) -> Tuple[str, ...]:
         """Getter for key_names"""
@@ -218,7 +192,6 @@ class SQLiteDriver(RasterDriver):
             conn.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
                          f'PRIMARY KEY ({", ".join(keys)}))')
 
-    @shared_cachedmethod('keys')
     @requires_connection
     @convert_exceptions('Could not retrieve keys from database')
     def get_keys(self) -> OrderedDict:
@@ -231,10 +204,8 @@ class SQLiteDriver(RasterDriver):
             out[row['key']] = row['description']
         return out
 
-    @shared_cachedmethod('datasets')
     def _get_datasets(self, where: Optional[Tuple[Tuple[str, str], ...]],
                       page: int, limit: int) -> Dict[Tuple[str, ...], str]:
-        """Cache-backed version of get_datasets"""
         conn = self._connection
 
         # explicitly cast to int to prevent SQL injection
@@ -306,9 +277,7 @@ class SQLiteDriver(RasterDriver):
         }
         return decoded
 
-    @shared_cachedmethod('metadata')
     def _get_metadata(self, keys: Tuple[str]) -> Dict[str, Any]:
-        """Cache-backed version of get_metadata"""
         if len(keys) != len(self.key_names):
             raise exceptions.UnknownKeyError('Got wrong number of keys')
 

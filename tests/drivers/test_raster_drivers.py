@@ -135,21 +135,6 @@ def test_invalid_group_insertion(driver_path, provider, raster_file):
     assert ('foo',) not in datasets
 
 
-@pytest.mark.parametrize('provider', DRIVERS)
-def test_insertion_cache_invalidation(driver_path, provider, raster_file):
-    from terracotta import drivers
-
-    db = drivers.get_driver(driver_path, provider=provider)
-    keys = ('keyname',)
-
-    db.create(keys)
-    datasets_before = db.get_datasets()
-    db.insert(['foo'], str(raster_file), skip_metadata=True)
-    datasets_after = db.get_datasets()
-
-    assert ('foo',) in datasets_after and ('foo',) not in datasets_before
-
-
 def insertion_worker(key, path, raster_file, provider):
     import time
     from terracotta import drivers
