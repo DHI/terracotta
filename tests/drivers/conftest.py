@@ -9,17 +9,20 @@ def driver_path(provider, tmpdir, mysql_server):
 
     elif provider == 'mysql':
         if not mysql_server:
-            return pytest.skip('--mysql-server argument not given')
+            return pytest.skip('mysql_server argument not given')
 
         from terracotta.drivers import parse_connection
         con_info = parse_connection(mysql_server)
+
+        if not con_info:
+            raise ValueError('invalid value for mysql_server')
 
         try:
             import pymysql
             with pymysql.connect(con_info.host, user=con_info.user, password=con_info.password):
                 pass
-        except (ImportError, pymysql.OperationalError):
-            return pytest.skip('MySQL server not running or pymysql not installed')
+        except (ImportError, pymysql.OperationalError) as exc:
+            raise RuntimeError('MySQL server not running or pymysql not installed') from exc
 
         try:
             yield mysql_server
