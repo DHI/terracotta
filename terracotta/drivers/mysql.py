@@ -16,7 +16,7 @@ import json
 import numpy as np
 
 from terracotta import get_settings, __version__
-from terracotta.drivers.base import requires_connection, T
+from terracotta.drivers.base import T
 from terracotta.drivers.raster_base import RasterDriver
 from terracotta import exceptions
 from terracotta.profile import trace
@@ -138,13 +138,12 @@ class MySQLDriver(RasterDriver):
 
         if self._connection is None:
             with convert_exceptions('Unable to connect to database'):
-                new_conn = pymysql.connect(host=self._db_host,
-                                           db=db,
-                                           user=self._db_user,
-                                           password=self._db_password,
-                                           port=self._db_port,
-                                           read_timeout=self.DB_CONNECTION_TIMEOUT,
-                                           write_timeout=self.DB_CONNECTION_TIMEOUT)
+                new_conn = pymysql.connect(
+                    host=self._db_host, db=db, user=self._db_user, password=self._db_password,
+                    port=self._db_port, charset='utf8', read_timeout=self.DB_CONNECTION_TIMEOUT,
+                    write_timeout=self.DB_CONNECTION_TIMEOUT
+                )
+
             self._connection = new_conn
             if not nodb and check:
                 self._after_connection()
@@ -237,36 +236,28 @@ class MySQLDriver(RasterDriver):
             out[row['key_name']] = row['description']
         return out
 
+    @trace('get_datasets')
     @requires_cursor
-    def _get_datasets(self, where: Tuple[Tuple[str, str], ...]) -> Dict[Tuple[str, ...], str]:
+    @convert_exceptions('Could not retrieve datasets')
+    def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], str]:
+        """Retrieve keys of datasets matching given pattern"""
         cursor = cast(DictCursor, self._cursor)
 
         if where is None:
             cursor.execute(f'SELECT * FROM datasets')
             rows = cursor.fetchall()
         else:
-            where_keys, where_values = zip(*where)
-            if not all(key in self.key_names for key in where_keys):
+            if not all(key in self.key_names for key in where.keys()):
                 raise exceptions.UnknownKeyError('Encountered unrecognized keys in '
                                                  'where clause')
-            where_string = ' AND '.join([f'{key}=%s' for key in where_keys])
-            cursor.execute(f'SELECT * FROM datasets WHERE {where_string}', where_values)
+            where_string = ' AND '.join([f'{key}=%s' for key in where.keys()])
+            cursor.execute(f'SELECT * FROM datasets WHERE {where_string}', where.values())
             rows = cursor.fetchall() or []
 
         def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
 
         return {keytuple(row): row['filepath'] for row in rows}
-
-    @trace('get_datasets')
-    @convert_exceptions('Could not retrieve datasets')
-    def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], str]:
-        """Retrieve keys of datasets matching given pattern"""
-        # make sure arguments are hashable
-        if where is None:
-            return self._get_datasets(None)
-
-        return self._get_datasets(tuple(where.items()))
 
     @staticmethod
     def _encode_data(decoded: Mapping[str, Any]) -> Dict[str, Any]:
@@ -304,8 +295,13 @@ class MySQLDriver(RasterDriver):
         }
         return decoded
 
+    @trace('get_metadata')
     @requires_cursor
-    def _get_metadata(self, keys: Tuple[str]) -> Dict[str, Any]:
+    @convert_exceptions('Could not retrieve metadata')
+    def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
+        """Retrieve metadata for given keys"""
+        keys = self._key_dict_to_sequence(keys)
+
         if len(keys) != len(self.key_names):
             raise exceptions.UnknownKeyError('Got wrong number of keys')
 
@@ -331,15 +327,6 @@ class MySQLDriver(RasterDriver):
         data_columns, _ = zip(*self.METADATA_COLUMNS)
         encoded_data = {col: row[col] for col in self.key_names + data_columns}
         return self._decode_data(encoded_data)
-
-    @trace('get_metadata')
-    @requires_connection
-    @convert_exceptions('Could not retrieve metadata')
-    def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
-        """Retrieve metadata for given keys"""
-        # make sure arguments are hashable
-        keys = tuple(self._key_dict_to_sequence(keys))
-        return self._get_metadata(keys)
 
     @trace('insert')
     @requires_cursor

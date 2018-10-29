@@ -85,7 +85,7 @@ def test_precomputed_metadata(driver_path, provider, raster_file):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_invalid_insertion(driver_path, provider, raster_file):
+def test_invalid_insertion(monkeypatch, driver_path, provider, raster_file):
     from terracotta import drivers
 
     db = drivers.get_driver(driver_path, provider=provider)
@@ -96,34 +96,9 @@ def test_invalid_insertion(driver_path, provider, raster_file):
     def throw(*args, **kwargs):
         raise NotImplementedError()
 
-    db.compute_metadata = throw
+    with monkeypatch.context() as m:
+        m.setattr(db, 'compute_metadata', throw)
 
-    db.insert(['bar'], str(raster_file), skip_metadata=True)
-
-    with pytest.raises(NotImplementedError):
-        db.insert(['foo'], str(raster_file), skip_metadata=False)
-
-    datasets = db.get_datasets()
-
-    assert ('bar',) in datasets
-    assert ('foo',) not in datasets
-
-
-@pytest.mark.parametrize('provider', DRIVERS)
-def test_invalid_group_insertion(driver_path, provider, raster_file):
-    from terracotta import drivers
-
-    db = drivers.get_driver(driver_path, provider=provider)
-    keys = ('keyname',)
-
-    db.create(keys)
-
-    def throw(*args, **kwargs):
-        raise NotImplementedError()
-
-    db.compute_metadata = throw
-
-    with db.connect():
         db.insert(['bar'], str(raster_file), skip_metadata=True)
 
         with pytest.raises(NotImplementedError):
@@ -131,8 +106,35 @@ def test_invalid_group_insertion(driver_path, provider, raster_file):
 
         datasets = db.get_datasets()
 
-    assert ('bar',) not in datasets
-    assert ('foo',) not in datasets
+        assert ('bar',) in datasets
+        assert ('foo',) not in datasets
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_invalid_group_insertion(monkeypatch, driver_path, provider, raster_file):
+    from terracotta import drivers
+
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('keyname',)
+
+    db.create(keys)
+
+    def throw(*args, **kwargs):
+        raise NotImplementedError()
+
+    with monkeypatch.context() as m:
+        m.setattr(db, 'compute_metadata', throw)
+
+        with db.connect():
+            db.insert(['bar'], str(raster_file), skip_metadata=True)
+
+            with pytest.raises(NotImplementedError):
+                db.insert(['foo'], str(raster_file), skip_metadata=False)
+
+            datasets = db.get_datasets()
+
+        assert ('bar',) not in datasets
+        assert ('foo',) not in datasets
 
 
 def insertion_worker(key, path, raster_file, provider):

@@ -4,8 +4,7 @@ SQLite-backed raster driver. Metadata is stored in an SQLite database, raster da
 to be present on disk.
 """
 
-from typing import (Any, Sequence, Mapping, Tuple, Union, Iterator, Dict,
-                    Optional, cast)
+from typing import Any, Sequence, Mapping, Tuple, Union, Iterator, Dict, cast
 import os
 import contextlib
 import json
@@ -13,7 +12,6 @@ import re
 import sqlite3
 from sqlite3 import Connection
 from pathlib import Path
-from hashlib import md5
 from collections import OrderedDict
 
 import numpy as np
@@ -75,10 +73,6 @@ class SQLiteDriver(RasterDriver):
         self._connection: Connection
         self._connected = False
 
-        self._db_hash: str = ''
-        if os.path.isfile(path):
-            self._db_hash = self._compute_hash(path)
-
         super().__init__(path)
 
     @contextlib.contextmanager
@@ -136,13 +130,6 @@ class SQLiteDriver(RasterDriver):
                 f'Version conflict: database was created in v{db_version}, '
                 f'but this is v{current_version}'
             )
-
-    @staticmethod
-    def _compute_hash(path: Union[str, Path]) -> str:
-        m = md5()
-        with open(path, 'rb') as f:
-            m.update(f.read())
-        return m.hexdigest()
 
     def _get_key_names(self) -> Tuple[str, ...]:
         """Getter for key_names"""
@@ -204,8 +191,12 @@ class SQLiteDriver(RasterDriver):
             out[row['key']] = row['description']
         return out
 
-    def _get_datasets(self, where: Optional[Tuple[Tuple[str, str], ...]],
-                      page: int, limit: int) -> Dict[Tuple[str, ...], str]:
+    @trace('get_datasets')
+    @requires_connection
+    @convert_exceptions('Could not retrieve datasets')
+    def get_datasets(self, where: Mapping[str, str] = None,
+                     page: int = 0, limit: int = 100) -> Dict[Tuple[str, ...], str]:
+        """Retrieve keys of datasets matching given pattern"""
         conn = self._connection
 
         # explicitly cast to int to prevent SQL injection
@@ -214,32 +205,19 @@ class SQLiteDriver(RasterDriver):
         if where is None:
             rows = conn.execute(f'SELECT * FROM datasets {page_query}')
         else:
-            where_keys, where_values = zip(*where)
-            if not all(key in self.key_names for key in where_keys):
+            if not all(key in self.key_names for key in where.keys()):
                 raise exceptions.UnknownKeyError(
                     'Encountered unrecognized keys in where clause'
                 )
-            where_string = ' AND '.join([f'{key}=?' for key in where_keys])
+            where_string = ' AND '.join([f'{key}=?' for key in where.keys()])
             rows = conn.execute(
-                f'SELECT * FROM datasets WHERE {where_string} {page_query}', where_values
+                f'SELECT * FROM datasets WHERE {where_string} {page_query}', where.values()
             )
 
         def keytuple(row: sqlite3.Row) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
 
         return {keytuple(row): row['filepath'] for row in rows}
-
-    @trace('get_datasets')
-    @requires_connection
-    @convert_exceptions('Could not retrieve datasets')
-    def get_datasets(self, where: Mapping[str, str] = None,
-                     page: int = 0, limit: int = 100) -> Dict[Tuple[str, ...], str]:
-        """Retrieve keys of datasets matching given pattern"""
-        # make sure arguments are hashable
-        if where is None:
-            return self._get_datasets(None, page, limit)
-
-        return self._get_datasets(tuple(where.items()), page, limit)
 
     @staticmethod
     def _encode_data(decoded: Mapping[str, Any]) -> Dict[str, Any]:
@@ -277,7 +255,13 @@ class SQLiteDriver(RasterDriver):
         }
         return decoded
 
-    def _get_metadata(self, keys: Tuple[str]) -> Dict[str, Any]:
+    @trace('get_metadata')
+    @requires_connection
+    @convert_exceptions('Could not retrieve metadata')
+    def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
+        """Retrieve metadata for given keys"""
+        keys = self._key_dict_to_sequence(keys)
+
         if len(keys) != len(self.key_names):
             raise exceptions.UnknownKeyError('Got wrong number of keys')
 
@@ -300,15 +284,6 @@ class SQLiteDriver(RasterDriver):
         data_columns, _ = zip(*self.METADATA_COLUMNS)
         encoded_data = {col: row[col] for col in self.key_names + data_columns}
         return self._decode_data(encoded_data)
-
-    @trace('get_metadata')
-    @requires_connection
-    @convert_exceptions('Could not retrieve metadata')
-    def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
-        """Retrieve metadata for given keys"""
-        # make sure arguments are hashable
-        keys = tuple(self._key_dict_to_sequence(keys))
-        return self._get_metadata(keys)
 
     @trace('insert')
     @requires_connection
