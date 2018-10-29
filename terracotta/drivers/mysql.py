@@ -172,9 +172,9 @@ class MySQLDriver(RasterDriver):
 
         with self.connect(nodb=nodb):
             if self._cursor is None:
-                self._cursor = cast(Connection, self._connection).cursor(DictCursor)
+                self._cursor = cast('Connection', self._connection).cursor(DictCursor)
                 close = True
-            cursor = cast(Cursor, self._cursor)
+            cursor = cast('Cursor', self._cursor)
 
             try:
                 yield cursor
@@ -343,7 +343,7 @@ class MySQLDriver(RasterDriver):
                skip_metadata: bool = False,
                override_path: str = None) -> None:
         """Insert a dataset into the database"""
-        cursor = cast(Cursor, self._cursor)
+        cursor = cast('Cursor', self._cursor)
 
         if len(keys) != len(self.key_names):
             raise ValueError(f'Not enough keys (available keys: {self.key_names})')
@@ -372,7 +372,7 @@ class MySQLDriver(RasterDriver):
     @convert_exceptions('Could not write to database')
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         """Delete a dataset from the database"""
-        cursor = cast(Cursor, self._cursor)
+        cursor = cast('Cursor', self._cursor)
 
         if len(keys) != len(self.key_names):
             raise ValueError(f'Not enough keys (available keys: {self.key_names})')
