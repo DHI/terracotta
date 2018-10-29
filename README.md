@@ -27,7 +27,7 @@ Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source
 - [Architecutre](#architecture)
 - [Installation](#installation)
 - [Ingestion](#ingestion)
-  - [1. Using `create-database`](#1-using-create-database)
+  - [1. Through the CLI](#1-through-the-cli)
   - [2. Using the Python API](#2-using-the-python-api)
 - [Web API](#web-api)
 - [Configuration](#configuration)
@@ -126,13 +126,13 @@ For Terracotta to perform well, it is important that some metadata like the exte
 or the range of its values is computed and ingested into a database. There are two ways to populate
 this metadata store:
 
-### 1. Using `create-database`
+### 1. Through the CLI
 
-A simple but limited way to build a database is through the command line interface. All you need to
+A simple but limited way to build a database is to use the command line interface. All you need to
 do is to point Terracotta to a folder of (cloud-optimized) GeoTiffs:
 
 ```bash
-$ terracotta create-database /path/to/gtiffs/{sensor}_{name}_{date}_{band}.tif -o terracotta.sqlite
+$ terracotta ingest /path/to/gtiffs/{sensor}_{name}_{date}_{band}.tif -o terracotta.sqlite
 ```
 
 This will create a new database with the keys `sensor`, `name`, `date`, and `band` (in this order),
@@ -141,7 +141,7 @@ and ingest all files matching the given pattern into it.
 For available options, see
 
 ```bash
-$ terracotta create-database --help
+$ terracotta ingest --help
 ```
 
 ### 2. Using the Python API
