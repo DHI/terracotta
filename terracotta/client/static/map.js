@@ -8,7 +8,7 @@ how a frontend for Terracotta should be written.
 
 /* Constants */
 
-var datasets_per_page = 5;
+var datasets_per_page = 16;
 var thumbnail_size = [128, 128];
 var colormaps = [
     {display_name: 'Greyscale', id: 'greys_r'},
@@ -348,13 +348,13 @@ function updateDatasetList(request) {
         resultRow.id = 'dataset-' + serializeKeys(ds_keys);
         resultRow.classList.add('clickable');
         resultRow.addEventListener('click', toggleSinglebandMapLayer.bind(null, ds_keys));
-        resultRow.addEventListener('mouseenter', toggleFootprintOverlay.bind(null, ds_keys));
+        resultRow.addEventListener('mouseenter', toggleFootprintOverlay.bind(null, resultRow));
         resultRow.addEventListener('mouseleave', toggleFootprintOverlay.bind(null, null));
 
         // show thumbnails
         var detailsRow = document.createElement('tr');
         var thumbnailUrl = assembleSinglebandURL(ds_keys, null, true);
-        detailsRow.innerHTML = '<td colspan=' + keys.length + '><img src="' + thumbnailUrl + '"></td>';
+        detailsRow.innerHTML = '<td colspan=' + keys.length + '><img src="' + thumbnailUrl + '" class="thumbnail-image" "></td>';
         resultRow.appendChild(detailsRow);
 
         datasetTable.appendChild(resultRow);
@@ -366,6 +366,18 @@ function updateDatasetList(request) {
         req.send();
     }
 }
+
+function showCurrentThumnbnail(img, show){
+    var thumbnail = document.getElementById('thumbnail-holder');
+    if(show){
+        var backgroundProperty = 'url(' + img.src + ')';
+        thumbnail.style.backgroundImage = backgroundProperty;
+    }
+    else {
+         thumbnail.style.backgroundImage = "none";
+    }
+}
+
 
 function incrementResultsPage(step) {
     current_dataset_page += step;
@@ -386,49 +398,59 @@ function updatePageControls() {
 
 
 function updateColormap() {
-    var colormapSelector = document.getElementById('colormap-selector');
-    current_colormap = colormapSelector.selectedOptions[0].value;
+    // console.log("updateColormap");
+    // var colormapSelector = document.getElementById('colormap-selector');
+    // current_colormap = colormapSelector.selectedOptions[0].value;
 
-    var slider = document.querySelector('.singleband-slider .noUi-connect');
-    var colorbar = colorbars[current_colormap];
-    var gradient = 'linear-gradient(to right'
-    for (var i = 0; i < colorbar.length; i++) {
-        gradient += ', rgb(' + colorbar[i].join(',') + ')';
-    }
-    gradient += ')'
-    slider.style.backgroundImage = gradient;
+    // var slider = document.querySelector('.singleband-slider .noUi-connect');
+    // var colorbar = colorbars[current_colormap];
+    // var gradient = 'linear-gradient(to right'
+    // for (var i = 0; i < colorbar.length; i++) {
+    //     gradient += ', rgb(' + colorbar[i].join(',') + ')';
+    // }
+    // gradient += ')'
+    // slider.style.backgroundImage = gradient;
 
-    if (activeSinglebandLayer == null)
-        return;
+    // if (activeSinglebandLayer == null)
+    //     return;
 
-    // toggle layer on and off to reload
-    var ds_keys = activeSinglebandLayer.keys;
-    toggleSinglebandMapLayer();
-    addSinglebandMapLayer(ds_keys, false);
+    // // toggle layer on and off to reload
+    // var ds_keys = activeSinglebandLayer.keys;
+    // toggleSinglebandMapLayer();
+    // addSinglebandMapLayer(ds_keys, false);
 }
 
 
-function toggleFootprintOverlay(keys) {
-    if (overlayLayer != null) {
-        map.removeLayer(overlayLayer);
-    }
-
-    if (keys == null) {
-        return;
-    }
-    var layer_id = serializeKeys(keys);
-    var metadata = dataset_metadata[layer_id];
-
-    if (metadata == null) 
-        return;
-
-    overlayLayer = L.geoJSON(metadata.convex_hull, {
-        style: {
-            'color': '#ff7800',
-            'weight': 5,
-            'opacity': 0.65
+function toggleFootprintOverlay(table) {
+    if(!table) showCurrentThumnbnail(null, false);
+    else{
+        showCurrentThumnbnail(table.querySelector('img'), true);
+        var tdElements = table.querySelectorAll('td');
+        var keys = [];
+        for(var i =0; i< tdElements.length; i++){
+            if(tdElements[i].parentNode.classList.contains('clickable')) keys.push(tdElements[i].innerHTML);
         }
-    }).addTo(map);
+        if (overlayLayer != null) {
+            map.removeLayer(overlayLayer);
+        }
+
+        if (keys == null) {
+            return;
+        }
+        var layer_id = serializeKeys(keys);
+        var metadata = dataset_metadata[layer_id];
+
+        if (metadata == null) 
+            return;
+
+        overlayLayer = L.geoJSON(metadata.convex_hull, {
+            style: {
+                'color': '#ff7800',
+                'weight': 5,
+                'opacity': 0.65
+            }
+        }).addTo(map);
+    }
 }
 
 
@@ -631,6 +653,13 @@ function rgbSelectorChanged() {
     }
 
     toggleRgbLayer(firstKeys, lastKeys);
+}
+
+
+function toggleInfo(){
+   var text =  document.getElementById('info-text');
+   if(text.style.display === "none")  text.style.display = "block";
+   else text.style.display = "none";
 }
 
 

@@ -16,38 +16,52 @@
 <body>
 
 <div id='controls'>
-	<h1>Terracotta @ {{ hostname }}</h1>
-
-	<h2>What is this?</h2>
-	<p>
-		This applet lets you explore the data on any running Terracotta server.
-		Just search for a dataset to get started!
-	</p>
-
-	<h2>Available keys</h2>
-	<ul id="key-list">
-	</ul>
-
-	<h2>Search for datasets</h2>
-	<div id="search-fields"></div>
-	<table class="scrolling-list" id="search-results">
-	</table>
-	<div id="search-result-controls">
-		<button id="prev-page" onclick="incrementResultsPage(-1);" disabled>&lt;</button>
-		Page <span id="page-counter">1</span>
-		<button id="next-page" onclick="incrementResultsPage(1);">&gt;</button>
+	<div class="el-wrapper">
+		<h1>Terracotta @ {{ hostname }}</h1>
 	</div>
 
-	<h3>Choose a colormap</h3>
-	<select id="colormap-selector" onchange="updateColormap();">
-	</select>
+	<div class="el-wrapper">
+		<h2 class="info-title hoverable" onclick="toggleInfo();">What is this?</h2>
+		<img src="../static/images/IconPassiveMed.png" class="info-toggle" onclick="toggleInfo();">
+		<p class="clear" id="info-text" style="display:none">
+			This applet lets you explore the data on any running Terracotta server.
+			Just search for a dataset to get started!
+		</p>
+	</div>
 
-	<h3>Adjust contrast</h3>
-	<span id="singleband-value-lower"></span>
-	<div class="singleband-slider"></div>
-	<span id="singleband-value-upper"></span>
+	<div class="el-wrapper">
+		<h2>Available keys</h2>
+		<ul id="key-list">
+		</ul>
+	</div>
 
-	<div id="rgb">
+	<div class="el-wrapper">
+		<h2 class="info-title">Search for datasets</h2><div id="thumbnail-holder"></div>
+		<div id="search-fields"></div>
+			<table class="scrolling-list" id="search-results">
+			</table>
+			<div id="search-result-controls">
+				<button id="prev-page" onclick="incrementResultsPage(-1);" disabled>&lt;</button>
+				Page <span id="page-counter">1</span>
+				<button id="next-page" onclick="incrementResultsPage(1);">&gt;</button>
+		</div>
+	</div>
+
+	
+		<div id="colormap-wrapper">
+			<h3>Choose a colormap</h3>
+			<select id="colormap-selector" onchange="updateColormap();">
+			</select>
+		</div>	
+
+		<div id="contrast-wrapper">
+			<h3>Adjust contrast</h3>
+			<div class="singleband-slider"></div>
+			<span id="singleband-value-lower"></span>
+			<span id="singleband-value-upper"></span>
+		</div>
+
+	<div id="rgb" class="el-wrapper">
 		<h2 class="clickable" onclick="rgbSelectorChanged();">Show RGB image</h2>
 		<div id="rgb-search-fields">
 		</div>
