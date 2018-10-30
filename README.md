@@ -3,15 +3,13 @@
 
 # Terracotta
 
-A modern XYZ tile server, serving tiles from various data sources, built with Flask and Rasterio
-:earth_africa:
+A modern, versatile XYZ tile server, built with Flask and Rasterio :earth_africa:
 
-Terracotta is meant to be deployed as a WSGI on a webserver, or as a serverless app on AWS λ,
-however it can also be run as a standalone server through the CLI interface (`terracotta serve`).
-It is not recommended to run Terracotta as a standalone server for other purposes than data
-exploration, debugging, or development.
+Terracotta runs in production as WSGI on a webserver or as a serverless app on AWS λ.
+For convenient data exploration, debugging, and development, it also runs standalone 
+through the CLI interface `terracotta serve`.
 
-For best performance, it is highly recommended to use [Cloud Optimized GeoTIFFs](http://www.cogeo.org)
+For greatly improved performance, use [Cloud Optimized GeoTIFFs](http://www.cogeo.org)
 (COG) with Terracotta. You can convert all kinds of single-band raster files to COG through the
 command `terracotta optimize-rasters`.
 
@@ -22,6 +20,7 @@ Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source
 ## Contents
 
 - [Use cases](#use-cases)
+- [Datasets and Keys](#main-abstractions)
 - [Why Terracotta?](#why-terracotta)
 - [Why not Terracotta?](#why-not-terracotta)
 - [Architecutre](#architecture)
@@ -41,16 +40,34 @@ Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source
 
 Terracotta covers several use cases:
 
-1. It can be used as a data exploration tool, to quickly serve up a folder containing GeoTiff files
-   through `terracotta serve`.
-2. It can serve as a tile server backend to an existing webserver. Refer to
+1. Use it as data exploration tool to quickly serve up a folder containing GeoTiff files
+   with `terracotta serve`.
+2. As tile server backend on an existing webserver. Refer to
    [the Flask documentation](http://flask.pocoo.org/docs/1.0/deploying/) for more information.
-   Ingestion can either be done [ahead of time](#ingestion) (recommended) or on demand.
-3. It can be deployed on serverless architectures such as AWS λ, serving tiles from S3 buckets.
+   You can ingest your data [ahead of time](#ingestion) (recommended) or on-demand.
+3. Deploy it on serverless architectures such as AWS λ to serve tiles from S3 buckets.
    This allows you to build apps that scale infinitely while requiring minimal maintenance!
    To make it as easy as possible to deploy to AWS λ, we make use of the magic provided by
    [Zappa](https://github.com/Miserlou/Zappa). See [Deployment on AWS](#deployment-to-aws-λ)
    for more details.
+
+## Datasets and Keys
+
+Terracotta is agnostic to the organization of your data. Any hierarchy or folder structure can be
+cast into an API structure. The hierarchy down to single-band files defines the sequence of
+**keys**, which can have any names and values. 
+
+For example, a set of RGB bands from different Sentinel-2 tiles and dates can
+be represented as keys `('tile', 'date', 'band')`, with a set for tile `33UUB`, date `20181010`,
+and bands `B04`, `B03`, and `B02`.
+
+Imagery of the same set of keys makes up a **dataset**. There can be multiple datasets of different
+structure on the same Terracotta instance.
+
+For example, the above RGB dataset could be called `'reflectance'` and live together with other information like
+`'indices'` or `'categorical'` data. Terracotta serves this as 
+`example.com/rgb/reflectance/33UUB/20181010?r=B04&g=B03&b=B02`.
+
 
 ## Why Terracotta?
 
@@ -58,41 +75,39 @@ There are many good reasons to ditch your ancient raster data workflow and switc
 Some of them are listed here:
 
 - It is trivial to get going. Got a folder full of GeoTiffs in different projections you want to
-  have a look at in your browser? Cool, `terracotta serve -p {name}.tif` and
-  `terracotta connect localhost:5000` get you there!
-- Usability is our first priority. We strive to make your workflow as simple as possible, while
-  supporting many different use cases.
-- Terracotta makes minimal assumptions about your data, so *you stay in charge*. Use the tools you
-  know and love to create your data - leave the rest to Terracotta.
-- Deploying Terracotta to serverless architectures is a first-priority use case, so you don't have
+  have a look at in your browser? Enter `terracotta serve -p {name}.tif` and
+  `terracotta connect localhost:5000` you are there!
+- Terracotta supports many different use cases with simple workflows. Usability is our first priority.
+- We make minimal assumptions about your data, so *you stay in charge*. Use the tools you
+  know and love to create your data - leave the optimization and serving to Terracotta.
+- Serverless is our first-priority type of deployment. Make use of that so you don't have
   to worry about maintaining or scaling your architecture.
-- Running Terracotta instances are self-documenting. Everything the frontend needs to know about
-  your data and architecture is exposed in only a handfull of API endpoints.
-- Terracotta is built with extensibility in mind. Want to change your architecture? No problem!
-  Even if Terracotta does not support your use case yet, extending it is as easy as implementing
-  a single Python class.
+- Terracotta instances are self-documenting. Everything the frontend needs to know about
+  your data is accessible from only a handfull of API endpoints.
+- Terracotta is built with extensibility in mind. If Terracotta does not support your use case yet, 
+  extending it is as easy as implementing your driver in a single Python class.
 - We use Python 3.6 type annotations throughout the project and aim for extensive test coverage,
-  to make sure we don't leave you hanging when you need us the most.
+  to make sure we provide a production-grade tool.
 
 ## Why not Terracotta?
 
-Terracotta is light-weight and optimized for simplicity and flexibility. To achieve this, we had
-to accept some trade-offs:
+Terracotta is light-weight and optimized for simplicity and flexibility. This has a few trade-offs:
 
 - The number of keys must be unique throughout a dataset, and keys have to be strings. This means
   that it is not possible to search for datasets through any other means than setting one or more
-  key values to a fixed value (i.e., not date-range lookups or similar).
+  key values to a fixed value (i.e., no date-range lookups or similar - you would need to do that 
+  in the client).
 - You can only use the last key to compose RGB images (i.e., the last key must be `band` or similar).
 - Since the names and semantics of the keys of a Terracotta deployment are flexible, there are no
   guarantees that two different Terracotta deployments behave in the same way. However, all information
-  is transparently available from the frontend, e.g. via the `/swagger.json`, `/apidoc`, and `/keys`
+  is transparently available from the frontend, via the `/swagger.json`, `/apidoc`, and `/keys`
   API endpoints.
-- Terracotta favors flexibility over raw speed. If sub-second response times are a hard requirement
-  for you, Terracotta might not be the right tool for the job.
+- While Terracotta is pretty fast, we favor flexibility over raw speed. If sub-second response 
+  times are a hard requirement for you, there might be faster ways.
 
 ## Architecture
 
-In Terracotta, all heavy lifting is done by a so-called driver. The driver specifies where and how
+In Terracotta, all heavy lifting is done by a so-called **driver**. The driver specifies where and how
 Terracotta can find the raster data and metadata it requires to serve a dataset. Most drivers use
 a database to store metadata and rely on a file system to store raster data, but neither of those
 things is enforced by the API.
@@ -271,8 +286,9 @@ serving categorical data comes with its own set of complications:
 - Nearest neighbor resampling must be used
 - Labels must be mapped to colors consistently
 
-So far, Terracotta is agnostic of categories and labels, but the API is flexible enough to give
-you the tools to build your own system. Categorical data can be served by following these steps:
+Terracotta does not know categories and labels, but the API is flexible enough to give
+you the tools to build your own system and do the interpretation in the frontend. 
+Categorical data can be served by following these steps:
 
 #### During ingestion
 
@@ -361,7 +377,7 @@ To deploy to AWS λ, execute the following steps:
    should now be reachable!
 
 Note that Zappa works best on Linux. Windows 10 users can use the
-[Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to deploy Terracotta.
+[Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
 
 ## Known Issues
 
