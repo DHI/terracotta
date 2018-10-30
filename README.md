@@ -6,7 +6,7 @@
 A light-weight, versatile XYZ tile server, built with Flask and Rasterio :earth_africa:
 
 Terracotta runs in production as a WSGI app on a webserver or as a serverless app on AWS λ.
-For convenient data exploration, debugging, and development, it also runs standalone 
+For convenient data exploration, debugging, and development, it also runs standalone
 through the CLI interface `terracotta serve`.
 
 For greatly improved performance, use [Cloud Optimized GeoTIFFs](http://www.cogeo.org)
@@ -20,7 +20,7 @@ Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source
 ## Contents
 
 - [Use cases](#use-cases)
-- [Datasets and Keys](#datasets-and-keys)
+- [All is keys](#all-is-keys)
 - [Why Terracotta?](#why-terracotta)
 - [Why not Terracotta?](#why-not-terracotta)
 - [Architecutre](#architecture)
@@ -51,23 +51,24 @@ Terracotta covers several use cases:
    [Zappa](https://github.com/Miserlou/Zappa). See [Deployment on AWS](#deployment-to-aws-λ)
    for more details.
 
-## Datasets and Keys
+## All is keys
 
-Terracotta is agnostic to the organization of your data. Almost any hierarchy or folder structure can be
-cast into an API structure. The hierarchy down to single-band files defines the sequence of
-**keys**, which can have any names and values. 
+Terracotta is agnostic to the organization of your data. Almost any hierarchy can be
+cast into an API structure through **keys**, which are an ordered sequence of named categories.
+Keys can have any names and (string) values.
 
-For example, RGB bands from different Sentinel-2 tiles and dates can
-be represented by keys `('tile', 'date', 'band')`, with values for tile `33UUB`, date `20181010`,
-and bands `B04`, `B03`, and `B02`.
+For example, surface reflectance for the red, green, and blue spectral bands at different dates can
+be represented by the keys `('type', 'date', 'band')`, where type is `'reflectance'`, date for example `'20181010'`,
+and bands `'red'`, `'green'`, and `'blue'`.
 
-Imagery of the same set of keys makes up a **dataset**. There can be multiple datasets of different
-structure on the same Terracotta instance.
+Every unique combination of the key values is a **dataset**, representing one single-band image,
+e.g. `reflectance/20181010/B04`.
 
-For example, the above RGB dataset could be called `'reflectance'` and live together with other information like
-`'indices'` or `'categorical'` data. Terracotta serves this as 
-`example.com/rgb/reflectance/33UUB/20181010?r=B04&g=B03&b=B02`.
+For the example from above, you get a proper RGB representation with `example.com/rgb/reflectance/20181010/{z}/{x}/{y}.png?r=red&g=green&b=blue`.
 
+You define the number and names of keys upon setup of your Terracotta instance and they are then fixed.
+This is more flexible than it may sound: In the same scheme as above, you could introduce a type `'indices'`
+and name your band `'NDVI'` and get it served on `example.com/singleband/indices/20181010/NDVI/{z}/{x}/{y}.png`.
 
 ## Why Terracotta?
 
@@ -84,7 +85,7 @@ Some of them are listed here:
   to worry about maintaining or scaling your architecture.
 - Terracotta instances are self-documenting. Everything the frontend needs to know about
   your data is accessible from only a handful of API endpoints.
-- Terracotta is built with extensibility in mind. If Terracotta does not support your use case yet, 
+- Terracotta is built with extensibility in mind. If Terracotta does not support your use case yet,
   extending it is as easy as implementing your driver in a single Python class.
 - We use Python 3.6 type annotations throughout the project and aim for extensive test coverage,
   to make sure we provide a production-grade tool.
@@ -93,16 +94,17 @@ Some of them are listed here:
 
 Terracotta is light-weight and optimized for simplicity and flexibility. This has a few trade-offs:
 
-- The number of keys must be unique throughout a dataset, and keys have to be strings. This means
-  that it is not possible to search for datasets through any other means than setting one or more
-  key values to a fixed value (i.e., no date-range lookups or similar - you would need to do that 
-  in the client).
+- The number of keys and their names are fixed for one Terracotta instance (although not the values).
+  You have to organize all your data into the same structure - or deploy several instances.
+- Terracotta does not know what your key values mean and they are all strings. You can get available
+  combinations by calling `/dataset` (omitting the keys that you want to list). But any filtering
+  on the results, e.g. to get a date range, has to be done in the frontend.
 - You can only use the last key to compose RGB images (i.e., the last key must be `band` or similar).
 - Since the names and semantics of the keys of a Terracotta deployment are flexible, there are no
-  guarantees that two different Terracotta deployments behave in the same way. However, all information
+  guarantees that two different Terracotta deployments have the same dataset API. However, all information
   is transparently available from the frontend, via the `/swagger.json`, `/apidoc`, and `/keys`
   API endpoints.
-- While Terracotta is pretty fast, we favor flexibility over raw speed. If sub-second response 
+- While Terracotta is pretty fast, we favor flexibility over raw speed. If sub-second response
   times are a hard requirement for you, there might be faster tools.
 
 ## Architecture
@@ -278,7 +280,7 @@ Terracotta code.
 
 ### Serving categorical data
 
-Categorical datasets are special in that the numerical pixel values carry no direct meaning, 
+Categorical datasets are special in that the numerical pixel values carry no direct meaning,
 but rather encode which category or label the pixel belongs to. Because labels must be preserved,
 serving categorical data comes with its own set of complications:
 
@@ -287,7 +289,7 @@ serving categorical data comes with its own set of complications:
 - Labels must be mapped to colors consistently
 
 Terracotta does not know categories and labels, but the API is flexible enough to give
-you the tools to build your own system and do the interpretation in the frontend. 
+you the tools to build your own system and do the interpretation in the frontend.
 Categorical data can be served by following these steps:
 
 #### During ingestion
@@ -352,9 +354,9 @@ Terracotta server runs at `example.com`, you can use the following functionality
 
   Supplying an explicit color map in this fashion suppresses stretching, and forces Terracotta to only use
   nearest neighbor resampling when reading the data.
-  
-  Colors can be passed as hex strings (as in this example) or RGB color tuples. In case you are looking 
-  for a nice color scheme for your categorical datasets, [color brewer](http://colorbrewer2.org) features 
+
+  Colors can be passed as hex strings (as in this example) or RGB color tuples. In case you are looking
+  for a nice color scheme for your categorical datasets, [color brewer](http://colorbrewer2.org) features
   some excellent suggestions.
 
 ### Deployment to AWS λ
