@@ -3,9 +3,9 @@
 
 # Terracotta
 
-A modern, versatile XYZ tile server, built with Flask and Rasterio :earth_africa:
+A light-weight, versatile XYZ tile server, built with Flask and Rasterio :earth_africa:
 
-Terracotta runs in production as WSGI on a webserver or as a serverless app on AWS λ.
+Terracotta runs in production as a WSGI app on a webserver or as a serverless app on AWS λ.
 For convenient data exploration, debugging, and development, it also runs standalone 
 through the CLI interface `terracotta serve`.
 
@@ -20,7 +20,7 @@ Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source
 ## Contents
 
 - [Use cases](#use-cases)
-- [Datasets and Keys](#main-abstractions)
+- [Datasets and Keys](#datasets-and-keys)
 - [Why Terracotta?](#why-terracotta)
 - [Why not Terracotta?](#why-not-terracotta)
 - [Architecutre](#architecture)
@@ -42,7 +42,7 @@ Terracotta covers several use cases:
 
 1. Use it as data exploration tool to quickly serve up a folder containing GeoTiff files
    with `terracotta serve`.
-2. As tile server backend on an existing webserver. Refer to
+2. Make it your tile server backend on an existing webserver. Refer to
    [the Flask documentation](http://flask.pocoo.org/docs/1.0/deploying/) for more information.
    You can ingest your data [ahead of time](#ingestion) (recommended) or on-demand.
 3. Deploy it on serverless architectures such as AWS λ to serve tiles from S3 buckets.
@@ -53,12 +53,12 @@ Terracotta covers several use cases:
 
 ## Datasets and Keys
 
-Terracotta is agnostic to the organization of your data. Any hierarchy or folder structure can be
+Terracotta is agnostic to the organization of your data. Almost any hierarchy or folder structure can be
 cast into an API structure. The hierarchy down to single-band files defines the sequence of
 **keys**, which can have any names and values. 
 
-For example, a set of RGB bands from different Sentinel-2 tiles and dates can
-be represented as keys `('tile', 'date', 'band')`, with a set for tile `33UUB`, date `20181010`,
+For example, RGB bands from different Sentinel-2 tiles and dates can
+be represented by keys `('tile', 'date', 'band')`, with values for tile `33UUB`, date `20181010`,
 and bands `B04`, `B03`, and `B02`.
 
 Imagery of the same set of keys makes up a **dataset**. There can be multiple datasets of different
@@ -83,7 +83,7 @@ Some of them are listed here:
 - Serverless is our first-priority type of deployment. Make use of that so you don't have
   to worry about maintaining or scaling your architecture.
 - Terracotta instances are self-documenting. Everything the frontend needs to know about
-  your data is accessible from only a handfull of API endpoints.
+  your data is accessible from only a handful of API endpoints.
 - Terracotta is built with extensibility in mind. If Terracotta does not support your use case yet, 
   extending it is as easy as implementing your driver in a single Python class.
 - We use Python 3.6 type annotations throughout the project and aim for extensive test coverage,
@@ -103,7 +103,7 @@ Terracotta is light-weight and optimized for simplicity and flexibility. This ha
   is transparently available from the frontend, via the `/swagger.json`, `/apidoc`, and `/keys`
   API endpoints.
 - While Terracotta is pretty fast, we favor flexibility over raw speed. If sub-second response 
-  times are a hard requirement for you, there might be faster ways.
+  times are a hard requirement for you, there might be faster tools.
 
 ## Architecture
 
