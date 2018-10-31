@@ -4,26 +4,29 @@ MySQL-backed raster driver. Metadata is stored in a MySQL database, raster data 
 to be present on disk.
 """
 
-from typing import (Tuple, Dict, Iterator, Callable, Sequence, Union,
-                    Mapping, Any, Optional, cast, TYPE_CHECKING)
+from typing import (Tuple, Dict, Iterator, Sequence, Union,
+                    Mapping, Any, Optional, cast, TypeVar, TYPE_CHECKING)
 from collections import OrderedDict
 import contextlib
-from datetime import datetime
-import functools
 import re
 import json
+import urllib.parse as urlparse
+from pathlib import Path
 
 import numpy as np
 
 from terracotta import get_settings, __version__
-from terracotta.drivers.base import T
 from terracotta.drivers.raster_base import RasterDriver
+from terracotta.drivers.base import requires_connection
 from terracotta import exceptions
 from terracotta.profile import trace
 
 if TYPE_CHECKING:
-    from pymysql.connections import Connection, Cursor
+    from pymysql.connections import Connection
     from pymysql.cursors import DictCursor  # noqa: F401
+
+
+T = TypeVar('T')
 
 
 @contextlib.contextmanager
@@ -36,18 +39,8 @@ def convert_exceptions(msg: str) -> Iterator:
         raise exceptions.InvalidDatabaseError(msg) from exc
 
 
-def requires_cursor(fun: Callable[..., T]) -> Callable[..., T]:
-    @functools.wraps(fun)
-    def inner(self: 'MySQLDriver', *args: Any, **kwargs: Any) -> T:
-        with self.cursor():
-            return fun(self, *args, **kwargs)
-    return inner
-
-
 class MySQLDriver(RasterDriver):
     """MySQL-backed raster driver.
-
-    Thread-safe by opening a single connection per thread.
 
     The MySQL database consists of 4 different tables:
 
@@ -73,43 +66,44 @@ class MySQLDriver(RasterDriver):
         ('percentiles', 'BLOB'),
         ('metadata', 'LONGTEXT')
     )
+    CHARSET: str = 'utf8mb4'
 
-    def __init__(self, host: str = 'localhost', user: str = None,
-                 password: str = None, port: int = 0) -> None:
+    def __init__(self, path: Union[str, Path]) -> None:
         settings = get_settings()
 
         self.DB_CONNECTION_TIMEOUT: int = settings.DB_CONNECTION_TIMEOUT
 
-        self._db_host: str = host
-        self._db_user: Optional[str] = user
-        self._db_password: Optional[str] = password
-        self._db_port: int = port
-        self._db_last_update: datetime = datetime.min
+        con_params = urlparse.urlparse(str(path))
+
+        self._db_host: str = con_params.hostname
+        self._db_user: Optional[str] = con_params.username
+        self._db_password: Optional[str] = con_params.password
+        self._db_port: int = con_params.port or 0
         self._connection: Optional[Connection] = None
-        self._cursor: Optional[Cursor] = None
+        self._cursor: Optional[DictCursor] = None
 
-        super().__init__(f'{user}:{password}@{host}:{port}')
+        self._version_checked: bool = False
+        self._db_keys: Optional[OrderedDict] = None
 
-    @requires_cursor
+        super().__init__(f'{self._db_user}@{self._db_host}:{self._db_port}')
+
+    @requires_connection
     @convert_exceptions('Could not retrieve version from database')
     def _get_db_version(self) -> str:
         """Getter for db_version"""
-        cursor = cast('DictCursor', self._cursor)
+        cursor = self._get_cursor()
         cursor.execute('SELECT version from terracotta')
         db_row = cast(Dict[str, str], cursor.fetchone())
         return db_row['version']
 
-    db_version = cast(str, property(_get_db_version))
-
-    @requires_cursor
-    def _after_connection(self) -> None:
-        """Called after opening a new connection"""
+    def _check_version(self) -> None:
+        """Check that the database terracotta version matches ours"""
 
         # check for version compatibility
         def versiontuple(version_string: str) -> Sequence[str]:
             return version_string.split('.')
 
-        db_version = self.db_version
+        db_version = self._get_db_version()
         current_version = __version__
 
         if versiontuple(db_version)[:2] != versiontuple(current_version)[:2]:
@@ -117,6 +111,7 @@ class MySQLDriver(RasterDriver):
                 f'Version conflict: database was created in v{db_version}, '
                 f'but this is v{current_version}'
             )
+        self._version_checked = True
 
     def _get_key_names(self) -> Tuple[str, ...]:
         """Getter for key_names"""
@@ -124,16 +119,17 @@ class MySQLDriver(RasterDriver):
 
     key_names = cast(Tuple[str], property(_get_key_names))
 
+    def _get_cursor(self) -> DictCursor:
+        if self._cursor is None:
+            raise RuntimeError('Cursor is None')
+        return self._cursor
+
     @contextlib.contextmanager
-    def connect(self, check: bool = True, nodb: bool = False) -> 'Iterator[Connection]':
+    def connect(self, check: bool = True,
+                db: Optional[str] = 'terracotta') -> 'Iterator[DictCursor]':
         import pymysql
 
         close = False
-
-        if nodb:
-            db = None
-        else:
-            db = 'terracotta'
 
         if self._connection is None:
             with convert_exceptions('Unable to connect to database'):
@@ -145,14 +141,16 @@ class MySQLDriver(RasterDriver):
                 )
 
             self._connection = new_conn
-            if not nodb and check:
-                self._after_connection()
+            self._cursor = new_conn.cursor(DictCursor)
+            if db == 'terracotta' and not self._version_checked:
+                self._check_version()
             close = True
 
         conn = self._connection
+        cursor = self._get_cursor()
 
         try:
-            yield conn
+            yield cursor
 
         except Exception:
             conn.rollback()
@@ -163,26 +161,7 @@ class MySQLDriver(RasterDriver):
                 conn.commit()
                 conn.close()
                 self._connection = None
-
-    @contextlib.contextmanager
-    def cursor(self, check: bool = True, nodb: bool = False) -> 'Iterator[Cursor]':
-        from pymysql.cursors import DictCursor  # noqa: F811
-
-        close = False
-
-        with self.connect(nodb=nodb):
-            if self._cursor is None:
-                self._cursor = cast('Connection', self._connection).cursor(DictCursor)
-                close = True
-            cursor = cast('Cursor', self._cursor)
-
-            try:
-                yield cursor
-
-            finally:
-                if close:
-                    cursor.close()
-                    self._cursor = None
+                self._cursor = None
 
     @convert_exceptions('Could not create database')
     def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> None:
@@ -205,31 +184,32 @@ class MySQLDriver(RasterDriver):
             if key not in key_descriptions:
                 key_descriptions[key] = ''
 
-        with self.cursor(nodb=True) as cursor:
+        with self.connect(db=None) as cursor:
             cursor.execute(f'CREATE DATABASE terracotta')
             cursor.execute(f'USE terracotta')
-            cursor.execute('CREATE TABLE terracotta (version VARCHAR(255))')
+            cursor.execute(f'CREATE TABLE terracotta (version VARCHAR(255)) '
+                           f'CHARACTER SET {self.CHARSET}')
             cursor.execute('INSERT INTO terracotta VALUES (%s)', [str(__version__)])
 
             cursor.execute(f'CREATE TABLE key_names (key_name {self.KEY_TYPE}, '
-                           'description VARCHAR(8000))')
+                           f'description VARCHAR(8000)) CHARACTER SET {self.CHARSET}')
             key_rows = [(key, key_descriptions[key]) for key in keys]
             cursor.executemany('INSERT INTO key_names VALUES (%s, %s)', key_rows)
 
             key_string = ', '.join([f'{key} {self.KEY_TYPE}' for key in keys])
             cursor.execute(f'CREATE TABLE datasets ({key_string}, filepath VARCHAR(8000), '
-                           f'PRIMARY KEY({", ".join(keys)}))')
+                           f'PRIMARY KEY({", ".join(keys)})) CHARACTER SET {self.CHARSET}')
 
             column_string = ', '.join(f'{col} {col_type}' for col, col_type
                                       in self.METADATA_COLUMNS)
             cursor.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
-                           f'PRIMARY KEY ({", ".join(keys)}))')
+                           f'PRIMARY KEY ({", ".join(keys)})) CHARACTER SET {self.CHARSET}')
 
-    @requires_cursor
+    @requires_connection
     @convert_exceptions('Could not retrieve keys from database')
     def get_keys(self) -> OrderedDict:
         """Retrieve key names and descriptions from database"""
-        cursor = cast('DictCursor', self._cursor)
+        cursor = self._get_cursor()
         cursor.execute('SELECT * FROM key_names')
         key_rows = cursor.fetchall() or []
 
@@ -239,14 +219,18 @@ class MySQLDriver(RasterDriver):
         return out
 
     @trace('get_datasets')
-    @requires_cursor
+    @requires_connection
     @convert_exceptions('Could not retrieve datasets')
-    def get_datasets(self, where: Mapping[str, str] = None) -> Dict[Tuple[str, ...], str]:
+    def get_datasets(self, where: Mapping[str, str] = None,
+                     page: int = 0, limit: int = 100) -> Dict[Tuple[str, ...], str]:
         """Retrieve keys of datasets matching given pattern"""
-        cursor = cast('DictCursor', self._cursor)
+        cursor = self._get_cursor()
+
+        # explicitly cast to int to prevent SQL injection
+        page_query = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
 
         if where is None:
-            cursor.execute(f'SELECT * FROM datasets')
+            cursor.execute(f'SELECT * FROM datasets {page_query}')
             rows = cursor.fetchall()
         else:
             if not all(key in self.key_names for key in where.keys()):
@@ -301,7 +285,7 @@ class MySQLDriver(RasterDriver):
         return decoded
 
     @trace('get_metadata')
-    @requires_cursor
+    @requires_connection
     @convert_exceptions('Could not retrieve metadata')
     def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
         """Retrieve metadata for given keys"""
@@ -310,7 +294,7 @@ class MySQLDriver(RasterDriver):
         if len(keys) != len(self.key_names):
             raise exceptions.UnknownKeyError('Got wrong number of keys')
 
-        cursor = cast('DictCursor', self._cursor)
+        cursor = self._get_cursor()
 
         where_string = ' AND '.join([f'{key}=%s' for key in self.key_names])
         cursor.execute(f'SELECT * FROM metadata WHERE {where_string}', keys)
@@ -334,7 +318,7 @@ class MySQLDriver(RasterDriver):
         return self._decode_data(encoded_data)
 
     @trace('insert')
-    @requires_cursor
+    @requires_connection
     @convert_exceptions('Could not write to database')
     def insert(self,
                keys: Union[Sequence[str], Mapping[str, str]],
@@ -343,7 +327,7 @@ class MySQLDriver(RasterDriver):
                skip_metadata: bool = False,
                override_path: str = None) -> None:
         """Insert a dataset into the database"""
-        cursor = cast('Cursor', self._cursor)
+        cursor = self._get_cursor()
 
         if len(keys) != len(self.key_names):
             raise ValueError(f'Not enough keys (available keys: {self.key_names})')
@@ -368,11 +352,11 @@ class MySQLDriver(RasterDriver):
                            [*keys, *row_values])
 
     @trace('delete')
-    @requires_cursor
+    @requires_connection
     @convert_exceptions('Could not write to database')
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         """Delete a dataset from the database"""
-        cursor = cast('Cursor', self._cursor)
+        cursor = self._get_cursor()
 
         if len(keys) != len(self.key_names):
             raise ValueError(f'Not enough keys (available keys: {self.key_names})')

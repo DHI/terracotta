@@ -93,7 +93,7 @@ class SQLiteDriver(RasterDriver):
                             f'Database file {self.path} does not exist '
                             f'(run driver.create() before connecting to a new database)'
                         )
-                    self._connection_callback()
+                    self._check_version()
             try:
                 yield
             except Exception:
@@ -115,7 +115,7 @@ class SQLiteDriver(RasterDriver):
 
     db_version = cast(str, property(_get_db_version))
 
-    def _connection_callback(self) -> None:
+    def _check_version(self) -> None:
         """Called after opening a new connection"""
 
         # check for version compatibility
