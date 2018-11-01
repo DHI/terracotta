@@ -9,7 +9,7 @@ def test_rgb_handler(use_read_only_database, raster_file, raster_file_xyz):
     from terracotta.handlers import rgb
     raw_img = rgb.rgb(['val21', 'x'], ['val22', 'val23', 'val24'], raster_file_xyz)
     img_data = np.asarray(Image.open(raw_img))
-    assert img_data.shape == (*terracotta.get_settings().TILE_SIZE, 3)
+    assert img_data.shape == (*terracotta.get_settings().DEFAULT_TILE_SIZE, 3)
 
 
 def test_rgb_tile_size(use_read_only_database, raster_file, raster_file_xyz):
@@ -103,4 +103,4 @@ def test_rgb_preview(use_read_only_database):
     from terracotta.handlers import rgb
     raw_img = rgb.rgb(['val21', 'x'], ['val22', 'val23', 'val24'])
     img_data = np.asarray(Image.open(raw_img))
-    assert img_data.shape == (*terracotta.get_settings().TILE_SIZE, 3)
+    assert img_data.shape == (*terracotta.get_settings().DEFAULT_TILE_SIZE, 3)

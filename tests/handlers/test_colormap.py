@@ -58,9 +58,9 @@ def test_colormap_consistency(use_read_only_database, read_only_database, raster
 
     # test values inside stretch_range
     values_to_test = np.unique(tile_data)
-    values_to_test = values_to_test[(values_to_test >= stretch_range[0]) &
-                                    (values_to_test <= stretch_range[1]) &
-                                    (values_to_test != nodata)]
+    values_to_test = values_to_test[(values_to_test >= stretch_range[0])
+                                    & (values_to_test <= stretch_range[1])
+                                    & (values_to_test != nodata)]
 
     for val in values_to_test:
         rgb = cmap[val]

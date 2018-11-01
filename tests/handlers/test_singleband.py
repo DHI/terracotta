@@ -17,7 +17,19 @@ def test_singleband_handler(use_read_only_database, raster_file_xyz,
     for keys in ds:
         raw_img = singleband.singleband(keys, raster_file_xyz)
         img_data = np.asarray(Image.open(raw_img))
-        assert img_data.shape == settings.TILE_SIZE
+        assert img_data.shape == settings.DEFAULT_TILE_SIZE
+
+
+def test_singleband_tile_size(use_read_only_database, raster_file_xyz):
+    from terracotta.handlers import datasets, singleband
+    ds = datasets.datasets()
+
+    test_tile_size = (16, 32)
+
+    for keys in ds:
+        raw_img = singleband.singleband(keys, raster_file_xyz, tile_size=test_tile_size)
+        img_data = np.asarray(Image.open(raw_img))
+        assert img_data.shape == test_tile_size
 
 
 def test_singleband_out_of_bounds(use_read_only_database):
@@ -67,4 +79,4 @@ def test_singleband_noxyz(use_read_only_database):
     raw_img = singleband.singleband(ds_keys)
     img_data = np.asarray(Image.open(raw_img))
 
-    assert img_data.shape == settings.TILE_SIZE
+    assert img_data.shape == settings.DEFAULT_TILE_SIZE

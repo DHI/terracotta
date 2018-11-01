@@ -48,6 +48,7 @@ def test_get_datasets(client, use_read_only_database):
     rv = client.get('/datasets')
     assert rv.status_code == 200
     datasets = json.loads(rv.data, object_pairs_hook=OrderedDict)['datasets']
+    assert len(datasets) == 4
     assert OrderedDict([('key1', 'val11'), ('akey', 'x'), ('key2', 'val12')]) in datasets
 
 
@@ -112,7 +113,7 @@ def test_get_singleband_greyscale(client, use_read_only_database, raster_file_xy
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == settings.TILE_SIZE
+    assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
 
 
 def test_get_singleband_extra_args(client, use_read_only_database, raster_file_xyz):
@@ -124,7 +125,7 @@ def test_get_singleband_extra_args(client, use_read_only_database, raster_file_x
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == settings.TILE_SIZE
+    assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
 
 
 def test_get_singleband_cmap(client, use_read_only_database, raster_file_xyz):
@@ -136,7 +137,7 @@ def test_get_singleband_cmap(client, use_read_only_database, raster_file_xyz):
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == settings.TILE_SIZE
+    assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
 
 
 def test_get_singleband_preview(client, use_read_only_database):
@@ -147,7 +148,7 @@ def test_get_singleband_preview(client, use_read_only_database):
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == settings.TILE_SIZE
+    assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
 
 
 def urlsafe_json(payload):
@@ -167,7 +168,7 @@ def test_get_singleband_explicit_cmap(client, use_read_only_database, raster_fil
     assert rv.status_code == 200, rv.data.decode('utf-8')
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == settings.TILE_SIZE
+    assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
 
 
 def test_get_singleband_explicit_cmap_invalid(client, use_read_only_database, raster_file_xyz):
@@ -211,7 +212,7 @@ def test_get_singleband_stretch(client, use_read_only_database, raster_file_xyz)
         assert rv.status_code == 200
 
         img = Image.open(BytesIO(rv.data))
-        assert np.asarray(img).shape == settings.TILE_SIZE
+        assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
 
 
 def test_get_singleband_out_of_bounds(client, use_read_only_database):
@@ -223,7 +224,7 @@ def test_get_singleband_out_of_bounds(client, use_read_only_database):
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == settings.TILE_SIZE
+    assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
     assert np.all(np.asarray(img) == 0)
 
 
@@ -242,7 +243,7 @@ def test_get_rgb(client, use_read_only_database, raster_file_xyz):
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == (*settings.TILE_SIZE, 3)
+    assert np.asarray(img).shape == (*settings.DEFAULT_TILE_SIZE, 3)
 
 
 def test_get_rgb_preview(client, use_read_only_database):
@@ -253,7 +254,7 @@ def test_get_rgb_preview(client, use_read_only_database):
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == (*settings.TILE_SIZE, 3)
+    assert np.asarray(img).shape == (*settings.DEFAULT_TILE_SIZE, 3)
 
 
 def test_get_rgb_extra_args(client, use_read_only_database, raster_file_xyz):
@@ -265,7 +266,7 @@ def test_get_rgb_extra_args(client, use_read_only_database, raster_file_xyz):
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
-    assert np.asarray(img).shape == (*settings.TILE_SIZE, 3)
+    assert np.asarray(img).shape == (*settings.DEFAULT_TILE_SIZE, 3)
 
 
 def test_get_rgb_stretch(client, use_read_only_database, raster_file_xyz):
@@ -280,7 +281,7 @@ def test_get_rgb_stretch(client, use_read_only_database, raster_file_xyz):
         assert rv.status_code == 200, rv.data
 
         img = Image.open(BytesIO(rv.data))
-        assert np.asarray(img).shape == (*settings.TILE_SIZE, 3)
+        assert np.asarray(img).shape == (*settings.DEFAULT_TILE_SIZE, 3)
 
 
 def test_get_colormap(client):

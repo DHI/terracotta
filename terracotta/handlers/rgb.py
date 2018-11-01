@@ -42,7 +42,7 @@ def rgb(some_keys: Sequence[str],
     settings = get_settings()
 
     if tile_size is None:
-        tile_size_ = settings.TILE_SIZE
+        tile_size_ = settings.DEFAULT_TILE_SIZE
     else:
         tile_size_ = tile_size
 
