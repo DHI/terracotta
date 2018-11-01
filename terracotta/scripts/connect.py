@@ -5,36 +5,37 @@ Use Flask development server to serve Terracotta client app.
 
 import threading
 import webbrowser
+import urllib.request
+from urllib.error import HTTPError, URLError
 
 import click
-import requests
 
-from terracotta.scripts.click_utils import Hostname
+from terracotta.scripts.click_types import Hostname
 from terracotta.scripts.http_utils import find_open_port
 
 
 @click.command(
     'connect',
-    short_help=(
-        'Connect to a running Terracotta instance and interactively '
-        'explore data in it. First argument is hostname and port to connect '
-        'to (e.g. localhost:5000).'
-    )
+    short_help='Connect to a running Terracotta instance and interactively '
+               'explore data in it.'
 )
 @click.argument('terracotta-hostname', required=True, type=Hostname())
 @click.option('--no-browser', is_flag=True, default=False, help='Do not open browser')
 @click.option('--port', type=click.INT, default=None,
               help='Port to use [default: first free port between 5100 and 5199].')
 def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None) -> None:
-    """Connect to a running Terracotta and interactively explore data in it."""
+    """Connect to a running Terracotta and interactively explore data in it.
+
+    First argument is hostname and port to connect to (e.g. localhost:5000).
+    """
     from terracotta.client.flask_api import run_app
 
     test_url = f'{terracotta_hostname}/keys'
 
     try:
-        with requests.get(test_url, timeout=2) as response:
-            response.raise_for_status()
-    except requests.exceptions.RequestException:
+        with urllib.request.urlopen(test_url, timeout=2):
+            pass
+    except (HTTPError, URLError):
         click.echo(
             f'Could not connect to {test_url}, check hostname and ensure '
             'that Terracotta is running on the server', err=True

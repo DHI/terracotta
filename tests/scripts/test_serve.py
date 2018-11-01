@@ -6,7 +6,7 @@ from click.testing import CliRunner
 @pytest.fixture(scope='session')
 def toml_file(tmpdir_factory):
     content = """
-    TILE_SIZE = [64, 64]
+    DEFAULT_TILE_SIZE = [64, 64]
     """
     outfile = tmpdir_factory.mktemp('config').join('tc-config.toml')
     with open(outfile, 'w') as f:

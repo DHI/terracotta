@@ -10,7 +10,7 @@ import logging
 import click
 import tqdm
 
-from terracotta.scripts.click_utils import RasterPattern, RasterPatternType
+from terracotta.scripts.click_types import RasterPattern, RasterPatternType
 from terracotta.scripts.http_utils import find_open_port
 
 logger = logging.getLogger(__name__)
@@ -41,11 +41,13 @@ def serve(database: str = None,
           rgb_key: str = None) -> None:
     """Serve rasters through a local Flask development server.
 
-    Either --database or --raster-pattern must be given.
+    Either -d/--database or -r/--raster-pattern must be given.
 
     Example:
 
-        terracotta serve -r /path/to/rasters/{name}/{date}_{band}.tif
+        terracotta serve -r /path/to/rasters/{name}/{date}_{band}_{}.tif
+
+    The empty group {} is replaced by a wildcard matching anything (similar to * in glob patterns).
 
     This command is a data exploration tool and not meant for production use. Deploy Terracotta as
     a WSGI or serverless app instead.

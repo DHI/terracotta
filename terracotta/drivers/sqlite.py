@@ -69,6 +69,7 @@ class SQLiteDriver(RasterDriver):
 
         settings = get_settings()
         self.DB_CONNECTION_TIMEOUT: int = settings.DB_CONNECTION_TIMEOUT
+        self.LAZY_LOADING_MAX_SHAPE: Tuple[int, int] = settings.LAZY_LOADING_MAX_SHAPE
 
         self._connection: Connection
         self._connected = False
@@ -199,8 +200,11 @@ class SQLiteDriver(RasterDriver):
         """Retrieve keys of datasets matching given pattern"""
         conn = self._connection
 
-        # explicitly cast to int to prevent SQL injection
-        page_query = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
+        if limit is not None:
+            # explicitly cast parameters to int to prevent SQL injection
+            page_query = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
+        else:
+            page_query = ''
 
         if where is None:
             rows = conn.execute(f'SELECT * FROM datasets {page_query}')
@@ -276,7 +280,8 @@ class SQLiteDriver(RasterDriver):
                 raise exceptions.DatasetNotFoundError(f'No dataset found for given keys {keys}')
 
             # compute metadata and try again
-            self.insert(keys, filepath[keys], skip_metadata=False)
+            metadata = self.compute_metadata(filepath[keys], max_shape=self.LAZY_LOADING_MAX_SHAPE)
+            self.insert(keys, filepath[keys], metadata=metadata)
             row = conn.execute(f'SELECT * FROM metadata WHERE {where_string}', keys).fetchone()
 
         assert row

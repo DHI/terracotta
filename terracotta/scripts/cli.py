@@ -8,7 +8,7 @@ import sys
 
 import click
 
-from terracotta.scripts.click_utils import TOMLFile
+from terracotta.scripts.click_types import TOMLFile
 from terracotta import get_settings, update_settings, logs, __version__
 
 
@@ -52,8 +52,8 @@ def entrypoint() -> None:
 from terracotta.scripts.connect import connect
 cli.add_command(connect)
 
-from terracotta.scripts.create_database import create_database
-cli.add_command(create_database)
+from terracotta.scripts.ingest import ingest
+cli.add_command(ingest)
 
 from terracotta.scripts.optimize_rasters import optimize_rasters
 cli.add_command(optimize_rasters)

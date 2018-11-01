@@ -34,7 +34,7 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]],
 
     settings = get_settings()
     if tile_size is None:
-        tile_size = settings.TILE_SIZE
+        tile_size = settings.DEFAULT_TILE_SIZE
 
     driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
 

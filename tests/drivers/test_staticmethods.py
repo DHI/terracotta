@@ -69,8 +69,47 @@ def test_compute_metadata(big_raster_file, use_chunks):
     assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-8
 
 
+def test_compute_metadata_approximate(big_raster_file):
+    from terracotta.drivers.raster_base import RasterDriver
+
+    with rasterio.open(str(big_raster_file)) as src:
+        data = src.read(1)
+        valid_data = data[np.isfinite(data) & (data != src.nodata)]
+        dataset_shape = list(rasterio.features.dataset_features(
+            src, bidx=1, as_mask=True, geographic=True
+        ))
+
+    convex_hull = MultiPolygon([shape(s['geometry']) for s in dataset_shape]).convex_hull
+
+    # compare
+    mtd = RasterDriver.compute_metadata(str(big_raster_file), max_shape=(256, 256))
+
+    np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size, atol=1)
+    np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()), atol=10)
+    np.testing.assert_allclose(mtd['mean'], valid_data.mean(), rtol=0.01)
+    np.testing.assert_allclose(mtd['stdev'], valid_data.std(), rtol=0.01)
+
+    np.testing.assert_allclose(
+        mtd['percentiles'],
+        np.percentile(valid_data, np.arange(1, 100)),
+        rtol=0.1
+    )
+
+    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 0.01
+
+
+def test_compute_metadata_invalid_options(big_raster_file):
+    from terracotta.drivers.raster_base import RasterDriver
+
+    with pytest.raises(ValueError):
+        RasterDriver.compute_metadata(str(big_raster_file), max_shape=(256, 256), use_chunks=True)
+
+    with pytest.raises(ValueError):
+        RasterDriver.compute_metadata(str(big_raster_file), max_shape=(256, 256, 1))
+
+
 @pytest.mark.parametrize('use_chunks', [True, False])
-def test_compute_metadata_invalid(invalid_raster_file, use_chunks):
+def test_compute_metadata_invalid_raster(invalid_raster_file, use_chunks):
     from terracotta.drivers.raster_base import RasterDriver
 
     if use_chunks:
