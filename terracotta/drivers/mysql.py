@@ -5,25 +5,25 @@ to be present on disk.
 """
 
 from typing import (Tuple, Dict, Iterator, Sequence, Union,
-                    Mapping, Any, Optional, cast, TypeVar, TYPE_CHECKING)
+                    Mapping, Any, Optional, cast, TypeVar)
 from collections import OrderedDict
 import contextlib
 import re
 import json
 import urllib.parse as urlparse
+from urlparse import ParseResult
 from pathlib import Path
 
 import numpy as np
+import pymysql
+from pymysql.connections import Connection
+from pymysql.cursors import DictCursor  # noqa: F401
 
 from terracotta import get_settings, __version__
 from terracotta.drivers.raster_base import RasterDriver
 from terracotta.drivers.base import requires_connection
 from terracotta import exceptions
 from terracotta.profile import trace
-
-if TYPE_CHECKING:
-    from pymysql.connections import Connection
-    from pymysql.cursors import DictCursor  # noqa: F401
 
 
 T = TypeVar('T')
@@ -79,13 +79,25 @@ class MySQLDriver(RasterDriver):
         self._db_user: Optional[str] = con_params.username
         self._db_password: Optional[str] = con_params.password
         self._db_port: int = con_params.port or 0
+        self._db_name: str = self._parse_db_name(con_params)
         self._connection: Optional[Connection] = None
         self._cursor: Optional[DictCursor] = None
 
         self._version_checked: bool = False
         self._db_keys: Optional[OrderedDict] = None
 
-        super().__init__(f'{self._db_user}@{self._db_host}:{self._db_port}')
+        super().__init__(f'{self._db_user}@{self._db_host}:{self._db_port}/{self._db_name}')
+
+    @staticmethod
+    def _parse_db_name(con_params: ParseResult) -> str:
+        if not con_params.path:
+            raise ValueError('Database must be specified in MySQL path')
+
+        path = con_params.path.strip('/')
+        if len(path.split('/')) != 1:
+            raise ValueError('Invalid database path')
+
+        return path
 
     @requires_connection
     @convert_exceptions('Could not retrieve version from database')
@@ -111,7 +123,11 @@ class MySQLDriver(RasterDriver):
                 f'Version conflict: database was created in v{db_version}, '
                 f'but this is v{current_version}'
             )
-        self._version_checked = True
+
+    def _connection_callback(self) -> None:
+        if not self._version_checked:
+            self._check_version()
+            self._version_checked = True
 
     def _get_key_names(self) -> Tuple[str, ...]:
         """Getter for key_names"""
@@ -119,39 +135,36 @@ class MySQLDriver(RasterDriver):
 
     key_names = cast(Tuple[str], property(_get_key_names))
 
-    def _get_cursor(self) -> 'DictCursor':
+    def _get_cursor(self) -> DictCursor:
         if self._cursor is None:
             raise RuntimeError('Cursor is None')
         return self._cursor
 
     @contextlib.contextmanager
-    def connect(self, check: bool = True,
-                db: Optional[str] = 'terracotta') -> 'Iterator[DictCursor]':
-        import pymysql
-        from pymysql.cursors import DictCursor
-
+    def connect(self, check: bool = True) -> Iterator:
         close = False
 
         if self._connection is None:
             with convert_exceptions('Unable to connect to database'):
                 new_conn = pymysql.connect(
-                    host=self._db_host, db=db, user=self._db_user, password=self._db_password,
-                    port=self._db_port, read_timeout=self.DB_CONNECTION_TIMEOUT,
-                    write_timeout=self.DB_CONNECTION_TIMEOUT, binary_prefix=True,
-                    charset='utf8mb4'
+                    host=self._db_host, db=self._db_name, user=self._db_user,
+                    password=self._db_password, port=self._db_port,
+                    read_timeout=self.DB_CONNECTION_TIMEOUT,
+                    write_timeout=self.DB_CONNECTION_TIMEOUT,
+                    binary_prefix=True, charset='utf8mb4'
                 )
 
             self._connection = new_conn
             self._cursor = new_conn.cursor(DictCursor)
-            if db == 'terracotta' and not self._version_checked:
-                self._check_version()
+            if check:
+                self._connection_callback()
             close = True
 
         conn = self._connection
         cursor = self._get_cursor()
 
         try:
-            yield cursor
+            yield
 
         except Exception:
             conn.rollback()
@@ -160,6 +173,7 @@ class MySQLDriver(RasterDriver):
         finally:
             if close:
                 conn.commit()
+                cursor.close()
                 conn.close()
                 self._connection = None
                 self._cursor = None
@@ -185,9 +199,15 @@ class MySQLDriver(RasterDriver):
             if key not in key_descriptions:
                 key_descriptions[key] = ''
 
-        with self.connect(db=None) as cursor:
-            cursor.execute(f'CREATE DATABASE terracotta')
-            cursor.execute(f'USE terracotta')
+        with pymysql.connect(host=self._db_host, user=self._db_user,
+                             password=self._db_password, port=self._db_port,
+                             read_timeout=self.DB_CONNECTION_TIMEOUT,
+                             write_timeout=self.DB_CONNECTION_TIMEOUT,
+                             binary_prefix=True, charset='utf8mb4') as con:
+            con.execute(f'CREATE DATABASE {self._db_name}')
+
+        with self.connect(check=False):
+            cursor = self._get_cursor()
             cursor.execute(f'CREATE TABLE terracotta (version VARCHAR(255)) '
                            f'CHARACTER SET {self.CHARSET}')
             cursor.execute('INSERT INTO terracotta VALUES (%s)', [str(__version__)])

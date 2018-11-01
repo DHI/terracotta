@@ -9,16 +9,6 @@ import urllib.parse as urlparse
 from pathlib import Path
 
 from terracotta.drivers.base import Driver
-from terracotta.drivers.sqlite import SQLiteDriver
-from terracotta.drivers.sqlite_remote import RemoteSQLiteDriver
-from terracotta.drivers.mysql import MySQLDriver
-
-
-DRIVERS: Dict[str, Type[Driver]] = {
-    'sqlite': SQLiteDriver,
-    'sqlite-remote': RemoteSQLiteDriver,
-    'mysql': MySQLDriver
-}
 
 
 def singleton(fun: Callable) -> Callable:
@@ -34,13 +24,27 @@ def singleton(fun: Callable) -> Callable:
     return inner
 
 
+def load_driver(provider: str) -> Type[Driver]:
+    if provider == 'sqlite-remote':
+        from terracotta.drivers.sqlite_remote import RemoteSQLiteDriver
+        return RemoteSQLiteDriver
+    if provider == 'mysql':
+        from terracotta.drivers.mysql import MySQLDriver
+        return MySQLDriver
+    if provider == 'sqlite':
+        from terracotta.drivers.sqlite import SQLiteDriver
+        return SQLiteDriver
+
+    raise ValueError(f'Unknown database provider {provider}')
+
+
 def auto_detect_provider(url_or_path: Union[str, Path]) -> str:
     parsed_path = urlparse.urlparse(str(url_or_path))
 
-    if parsed_path.scheme == 's3':
+    scheme = parsed_path.scheme
+    if scheme == 's3':
         return 'sqlite-remote'
-
-    if parsed_path.netloc == 'mysql':
+    if scheme == 'mysql':
         return 'mysql'
 
     return 'sqlite'
@@ -51,9 +55,6 @@ def get_driver(url_or_path: Union[str, Path], provider: str = None) -> Driver:
     if provider is None:  # try and auto-detect
         provider = auto_detect_provider(url_or_path)
 
-    try:
-        DriverClass = DRIVERS[provider]
-    except KeyError as exc:
-        raise ValueError(f'Unknown database provider {provider}') from exc
+    DriverClass = load_driver(provider)
 
     return DriverClass(url_or_path)
