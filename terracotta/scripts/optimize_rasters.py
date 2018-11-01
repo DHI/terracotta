@@ -19,6 +19,7 @@ from rasterio.shutil import copy
 from rasterio.io import DatasetReader, MemoryFile
 from rasterio.vrt import WarpedVRT
 from rasterio.enums import Resampling
+from rasterio.env import GDALVersion
 
 from terracotta.scripts.click_types import GlobbityGlob, PathlibPath
 
@@ -57,15 +58,19 @@ RESAMPLING_METHODS = {
 
 
 def _prefered_compression_method() -> str:
-    dummy_profile = dict(driver='GTiff', height=1, width=1, count=1, dtype='uint8')
+    if GDALVersion.runtime() < GDALVersion.parse('2.3'):
+        return 'DEFLATE'
 
-    # check if we can use ZSTD
+    # check if we can use ZSTD (fails silently for GDAL < 2.3)
+    dummy_profile = dict(driver='GTiff', height=1, width=1, count=1, dtype='uint8')
     try:
         with MemoryFile() as memfile, memfile.open(compress='ZSTD', **dummy_profile):
-            return 'ZSTD'
+            pass
     except Exception as exc:
         if 'missing codec' not in str(exc):
             raise
+    else:
+        return 'ZSTD'
 
     return 'DEFLATE'
 

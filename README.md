@@ -245,7 +245,7 @@ To allow for flexible deployments, Terracotta is fully configurable in several w
 1. Through a configuration file in TOML format, passed as an argument to `terracotta serve`, or
    to the app factory in WSGI or serverless deployments.
 2. By setting environment variables with the prefix `TC_`. Lists are passed as JSON arrays:
-   `TC_TILE_SIZE=[128,128]`.
+   `TC_DEFAULT_TILE_SIZE=[128,128]`.
 3. Through Terracotta's Python API, by using the command `terracotta.update_settings(**config)`,
    where `config` is a dictionary holding the new key-value pairs.
 

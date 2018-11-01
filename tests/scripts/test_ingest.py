@@ -47,8 +47,8 @@ TEST_CASES = (
         'expected_keys': ['nAmE'],
         'expected_datasets': [('bAr',), ('FOO',)]
     },
-    {  # unicode path
-        'filenames': ['$*)-?:_«}ä»/foo.tif'],
+    {  # unicode path with space
+        'filenames': ['süßer ordner/foo.tif'],
         'input_pattern': '{}/{name}.tif',
         'expected_keys': ['name'],
         'expected_datasets': [('foo',)]

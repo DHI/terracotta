@@ -54,7 +54,7 @@ def convert_exceptions(fun: Callable) -> Callable:
             # send empty image
             from terracotta import get_settings, image
             settings = get_settings()
-            return send_file(image.empty_image(settings.TILE_SIZE), mimetype='image/png')
+            return send_file(image.empty_image(settings.DEFAULT_TILE_SIZE), mimetype='image/png')
 
         except exceptions.DatasetNotFoundError as exc:
             # wrong path -> 404
