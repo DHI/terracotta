@@ -11,7 +11,7 @@ import contextlib
 import re
 import json
 import urllib.parse as urlparse
-from urlparse import ParseResult
+from urllib.parse import ParseResult
 from pathlib import Path
 
 import numpy as np
