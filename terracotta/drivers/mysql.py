@@ -205,10 +205,18 @@ class MySQLDriver(RasterDriver):
             cursor.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
                            f'PRIMARY KEY ({", ".join(keys)})) CHARACTER SET {self.CHARSET}')
 
+    def get_keys(self) -> OrderedDict:
+        """Retrieve key names and descriptions from database.
+
+        Caches keys after first call.
+        """
+        if self._db_keys is None:
+            self._db_keys = self._get_keys()
+        return self._db_keys
+
     @requires_connection
     @convert_exceptions('Could not retrieve keys from database')
-    def get_keys(self) -> OrderedDict:
-        """Retrieve key names and descriptions from database"""
+    def _get_keys(self) -> OrderedDict:
         cursor = self._get_cursor()
         cursor.execute('SELECT * FROM key_names')
         key_rows = cursor.fetchall() or []
