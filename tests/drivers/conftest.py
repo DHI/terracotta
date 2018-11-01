@@ -3,10 +3,10 @@ from urllib.parse import urlparse
 
 
 def validate_con_info(con_info):
-    return (con_info.scheme == 'mysql' and
-            con_info.hostname and
-            con_info.username and
-            con_info.path)
+    return (con_info.scheme == 'mysql'
+            and con_info.hostname
+            and con_info.username
+            and con_info.path)
 
 
 @pytest.fixture()
