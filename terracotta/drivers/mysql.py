@@ -119,7 +119,7 @@ class MySQLDriver(RasterDriver):
 
     key_names = cast(Tuple[str], property(_get_key_names))
 
-    def _get_cursor(self) -> DictCursor:
+    def _get_cursor(self) -> 'DictCursor':
         if self._cursor is None:
             raise RuntimeError('Cursor is None')
         return self._cursor
