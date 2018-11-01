@@ -128,6 +128,7 @@ class MySQLDriver(RasterDriver):
     def connect(self, check: bool = True,
                 db: Optional[str] = 'terracotta') -> 'Iterator[DictCursor]':
         import pymysql
+        from pymysql.cursors import DictCursor
 
         close = False
 
