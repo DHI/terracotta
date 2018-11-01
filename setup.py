@@ -19,7 +19,23 @@ setup(
         'setuptools_scm_git_archive',
         'numpy'
     ],
-    install_requires=install_requires,
+    install_requires=[
+        'apispec',
+        'cachetools',
+        'click',
+        'colorlog',
+        'flask',
+        'flask_cors',
+        'marshmallow>=3.0.0b12',
+        'mercantile',
+        'numpy',
+        'pillow',
+        'shapely',
+        'rasterio>=1.0,<1.0.7',
+        'shapely',
+        'toml',
+        'tqdm'
+    ],
     extras_require={
         'test': [
             'pytest>=3.5',
@@ -31,6 +47,13 @@ setup(
             'attrs>=17.4.0',
             'matplotlib',
             'moto',
+            'crick'
+        ],
+        'docs': [
+            'sphinx',
+            'sphinx_rtd_theme'
+        ],
+        'recommended': [
             'crick'
         ]
     },
