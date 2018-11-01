@@ -81,7 +81,7 @@ class RasterPattern(click.ParamType):
     name = 'raster-pattern'
 
     def convert(self, value: str, *args: Any) -> RasterPatternType:
-        value = os.path.realpath(value)
+        value = os.path.abspath(value)
         try:
             keys, glob_pattern, regex_pattern = _parse_raster_pattern(value)
         except ValueError as exc:
@@ -94,7 +94,7 @@ class RasterPattern(click.ParamType):
             self.fail('Key names must be alphanumeric')
 
         # use glob to find candidates, regex to extract placeholder values
-        candidates = (os.path.realpath(c) for c in glob.glob(glob_pattern))
+        candidates = (os.path.abspath(c) for c in glob.glob(glob_pattern))
         matched_candidates = [re.match(regex_pattern, candidate) for candidate in candidates]
 
         if not any(matched_candidates):
