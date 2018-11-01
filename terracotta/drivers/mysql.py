@@ -75,8 +75,11 @@ class MySQLDriver(RasterDriver):
 
         con_params = urlparse.urlparse(str(path))
 
+        if not con_params.hostname:
+            raise ValueError('hostname must be specified in MySQL path')
+
         self._db_host: str = con_params.hostname
-        self._db_user: Optional[str] = con_params.username
+        self._db_user: Optional[str] = con_params.username or None
         self._db_password: Optional[str] = con_params.password
         self._db_port: int = con_params.port or 0
         self._db_name: str = self._parse_db_name(con_params)
@@ -91,11 +94,11 @@ class MySQLDriver(RasterDriver):
     @staticmethod
     def _parse_db_name(con_params: ParseResult) -> str:
         if not con_params.path:
-            raise ValueError('Database must be specified in MySQL path')
+            raise ValueError('database must be specified in MySQL path')
 
         path = con_params.path.strip('/')
         if len(path.split('/')) != 1:
-            raise ValueError('Invalid database path')
+            raise ValueError('invalid database path')
 
         return path
 
