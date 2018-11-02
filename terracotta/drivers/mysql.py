@@ -89,7 +89,8 @@ class MySQLDriver(RasterDriver):
         self._version_checked: bool = False
         self._db_keys: Optional[OrderedDict] = None
 
-        super().__init__(f'{self._db_user}@{self._db_host}:{self._db_port}/{self._db_name}')
+        super().__init__(f'mysql://{self._db_user}@{self._db_host}'
+                         f':{self._db_port}/{self._db_name}')
 
     @staticmethod
     def _parse_db_name(con_params: ParseResult) -> str:
