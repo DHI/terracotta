@@ -151,11 +151,23 @@ class RasterDriver(Driver):
 
     @staticmethod
     def _compute_image_stats(dataset: 'DatasetReader',
-                             nodata: Number) -> Optional[Dict[str, Any]]:
-        from rasterio import features, warp
+                             nodata: Number,
+                             max_shape: Sequence[int] = None) -> Optional[Dict[str, Any]]:
+        from rasterio import features, warp, transform
         from shapely import geometry
 
-        raster_data = dataset.read(1)
+        out_shape = (dataset.height, dataset.width)
+
+        if max_shape is not None:
+            out_shape = (
+                min(max_shape[0], out_shape[0]),
+                min(max_shape[1], out_shape[1])
+            )
+
+        data_transform = transform.from_bounds(
+            *dataset.bounds, height=out_shape[0], width=out_shape[1]
+        )
+        raster_data = dataset.read(1, out_shape=out_shape)
 
         valid_data_mask = image.get_valid_mask(raster_data, nodata)
         valid_data = raster_data[valid_data_mask]
@@ -167,7 +179,7 @@ class RasterDriver(Driver):
         hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
             np.ones(hull_candidates.shape, 'uint8'),
             mask=hull_candidates,
-            transform=dataset.transform
+            transform=data_transform
         ))
         convex_hull = geometry.MultiPolygon(hull_shapes).convex_hull
         convex_hull_wgs = warp.transform_geom(
@@ -187,7 +199,8 @@ class RasterDriver(Driver):
     @trace('compute_metadata')
     def compute_metadata(cls, raster_path: str, *,
                          extra_metadata: Any = None,
-                         use_chunks: bool = None) -> Dict[str, Any]:
+                         use_chunks: bool = None,
+                         max_shape: Sequence[int] = None) -> Dict[str, Any]:
         """Read given raster file and compute metadata from it.
 
         This handles most of the heavy lifting during raster ingestion.
@@ -199,29 +212,35 @@ class RasterDriver(Driver):
         row_data: Dict[str, Any] = {}
         extra_metadata = extra_metadata or {}
 
-        if not validate(raster_path):
-            warnings.warn(
-                f'Raster file {raster_path} is not a valid cloud-optimized GeoTIFF. '
-                'Any interaction with it will be significantly slower. '
-                'Consider optimizing it through `terracotta optimize-rasters` before ingestion.',
-                exceptions.PerformanceWarning, stacklevel=3
-            )
+        if max_shape is not None and len(max_shape) != 2:
+            raise ValueError('max_shape argument must contain 2 values')
+
+        if use_chunks and max_shape is not None:
+            raise ValueError('Cannot use both use_chunks and max_shape arguments')
 
         with rasterio.Env(**cls.RIO_ENV_KEYS):
+            if not validate(raster_path):
+                warnings.warn(
+                    f'Raster file {raster_path} is not a valid cloud-optimized GeoTIFF. '
+                    'Any interaction with it will be significantly slower. Consider optimizing '
+                    'it through `terracotta optimize-rasters` before ingestion.',
+                    exceptions.PerformanceWarning, stacklevel=3
+                )
+
             with rasterio.open(raster_path) as src:
                 nodata = src.nodata or 0
                 bounds = warp.transform_bounds(
                     src.crs, 'epsg:4326', *src.bounds, densify_pts=21
                 )
 
-                if use_chunks is None:
+                if use_chunks is None and max_shape is None:
                     use_chunks = src.width * src.height > RasterDriver.LARGE_RASTER_THRESHOLD
 
                     if use_chunks:
                         logger.debug(
-                            f'Raster file {raster_path} contains more than '
-                            f'{RasterDriver.LARGE_RASTER_THRESHOLD // 10**6}M pixels, computing '
-                            'metadata by iterating over chunks'
+                            f'Computing metadata for file {raster_path} using more than '
+                            f'{RasterDriver.LARGE_RASTER_THRESHOLD // 10**6}M pixels, iterating '
+                            'over chunks'
                         )
 
                 if use_chunks and not has_crick:
@@ -234,7 +253,7 @@ class RasterDriver(Driver):
                 if use_chunks:
                     raster_stats = RasterDriver._compute_image_stats_chunked(src, nodata)
                 else:
-                    raster_stats = RasterDriver._compute_image_stats(src, nodata)
+                    raster_stats = RasterDriver._compute_image_stats(src, nodata, max_shape)
 
         if raster_stats is None:
             raise ValueError(f'Raster file {raster_path} does not contain any valid data')
