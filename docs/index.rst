@@ -1,4 +1,5 @@
-======================================
+:tocdepth: 5
+
 Welcome to Terracotta's documentation!
 ======================================
 
@@ -12,7 +13,6 @@ Welcome to Terracotta's documentation!
    api
 
 
-==================
 Indices and tables
 ==================
 

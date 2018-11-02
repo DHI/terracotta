@@ -3,7 +3,8 @@
 Use Flask development server to serve up raster files or database locally.
 """
 
-from typing import Any, Tuple, Sequence
+from typing import Any, Tuple, Sequence, NoReturn
+import os
 import tempfile
 import logging
 
@@ -38,7 +39,7 @@ def serve(database: str = None,
           database_provider: str = None,
           allow_all_ips: bool = False,
           port: int = None,
-          rgb_key: str = None) -> None:
+          rgb_key: str = None) -> NoReturn:
     """Serve rasters through a local Flask development server.
 
     Either -d/--database or -r/--raster-pattern must be given.
@@ -53,7 +54,7 @@ def serve(database: str = None,
     a WSGI or serverless app instead.
     """
     from terracotta import get_driver, update_settings
-    from terracotta.server import run_app
+    from terracotta.server import create_app
 
     if (database is None) == (raster_pattern is None):
         raise click.UsageError('Either --database or --raster-pattern must be given')
@@ -98,4 +99,11 @@ def serve(database: str = None,
         click.echo(f'Could not find open port to bind to (ports tried: {port_range})', err=True)
         raise click.Abort()
 
-    run_app(port=port, allow_all_ips=allow_all_ips, debug=debug, profile=profile)
+    host = '0.0.0.0' if allow_all_ips else 'localhost'
+
+    server_app = create_app(debug=debug, profile=profile)
+
+    if os.environ.get('TC_TESTING'):
+        return
+
+    server_app.run(port=port, host=host, threading=False)

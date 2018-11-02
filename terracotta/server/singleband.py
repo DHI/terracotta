@@ -3,7 +3,7 @@
 Flask route to handle /singleband calls.
 """
 
-from typing import Any, Mapping, Dict, Tuple
+from typing import Any, Mapping, Dict, Tuple, NoReturn
 import json
 
 from marshmallow import (Schema, fields, validate, validates_schema,
@@ -52,7 +52,7 @@ class SinglebandOptionSchema(Schema):
     )
 
     @validates_schema
-    def validate_cmap(self, data: Mapping[str, Any]) -> None:
+    def validate_cmap(self, data: Mapping[str, Any]) -> NoReturn:
         if data.get('colormap', '') == 'explicit' and not data.get('explicit_color_map'):
             raise ValidationError('explicit_color_map argument must be given for colormap=explicit',
                                   'colormap')

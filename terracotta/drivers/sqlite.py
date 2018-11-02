@@ -5,7 +5,7 @@ to be present on disk.
 """
 
 from typing import (Any, Sequence, Mapping, Tuple, Union, Iterator, Dict,
-                    Optional, Callable, cast)
+                    Optional, Callable, NoReturn, cast)
 import sys
 import os
 import operator
@@ -76,7 +76,7 @@ class SQLiteDriver(RasterDriver):
         ('metadata', 'VARCHAR[max]')
     )
 
-    def __init__(self, path: Union[str, Path]) -> None:
+    def __init__(self, path: Union[str, Path]) -> NoReturn:
         """Use given database path to read and store metadata."""
         path = str(path)
 
@@ -137,7 +137,7 @@ class SQLiteDriver(RasterDriver):
 
     db_version = cast(str, property(_get_db_version))
 
-    def _connection_callback(self, validate: bool = True) -> None:
+    def _connection_callback(self, validate: bool = True) -> NoReturn:
         """Called after opening a new connection"""
         # invalidate cache if db has changed since last connection
         new_hash = self._compute_hash(self.path)
@@ -168,7 +168,7 @@ class SQLiteDriver(RasterDriver):
             m.update(f.read())
         return m.hexdigest()
 
-    def _empty_cache(self) -> None:
+    def _empty_cache(self) -> NoReturn:
         self._metadata_cache.clear()
 
     def _get_key_names(self) -> Tuple[str, ...]:
@@ -178,7 +178,7 @@ class SQLiteDriver(RasterDriver):
     key_names = cast(Tuple[str], property(_get_key_names))
 
     @convert_exceptions('Could not create database')
-    def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> None:
+    def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> NoReturn:
         """Initialize database file with empty tables.
 
         This must be called before opening the first connection.
@@ -354,7 +354,7 @@ class SQLiteDriver(RasterDriver):
                filepath: str, *,
                metadata: Mapping[str, Any] = None,
                skip_metadata: bool = False,
-               override_path: str = None) -> None:
+               override_path: str = None) -> NoReturn:
         """Insert a dataset into the database"""
         conn = self._connection
 
@@ -382,7 +382,7 @@ class SQLiteDriver(RasterDriver):
     @trace('delete')
     @requires_connection
     @convert_exceptions('Could not write to database')
-    def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
+    def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> NoReturn:
         """Delete a dataset from the database"""
         conn = self._connection
 

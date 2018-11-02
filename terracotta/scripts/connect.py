@@ -3,6 +3,9 @@
 Use Flask development server to serve Terracotta client app.
 """
 
+from typing import NoReturn
+
+import os
 import threading
 import webbrowser
 import urllib.request
@@ -23,12 +26,12 @@ from terracotta.scripts.http_utils import find_open_port
 @click.option('--no-browser', is_flag=True, default=False, help='Do not open browser')
 @click.option('--port', type=click.INT, default=None,
               help='Port to use [default: first free port between 5100 and 5199].')
-def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None) -> None:
+def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None) -> NoReturn:
     """Connect to a running Terracotta and interactively explore data in it.
 
     First argument is hostname and port to connect to (e.g. localhost:5000).
     """
-    from terracotta.client.flask_api import run_app
+    from terracotta.client.flask_api import create_app
 
     test_url = f'{terracotta_hostname}/keys'
 
@@ -49,10 +52,15 @@ def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None
         click.echo(f'Could not find open port to bind to (ports tried: {port_range})', err=True)
         raise click.Abort()
 
-    def open_browser() -> None:
+    def open_browser() -> NoReturn:
         webbrowser.open(f'http://127.0.0.1:{port}/')
 
     if not no_browser:
         threading.Timer(2, open_browser).start()
 
-    run_app(terracotta_hostname, port=port)
+    client_app = create_app(terracotta_hostname)
+
+    if os.environ.get('TC_TESTING'):
+        return
+
+    client_app.run(port=port)

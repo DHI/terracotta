@@ -3,7 +3,7 @@
 Custom click parameter types and utilities.
 """
 
-from typing import List, Any, Tuple, Dict
+from typing import List, Any, Tuple, Dict, NoReturn
 import pathlib
 import glob
 import re
@@ -121,7 +121,7 @@ class Hostname(click.ParamType):
     """Parses a string to a valid hostname"""
     name = 'url'
 
-    def __init__(self, default_port: int = 5000, default_scheme: str = 'http') -> None:
+    def __init__(self, default_port: int = 5000, default_scheme: str = 'http') -> NoReturn:
         self.default_port = default_port
         self.default_scheme = default_scheme
 

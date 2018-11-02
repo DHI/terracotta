@@ -1,5 +1,4 @@
 from typing import Callable, Any
-import os
 import functools
 
 from apispec import APISpec
@@ -112,19 +111,3 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
         new_app.wsgi_app = ProfilerMiddleware(new_app.wsgi_app, restrictions=[30])
 
     return new_app
-
-
-def run_app(*args: Any, allow_all_ips: bool = False, port: int = 5000, **kwargs: Any) -> None:
-    """Create an app and run it.
-
-    All args are passed to create_app.
-    """
-
-    app = create_app(*args, **kwargs)
-
-    host = '0.0.0.0' if allow_all_ips else 'localhost'
-
-    if os.environ.get('TC_TESTING'):  # set during pytest runs
-        return
-
-    app.run(host=host, port=port, threaded=False)  # pragma: no cover

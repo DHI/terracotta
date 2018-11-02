@@ -4,7 +4,7 @@ Base class for drivers operating on physical raster files.
 """
 
 from typing import (Any, Union, Mapping, Sequence, Dict, List, Tuple,
-                    TypeVar, Optional, cast, TYPE_CHECKING)
+                    TypeVar, Optional, cast, NoReturn, TYPE_CHECKING)
 from abc import abstractmethod
 import concurrent.futures
 import contextlib
@@ -47,7 +47,7 @@ class RasterDriver(Driver):
     RIO_ENV_KEYS = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR')
 
     @abstractmethod
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> NoReturn:
         settings = get_settings()
         self._raster_cache = LRUCache(settings.RASTER_CACHE_SIZE, getsizeof=sys.getsizeof)
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)

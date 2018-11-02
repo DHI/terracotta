@@ -3,7 +3,7 @@
 Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 """
 
-from typing import Sequence, Iterator, Union
+from typing import Sequence, Iterator, Union, NoReturn
 import os
 import math
 import itertools
@@ -58,7 +58,7 @@ RESAMPLING_METHODS = {
 
 
 def _prefered_compression_method() -> str:
-    if GDALVersion.runtime() < GDALVersion.parse('2.3'):
+    if not GDALVersion.runtime().at_least('2.3'):
         return 'DEFLATE'
 
     # check if we can use ZSTD (fails silently for GDAL < 2.3)
@@ -142,7 +142,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      reproject: bool = False,
                      in_memory: bool = None,
                      compression: str = 'auto',
-                     quiet: bool = False) -> None:
+                     quiet: bool = False) -> NoReturn:
     """Optimize a collection of raster files for use with Terracotta.
 
     First argument is a list of input files or glob patterns.

@@ -3,6 +3,8 @@
 A script to generate color map dumps from matplotlib.
 """
 
+from typing import NoReturn
+
 import numpy as np
 import matplotlib.cm as cm
 
@@ -12,7 +14,7 @@ ALL_MAPS = cm.cmap_d
 NUM_VALS = 255
 
 
-def generate_maps(out_folder: str) -> None:
+def generate_maps(out_folder: str) -> NoReturn:
     x = np.linspace(0, 1, NUM_VALS)
     for cmap in ALL_MAPS:
         cmap_fun = cm.get_cmap(cmap)

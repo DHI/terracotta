@@ -1,8 +1,5 @@
 from setuptools import setup, find_packages
-import os
 
-with open(os.path.join(os.path.dirname(__file__), 'requirements.txt')) as fp:
-    install_requires = fp.read()
 
 setup(
     name='terracotta',
@@ -23,7 +20,6 @@ setup(
         'apispec',
         'cachetools',
         'click',
-        'colorlog',
         'flask',
         'flask_cors',
         'marshmallow>=3.0.0b12',
@@ -54,7 +50,8 @@ setup(
             'sphinx_rtd_theme'
         ],
         'recommended': [
-            'crick'
+            'colorlog',
+            'crick',
         ]
     },
     entry_points='''

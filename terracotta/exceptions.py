@@ -1,6 +1,6 @@
 """exceptions.py
 
-Custom warnings and exceptions raised internally
+Custom warnings and exceptions raised internally.
 """
 
 

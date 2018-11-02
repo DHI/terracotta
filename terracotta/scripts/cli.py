@@ -3,7 +3,7 @@
 Entry point for CLI.
 """
 
-from typing import Any, Mapping
+from typing import Any, Mapping, NoReturn
 import sys
 
 import click
@@ -21,7 +21,7 @@ from terracotta import get_settings, update_settings, logs, __version__
 @click.pass_context
 def cli(ctx: click.Context,
         config: Mapping[str, Any] = None,
-        loglevel: str = None) -> None:
+        loglevel: str = None) -> NoReturn:
     """The Terracotta command line interface"""
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
@@ -39,7 +39,7 @@ def cli(ctx: click.Context,
     logs.set_logger(loglevel, catch_warnings=True)
 
 
-def entrypoint() -> None:
+def entrypoint() -> NoReturn:
     try:
         cli(obj={})
     except Exception:

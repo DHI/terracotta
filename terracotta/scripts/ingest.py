@@ -3,7 +3,7 @@
 A convenience tool to create a Terracotta database from some raster files.
 """
 
-from typing import Tuple, Sequence, Any
+from typing import Tuple, Sequence, Any, NoReturn
 from pathlib import Path
 import logging
 
@@ -31,7 +31,7 @@ def ingest(raster_pattern: RasterPatternType,
            output_file: Path,
            skip_metadata: bool = False,
            rgb_key: str = None,
-           quiet: bool = False) -> None:
+           quiet: bool = False) -> NoReturn:
     """Ingest a collection of raster files into a SQLite database.
 
     First argument is a format pattern defining paths and keys of all raster files.
