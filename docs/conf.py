@@ -71,7 +71,7 @@ language = None
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = None
+pygments_style = 'monokai'
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -79,13 +79,30 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    'description': 'A light-weight, versatile XYZ tile server built with Flask and Rasterio',
+    'code_font_family': "'Roboto Mono', 'Consolas', 'Menlo', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace",
+    'font_family': "'Lato', 'minion pro', 'bell mt', Georgia, 'Hiragino Mincho Pro', sans-serif",
+    'head_font_family': "'Lato', 'Garamond', 'Georgia', sans-serif",
+    'body_text': '#000',
+    'github_banner': 'true',
+    'github_user': 'dhi-gras',
+    'github_repo': 'terracotta',
+    'github_button': 'true',
+    'travis_button': 'true',
+    'codecov_button': 'true'
+}
+
+
+def setup(app):
+    app.add_stylesheet('https://fonts.googleapis.com/css?family=Lato|Roboto+Mono')
+
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

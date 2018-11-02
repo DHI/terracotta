@@ -1,7 +1,7 @@
 :tocdepth: 5
 
-Welcome to Terracotta's documentation!
-======================================
+Welcome to Terracotta
+=====================
 
 .. toctree::
    :maxdepth: 2
@@ -11,11 +11,3 @@ Welcome to Terracotta's documentation!
    cli
    settings
    api
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
