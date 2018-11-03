@@ -183,6 +183,12 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         # insert newline for nicer progress bar style
         click.echo('')
 
+    sub_pbar_args = dict(
+        disable=quiet,
+        leave=False,
+        bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}'
+    )
+
     with contextlib.ExitStack() as outer_env:
         pbar = outer_env.enter_context(tqdm.tqdm(
             total=total_pixels, smoothing=0, disable=quiet,
@@ -230,26 +236,31 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 # iterate over blocks
                 windows = list(dst.block_windows(1))
 
-                for _, w in tqdm.tqdm(windows, desc='Reading', leave=False):
+                for _, w in tqdm.tqdm(windows, desc='Reading', **sub_pbar_args):
                     block_data = vrt.read(window=w, indexes=[1])
                     dst.write(block_data, window=w)
                     block_mask = vrt.dataset_mask(window=w)
                     dst.write_mask(block_mask, window=w)
 
                 # add overviews
+                if not in_memory:
+                    # work around bug mapbox/rasterio#1497
+                    dst.close()
+                    dst = es.enter_context(rasterio.open(tempraster, 'r+'))
+
                 max_overview_level = math.ceil(math.log2(max(
                     dst.height // profile['blockysize'],
                     dst.width // profile['blockxsize']
                 )))
 
                 overviews = [2 ** j for j in range(1, max_overview_level + 1)]
-                for overview in tqdm.tqdm(overviews, desc='Creating overviews', leave=False):
-                    dst.build_overviews([overview], rs_method)
+                with tqdm.tqdm(desc='Creating overviews', total=1, **sub_pbar_args):
+                    dst.build_overviews(overviews, rs_method)
 
                 dst.update_tags(ns='rio_overview', resampling=rs_method.value)
 
                 # copy to destination (this is necessary to push overviews to start of file)
-                with tqdm.tqdm(desc='Compressing', leave=False):
+                with tqdm.tqdm(desc='Compressing', total=1, **sub_pbar_args):
                     copy(
                         dst, str(output_file), copy_src_overviews=True,
                         compress=compression, **COG_PROFILE
