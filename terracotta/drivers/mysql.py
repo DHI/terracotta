@@ -229,6 +229,9 @@ class MySQLDriver(RasterDriver):
             cursor.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
                            f'PRIMARY KEY ({", ".join(keys)})) CHARACTER SET {self.CHARSET}')
 
+        # invalidate key cache
+        self._db_keys = keys
+
     def get_keys(self) -> OrderedDict:
         """Retrieve key names and descriptions from database.
 
