@@ -89,8 +89,18 @@ class MySQLDriver(RasterDriver):
         self._version_checked: bool = False
         self._db_keys: Optional[OrderedDict] = None
 
-        super().__init__(f'mysql://{self._db_user}@{self._db_host}'
-                         f':{self._db_port}/{self._db_name}')
+        qualified_path = ['mysql://']
+        if self._db_user:
+            qualified_path.append(f'{self._db_user}')
+            if self._db_password:
+                qualified_path.append(':[REDACTED]')
+            qualified_path.append('@')
+        qualified_path.append(self._db_host)
+        if con_params.port:
+            qualified_path.append(str(self._db_port))
+        qualified_path.append(f'/{self._db_name}')
+
+        super().__init__(''.join(qualified_path))
 
     @staticmethod
     def _parse_db_name(con_params: ParseResult) -> str:
@@ -234,7 +244,7 @@ class MySQLDriver(RasterDriver):
                            f'PRIMARY KEY ({", ".join(keys)})) CHARACTER SET {self.CHARSET}')
 
         # invalidate key cache
-        self._db_keys = keys
+        self._db_keys = None
 
     def get_keys(self) -> OrderedDict:
         """Retrieve key names and descriptions from database.
