@@ -50,7 +50,7 @@ class MySQLDriver(RasterDriver):
     - `metadata`: Contains actual metadata as separate columns. Indexed via keys.
 
     """
-    KEY_TYPE: str = 'VARCHAR(255)'
+    MYSQL_MAX_KEY = 191  # Max key length for MySQL is 767, 191 utf8mb4 chars.
     METADATA_COLUMNS: Tuple[Tuple[str, ...], ...] = (
         ('bounds_north', 'REAL'),
         ('bounds_east', 'REAL'),
@@ -89,7 +89,8 @@ class MySQLDriver(RasterDriver):
         self._version_checked: bool = False
         self._db_keys: Optional[OrderedDict] = None
 
-        super().__init__(f'{self._db_user}@{self._db_host}:{self._db_port}/{self._db_name}')
+        super().__init__(f'mysql://{self._db_user}@{self._db_host}'
+                         f':{self._db_port}/{self._db_name}')
 
     @staticmethod
     def _parse_db_name(con_params: ParseResult) -> str:
@@ -202,6 +203,9 @@ class MySQLDriver(RasterDriver):
             if key not in key_descriptions:
                 key_descriptions[key] = ''
 
+        key_size = self.MYSQL_MAX_KEY // len(keys)
+        key_type = f'VARCHAR({key_size})'
+
         with pymysql.connect(host=self._db_host, user=self._db_user,
                              password=self._db_password, port=self._db_port,
                              read_timeout=self.DB_CONNECTION_TIMEOUT,
@@ -215,12 +219,12 @@ class MySQLDriver(RasterDriver):
                            f'CHARACTER SET {self.CHARSET}')
             cursor.execute('INSERT INTO terracotta VALUES (%s)', [str(__version__)])
 
-            cursor.execute(f'CREATE TABLE key_names (key_name {self.KEY_TYPE}, '
+            cursor.execute(f'CREATE TABLE key_names (key_name {key_type}, '
                            f'description VARCHAR(8000)) CHARACTER SET {self.CHARSET}')
             key_rows = [(key, key_descriptions[key]) for key in keys]
             cursor.executemany('INSERT INTO key_names VALUES (%s, %s)', key_rows)
 
-            key_string = ', '.join([f'{key} {self.KEY_TYPE}' for key in keys])
+            key_string = ', '.join([f'{key} {key_type}' for key in keys])
             cursor.execute(f'CREATE TABLE datasets ({key_string}, filepath VARCHAR(8000), '
                            f'PRIMARY KEY({", ".join(keys)})) CHARACTER SET {self.CHARSET}')
 
