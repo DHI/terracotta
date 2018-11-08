@@ -52,4 +52,4 @@ def test_connect_before_create(driver_path, provider):
 def test_repr(driver_path, provider):
     from terracotta import drivers
     db = drivers.get_driver(driver_path, provider=provider)
-    assert repr(db) == f'{DRIVER_CLASSES[provider]}(\'{driver_path}\')'
+    assert repr(db).startswith(DRIVER_CLASSES[provider])
