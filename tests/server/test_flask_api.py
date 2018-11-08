@@ -161,7 +161,7 @@ def test_get_singleband_explicit_cmap(client, use_testdb, raster_file_xyz):
     settings = terracotta.get_settings()
 
     x, y, z = raster_file_xyz
-    explicit_cmap = {1: (0, 0, 0), 2.0: (255, 255, 255), 3: '#ffffff', 4: 'abcabc'}
+    explicit_cmap = {1: (0, 0, 0), 2.0: (255, 255, 255, 20), 3: '#ffffff', 4: 'abcabc'}
 
     rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?colormap=explicit'
                     f'&explicit_color_map={urlsafe_json(explicit_cmap)}')

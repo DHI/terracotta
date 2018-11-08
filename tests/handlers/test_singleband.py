@@ -42,14 +42,16 @@ def test_singleband_out_of_bounds(use_testdb):
             singleband.singleband(keys, (10, 0, 0))
 
 
-def test_singleband_explicit_colormap(use_testdb, testdb,
-                                      raster_file_xyz):
+def test_singleband_explicit_colormap(use_testdb, testdb, raster_file_xyz):
     import terracotta
     from terracotta.xyz import get_tile_data
     from terracotta.handlers import singleband
 
     ds_keys = ['val21', 'x', 'val22']
-    colormap = {i: (i, i, i) for i in range(150)}
+    nodata = 10000
+
+    colormap = {i: (i, i, i, i) for i in range(1, 150)}
+    colormap[nodata] = (100, 100, 100, 100)
 
     raw_img = singleband.singleband(ds_keys, raster_file_xyz, colormap=colormap)
     img_data = np.asarray(Image.open(raw_img).convert('RGBA'))
@@ -63,7 +65,11 @@ def test_singleband_explicit_colormap(use_testdb, testdb,
 
     # check that labels are mapped to colors correctly
     for cmap_label, cmap_color in colormap.items():
-        assert np.all(img_data[tile_data == cmap_label] == np.array([*cmap_color, 255]))
+        if cmap_label == nodata:
+            # make sure nodata is still transparent
+            assert np.all(img_data[tile_data == cmap_label, -1] == 0)
+        else:
+            assert np.all(img_data[tile_data == cmap_label] == np.asarray(cmap_color))
 
     # check that all data outside of labels is transparent
     assert np.all(img_data[~np.isin(tile_data, colormap.keys()), -1] == 0)
