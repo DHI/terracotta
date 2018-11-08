@@ -26,13 +26,27 @@ def test_creation(driver_path, provider):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
+def test_creation_descriptions(driver_path, provider):
+    from terracotta import drivers
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('some', 'keynames')
+    key_desc = {'some': 'explanatory text with unicode µóáßð©ßéó'}
+    db.create(keys, key_descriptions=key_desc)
+
+    assert db.key_names == keys
+    assert db.get_keys()['some'] == key_desc['some']
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_creation_invalid(driver_path, provider):
     from terracotta import drivers, exceptions
     db = drivers.get_driver(driver_path, provider=provider)
     keys = ('invalid keyname',)
 
-    with pytest.raises(exceptions.InvalidKeyError):
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
         db.create(keys)
+
+        assert 'must be alphanumeric' in str(exc.value)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -41,8 +55,22 @@ def test_creation_invalid_description(driver_path, provider):
     db = drivers.get_driver(driver_path, provider=provider)
     keys = ('some', 'keynames')
 
-    with pytest.raises(exceptions.InvalidKeyError):
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
         db.create(keys, key_descriptions={'unknown_key': 'blah'})
+
+        assert 'contains unknown keys' in str(exc.value)
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_creation_reserved_names(driver_path, provider):
+    from terracotta import drivers, exceptions
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('page', 'limit')
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.create(keys)
+
+        assert 'key names cannot be one of' in str(exc.value)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -50,9 +78,11 @@ def test_connect_before_create(driver_path, provider):
     from terracotta import drivers, exceptions
     db = drivers.get_driver(driver_path, provider=provider)
 
-    with pytest.raises(exceptions.InvalidDatabaseError):
+    with pytest.raises(exceptions.InvalidDatabaseError) as exc:
         with db.connect():
             pass
+
+        assert 'run driver.create()' in str(exc.value)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)

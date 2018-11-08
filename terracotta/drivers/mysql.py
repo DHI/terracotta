@@ -208,7 +208,10 @@ class MySQLDriver(RasterDriver):
             raise exceptions.InvalidKeyError('key description dict contains unknown keys')
 
         if not all(re.match(r'^\w+$', key) for key in keys):
-            raise exceptions.InvalidKeyError('key names can be alphanumeric only')
+            raise exceptions.InvalidKeyError('key names must be alphanumeric')
+
+        if any(key in self.RESERVED_KEYS for key in keys):
+            raise exceptions.InvalidKeyError(f'key names cannot be one of {self.RESERVED_KEYS!s}')
 
         for key in keys:
             if key not in key_descriptions:

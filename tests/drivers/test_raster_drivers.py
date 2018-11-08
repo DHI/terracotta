@@ -23,8 +23,19 @@ def test_insertion_and_retrieval(driver_path, provider, raster_file):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_where(driver_path, provider, raster_file):
+def test_path_override(driver_path, provider, raster_file):
     from terracotta import drivers
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('some', 'keynames')
+
+    db.create(keys)
+    db.insert(['some', 'value'], str(raster_file), override_path='test')
+    assert db.get_datasets()[('some', 'value')] == 'test'
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_where(driver_path, provider, raster_file):
+    from terracotta import drivers, exceptions
     db = drivers.get_driver(driver_path, provider=provider)
     keys = ('some', 'keynames')
 
@@ -42,6 +53,13 @@ def test_where(driver_path, provider, raster_file):
     data = db.get_datasets(where=dict(some='some', keynames='value'))
     assert list(data.keys()) == [('some', 'value')]
     assert data[('some', 'value')] == str(raster_file)
+
+    data = db.get_datasets(where=dict(some='unknown'))
+    assert data == {}
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.get_datasets(where=dict(unknown='foo'))
+        assert 'unrecognized keys' in str(exc.value)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -140,8 +158,17 @@ def test_wrong_key_number(driver_path, provider, raster_file):
 
     db.create(keys)
 
-    with pytest.raises(exceptions.InvalidKeyError):
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
         db.get_metadata(['a', 'b'])
+        assert 'not enough keys' in str(exc.value)
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.insert(['a', 'b'], '')
+        assert 'not enough keys' in str(exc.value)
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.delete(['a', 'b'])
+        assert 'not enough keys' in str(exc.value)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
