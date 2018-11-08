@@ -16,10 +16,10 @@ ZOOM_XYZ = {
 
 
 @pytest.fixture
-def benchmark_database(read_only_database, raster_file_3857, tmpdir):
+def benchmark_database(testdb, raster_file_3857, tmpdir):
     """Always yields a fresh database to prevent caching"""
     dbpath = tmpdir.join('db-readonly.sqlite')
-    shutil.copy(read_only_database, dbpath)
+    shutil.copy(testdb, dbpath)
 
     from terracotta import get_driver
     driver = get_driver(dbpath)

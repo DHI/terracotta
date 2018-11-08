@@ -5,7 +5,7 @@ import pytest
 
 
 @pytest.mark.parametrize('upsampling_method', ['nearest', 'linear', 'cubic', 'average'])
-def test_singleband_handler(use_read_only_database, raster_file_xyz,
+def test_singleband_handler(use_testdb, raster_file_xyz,
                             upsampling_method):
     import terracotta
     terracotta.update_settings(UPSAMPLING_METHOD=upsampling_method)
@@ -20,7 +20,7 @@ def test_singleband_handler(use_read_only_database, raster_file_xyz,
         assert img_data.shape == settings.DEFAULT_TILE_SIZE
 
 
-def test_singleband_tile_size(use_read_only_database, raster_file_xyz):
+def test_singleband_tile_size(use_testdb, raster_file_xyz):
     from terracotta.handlers import datasets, singleband
     ds = datasets.datasets()
 
@@ -32,7 +32,7 @@ def test_singleband_tile_size(use_read_only_database, raster_file_xyz):
         assert img_data.shape == test_tile_size
 
 
-def test_singleband_out_of_bounds(use_read_only_database):
+def test_singleband_out_of_bounds(use_testdb):
     import terracotta
     from terracotta.handlers import datasets, singleband
     ds = datasets.datasets()
@@ -42,7 +42,7 @@ def test_singleband_out_of_bounds(use_read_only_database):
             singleband.singleband(keys, (10, 0, 0))
 
 
-def test_singleband_explicit_colormap(use_read_only_database, read_only_database,
+def test_singleband_explicit_colormap(use_testdb, testdb,
                                       raster_file_xyz):
     import terracotta
     from terracotta.xyz import get_tile_data
@@ -55,7 +55,7 @@ def test_singleband_explicit_colormap(use_read_only_database, read_only_database
     img_data = np.asarray(Image.open(raw_img).convert('RGBA'))
 
     # get unstretched data to compare to
-    driver = terracotta.get_driver(read_only_database)
+    driver = terracotta.get_driver(testdb)
 
     with driver.connect():
         tile_data = get_tile_data(driver, ds_keys, tile_xyz=raster_file_xyz,
@@ -69,7 +69,7 @@ def test_singleband_explicit_colormap(use_read_only_database, read_only_database
     assert np.all(img_data[~np.isin(tile_data, colormap.keys()), -1] == 0)
 
 
-def test_singleband_noxyz(use_read_only_database):
+def test_singleband_noxyz(use_testdb):
     from terracotta import get_settings
     from terracotta.handlers import singleband
 

@@ -8,6 +8,9 @@ env:
   # https://github.com/travis-ci/travis-ci/issues/7940
   - BOTO_CONFIG=/dev/null
 
+services:
+  - mysql
+
 branches:
   only:
     - master
@@ -27,7 +30,7 @@ install:
   - pip install -e .[test]
 
 script:
-  - python -m pytest --color=yes --cov=terracotta
+  - python -m pytest --color=yes --cov=terracotta --mysql-server="root@127.0.0.1"
   - python -m pytest --color=yes tests/benchmarks.py
 
 after_success:
