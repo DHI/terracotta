@@ -45,6 +45,27 @@ def test_where(driver_path, provider, raster_file):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
+def test_pagination(driver_path, provider, raster_file):
+    from terracotta import drivers
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('some', 'keynames')
+
+    db.create(keys)
+    db.insert(['some', 'value'], str(raster_file))
+    db.insert(['some', 'other_value'], str(raster_file))
+    db.insert({'some': 'a', 'keynames': 'third_value'}, str(raster_file))
+
+    data = db.get_datasets()
+    assert len(data) == 3
+
+    data = db.get_datasets(limit=2)
+    assert len(data) == 2
+
+    data = db.get_datasets(limit=2, page=1)
+    assert len(data) == 1
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_lazy_loading(driver_path, provider, raster_file):
     from terracotta import drivers
     db = drivers.get_driver(driver_path, provider=provider)
@@ -108,6 +129,19 @@ def test_invalid_insertion(monkeypatch, driver_path, provider, raster_file):
 
         assert ('bar',) in datasets
         assert ('foo',) not in datasets
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_wrong_key_number(driver_path, provider, raster_file):
+    from terracotta import drivers, exceptions
+
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('keyname',)
+
+    db.create(keys)
+
+    with pytest.raises(exceptions.InvalidKeyError):
+        db.get_metadata(['a', 'b'])
 
 
 @pytest.mark.parametrize('provider', DRIVERS)

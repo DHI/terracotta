@@ -60,7 +60,7 @@ class RasterDriver(Driver):
         except TypeError:  # not a mapping
             return list(keys)
         except KeyError as exc:
-            raise exceptions.UnknownKeyError('Encountered unknown key') from exc
+            raise exceptions.InvalidKeyError('Encountered unknown key') from exc
 
     @staticmethod
     def _hull_candidate_mask(mask: np.ndarray) -> np.ndarray:

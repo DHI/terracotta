@@ -40,7 +40,7 @@ def _update_from_s3(remote_path: str, local_path: str) -> None:
     parsed_remote_path = urlparse.urlparse(remote_path)
     bucket_name, key = parsed_remote_path.netloc, parsed_remote_path.path.strip('/')
 
-    if not parsed_remote_path.scheme == 's3':
+    if parsed_remote_path.scheme != 's3':
         raise ValueError('Expected s3:// URL')
 
     s3 = boto3.resource('s3')
@@ -87,10 +87,9 @@ class RemoteSQLiteDriver(SQLiteDriver):
         logger.debug('Remote database cache expired, re-downloading')
         _update_from_s3(remote_path, local_path)
 
-    def _connection_callback(self, validate: bool = True) -> None:
+    def _connection_callback(self) -> None:
         self._update_db(self._remote_path, self.path)
-        if validate:
-            super()._connection_callback()
+        super()._connection_callback()
 
     def create(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')

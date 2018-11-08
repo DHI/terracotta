@@ -12,7 +12,7 @@ class DatasetNotFoundError(Exception):
     pass
 
 
-class UnknownKeyError(Exception):
+class InvalidKeyError(Exception):
     pass
 
 

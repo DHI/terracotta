@@ -89,12 +89,8 @@ class SQLiteDriver(RasterDriver):
                 self._connected = close = True
 
                 if check:
-                    if not os.path.isfile(self.path):
-                        raise exceptions.InvalidDatabaseError(
-                            f'Database file {self.path} does not exist '
-                            f'(run driver.create() before connecting to a new database)'
-                        )
                     self._connection_callback()
+
             try:
                 yield
             except Exception:
@@ -118,6 +114,11 @@ class SQLiteDriver(RasterDriver):
 
     def _connection_callback(self) -> None:
         """Called after opening a new connection"""
+        if not os.path.isfile(self.path):
+            raise exceptions.InvalidDatabaseError(
+                f'Database file {self.path} does not exist '
+                f'(run driver.create() before connecting to a new database)'
+            )
 
         # check for version compatibility
         def versiontuple(version_string: str) -> Sequence[str]:
@@ -150,13 +151,13 @@ class SQLiteDriver(RasterDriver):
             key_descriptions = dict(key_descriptions)
 
         if not all(k in keys for k in key_descriptions.keys()):
-            raise ValueError('key description dict contains unknown keys')
+            raise exceptions.InvalidKeyError('key description dict contains unknown keys')
 
         if not all(re.match(r'^\w+$', key) for key in keys):
-            raise ValueError('key names must be alphanumeric')
+            raise exceptions.InvalidKeyError('key names must be alphanumeric')
 
         if any(key in self.RESERVED_KEYS for key in keys):
-            raise ValueError(f'key names cannot be one of {self.RESERVED_KEYS!s}')
+            raise exceptions.InvalidKeyError(f'key names cannot be one of {self.RESERVED_KEYS!s}')
 
         for key in keys:
             if key not in key_descriptions:
@@ -210,7 +211,7 @@ class SQLiteDriver(RasterDriver):
             rows = conn.execute(f'SELECT * FROM datasets {page_query}')
         else:
             if not all(key in self.key_names for key in where.keys()):
-                raise exceptions.UnknownKeyError(
+                raise exceptions.InvalidKeyError(
                     'Encountered unrecognized keys in where clause'
                 )
             where_string = ' AND '.join([f'{key}=?' for key in where.keys()])
@@ -267,7 +268,7 @@ class SQLiteDriver(RasterDriver):
         keys = tuple(self._key_dict_to_sequence(keys))
 
         if len(keys) != len(self.key_names):
-            raise exceptions.UnknownKeyError('Got wrong number of keys')
+            raise exceptions.InvalidKeyError('Got wrong number of keys')
 
         conn = self._connection
 
@@ -303,7 +304,7 @@ class SQLiteDriver(RasterDriver):
         conn = self._connection
 
         if len(keys) != len(self.key_names):
-            raise ValueError(f'Not enough keys (available keys: {self.key_names})')
+            raise exceptions.InvalidKeyError(f'Not enough keys (available keys: {self.key_names})')
 
         if override_path is None:
             override_path = filepath
@@ -331,7 +332,7 @@ class SQLiteDriver(RasterDriver):
         conn = self._connection
 
         if len(keys) != len(self.key_names):
-            raise ValueError(f'Not enough keys (available keys: {self.key_names})')
+            raise exceptions.InvalidKeyError(f'Not enough keys (available keys: {self.key_names})')
 
         keys = self._key_dict_to_sequence(keys)
         key_dict = dict(zip(self.key_names, keys))
