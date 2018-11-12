@@ -44,7 +44,7 @@ class RasterDriver(Driver):
     """
     TARGET_CRS: str = 'epsg:3857'
     LARGE_RASTER_THRESHOLD: int = 10980 * 10980
-    RIO_ENV_KEYS = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR')
+    RIO_ENV_KEYS = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', GDAL_TIFF_INTERNAL_MASK=True)
 
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -339,8 +339,7 @@ class RasterDriver(Driver):
                          downsampling_method: str,
                          bounds: Tuple[float, float, float, float] = None,
                          tile_size: Tuple[int, int] = (256, 256),
-                         nodata: Number = 0,
-                         preserve_values: bool = False) -> np.ndarray:
+                         preserve_values: bool = False) -> np.ma.MaskedArray:
         """Load a raster dataset from a file through rasterio.
 
         Heavily inspired by mapbox/rio-tiler
@@ -397,9 +396,8 @@ class RasterDriver(Driver):
                 # construct VRT
                 vrt = es.enter_context(
                     WarpedVRT(
-                        src, crs=self.TARGET_CRS, resampling=upsampling_enum, init_dest_nodata=True,
-                        src_nodata=nodata, nodata=nodata, transform=vrt_transform, width=vrt_width,
-                        height=vrt_height
+                        src, crs=self.TARGET_CRS, resampling=upsampling_enum,
+                        transform=vrt_transform, width=vrt_width, height=vrt_height
                     )
                 )
             else:
@@ -408,7 +406,9 @@ class RasterDriver(Driver):
                 dst_height, dst_width = src.shape
                 if bounds is None:
                     bounds = src.bounds
-                extra_args.update(boundless=True, fill_value=nodata)
+                extra_args.update(boundless=True, fill_value=src.nodata)
+                if upsampling_method != 'nearest':
+                    raise
 
             # compute output window
             out_window = windows.from_bounds(*bounds, transform=vrt_transform)
@@ -428,6 +428,7 @@ class RasterDriver(Driver):
             # read data
             with warnings.catch_warnings(), trace('read_from_vrt'):
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
+                warnings.filterwarnings('ignore', message='Dataset has no geotransform set.*')
                 arr = vrt.read(
                     1, resampling=resampling_enum, window=out_window,
                     out_shape=tile_size, **extra_args
@@ -437,6 +438,7 @@ class RasterDriver(Driver):
 
         return arr
 
+    # return type has to be Any until mypy supports conditional return types
     @requires_connection
     def get_raster_tile(self,
                         keys: Union[Sequence[str], Mapping[str, str]], *,
@@ -446,8 +448,6 @@ class RasterDriver(Driver):
                         asynchronous: bool = False) -> Any:
         """Load tile with given keys and bounds"""
         settings = get_settings()
-        nodata = self.get_metadata(keys)['nodata']
-
         key_tuple = tuple(self._key_dict_to_sequence(keys))
         path = self.get_datasets(dict(zip(self.key_names, key_tuple)))
         assert len(path) == 1
@@ -459,7 +459,6 @@ class RasterDriver(Driver):
             path,
             bounds=tuple(bounds) if bounds else None,
             tile_size=tuple(tile_size),
-            nodata=nodata,
             preserve_values=preserve_values,
             upsampling_method=settings.UPSAMPLING_METHOD,
             downsampling_method=settings.DOWNSAMPLING_METHOD
