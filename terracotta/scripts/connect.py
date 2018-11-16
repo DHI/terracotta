@@ -3,6 +3,7 @@
 Use Flask development server to serve Terracotta client app.
 """
 
+import socket
 import threading
 import webbrowser
 import urllib.request
@@ -33,9 +34,9 @@ def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None
     test_url = f'{terracotta_hostname}/keys'
 
     try:
-        with urllib.request.urlopen(test_url, timeout=2):
+        with urllib.request.urlopen(test_url, timeout=5):
             pass
-    except (HTTPError, URLError):
+    except (HTTPError, URLError, socket.timeout):
         click.echo(
             f'Could not connect to {test_url}, check hostname and ensure '
             'that Terracotta is running on the server', err=True
