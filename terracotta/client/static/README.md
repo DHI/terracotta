@@ -19,8 +19,7 @@ npx typescript ./map.js --allowJs --noEmit --checkJs --target ES2017
 
 For development, you might find it handy to have tsc run automatically:
 ```
-npx typescript ./map.js --allowJs --noEmit --checkJs --target ES2017
---watch
+npx typescript ./map.js --allowJs --noEmit --checkJs --target ES2017 --watch
 ```
 
 
