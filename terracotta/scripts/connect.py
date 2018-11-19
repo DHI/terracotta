@@ -62,4 +62,4 @@ def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None
     if os.environ.get('TC_TESTING'):
         return
 
-    client_app.run(port=port)
+    client_app.run(port=port)  # pragma: nocover

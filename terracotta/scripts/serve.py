@@ -106,4 +106,4 @@ def serve(database: str = None,
     if os.environ.get('TC_TESTING'):
         return
 
-    server_app.run(port=port, host=host, threading=False)
+    server_app.run(port=port, host=host, threading=False)  # pragma: nocover
