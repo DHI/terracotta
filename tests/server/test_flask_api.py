@@ -21,7 +21,7 @@ def client(flask_app):
         yield client
 
 
-def test_get_keys(client, use_read_only_database):
+def test_get_keys(client, use_testdb):
     rv = client.get('/keys')
 
     expected_response = [
@@ -33,18 +33,18 @@ def test_get_keys(client, use_read_only_database):
     assert expected_response == json.loads(rv.data)['keys']
 
 
-def test_get_metadata(client, use_read_only_database):
+def test_get_metadata(client, use_testdb):
     rv = client.get('/metadata/val11/x/val12/')
     assert rv.status_code == 200
     assert ['extra_data'] == json.loads(rv.data)['metadata']
 
 
-def test_get_metadata_nonexisting(client, use_read_only_database):
+def test_get_metadata_nonexisting(client, use_testdb):
     rv = client.get('/metadata/val11/x/NONEXISTING/')
     assert rv.status_code == 404
 
 
-def test_get_datasets(client, use_read_only_database):
+def test_get_datasets(client, use_testdb):
     rv = client.get('/datasets')
     assert rv.status_code == 200
     datasets = json.loads(rv.data, object_pairs_hook=OrderedDict)['datasets']
@@ -52,7 +52,7 @@ def test_get_datasets(client, use_read_only_database):
     assert OrderedDict([('key1', 'val11'), ('akey', 'x'), ('key2', 'val12')]) in datasets
 
 
-def test_get_datasets_pagination(client, use_read_only_database):
+def test_get_datasets_pagination(client, use_testdb):
     # no page (implicit 0)
     rv = client.get('/datasets?limit=2')
     assert rv.status_code == 200
@@ -89,7 +89,7 @@ def test_get_datasets_pagination(client, use_read_only_database):
     assert rv.status_code == 400
 
 
-def test_get_datasets_selective(client, use_read_only_database):
+def test_get_datasets_selective(client, use_testdb):
     rv = client.get('/datasets?key1=val21')
     assert rv.status_code == 200
     assert len(json.loads(rv.data)['datasets']) == 3
@@ -99,12 +99,12 @@ def test_get_datasets_selective(client, use_read_only_database):
     assert len(json.loads(rv.data)['datasets']) == 1
 
 
-def test_get_datasets_unknown_key(client, use_read_only_database):
+def test_get_datasets_unknown_key(client, use_testdb):
     rv = client.get('/datasets?UNKNOWN=val21')
     assert rv.status_code == 400
 
 
-def test_get_singleband_greyscale(client, use_read_only_database, raster_file_xyz):
+def test_get_singleband_greyscale(client, use_testdb, raster_file_xyz):
     import terracotta
     settings = terracotta.get_settings()
 
@@ -116,7 +116,7 @@ def test_get_singleband_greyscale(client, use_read_only_database, raster_file_xy
     assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
 
 
-def test_get_singleband_extra_args(client, use_read_only_database, raster_file_xyz):
+def test_get_singleband_extra_args(client, use_testdb, raster_file_xyz):
     import terracotta
     settings = terracotta.get_settings()
 
@@ -128,7 +128,7 @@ def test_get_singleband_extra_args(client, use_read_only_database, raster_file_x
     assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
 
 
-def test_get_singleband_cmap(client, use_read_only_database, raster_file_xyz):
+def test_get_singleband_cmap(client, use_testdb, raster_file_xyz):
     import terracotta
     settings = terracotta.get_settings()
 
@@ -140,7 +140,7 @@ def test_get_singleband_cmap(client, use_read_only_database, raster_file_xyz):
     assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
 
 
-def test_get_singleband_preview(client, use_read_only_database):
+def test_get_singleband_preview(client, use_testdb):
     import terracotta
     settings = terracotta.get_settings()
 
@@ -156,12 +156,12 @@ def urlsafe_json(payload):
     return urllib.parse.quote_plus(payload_json, safe=r',.[]{}:"')
 
 
-def test_get_singleband_explicit_cmap(client, use_read_only_database, raster_file_xyz):
+def test_get_singleband_explicit_cmap(client, use_testdb, raster_file_xyz):
     import terracotta
     settings = terracotta.get_settings()
 
     x, y, z = raster_file_xyz
-    explicit_cmap = {1: (0, 0, 0), 2.0: (255, 255, 255), 3: '#ffffff', 4: 'abcabc'}
+    explicit_cmap = {1: (0, 0, 0), 2.0: (255, 255, 255, 20), 3: '#ffffff', 4: 'abcabc'}
 
     rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?colormap=explicit'
                     f'&explicit_color_map={urlsafe_json(explicit_cmap)}')
@@ -171,7 +171,7 @@ def test_get_singleband_explicit_cmap(client, use_read_only_database, raster_fil
     assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
 
 
-def test_get_singleband_explicit_cmap_invalid(client, use_read_only_database, raster_file_xyz):
+def test_get_singleband_explicit_cmap_invalid(client, use_testdb, raster_file_xyz):
     x, y, z = raster_file_xyz
     explicit_cmap = {1: (0, 0, 0), 2: (255, 255, 255), 3: '#ffffff', 4: 'abcabc'}
 
@@ -201,7 +201,7 @@ def test_get_singleband_explicit_cmap_invalid(client, use_read_only_database, ra
     assert rv.status_code == 400
 
 
-def test_get_singleband_stretch(client, use_read_only_database, raster_file_xyz):
+def test_get_singleband_stretch(client, use_testdb, raster_file_xyz):
     import terracotta
     settings = terracotta.get_settings()
 
@@ -215,7 +215,7 @@ def test_get_singleband_stretch(client, use_read_only_database, raster_file_xyz)
         assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
 
 
-def test_get_singleband_out_of_bounds(client, use_read_only_database):
+def test_get_singleband_out_of_bounds(client, use_testdb):
     import terracotta
     settings = terracotta.get_settings()
 
@@ -228,13 +228,13 @@ def test_get_singleband_out_of_bounds(client, use_read_only_database):
     assert np.all(np.asarray(img) == 0)
 
 
-def test_get_singleband_unknown_cmap(client, use_read_only_database, raster_file_xyz):
+def test_get_singleband_unknown_cmap(client, use_testdb, raster_file_xyz):
     x, y, z = raster_file_xyz
     rv = client.get(f'/singleband/val11/x/val12/{z}/{x}/{y}.png?colormap=UNKNOWN')
     assert rv.status_code == 400
 
 
-def test_get_rgb(client, use_read_only_database, raster_file_xyz):
+def test_get_rgb(client, use_testdb, raster_file_xyz):
     import terracotta
     settings = terracotta.get_settings()
 
@@ -246,7 +246,7 @@ def test_get_rgb(client, use_read_only_database, raster_file_xyz):
     assert np.asarray(img).shape == (*settings.DEFAULT_TILE_SIZE, 3)
 
 
-def test_get_rgb_preview(client, use_read_only_database):
+def test_get_rgb_preview(client, use_testdb):
     import terracotta
     settings = terracotta.get_settings()
 
@@ -257,7 +257,7 @@ def test_get_rgb_preview(client, use_read_only_database):
     assert np.asarray(img).shape == (*settings.DEFAULT_TILE_SIZE, 3)
 
 
-def test_get_rgb_extra_args(client, use_read_only_database, raster_file_xyz):
+def test_get_rgb_extra_args(client, use_testdb, raster_file_xyz):
     import terracotta
     settings = terracotta.get_settings()
 
@@ -269,7 +269,7 @@ def test_get_rgb_extra_args(client, use_read_only_database, raster_file_xyz):
     assert np.asarray(img).shape == (*settings.DEFAULT_TILE_SIZE, 3)
 
 
-def test_get_rgb_stretch(client, use_read_only_database, raster_file_xyz):
+def test_get_rgb_stretch(client, use_testdb, raster_file_xyz):
     import terracotta
     settings = terracotta.get_settings()
 

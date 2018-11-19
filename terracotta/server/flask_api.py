@@ -62,7 +62,7 @@ def convert_exceptions(fun: Callable) -> Callable:
                 raise
             return abort(404, str(exc))
 
-        except (exceptions.InvalidArgumentsError, exceptions.UnknownKeyError,
+        except (exceptions.InvalidArgumentsError, exceptions.InvalidKeyError,
                 marshmallow.ValidationError) as exc:
             # wrong query arguments -> 400
             if current_app.debug:

@@ -15,7 +15,8 @@ from terracotta.profile import trace
 from terracotta import exceptions, get_settings
 
 Number = TypeVar('Number', int, float)
-Palette = Sequence[Tuple[Number, Number, Number]]
+RGBA = Tuple[Number, Number, Number, Number]
+Palette = Sequence[RGBA]
 
 
 @trace('array_to_png')
@@ -24,7 +25,7 @@ def array_to_png(arr: np.ndarray,
                  colormap: Union[str, Palette, None] = None) -> BinaryIO:
     from terracotta.cmaps import get_cmap
 
-    transparency: Union[Tuple[int, int, int], int]
+    transparency: Union[Tuple[int, int, int], int, bytes]
 
     settings = get_settings()
     compress_level = settings.PNG_COMPRESS_LEVEL
@@ -42,7 +43,6 @@ def array_to_png(arr: np.ndarray,
 
     elif arr.ndim == 2:  # encode paletted image
         mode = 'L'
-        transparency = 0
 
         if colormap is not None:
             if isinstance(colormap, str):
@@ -57,21 +57,32 @@ def array_to_png(arr: np.ndarray,
                     np.zeros(3, dtype='uint8'),
                     cmap_vals.flatten()
                 ))
+                transparency = 0
             else:
                 # explicit mapping
                 if len(colormap) > 255:
-                    msg = 'Explicit color map must contain less than 256 values'
-                    raise exceptions.InvalidArgumentsError(msg)
+                    raise exceptions.InvalidArgumentsError(
+                        'Explicit color map must contain less than 256 values'
+                    )
 
+                colormap_array = np.asarray(colormap, dtype='uint8')
+                if colormap_array.ndim != 2 or colormap_array.shape[1] != 4:
+                    raise ValueError('Explicit color mapping must have shape (n, 4)')
+
+                rgb, alpha = colormap_array[:, :-1], colormap_array[:, -1]
                 palette = np.concatenate((
                     np.zeros(3, dtype='uint8'),
-                    np.array(colormap, dtype='uint8').flatten(),
+                    rgb.flatten(),
                     np.zeros(3 * (256 - len(colormap) - 1), dtype='uint8')
                 ))
+                transparency = np.concatenate((
+                    [0], alpha, np.zeros(256 - len(colormap) - 1, dtype='uint8')
+                )).tobytes()
 
             assert palette.shape == (3 * 256,), palette.shape
         else:
             palette = None
+            transparency = 0
 
     if transparency_mask is not None:
         if transparency_mask.ndim != 2 or transparency_mask.dtype != np.bool:

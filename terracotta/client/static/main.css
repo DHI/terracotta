@@ -32,7 +32,7 @@ li{
   font-size: 10pt;
   margin: 9px 0px;
 }
-    
+
 a{
   text-decoration: none;
   color: #0B4566;
@@ -183,6 +183,7 @@ th, td {
 .error {
   color: #dd0000;
 }
+
 #rgb-search-fields{
   margin-bottom:20px;
 }
@@ -224,6 +225,7 @@ th, td {
   padding:10px 0px;
   border-bottom: 1px solid #0B4566;
 }
+
 .noUi-connects{
   height: 6px;
 }
@@ -232,15 +234,18 @@ th, td {
   height: 6px;
   background-color: #d0eff2;
 }
+
 .noUi-horizontal .noUi-handle {
     width: 14px;
     height: 14px;
     top: -4px;
     right: -7px !important;
 }
+
 .noUi-handle:after, .noUi-handle:before{
   background: none;
 }
+
 .noUi-handle{
   border: none;
   border-radius: 50%;
@@ -252,4 +257,46 @@ th, td {
      border-radius: none;
      border: none;
      box-shadow: none;
+}
+
+.error-container {
+  position: absolute;
+  right: 16px;
+  top: 0;
+  width: 320px;
+  height: 100vh;
+  overflow: auto;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+ul#errors {
+  list-style-type: none;
+}
+
+#errors li {
+  padding: 16px;
+  margin-top: 16px;
+  background-color: #880c0c;
+  color: white;
+  position: relative;
+}
+
+#errors li small {
+  font-size: 0.6em;
+}
+
+#errors li span {
+  font-size: 30px;
+  font-weight: bold;
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 8px;
+  cursor: pointer;
+  pointer-events: all;
+}
+
+#errors li span:hover {
+  opacity: 0.8;
 }

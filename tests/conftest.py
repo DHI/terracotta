@@ -19,6 +19,7 @@ def pytest_unconfigure(config):
 
 @pytest.fixture(autouse=True)
 def restore_settings():
+    """Wipe settings after every test"""
     import terracotta
     from terracotta.config import TerracottaSettings
 
@@ -27,6 +28,18 @@ def restore_settings():
     finally:
         terracotta._settings = TerracottaSettings()
         terracotta._overwritten_settings = set()
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        '--mysql-server',
+        help='MySQL server to use for testing in the form of user:password@host:port'
+    )
+
+
+@pytest.fixture()
+def mysql_server(request):
+    return request.config.getoption('mysql_server')
 
 
 def cloud_optimize(raster_file, outfile):
@@ -276,7 +289,8 @@ def raster_file_xyz_lowzoom(raster_file):
 
 
 @pytest.fixture(scope='session')
-def read_only_database(raster_file, raster_file_3857, tmpdir_factory):
+def testdb(raster_file, raster_file_3857, tmpdir_factory):
+    """A read-only, pre-populated test database"""
     from terracotta import get_driver
 
     keys = ['key1', 'akey', 'key2']
@@ -300,9 +314,9 @@ def read_only_database(raster_file, raster_file_3857, tmpdir_factory):
 
 
 @pytest.fixture()
-def use_read_only_database(read_only_database, monkeypatch):
+def use_testdb(testdb, monkeypatch):
     import terracotta
-    terracotta.update_settings(DRIVER_PATH=str(read_only_database))
+    terracotta.update_settings(DRIVER_PATH=str(testdb))
 
 
 def run_test_server(driver_path, port):
@@ -313,12 +327,12 @@ def run_test_server(driver_path, port):
     create_app().run(port=port)
 
 
-@pytest.fixture(scope='session')
-def test_server(read_only_database):
+@pytest.fixture(scope='module')
+def test_server(testdb):
     """Spawn a Terracotta server in a separate process"""
     port = 5555
     server_proc = multiprocessing.Process(
-        target=partial(run_test_server, driver_path=str(read_only_database), port=port)
+        target=partial(run_test_server, driver_path=str(testdb), port=port)
     )
     server_proc.start()
     try:
@@ -330,3 +344,60 @@ def test_server(read_only_database):
         server_proc.terminate()
         server_proc.join(5)
         assert not server_proc.is_alive()
+
+
+@pytest.fixture()
+def driver_path(provider, tmpdir, mysql_server):
+    """Get a valid, uninitialized driver path for given provider"""
+    import random
+    import string
+
+    from urllib.parse import urlparse
+
+    def validate_con_info(con_info):
+        return (con_info.scheme == 'mysql'
+                and con_info.hostname
+                and con_info.username
+                and not con_info.path)
+
+    def random_string(length):
+        return ''.join(random.choices(string.ascii_uppercase, k=length))
+
+    if provider == 'sqlite':
+        dbfile = tmpdir.join('test.sqlite')
+        yield str(dbfile)
+
+    elif provider == 'mysql':
+        if not mysql_server:
+            return pytest.skip('mysql_server argument not given')
+
+        if not mysql_server.startswith('mysql://'):
+            mysql_server = f'mysql://{mysql_server}'
+
+        con_info = urlparse(mysql_server)
+        if not validate_con_info(con_info):
+            raise ValueError('invalid value for mysql_server')
+
+        dbpath = random_string(24)
+
+        import pymysql
+        try:
+            with pymysql.connect(con_info.hostname, user=con_info.username,
+                                 password=con_info.password) as con:
+                pass
+        except pymysql.OperationalError as exc:
+            raise RuntimeError('error connecting to MySQL server') from exc
+
+        try:
+            yield f'{mysql_server}/{dbpath}'
+
+        finally:  # cleanup
+            with pymysql.connect(con_info.hostname, user=con_info.username,
+                                 password=con_info.password) as con:
+                try:
+                    con.execute(f'DROP DATABASE IF EXISTS {dbpath}')
+                except pymysql.Warning:
+                    pass
+
+    else:
+        return NotImplementedError(f'unknown provider {provider}')
