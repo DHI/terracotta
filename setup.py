@@ -39,11 +39,13 @@ setup(
             'pytest-mypy',
             'pytest-flake8',
             'pytest-benchmark',
-            'codecov',
             'attrs>=17.4.0',
+            'codecov',
+            'colorlog',
+            'crick',
             'matplotlib',
             'moto',
-            'crick'
+            'pymysql'
         ],
         'docs': [
             'sphinx',
@@ -52,6 +54,7 @@ setup(
         'recommended': [
             'colorlog',
             'crick',
+            'pymysql'
         ]
     },
     entry_points='''
