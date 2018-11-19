@@ -135,6 +135,7 @@ th, td {
   height: 100vh;
   overflow: auto;
   z-index: 9999;
+  pointer-events: none;
 }
 
 ul#errors {
@@ -161,6 +162,7 @@ ul#errors {
   right: 0;
   padding: 8px;
   cursor: pointer;
+  pointer-events: all;
 }
 
 #errors li span:hover {
