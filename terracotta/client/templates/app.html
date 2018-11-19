@@ -8,10 +8,10 @@
 
 	<link rel="stylesheet" href="{{ url_for('static', filename='leaflet.css') }}"/>
 	<link rel="stylesheet" href="{{ url_for('static', filename='nouislider.min.css') }}"/>
-	<link rel="stylesheet" href="{{ url_for('static', filename='map.css') }}"/>
+	<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}"/>
 	<script src="{{ url_for('static', filename='leaflet.js') }}"></script>
 	<script src="{{ url_for('static', filename='nouislider.min.js') }}"></script>
-	<script src="{{ url_for('static', filename='map.js') }}"></script>
+	<script src="{{ url_for('static', filename='main.js') }}"></script>
 </head>
 <body>
 
@@ -78,6 +78,11 @@
 </div>
 
 <div id="map"></div>
+
+<aside class="error-container">
+	<ul id="errors"></ul>
+</aside>
+
 
 <script type="text/javascript">
 	window.onload = initializeApp.bind(null, '{{ hostname }}');
