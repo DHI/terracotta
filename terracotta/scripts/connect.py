@@ -3,6 +3,7 @@
 Use Flask development server to serve Terracotta client app.
 """
 
+import os
 import socket
 import threading
 import webbrowser
@@ -29,7 +30,7 @@ def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None
 
     First argument is hostname and port to connect to (e.g. localhost:5000).
     """
-    from terracotta.client.flask_api import run_app
+    from terracotta.client.flask_api import create_app
 
     test_url = f'{terracotta_hostname}/keys'
 
@@ -56,4 +57,9 @@ def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None
     if not no_browser:
         threading.Timer(2, open_browser).start()
 
-    run_app(terracotta_hostname, port=port)
+    client_app = create_app(terracotta_hostname)
+
+    if os.environ.get('TC_TESTING'):
+        return
+
+    client_app.run(port=port)  # pragma: no cover

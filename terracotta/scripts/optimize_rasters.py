@@ -58,7 +58,7 @@ RESAMPLING_METHODS = {
 
 
 def _prefered_compression_method() -> str:
-    if GDALVersion.runtime() < GDALVersion.parse('2.3'):
+    if not GDALVersion.runtime().at_least('2.3'):
         return 'DEFLATE'
 
     # check if we can use ZSTD (fails silently for GDAL < 2.3)
