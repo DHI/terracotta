@@ -921,23 +921,19 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
 function initializeApp(hostname) {
     STATE.remote_host = hostname;
 
-    getKeys(hostname)
+    getColormapValues(hostname)
+        .then(() => getKeys(hostname))
         .then((keys) => {
             STATE.keys = keys;
-
             initUI(hostname, keys);
             updateSearchResults();
-
             let osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
             let osmAttrib = 'Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
-
             let osmBase = L.tileLayer(osmUrl, { attribution: osmAttrib });
-
             STATE.map = L.map('map', {
                 center: [0, 0],
                 zoom: 2,
                 layers: [osmBase]
             });
         });
-    getColormapValues(hostname);
 }
