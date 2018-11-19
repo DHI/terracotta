@@ -1,8 +1,8 @@
 
-def test_datasets_handler(read_only_database, use_read_only_database):
+def test_datasets_handler(testdb, use_testdb):
     import terracotta
     from terracotta.handlers import datasets
-    driver = terracotta.get_driver(str(read_only_database))
+    driver = terracotta.get_driver(str(testdb))
     keys = driver.key_names
     assert datasets.datasets()
     assert datasets.datasets() == [dict(zip(keys, pair)) for pair in driver.get_datasets().keys()]

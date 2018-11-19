@@ -38,11 +38,11 @@ class SinglebandOptionSchema(Schema):
 
     explicit_color_map = fields.Dict(
         keys=fields.Number(),
-        values=fields.List(fields.Number, validate=validate.Length(equal=3)),
+        values=fields.List(fields.Number, validate=validate.Length(min=3, max=4)),
         example='{0: (255, 255, 255)}',
         description='Explicit value-color mapping to use, encoded as JSON object. '
                     'Must be given together with `colormap=explicit`. Color values can be '
-                    'specified either as RGB tuple (in the range of [0, 255]), or as '
+                    'specified either as RGB or RGBA tuple (in the range of [0, 255]), or as '
                     'hex strings.'
     )
 
@@ -77,13 +77,17 @@ class SinglebandOptionSchema(Schema):
         if val and isinstance(val, dict):
             for key, color in val.items():
                 if isinstance(color, str):
+                    # convert hex strings to RGBA
                     hex_string = color.lstrip('#')
                     try:
                         rgb = [int(hex_string[i:i + 2], 16) for i in (0, 2, 4)]
-                        data['explicit_color_map'][key] = rgb
+                        data['explicit_color_map'][key] = (*rgb, 255)
                     except ValueError:
                         msg = f'Could not decode value {color} in explicit_color_map as hex string'
                         raise ValidationError(msg)
+                elif len(color) == 3:
+                    # convert RGB to RGBA
+                    data['explicit_color_map'][key] = (*color, 255)
 
         return data
 
