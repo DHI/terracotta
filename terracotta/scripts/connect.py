@@ -3,8 +3,6 @@
 Use Flask development server to serve Terracotta client app.
 """
 
-from typing import NoReturn
-
 import os
 import socket
 import threading

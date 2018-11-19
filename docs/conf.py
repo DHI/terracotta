@@ -87,7 +87,8 @@ html_theme = 'alabaster'
 #
 html_theme_options = {
     'description': 'A light-weight, versatile XYZ tile server built with Flask and Rasterio',
-    'code_font_family': "'Roboto Mono', 'Consolas', 'Menlo', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace",
+    'code_font_family': "'Roboto Mono', 'Consolas', 'Menlo', 'Deja Vu Sans Mono', "
+                        "'Bitstream Vera Sans Mono', monospace",
     'font_family': "'Lato', 'minion pro', 'bell mt', Georgia, 'Hiragino Mincho Pro', sans-serif",
     'head_font_family': "'Lato', 'Garamond', 'Georgia', sans-serif",
     'body_text': '#000',

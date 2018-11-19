@@ -3,8 +3,6 @@
 A script to generate color map dumps from matplotlib.
 """
 
-from typing import NoReturn
-
 import numpy as np
 import matplotlib.cm as cm
 

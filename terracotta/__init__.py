@@ -42,7 +42,7 @@ del Mapping, Any, Set
 from terracotta.drivers import get_driver  # noqa: F401
 
 __all__ = (
-    get_driver,
-    get_settings,
-    update_settings,
+    'get_driver',
+    'get_settings',
+    'update_settings',
 )

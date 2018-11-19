@@ -111,7 +111,7 @@ class SettingSchema(Schema):
         return data
 
     @post_load
-    def make_settings(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def make_settings(self, data: Dict[str, Any]) -> TerracottaSettings:
         # encode tuples
         for var in ('DEFAULT_TILE_SIZE',):
             val = data.get(var)
