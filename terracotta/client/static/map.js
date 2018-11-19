@@ -570,7 +570,10 @@ function updateColormap() {
     let slider = document.querySelector('.singleband-slider .noUi-connect');
     let colorbar = STATE.colorbars[current_colormap];
 
-    // TODO =========================== colorbar can be fasly.
+    if (!colorbar) {
+        return false;
+    }
+
     let gradient = 'linear-gradient(to right';
     for (let i = 0; i < colorbar.length; i++) {
         gradient += ', rgb(' + colorbar[i].join(',') + ')';
@@ -643,24 +646,26 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
         toggleRgbLayer();
     }
 
-    const layer_id = serializeKeys(ds_keys);
-    const metadata = STATE.dataset_metadata[layer_id];
+    if (ds_keys) {
+        const layer_id = serializeKeys(ds_keys);
+        const metadata = STATE.dataset_metadata[layer_id];
 
-    if (metadata != null) {
-        const last = metadata.percentiles.length - 1;
-        current_singleband_stretch = [metadata.percentiles[2], metadata.percentiles[last - 2]];
-        singlebandSlider.noUiSlider.updateOptions({
-            start: current_singleband_stretch,
-            range: {
-                min: metadata.range[0],
-                '20%': metadata.percentiles[2],
-                '80%': metadata.percentiles[last - 2],
-                max: metadata.range[1]
-            }
-        });
+        if (metadata != null) {
+            const last = metadata.percentiles.length - 1;
+            current_singleband_stretch = [metadata.percentiles[2], metadata.percentiles[last - 2]];
+            singlebandSlider.noUiSlider.updateOptions({
+                start: current_singleband_stretch,
+                range: {
+                    min: metadata.range[0],
+                    '20%': metadata.percentiles[2],
+                    '80%': metadata.percentiles[last - 2],
+                    max: metadata.range[1]
+                }
+            });
+        }
+
+        addSinglebandMapLayer(ds_keys, resetView);
     }
-
-    addSinglebandMapLayer(ds_keys, resetView);
 }
 
 function addSinglebandMapLayer(ds_keys, resetView = true) {
@@ -852,8 +857,8 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
         }
 
         if (
-            serializeKeys(currentFirstKeys) == serializeKeys(firstKeys) &&
-            serializeKeys(currentLastKeys) == serializeKeys(lastKeys)
+            serializeKeys(currentFirstKeys) === serializeKeys(firstKeys) &&
+            serializeKeys(currentLastKeys) === serializeKeys(lastKeys)
         ) {
             return;
         }
