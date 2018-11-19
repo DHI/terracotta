@@ -118,8 +118,8 @@ function assembleSinglebandURL(remote_host, keys, options, preview) {
 
     if (options == null) return request_url;
 
-    var first = true;
-    for (var option_key in options) {
+    let first = true;
+    for (let option_key in options) {
         if (!options.hasOwnProperty(option_key)) continue;
 
         if (first) {
@@ -354,7 +354,7 @@ function serializeKeys(keys) {
  * @param {Terracotta.IMetadata} metadata
  */
 function storeMetadata(metadata) {
-    var ds_keys = serializeKeys(Object.values(metadata.keys));
+    const ds_keys = serializeKeys(Object.values(metadata.keys));
     STATE.dataset_metadata[ds_keys] = metadata;
 }
 
@@ -419,9 +419,9 @@ function dismissError(errorIndex) {
  */
 function updateSearchResults(remote_host = STATE.remote_host, keys = STATE.keys) {
     // initialize table header for search results
-    var datasetTable = document.getElementById('search-results');
+    const datasetTable = document.getElementById('search-results');
     datasetTable.innerHTML = '';
-    var tableHeader = document.createElement('tr');
+    const tableHeader = document.createElement('tr');
     for (let i = 0; i < keys.length; i++) {
         const headerEntry = document.createElement('th');
         headerEntry.innerHTML = keys[i].key;
@@ -430,15 +430,15 @@ function updateSearchResults(remote_host = STATE.remote_host, keys = STATE.keys)
     datasetTable.appendChild(tableHeader);
 
     // get key constraints from UI
-    var key_constraints = [];
+    let key_constraints = [];
 
     /**
      * @type { NodeListOf<HTMLInputElement> }
      */
-    var datasetSearchFields = document.querySelectorAll('#search-fields input');
+    const datasetSearchFields = document.querySelectorAll('#search-fields input');
     for (let i = 0; i < datasetSearchFields.length; i++) {
-        var ds_field = datasetSearchFields[i];
-        if (ds_field.value != '') {
+        const ds_field = datasetSearchFields[i];
+        if (ds_field.value !== '') {
             key_constraints.push({ key: ds_field.name, value: ds_field.value });
         }
     }
@@ -487,7 +487,7 @@ function updateDatasetList(remote_host, datasets, keys) {
         return;
     }
 
-    if (datasets.length == 0) {
+    if (datasets.length === 0) {
         let resultRow = document.createElement('tr');
         resultRow.innerHTML = '<td colspan=' + keys.length + '>No datasets found</td>';
         datasetTable.appendChild(resultRow);
@@ -545,7 +545,7 @@ function updatePageControls() {
     /**
      * @type { HTMLButtonElement }
      */
-    var prevPageButton = document.querySelector('#prev-page');
+    let prevPageButton = document.querySelector('#prev-page');
     if (STATE.current_dataset_page > 0) {
         prevPageButton.disabled = false;
     } else {
@@ -561,17 +561,17 @@ function updateColormap() {
     /**
      * @type { HTMLSelectElement }
      */
-    var colormapSelector = document.querySelector('select#colormap-selector');
+    const colormapSelector = document.querySelector('select#colormap-selector');
     current_colormap = colormapSelector.selectedOptions[0].value;
 
     /**
      * @type { HTMLElement }
      */
-    var slider = document.querySelector('.singleband-slider .noUi-connect');
-    var colorbar = STATE.colorbars[current_colormap];
+    let slider = document.querySelector('.singleband-slider .noUi-connect');
+    let colorbar = STATE.colorbars[current_colormap];
 
     // TODO =========================== colorbar can be fasly.
-    var gradient = 'linear-gradient(to right';
+    let gradient = 'linear-gradient(to right';
     for (let i = 0; i < colorbar.length; i++) {
         gradient += ', rgb(' + colorbar[i].join(',') + ')';
     }
@@ -581,7 +581,7 @@ function updateColormap() {
     if (activeSinglebandLayer == null) return;
 
     // toggle layer on and off to reload
-    var ds_keys = activeSinglebandLayer.keys;
+    let ds_keys = activeSinglebandLayer.keys;
     toggleSinglebandMapLayer();
     addSinglebandMapLayer(ds_keys, false);
 }
@@ -598,8 +598,8 @@ function toggleFootprintOverlay(keys) {
     if (keys == null) {
         return;
     }
-    var layer_id = serializeKeys(keys);
-    var metadata = STATE.dataset_metadata[layer_id];
+    const layer_id = serializeKeys(keys);
+    const metadata = STATE.dataset_metadata[layer_id];
 
     if (metadata == null) return;
 
@@ -620,14 +620,14 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
     /**
      * @type { noUiSlider.SliderElement }
      */
-    var singlebandSlider = document.querySelector('.singleband-slider');
+    let singlebandSlider = document.querySelector('.singleband-slider');
 
     if (activeSinglebandLayer != null || ds_keys == null) {
         map.removeLayer(activeSinglebandLayer.layer);
-        var currentKeys = activeSinglebandLayer.keys;
+        const currentKeys = activeSinglebandLayer.keys;
         activeSinglebandLayer = null;
 
-        var currentActiveRow = document.querySelector('#search-results > .active');
+        const currentActiveRow = document.querySelector('#search-results > .active');
         if (currentActiveRow != null) {
             currentActiveRow.classList.remove('active');
         }
@@ -643,11 +643,11 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
         toggleRgbLayer();
     }
 
-    var layer_id = serializeKeys(ds_keys);
-    var metadata = STATE.dataset_metadata[layer_id];
+    const layer_id = serializeKeys(ds_keys);
+    const metadata = STATE.dataset_metadata[layer_id];
 
     if (metadata != null) {
-        var last = metadata.percentiles.length - 1;
+        const last = metadata.percentiles.length - 1;
         current_singleband_stretch = [metadata.percentiles[2], metadata.percentiles[last - 2]];
         singlebandSlider.noUiSlider.updateOptions({
             start: current_singleband_stretch,
@@ -664,17 +664,17 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
 }
 
 function addSinglebandMapLayer(ds_keys, resetView = true) {
-    var layer_id = serializeKeys(ds_keys);
-    var metadata = STATE.dataset_metadata[layer_id];
+    const layer_id = serializeKeys(ds_keys);
+    const metadata = STATE.dataset_metadata[layer_id];
 
-    var layer_options = {};
+    let layer_options = {};
     if (current_colormap) {
         layer_options.colormap = current_colormap;
     }
     if (current_singleband_stretch) {
         layer_options.stretch_range = JSON.stringify(current_singleband_stretch);
     }
-    var layer_url = assembleSinglebandURL(STATE.remote_host, ds_keys, layer_options);
+    const layer_url = assembleSinglebandURL(STATE.remote_host, ds_keys, layer_options);
 
     activeSinglebandLayer = {
         keys: ds_keys,
@@ -712,7 +712,7 @@ function resetRgbSelectors(enabled) {
     /**
      * @type { NodeListOf<HTMLInputElement> }
      */
-    var rgbSelectors = document.querySelectorAll('.rgb-selector');
+    let rgbSelectors = document.querySelectorAll('.rgb-selector');
     for (let i = 0; i < rgbSelectors.length; i++) {
         rgbSelectors[i].innerHTML = '<option value="">-</option>';
         rgbSelectors[i].disabled = !enabled;
@@ -727,9 +727,9 @@ function rgbSearchFieldChanged() {
     /**
      * @type { NodeListOf<HTMLSelectElement> }
      */
-    var searchFields = document.querySelectorAll('#rgb-search-fields > input');
+    let searchFields = document.querySelectorAll('#rgb-search-fields > input');
 
-    var searchKeys = [];
+    let searchKeys = [];
     for (let i = 0; i < searchFields.length; i++) {
         if (!searchFields[i].value) {
             resetRgbSelectors(false);
@@ -786,8 +786,8 @@ function rgbSelectorChanged() {
     /**
      * @type { NodeListOf<HTMLInputElement> }
      */
-    var searchFields = document.querySelectorAll('#rgb-search-fields > input');
-    var firstKeys = [];
+    let searchFields = document.querySelectorAll('#rgb-search-fields > input');
+    let firstKeys = [];
     for (let i = 0; i < searchFields.length; i++) {
         firstKeys[i] = searchFields[i].value;
     }
@@ -795,12 +795,12 @@ function rgbSelectorChanged() {
     /**
      * @type { Array<HTMLSelectElement> }
      */
-    var rgbSelectors = [
+    const rgbSelectors = [
         document.querySelector('.rgb-selector#R'),
         document.querySelector('.rgb-selector#G'),
         document.querySelector('.rgb-selector#B')
     ];
-    var lastKeys = [];
+    let lastKeys = [];
     for (let i = 0; i < rgbSelectors.length; i++) {
         if (!rgbSelectors[i].value) return toggleRgbLayer();
         lastKeys[i] = rgbSelectors[i].value;
@@ -810,17 +810,17 @@ function rgbSelectorChanged() {
     /**
      * @type { Array<noUiSlider.SliderElement> }
      */
-    var rgbSliders = [
+    const rgbSliders = [
         document.querySelector('.rgb-slider#R'),
         document.querySelector('.rgb-slider#G'),
         document.querySelector('.rgb-slider#B')
     ];
     current_rgb_stretch = [];
     for (let i = 0; i < 3; i++) {
-        var someKeys = serializeKeys(firstKeys.concat([lastKeys[i]]));
-        var metadata = STATE.dataset_metadata[someKeys];
+        let someKeys = serializeKeys(firstKeys.concat([lastKeys[i]]));
+        let metadata = STATE.dataset_metadata[someKeys];
         if (metadata != null) {
-            var last = metadata.percentiles.length - 1;
+            let last = metadata.percentiles.length - 1;
             current_rgb_stretch[i] = [metadata.percentiles[2], metadata.percentiles[last - 2]];
             rgbSliders[i].noUiSlider.updateOptions({
                 start: current_rgb_stretch[i],
@@ -898,8 +898,8 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
 }
 
 /* Initialize global state */
-var current_colormap, current_singleband_stretch, current_rgb_stretch;
-var map, overlayLayer, activeSinglebandLayer, activeRgbLayer;
+let current_colormap, current_singleband_stretch, current_rgb_stretch;
+let map, overlayLayer, activeSinglebandLayer, activeRgbLayer;
 
 /**
  *  Main entrypoint.
@@ -919,10 +919,10 @@ function initializeApp(hostname) {
             initUI(hostname, keys);
             updateSearchResults();
 
-            var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-            var osmAttrib = 'Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
+            let osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+            let osmAttrib = 'Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
 
-            var osmBase = L.tileLayer(osmUrl, { attribution: osmAttrib });
+            let osmBase = L.tileLayer(osmUrl, { attribution: osmAttrib });
 
             map = L.map('map', {
                 center: [0, 0],
