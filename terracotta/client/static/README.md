@@ -12,7 +12,7 @@ That said, you need to have the following first:
 ## Running type checks
 
 Static type checks are done with TypeScript.
-Types are written using JSDoc.
+Types are written using JSDoc. You can find a quick intro on it [here](https://github.com/Microsoft/TypeScript/wiki/JSDoc-support-in-JavaScript).
 
 To do a typecheck, run:
 
