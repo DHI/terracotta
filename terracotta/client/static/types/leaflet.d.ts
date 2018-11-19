@@ -7,3 +7,4 @@ export as namespace L;
 export function geoJSON(...any): any;
 export function tileLayer(...any): any;
 export function map(...any): any;
+export function latLngBounds(coord1: Array<number>, coord2: Array<number>): any;
