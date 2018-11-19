@@ -4,12 +4,12 @@
 
 /* BEWARE! THERE BE DRAGONS! 🐉
 
-The following file was written by a Python programmer with minimal exposure
-to idiomatic Javascript. It should not serve as an authoritive reference on
-how a frontend for Terracotta should be written.
+Big parts of following file were written by a Python programmer with minimal exposure
+to idiomatic Javascript. It should not serve as an authoritive reference on how a
+frontend for Terracotta should be written.
 
 Some notes:
-- methods marked with @global are expected to be available in the DOM (i.e. map.html).
+- methods marked with @global are expected to be available in the DOM (i.e. app.html).
 */
 
 // ===================================================
@@ -34,7 +34,7 @@ const THUMBNAIL_SIZE = [128, 128];
 const COLORMAPS = [
     { display_name: 'Greyscale', id: 'greys_r' },
     { display_name: 'Viridis', id: 'viridis' },
-    { display_name: 'Red-Blue', id: 'rdbu' },
+    { display_name: 'Blue-Red', id: 'rdbu_r' },
     { display_name: 'Blue-Green', id: 'bugn' },
     { display_name: 'Yellow-Green', id: 'ylgn' },
     { display_name: 'Magma', id: 'magma' },
@@ -48,8 +48,16 @@ const STATE = {
     remote_host: '',
     current_dataset_page: 0,
     dataset_metadata: {},
-    colorbars: {}
+    colormap_values: {},
+    current_colormap: '',
+    current_singleband_stretch: [],
+    current_rgb_stretch: [],
+    map: undefined,
+    overlayLayer: undefined,
+    activeSinglebandLayer: undefined,
+    activeRgbLayer: undefined
 };
+
 
 // ===================================================
 // Convenience functions to get valid Terracotta URLs.
@@ -185,16 +193,16 @@ function assembleColormapUrl(remote_host, colormap, num_values) {
  * @param {string} remote_host
  * @param {number} [num_values=100] The number of values to get colors for.
  */
-function getColorbars(remote_host, num_values = 100) {
+function getColormapValues(remote_host, num_values = 100) {
     const requestColorMap = (colormap) => {
         const cmapId = colormap.id;
 
         return httpGet(assembleColormapUrl(remote_host, cmapId, num_values)).then((response) => {
             if (response && response.colormap) {
-                STATE.colorbars[cmapId] = [];
+                STATE.colormap_values[cmapId] = [];
 
                 for (let j = 0; j < num_values; j++) {
-                    STATE.colorbars[cmapId][j] = response.colormap[j].rgb;
+                    STATE.colormap_values[cmapId][j] = response.colormap[j].rgb;
                 }
             }
         });
@@ -282,8 +290,8 @@ function initUI(remote_host, keys) {
      */
     let singlebandSlider = document.querySelector('.singleband-slider');
     noUiSlider.create(singlebandSlider, sliderDummyOptions).on('change.one', function() {
-        current_singleband_stretch = singlebandSlider.noUiSlider.get();
-        let currentKeys = activeSinglebandLayer.keys;
+        STATE.current_singleband_stretch = singlebandSlider.noUiSlider.get();
+        let currentKeys = STATE.activeSinglebandLayer.keys;
         // reload layer
         toggleSinglebandMapLayer();
         addSinglebandMapLayer(currentKeys, false);
@@ -304,13 +312,13 @@ function initUI(remote_host, keys) {
     let rgbIds = ['R', 'G', 'B'];
     for (let i = 0; i < rgbSliders.length; i++) {
         noUiSlider.create(rgbSliders[i], sliderDummyOptions).on('change.one', function() {
-            current_rgb_stretch = [
+            STATE.current_rgb_stretch = [
                 rgbSliders[0].noUiSlider.get(),
                 rgbSliders[1].noUiSlider.get(),
                 rgbSliders[2].noUiSlider.get()
             ];
-            let currentIndexKeys = activeRgbLayer.index_keys;
-            let currentRgbKeys = activeRgbLayer.rgb_keys;
+            let currentIndexKeys = STATE.activeRgbLayer.index_keys;
+            let currentRgbKeys = STATE.activeRgbLayer.rgb_keys;
             // reload layer
             toggleRgbLayer();
             toggleRgbLayer(currentIndexKeys, currentRgbKeys, false);
@@ -525,7 +533,7 @@ function updateDatasetList(remote_host, datasets, keys) {
 
 /**
  * Increments the dataset result page by the provided step.
- * This method is called from map.html.
+ * This method is called from app.html.
  *
  * @param {number} step
  * @global
@@ -554,7 +562,7 @@ function updatePageControls() {
 }
 
 /**
- * Triggered by a change in the colormap selector in map.html.
+ * Triggered by a change in the colormap selector in app.html.
  * @global
  */
 function updateColormap() {
@@ -562,13 +570,13 @@ function updateColormap() {
      * @type { HTMLSelectElement }
      */
     const colormapSelector = document.querySelector('select#colormap-selector');
-    current_colormap = colormapSelector.selectedOptions[0].value;
+    STATE.current_colormap = colormapSelector.selectedOptions[0].value;
 
     /**
      * @type { HTMLElement }
      */
     let slider = document.querySelector('.singleband-slider .noUi-connect');
-    let colorbar = STATE.colorbars[current_colormap];
+    let colorbar = STATE.colormap_values[STATE.current_colormap];
 
     if (!colorbar) {
         return false;
@@ -581,10 +589,10 @@ function updateColormap() {
     gradient += ')';
     slider.style.backgroundImage = gradient;
 
-    if (activeSinglebandLayer == null) return;
+    if (STATE.activeSinglebandLayer == null) return;
 
     // toggle layer on and off to reload
-    let ds_keys = activeSinglebandLayer.keys;
+    let ds_keys = STATE.activeSinglebandLayer.keys;
     toggleSinglebandMapLayer();
     addSinglebandMapLayer(ds_keys, false);
 }
@@ -594,8 +602,8 @@ function updateColormap() {
  * @param {Array<string>} keys
  */
 function toggleFootprintOverlay(keys) {
-    if (overlayLayer != null) {
-        map.removeLayer(overlayLayer);
+    if (STATE.overlayLayer != null) {
+        STATE.map.removeLayer(STATE.overlayLayer);
     }
 
     if (keys == null) {
@@ -606,13 +614,13 @@ function toggleFootprintOverlay(keys) {
 
     if (metadata == null) return;
 
-    overlayLayer = L.geoJSON(metadata.convex_hull, {
+    STATE.overlayLayer = L.geoJSON(metadata.convex_hull, {
         style: {
             color: '#ff7800',
             weight: 5,
             opacity: 0.65
         }
-    }).addTo(map);
+    }).addTo(STATE.map);
 }
 
 /**
@@ -625,10 +633,10 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
      */
     let singlebandSlider = document.querySelector('.singleband-slider');
 
-    if (activeSinglebandLayer != null || ds_keys == null) {
-        map.removeLayer(activeSinglebandLayer.layer);
-        const currentKeys = activeSinglebandLayer.keys;
-        activeSinglebandLayer = null;
+    if (STATE.activeSinglebandLayer != null || ds_keys == null) {
+        STATE.map.removeLayer(STATE.activeSinglebandLayer.layer);
+        const currentKeys = STATE.activeSinglebandLayer.keys;
+        STATE.activeSinglebandLayer = null;
 
         const currentActiveRow = document.querySelector('#search-results > .active');
         if (currentActiveRow != null) {
@@ -642,7 +650,7 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
         }
     }
 
-    if (activeRgbLayer !== null) {
+    if (STATE.activeRgbLayer !== null) {
         toggleRgbLayer();
     }
 
@@ -652,9 +660,9 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
 
         if (metadata != null) {
             const last = metadata.percentiles.length - 1;
-            current_singleband_stretch = [metadata.percentiles[2], metadata.percentiles[last - 2]];
+            STATE.current_singleband_stretch = [metadata.percentiles[2], metadata.percentiles[last - 2]];
             singlebandSlider.noUiSlider.updateOptions({
-                start: current_singleband_stretch,
+                start: STATE.current_singleband_stretch,
                 range: {
                     min: metadata.range[0],
                     '20%': metadata.percentiles[2],
@@ -673,17 +681,17 @@ function addSinglebandMapLayer(ds_keys, resetView = true) {
     const metadata = STATE.dataset_metadata[layer_id];
 
     let layer_options = {};
-    if (current_colormap) {
-        layer_options.colormap = current_colormap;
+    if (STATE.current_colormap) {
+        layer_options.colormap = STATE.current_colormap;
     }
-    if (current_singleband_stretch) {
-        layer_options.stretch_range = JSON.stringify(current_singleband_stretch);
+    if (STATE.current_singleband_stretch) {
+        layer_options.stretch_range = JSON.stringify(STATE.current_singleband_stretch);
     }
     const layer_url = assembleSinglebandURL(STATE.remote_host, ds_keys, layer_options);
 
-    activeSinglebandLayer = {
+    STATE.activeSinglebandLayer = {
         keys: ds_keys,
-        layer: L.tileLayer(layer_url).addTo(map)
+        layer: L.tileLayer(layer_url).addTo(STATE.map)
     };
 
     const dataset_layer = document.getElementById('dataset-' + layer_id);
@@ -697,7 +705,7 @@ function addSinglebandMapLayer(ds_keys, resetView = true) {
 
     if (resetView && metadata) {
         const [minLng, minLat, maxLng, maxLat] = metadata.bounds;
-        map.flyToBounds(L.latLngBounds([minLat, minLng], [maxLat, maxLng]));
+        STATE.map.flyToBounds(L.latLngBounds([minLat, minLng], [maxLat, maxLng]));
     }
 }
 
@@ -784,7 +792,7 @@ function populateRgbPickers(remote_host, rgbDatasets, keys) {
 }
 
 /**
- * Used in map.html as 'onchange' event for .rgb-selector.
+ * Used in app.html as 'onchange' event for .rgb-selector.
  * @global
  */
 function rgbSelectorChanged() {
@@ -820,15 +828,15 @@ function rgbSelectorChanged() {
         document.querySelector('.rgb-slider#G'),
         document.querySelector('.rgb-slider#B')
     ];
-    current_rgb_stretch = [];
+    STATE.current_rgb_stretch = [];
     for (let i = 0; i < 3; i++) {
         let someKeys = serializeKeys(firstKeys.concat([lastKeys[i]]));
         let metadata = STATE.dataset_metadata[someKeys];
         if (metadata != null) {
             let last = metadata.percentiles.length - 1;
-            current_rgb_stretch[i] = [metadata.percentiles[2], metadata.percentiles[last - 2]];
+            STATE.current_rgb_stretch[i] = [metadata.percentiles[2], metadata.percentiles[last - 2]];
             rgbSliders[i].noUiSlider.updateOptions({
-                start: current_rgb_stretch[i],
+                start: STATE.current_rgb_stretch[i],
                 range: {
                     min: metadata.range[0],
                     '20%': metadata.percentiles[2],
@@ -845,11 +853,11 @@ function rgbSelectorChanged() {
 function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
     const rgbControls = document.getElementById('rgb');
 
-    if (activeRgbLayer != null) {
-        map.removeLayer(activeRgbLayer.layer);
-        let currentFirstKeys = activeRgbLayer.index_keys;
-        let currentLastKeys = activeRgbLayer.rgb_keys;
-        activeRgbLayer = null;
+    if (STATE.activeRgbLayer != null) {
+        STATE.map.removeLayer(STATE.activeRgbLayer.layer);
+        let currentFirstKeys = STATE.activeRgbLayer.index_keys;
+        let currentLastKeys = STATE.activeRgbLayer.rgb_keys;
+        STATE.activeRgbLayer = null;
         rgbControls.classList.remove('active');
 
         if (firstKeys == null || lastKeys == null) {
@@ -868,23 +876,23 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
         return;
     }
 
-    if (activeSinglebandLayer != null) {
-        toggleSinglebandMapLayer(activeSinglebandLayer.keys);
+    if (STATE.activeSinglebandLayer != null) {
+        toggleSinglebandMapLayer(STATE.activeSinglebandLayer.keys);
     }
 
     let layerOptions = {};
-    if (current_rgb_stretch != null) {
-        layerOptions.r_range = JSON.stringify(current_rgb_stretch[0]);
-        layerOptions.g_range = JSON.stringify(current_rgb_stretch[1]);
-        layerOptions.b_range = JSON.stringify(current_rgb_stretch[2]);
+    if (STATE.current_rgb_stretch != null) {
+        layerOptions.r_range = JSON.stringify(STATE.current_rgb_stretch[0]);
+        layerOptions.g_range = JSON.stringify(STATE.current_rgb_stretch[1]);
+        layerOptions.b_range = JSON.stringify(STATE.current_rgb_stretch[2]);
     }
 
     let layer_url = assembleRgbUrl(STATE.remote_host, firstKeys, lastKeys, layerOptions, false);
 
-    activeRgbLayer = {
+    STATE.activeRgbLayer = {
         index_keys: firstKeys,
         rgb_keys: lastKeys,
-        layer: L.tileLayer(layer_url).addTo(map)
+        layer: L.tileLayer(layer_url).addTo(STATE.map)
     };
 
     rgbControls.classList.add('active');
@@ -898,26 +906,22 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
 
     if (resetView && metadata != null) {
         const [minLng, minLat, maxLng, maxLat] = metadata.bounds;
-        map.flyToBounds(L.latLngBounds([minLat, minLng], [maxLat, maxLng]));
+        STATE.map.flyToBounds(L.latLngBounds([minLat, minLng], [maxLat, maxLng]));
     }
 }
 
-/* Initialize global state */
-let current_colormap, current_singleband_stretch, current_rgb_stretch;
-let map, overlayLayer, activeSinglebandLayer, activeRgbLayer;
 
 /**
  *  Main entrypoint.
- *  Called in map.html on window.onload.
+ *  Called in app.html on window.onload.
  *
- * @param {string} hostname The name of the host to initialize the app with. This is typically provided server side and evaluated in map.html.
+ * @param {string} hostname The hostname of the remote Terracotta server (evaluated in map.html).
  * @global
  */
 function initializeApp(hostname) {
     STATE.remote_host = hostname;
 
-    getColorbars(hostname)
-        .then(() => getKeys(hostname))
+    getKeys(hostname)
         .then((keys) => {
             STATE.keys = keys;
 
@@ -929,10 +933,11 @@ function initializeApp(hostname) {
 
             let osmBase = L.tileLayer(osmUrl, { attribution: osmAttrib });
 
-            map = L.map('map', {
+            STATE.map = L.map('map', {
                 center: [0, 0],
                 zoom: 2,
                 layers: [osmBase]
             });
         });
+    getColormapValues(hostname);
 }
