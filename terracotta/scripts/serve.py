@@ -3,7 +3,7 @@
 Use Flask development server to serve up raster files or database locally.
 """
 
-from typing import Any, Tuple, Sequence, NoReturn
+from typing import Any, Tuple, Sequence
 import os
 import tempfile
 import logging
@@ -39,7 +39,7 @@ def serve(database: str = None,
           database_provider: str = None,
           allow_all_ips: bool = False,
           port: int = None,
-          rgb_key: str = None) -> NoReturn:
+          rgb_key: str = None) -> None:
     """Serve rasters through a local Flask development server.
 
     Either -d/--database or -r/--raster-pattern must be given.

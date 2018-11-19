@@ -14,7 +14,7 @@ ALL_MAPS = cm.cmap_d
 NUM_VALS = 255
 
 
-def generate_maps(out_folder: str) -> NoReturn:
+def generate_maps(out_folder: str) -> None:
     x = np.linspace(0, 1, NUM_VALS)
     for cmap in ALL_MAPS:
         cmap_fun = cm.get_cmap(cmap)

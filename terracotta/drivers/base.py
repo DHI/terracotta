@@ -3,7 +3,7 @@
 Base class for drivers.
 """
 
-from typing import Callable, Mapping, Any, Tuple, Sequence, Dict, Union, TypeVar, NoReturn
+from typing import Callable, Mapping, Any, Tuple, Sequence, Dict, Union, TypeVar
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 import functools
@@ -31,12 +31,12 @@ class Driver(ABC):
     key_names: Tuple[str]
 
     @abstractmethod
-    def __init__(self, url_or_path: str) -> NoReturn:
+    def __init__(self, url_or_path: str) -> None:
         self.path = url_or_path
 
     @abstractmethod
     def create(self, keys: Sequence[str], *args: Any,
-               key_descriptions: Mapping[str, str] = None, **kwargs: Any) -> NoReturn:
+               key_descriptions: Mapping[str, str] = None, **kwargs: Any) -> None:
         """Create a new, empty data storage"""
         pass
 
@@ -100,12 +100,12 @@ class Driver(ABC):
     def insert(self, *args: Any,
                metadata: Mapping[str, Any] = None,
                skip_metadata: bool = False,
-               **kwargs: Any) -> NoReturn:
+               **kwargs: Any) -> None:
         """Register a new dataset. Used to populate data storage."""
         pass
 
     @abstractmethod
-    def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> NoReturn:
+    def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         """Remove a dataset from metadata storage."""
         pass
 

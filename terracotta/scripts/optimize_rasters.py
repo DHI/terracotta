@@ -3,7 +3,7 @@
 Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 """
 
-from typing import Sequence, Iterator, Union, NoReturn
+from typing import Sequence, Iterator, Union
 import os
 import math
 import itertools
@@ -142,7 +142,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      reproject: bool = False,
                      in_memory: bool = None,
                      compression: str = 'auto',
-                     quiet: bool = False) -> NoReturn:
+                     quiet: bool = False) -> None:
     """Optimize a collection of raster files for use with Terracotta.
 
     First argument is a list of input files or glob patterns.

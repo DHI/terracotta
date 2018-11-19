@@ -4,7 +4,7 @@ SQLite-backed raster driver. Metadata is stored in an SQLite database, raster da
 to be present on disk.
 """
 
-from typing import Any, Sequence, Mapping, Tuple, Union, Iterator, Dict, NoReturn, cast
+from typing import Any, Sequence, Mapping, Tuple, Union, Iterator, Dict, cast
 import os
 import contextlib
 import json
@@ -63,7 +63,7 @@ class SQLiteDriver(RasterDriver):
         ('metadata', 'VARCHAR[max]')
     )
 
-    def __init__(self, path: Union[str, Path]) -> NoReturn:
+    def __init__(self, path: Union[str, Path]) -> None:
         """Use given database path to read and store metadata."""
         path = str(path)
 
@@ -112,7 +112,7 @@ class SQLiteDriver(RasterDriver):
 
     db_version = cast(str, property(_get_db_version))
 
-    def _connection_callback(self) -> NoReturn:
+    def _connection_callback(self) -> None:
         """Called after opening a new connection"""
         if not os.path.isfile(self.path):
             raise exceptions.InvalidDatabaseError(
@@ -140,7 +140,7 @@ class SQLiteDriver(RasterDriver):
     key_names = cast(Tuple[str], property(_get_key_names))
 
     @convert_exceptions('Could not create database')
-    def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> NoReturn:
+    def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> None:
         """Initialize database file with empty tables.
 
         This must be called before opening the first connection.
@@ -299,7 +299,7 @@ class SQLiteDriver(RasterDriver):
                filepath: str, *,
                metadata: Mapping[str, Any] = None,
                skip_metadata: bool = False,
-               override_path: str = None) -> NoReturn:
+               override_path: str = None) -> None:
         """Insert a dataset into the database"""
         conn = self._connection
 
@@ -327,7 +327,7 @@ class SQLiteDriver(RasterDriver):
     @trace('delete')
     @requires_connection
     @convert_exceptions('Could not write to database')
-    def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> NoReturn:
+    def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         """Delete a dataset from the database"""
         conn = self._connection
 

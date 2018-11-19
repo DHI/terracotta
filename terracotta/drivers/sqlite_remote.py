@@ -4,7 +4,7 @@ SQLite-backed raster driver. Metadata is stored in an SQLite database, raster da
 to be present on disk.
 """
 
-from typing import Any, Union, Iterator, NoReturn
+from typing import Any, Union, Iterator
 import os
 import tempfile
 import shutil
@@ -34,7 +34,7 @@ def convert_exceptions(msg: str) -> Iterator:
         raise exceptions.InvalidDatabaseError(msg) from exc
 
 
-def _update_from_s3(remote_path: str, local_path: str) -> NoReturn:
+def _update_from_s3(remote_path: str, local_path: str) -> None:
     import boto3
 
     parsed_remote_path = urlparse.urlparse(remote_path)
@@ -60,7 +60,7 @@ class RemoteSQLiteDriver(SQLiteDriver):
     """
     path: str
 
-    def __init__(self, path: Union[str, Path]) -> NoReturn:
+    def __init__(self, path: Union[str, Path]) -> None:
         """Use given database URL to read metadata."""
         settings = get_settings()
 
@@ -83,24 +83,24 @@ class RemoteSQLiteDriver(SQLiteDriver):
     @cachedmethod(operator.attrgetter('_checkdb_cache'))
     @convert_exceptions('Could not retrieve database from S3')
     @trace('download_db_from_s3')
-    def _update_db(self, remote_path: str, local_path: str) -> NoReturn:
+    def _update_db(self, remote_path: str, local_path: str) -> None:
         logger.debug('Remote database cache expired, re-downloading')
         _update_from_s3(remote_path, local_path)
 
-    def _connection_callback(self) -> NoReturn:
+    def _connection_callback(self) -> None:
         self._update_db(self._remote_path, self.path)
         super()._connection_callback()
 
-    def create(self, *args: Any, **kwargs: Any) -> NoReturn:
+    def create(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
 
-    def insert(self, *args: Any, **kwargs: Any) -> NoReturn:
+    def insert(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
 
-    def delete(self, *args: Any, **kwargs: Any) -> NoReturn:
+    def delete(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
 
-    def __del__(self) -> NoReturn:
+    def __del__(self) -> None:
         """Clean up temporary database upon exit"""
         rm = self.__rm
         try:

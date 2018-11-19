@@ -15,14 +15,14 @@ except ImportError:
 
 
 # initialize settings, define settings API
-from typing import Mapping, Any, Set, NoReturn
+from typing import Mapping, Any, Set
 from terracotta.config import parse_config, TerracottaSettings
 
 _settings: TerracottaSettings = parse_config()
 _overwritten_settings: Set = set()
 
 
-def update_settings(**new_config: Any) -> NoReturn:
+def update_settings(**new_config: Any) -> None:
     from terracotta.config import parse_config
     global _settings, _overwritten_settings
     current_config = {k: getattr(_settings, k) for k in _overwritten_settings}
@@ -35,7 +35,7 @@ def get_settings() -> TerracottaSettings:
 
 
 del parse_config, TerracottaSettings
-del Mapping, Any, Set, NoReturn
+del Mapping, Any, Set
 
 
 # expose API
