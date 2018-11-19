@@ -5,9 +5,9 @@
 
 A light-weight, versatile XYZ tile server, built with Flask and Rasterio :earth_africa:
 
-Terracotta runs in production as a WSGI app on a webserver or as a serverless app on AWS λ.
+Terracotta runs as a WSGI app on a dedicated webserver or as a serverless app on AWS λ.
 For convenient data exploration, debugging, and development, it also runs standalone
-through the CLI interface `terracotta serve`.
+through the CLI command `terracotta serve`.
 
 For greatly improved performance, use [Cloud Optimized GeoTIFFs](http://www.cogeo.org)
 (COG) with Terracotta. You can convert all kinds of single-band raster files to COG through the
@@ -20,7 +20,7 @@ Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source
 ## Contents
 
 - [Use cases](#use-cases)
-- [All is keys](#all-is-keys)
+- [Data model](#data-model)
 - [Why Terracotta?](#why-terracotta)
 - [Why not Terracotta?](#why-not-terracotta)
 - [Architecutre](#architecture)
@@ -38,86 +38,92 @@ Terracotta is built on a modern Python 3.6 stack, powered by awesome open-source
 
 ## Use cases
 
-Terracotta covers several use cases:
+Terracotta covers three major use cases:
 
-1. Use it as data exploration tool to quickly serve up a folder containing GeoTiff files
+1. Use it as data exploration tool to quickly serve up a folder containing GeoTiff images
    with `terracotta serve`.
 2. Make it your tile server backend on an existing webserver. Refer to
    [the Flask documentation](http://flask.pocoo.org/docs/1.0/deploying/) for more information.
    You can ingest your data [ahead of time](#ingestion) (recommended) or on-demand.
 3. Deploy it on serverless architectures such as AWS λ to serve tiles from S3 buckets.
-   This allows you to build apps that scale infinitely while requiring minimal maintenance!
+   This allows you to build apps that scale almost infinitely with minimal maintenance!
    To make it as easy as possible to deploy to AWS λ, we make use of the magic provided by
    [Zappa](https://github.com/Miserlou/Zappa). See [Deployment on AWS](#deployment-to-aws-λ)
    for more details.
-
-## All is keys
-
-Terracotta is agnostic to the organization of your data. Almost any hierarchy can be
-cast into an API structure through **keys**, which are an ordered sequence of named categories.
-Keys can have any names and (string) values.
-
-For example, surface reflectance for the red, green, and blue spectral bands at different dates can
-be represented by the keys `('type', 'date', 'band')`, where type is `'reflectance'`, date for example `'20181010'`,
-and bands `'red'`, `'green'`, and `'blue'`.
-
-Every unique combination of the key values is a **dataset**, representing one single-band image,
-e.g. `reflectance/20181010/B04`.
-
-For the example from above, you get a proper RGB representation with `example.com/rgb/reflectance/20181010/{z}/{x}/{y}.png?r=red&g=green&b=blue`.
-
-You define the number and names of keys upon setup of your Terracotta instance and they are then fixed.
-This is more flexible than it may sound: In the same scheme as above, you could introduce a type `'indices'`
-and name your band `'NDVI'` and get it served on `example.com/singleband/indices/20181010/NDVI/{z}/{x}/{y}.png`.
 
 ## Why Terracotta?
 
 There are many good reasons to ditch your ancient raster data workflow and switch to Terracotta.
 Some of them are listed here:
 
-- It is trivial to get going. Got a folder full of GeoTiffs in different projections you want to
-  have a look at in your browser? Enter `terracotta serve -p {name}.tif` and
-  `terracotta connect localhost:5000` you are there!
+- It is trivial to get going. Got a folder full of cloud-optimized GeoTiffs in different projections you
+  want to have a look at in your browser? `terracotta serve -p {name}.tif` and
+  `terracotta connect localhost:5000` get you there.
 - Terracotta supports many different use cases with simple workflows. Usability is our first priority.
-- We make minimal assumptions about your data, so *you stay in charge*. Use the tools you
-  know and love to create your data - leave the optimization and serving to Terracotta.
-- Serverless is our first-priority type of deployment. Make use of that so you don't have
-  to worry about maintaining or scaling your architecture.
+- We make minimal assumptions about your data, so *you stay in charge*. Keep using the tools you
+  know and love to create and organize your data.
+- Serverless deployment is a first-priority use case, so you don't have to worry about maintaining
+  or scaling your architecture.
 - Terracotta instances are self-documenting. Everything the frontend needs to know about
   your data is accessible from only a handful of API endpoints.
 - Terracotta is built with extensibility in mind. If Terracotta does not support your use case yet,
   extending it is as easy as implementing your driver in a single Python class.
 - We use Python 3.6 type annotations throughout the project and aim for extensive test coverage,
-  to make sure we provide a production-grade tool.
+  to make sure that Terracotta stays as stable and extensible as it is today.
 
 ## Why not Terracotta?
 
 Terracotta is light-weight and optimized for simplicity and flexibility. This has a few trade-offs:
 
-- The number of keys and their names are fixed for one Terracotta instance (although not the values).
-  You have to organize all your data into the same structure - or deploy several instances.
-- Terracotta does not know what your key values mean and they are all strings. You can get available
-  combinations by calling `/dataset` (omitting the keys that you want to list). But any filtering
-  on the results, e.g. to get a date range, has to be done in the frontend.
+- The number of keys and their names are fixed for one Terracotta instance. You have to organize
+  all of your data into the same structure - or deploy several instances of Terracotta
+  (see [Data model](#data-model) for more information).
+- Terracotta keys are always strings and carry no intrinsic meaning. You can search and filter
+  available datasets through exact comparisons (e.g. by calling `/datasets?type=index&date=20180101`),
+  but more sophisticated operations have to take place in the frontend.
 - You can only use the last key to compose RGB images (i.e., the last key must be `band` or similar).
 - Since the names and semantics of the keys of a Terracotta deployment are flexible, there are no
   guarantees that two different Terracotta deployments have the same dataset API. However, all information
   is transparently available from the frontend, via the `/swagger.json`, `/apidoc`, and `/keys`
   API endpoints.
 - While Terracotta is pretty fast, we favor flexibility over raw speed. If sub-second response
-  times are a hard requirement for you, there might be faster tools.
+  times are a hard requirement for you, Terracotta might not be the right tool for the job.
+
+## Data model
+
+Terracotta is agnostic to the organization of your data. You can cast almost any hierarchy
+into an API structure through *keys*, which are an ordered sequence of named categories.
+Keys can have any names and (string) values.
+
+For example, surface reflectance for the red, green, and blue spectral bands at different dates can
+be represented by the keys `('type', 'date', 'band')`, where type is `'reflectance'`,
+date for example `'20181010'`, and bands `'red'`, `'green'`, and `'blue'`.
+
+Every unique combination of the key values is a *dataset*, representing one single-band image,
+e.g. `reflectance/20181010/B04`.
+
+For the example from above, you get a proper RGB representation from a Terracotta server by querying
+`example.com/rgb/reflectance/20181010/{z}/{x}/{y}.png?r=red&g=green&b=blue`.
+
+The number and names of keys are .
+This is more flexible than it may sound: In the same scheme as above, you could introduce a type `'indices'`
+and name your band `'NDVI'` and get it served on `example.com/singleband/indices/20181010/NDVI/{z}/{x}/{y}.png`.
 
 ## Architecture
 
 In Terracotta, all heavy lifting is done by a so-called **driver**. The driver specifies where and how
 Terracotta can find the raster data and metadata it requires to serve a dataset. Most drivers use
 a database to store metadata and rely on a file system to store raster data, but neither of those
-things is enforced by the API.
+assumptions are enforced by the API.
 
 Already implemented drivers include:
 
 - **SQLite + GeoTiff**: Metadata is backed in an SQLite database, along with the paths to the
   (physical) raster files. This is the simplest driver, and is used by default in most applications.
+  Both the SQLite database and the raster files may be stored in AWS S3 buckets.
+- **MySQL + GeoTiff**: Similar to the SQLite driver, but uses a centralized MySQL database to store
+  metadata. This driver is an excellent candidate for deployments on cloud services, e.g. through
+  [AWS Aurora Serverless](https://aws.amazon.com/rds/aurora/serverless/).
 
 ## Installation
 
@@ -379,7 +385,7 @@ To deploy to AWS λ, execute the following steps:
    should now be reachable!
 
 Note that Zappa works best on Linux. Windows 10 users can use the
-[Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
+[Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to deploy Terracotta.
 
 ## Known Issues
 
