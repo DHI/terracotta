@@ -1,6 +1,6 @@
 """profile.py
 
-Decorators for performance tracing
+Decorators for performance tracing.
 """
 
 from typing import Iterator

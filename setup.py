@@ -1,8 +1,5 @@
 from setuptools import setup, find_packages
-import os
 
-with open(os.path.join(os.path.dirname(__file__), 'requirements.txt')) as fp:
-    install_requires = fp.read()
 
 setup(
     name='terracotta',
@@ -19,7 +16,22 @@ setup(
         'setuptools_scm_git_archive',
         'numpy'
     ],
-    install_requires=install_requires,
+    install_requires=[
+        'apispec',
+        'cachetools',
+        'click',
+        'flask',
+        'flask_cors',
+        'marshmallow>=3.0.0b12',
+        'mercantile',
+        'numpy',
+        'pillow',
+        'shapely',
+        'rasterio>=1.0,<1.0.7',
+        'shapely',
+        'toml',
+        'tqdm'
+    ],
     extras_require={
         'test': [
             'pytest>=3.5',
@@ -27,11 +39,22 @@ setup(
             'pytest-mypy',
             'pytest-flake8',
             'pytest-benchmark',
-            'codecov',
             'attrs>=17.4.0',
+            'codecov',
+            'colorlog',
+            'crick',
             'matplotlib',
             'moto',
-            'crick'
+            'pymysql'
+        ],
+        'docs': [
+            'sphinx',
+            'sphinx_autodoc_typehints'
+        ],
+        'recommended': [
+            'colorlog',
+            'crick',
+            'pymysql'
         ]
     },
     entry_points='''

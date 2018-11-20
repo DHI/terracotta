@@ -165,8 +165,8 @@ class MySQLDriver(RasterDriver):
 
     @contextlib.contextmanager
     def connect(self, check: bool = True) -> Iterator:
+        close = False
         try:
-            close = False
             if not self._connected:
                 with convert_exceptions('Unable to connect to database'):
                     self._connection = pymysql.connect(
@@ -189,6 +189,7 @@ class MySQLDriver(RasterDriver):
                 raise
         finally:
             if close:
+                self._cursor.close()
                 self._connection.commit()
                 self._connection.close()
                 self._connected = False

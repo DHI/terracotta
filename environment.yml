@@ -9,5 +9,4 @@ dependencies:
   - shapely
   - crick
   - pip:
-    - -r requirements.txt
-    - -e .
+    - -e .[recommended]

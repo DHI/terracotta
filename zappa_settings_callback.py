@@ -1,5 +1,7 @@
 import os
 
+REMOTE_DRIVERS = ('sqlite-remote', 'mysql')
+
 
 def check_integrity(zappa_cli):
     command = zappa_cli.command
@@ -9,15 +11,14 @@ def check_integrity(zappa_cli):
     env = zappa_cli.aws_environment_variables or {}
 
     db_provider = env.get('TC_DRIVER_PROVIDER')
-    if db_provider and db_provider != 'sqlite-remote':
-        raise ValueError('TC_DRIVER_PROVIDER environment variable must be "sqlite-remote"')
+    if db_provider not in REMOTE_DRIVERS:
+        raise ValueError(
+            f'TC_DRIVER_PROVIDER environment variable must be one of {REMOTE_DRIVERS}'
+        )
 
     db_path = env.get('TC_DRIVER_PATH')
     if not db_path:
         raise ValueError('TC_DRIVER_PATH environment variable must be set')
-
-    if not db_path.startswith('s3://'):
-        raise ValueError('TC_DRIVER_PATH must be a valid s3:// URL')
 
     try:
         from terracotta import get_driver, exceptions

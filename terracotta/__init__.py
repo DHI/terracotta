@@ -10,11 +10,11 @@ except ImportError:
     # package is not installed
     raise RuntimeError(
         'Terracotta has not been installed correctly. Please run `pip install -e .` or '
-        '`python setup.py install` in the Terracotta package folder.'
+        '`python setup.py develop` in the Terracotta package folder.'
     ) from None
 
 
-# initialize settings
+# initialize settings, define settings API
 from typing import Mapping, Any, Set
 from terracotta.config import parse_config, TerracottaSettings
 
@@ -40,3 +40,9 @@ del Mapping, Any, Set
 
 # expose API
 from terracotta.drivers import get_driver  # noqa: F401
+
+__all__ = (
+    'get_driver',
+    'get_settings',
+    'update_settings',
+)
