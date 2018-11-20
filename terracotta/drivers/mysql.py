@@ -277,23 +277,29 @@ class MySQLDriver(RasterDriver):
     @requires_connection
     @convert_exceptions('Could not retrieve datasets')
     def get_datasets(self, where: Mapping[str, str] = None,
-                     page: int = 0, limit: int = 100) -> Dict[Tuple[str, ...], str]:
+                     page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
         """Retrieve keys of datasets matching given pattern"""
         cursor = self._cursor
 
-        # explicitly cast to int to prevent SQL injection
-        page_query = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
+        if limit is not None:
+            # explicitly cast to int to prevent SQL injection
+            page_fragment = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
+        else:
+            page_fragment = ''
+
+        # sort by keys to ensure deterministic results
+        order_fragment = f'ORDER BY {", ".join(self.key_names)}'
 
         if where is None:
-            cursor.execute(f'SELECT * FROM datasets {page_query}')
+            cursor.execute(f'SELECT * FROM datasets {order_fragment} {page_fragment}')
             rows = cursor.fetchall()
         else:
             if not all(key in self.key_names for key in where.keys()):
                 raise exceptions.InvalidKeyError('Encountered unrecognized keys in '
                                                  'where clause')
-            where_string = ' AND '.join([f'{key}=%s' for key in where.keys()])
+            where_fragment = ' AND '.join([f'{key}=%s' for key in where.keys()])
             cursor.execute(
-                f'SELECT * FROM datasets WHERE {where_string} {page_query}',
+                f'SELECT * FROM datasets WHERE {where_fragment} {order_fragment} {page_fragment}',
                 list(where.values())
             )
             rows = cursor.fetchall()
