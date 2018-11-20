@@ -292,7 +292,10 @@ class MySQLDriver(RasterDriver):
                 raise exceptions.InvalidKeyError('Encountered unrecognized keys in '
                                                  'where clause')
             where_string = ' AND '.join([f'{key}=%s' for key in where.keys()])
-            cursor.execute(f'SELECT * FROM datasets WHERE {where_string}', list(where.values()))
+            cursor.execute(
+                f'SELECT * FROM datasets WHERE {where_string} {page_query}',
+                list(where.values())
+            )
             rows = cursor.fetchall()
 
         if rows is None:

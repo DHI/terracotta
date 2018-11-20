@@ -82,6 +82,9 @@ def test_pagination(driver_path, provider, raster_file):
     data = db.get_datasets(limit=2, page=1)
     assert len(data) == 1
 
+    data = db.get_datasets(where=dict(some='some'), limit=1, page=0)
+    assert len(data) == 1
+
 
 @pytest.mark.parametrize('provider', DRIVERS)
 def test_lazy_loading(driver_path, provider, raster_file):
