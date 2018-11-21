@@ -17,10 +17,11 @@ from terracotta import exceptions, get_settings
 Number = TypeVar('Number', int, float)
 RGBA = Tuple[Number, Number, Number, Number]
 Palette = Sequence[RGBA]
+Array = TypeVar('Array', np.ndarray, np.ma.MaskedArray)
 
 
 @trace('array_to_png')
-def array_to_png(img_data: Union[np.ndarray, np.ma.MaskedArray],
+def array_to_png(img_data: Array,
                  colormap: Union[str, Palette, None] = None) -> BinaryIO:
     from terracotta.cmaps import get_cmap
 
@@ -111,10 +112,10 @@ def empty_image(size: Tuple[int, int]) -> BinaryIO:
 
 
 @trace('contrast_stretch')
-def contrast_stretch(data: Union[np.ndarray, np.ma.MaskedArray],
+def contrast_stretch(data: Array,
                      in_range: Sequence[Number],
                      out_range: Sequence[Number],
-                     clip: bool = True) -> np.ndarray:
+                     clip: bool = True) -> Array:
     """Normalize input array from in_range to out_range"""
     lower_bound_in, upper_bound_in = in_range
     lower_bound_out, upper_bound_out = out_range
@@ -132,13 +133,13 @@ def contrast_stretch(data: Union[np.ndarray, np.ma.MaskedArray],
     return out_data
 
 
-def to_uint8(data: np.ndarray, lower_bound: Number, upper_bound: Number) -> np.ndarray:
+def to_uint8(data: Array, lower_bound: Number, upper_bound: Number) -> Array:
     """Re-scale an array to [1, 255] and cast to uint8 (0 is used for transparency)"""
     rescaled = contrast_stretch(data, (lower_bound, upper_bound), (1, 255), clip=True)
     return rescaled.astype(np.uint8)
 
 
-def label(data: np.ndarray, labels: Sequence[Number]) -> np.ndarray:
+def label(data: Array, labels: Sequence[Number]) -> Array:
     """Create a labelled uint8 version of data, with output values starting at 1.
 
     Values not found in labels are replaced by 0.
