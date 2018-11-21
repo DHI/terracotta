@@ -67,7 +67,6 @@ class Driver(ABC):
           - range: global minimum and maximum value in dataset
           - bounds: physical bounds covered by dataset
           - convex_hull: GeoJSON shape specifying total data coverage
-          - nodata: data value denoting missing or invalid data
           - percentiles: array of pre-computed percentiles in range(1, 100)
           - mean: global mean
           - stdev: global standard deviation
@@ -80,7 +79,6 @@ class Driver(ABC):
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
                         tile_size: Sequence[int] = (256, 256),
-                        nodata: Number = 0,
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
         """Get raster tile as a NumPy array for given keys and bounds.

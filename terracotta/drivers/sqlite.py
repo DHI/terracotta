@@ -53,7 +53,6 @@ class SQLiteDriver(RasterDriver):
         ('bounds_south', 'REAL'),
         ('bounds_west', 'REAL'),
         ('convex_hull', 'VARCHAR[max]'),
-        ('nodata', 'REAL'),
         ('valid_percentage', 'REAL'),
         ('min', 'REAL'),
         ('max', 'REAL'),
@@ -239,7 +238,6 @@ class SQLiteDriver(RasterDriver):
             'bounds_south': decoded['bounds'][2],
             'bounds_west': decoded['bounds'][3],
             'convex_hull': json.dumps(decoded['convex_hull']),
-            'nodata': decoded['nodata'],
             'valid_percentage': decoded['valid_percentage'],
             'min': decoded['range'][0],
             'max': decoded['range'][1],
@@ -256,7 +254,6 @@ class SQLiteDriver(RasterDriver):
         decoded = {
             'bounds': tuple([encoded[f'bounds_{d}'] for d in ('north', 'east', 'south', 'west')]),
             'convex_hull': json.loads(encoded['convex_hull']),
-            'nodata': encoded['nodata'],
             'valid_percentage': encoded['valid_percentage'],
             'range': (encoded['min'], encoded['max']),
             'mean': encoded['mean'],

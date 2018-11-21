@@ -67,8 +67,7 @@ def test_bench_rgb(benchmark, zoom, resampling, big_raster_file, benchmark_datab
         DRIVER_PATH=str(benchmark_database),
         UPSAMPLING_METHOD=resampling,
         DOWNSAMPLING_METHOD=resampling,
-        RASTER_CACHE_SIZE=0,
-        METADATA_CACHE_SIZE=0
+        RASTER_CACHE_SIZE=0
     )
 
     zoom_level = ZOOM_XYZ[zoom]
@@ -90,8 +89,7 @@ def test_bench_rgb_out_of_bounds(benchmark, big_raster_file, benchmark_database)
 
     update_settings(
         DRIVER_PATH=str(benchmark_database),
-        RASTER_CACHE_SIZE=0,
-        METADATA_CACHE_SIZE=0
+        RASTER_CACHE_SIZE=0
     )
 
     x, y, z = 0, 0, 20
@@ -113,8 +111,7 @@ def test_bench_singleband(benchmark, zoom, resampling, big_raster_file, benchmar
         DRIVER_PATH=str(benchmark_database),
         UPSAMPLING_METHOD=resampling,
         DOWNSAMPLING_METHOD=resampling,
-        RASTER_CACHE_SIZE=0,
-        METADATA_CACHE_SIZE=0
+        RASTER_CACHE_SIZE=0
     )
 
     zoom_level = ZOOM_XYZ[zoom]
@@ -136,8 +133,7 @@ def test_bench_singleband_out_of_bounds(benchmark, benchmark_database):
 
     update_settings(
         DRIVER_PATH=str(benchmark_database),
-        RASTER_CACHE_SIZE=0,
-        METADATA_CACHE_SIZE=0
+        RASTER_CACHE_SIZE=0
     )
 
     x, y, z = 0, 0, 20

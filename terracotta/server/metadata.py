@@ -19,7 +19,6 @@ class MetadataSchema(Schema):
                          description='Physical bounds of dataset in WGS84 projection')
     convex_hull = fields.Dict(required=True,
                               description='GeoJSON representation of the dataset\'s convex hull')
-    nodata = fields.Number(allow_none=True, description='Nodata value (if given)')
     valid_percentage = fields.Number(description='Percentage of valid data in the dataset')
     range = fields.List(fields.Number(), validate=validate.Length(equal=2), required=True,
                         description='Minimum and maximum data value')

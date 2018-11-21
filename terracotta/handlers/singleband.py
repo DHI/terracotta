@@ -45,8 +45,6 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]],
             tile_size=tile_size, preserve_values=preserve_values
         )
 
-    valid_mask = image.get_valid_mask(tile_data, nodata=metadata['nodata'])
-
     if preserve_values:
         # bin output image into supplied labels, starting at 1
         colormap = cast(Mapping, colormap)
@@ -68,4 +66,4 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]],
         cmap_or_palette = cast(Optional[str], colormap)
         out = image.to_uint8(tile_data, *stretch_range_)
 
-    return image.array_to_png(out, transparency_mask=~valid_mask, colormap=cmap_or_palette)
+    return image.array_to_png(out, colormap=cmap_or_palette)

@@ -20,8 +20,7 @@ Palette = Sequence[RGBA]
 
 
 @trace('array_to_png')
-def array_to_png(arr: np.ndarray,
-                 transparency_mask: np.ndarray = None,
+def array_to_png(img_data: Union[np.ndarray, np.ma.MaskedArray],
                  colormap: Union[str, Palette, None] = None) -> BinaryIO:
     from terracotta.cmaps import get_cmap
 
@@ -30,8 +29,8 @@ def array_to_png(arr: np.ndarray,
     settings = get_settings()
     compress_level = settings.PNG_COMPRESS_LEVEL
 
-    if arr.ndim == 3:  # encode RGB image
-        if arr.shape[-1] != 3:
+    if img_data.ndim == 3:  # encode RGB image
+        if img_data.shape[-1] != 3:
             raise ValueError('3D input arrays must have three bands')
 
         if colormap is not None:
@@ -41,7 +40,7 @@ def array_to_png(arr: np.ndarray,
         transparency = (0, 0, 0)
         palette = None
 
-    elif arr.ndim == 2:  # encode paletted image
+    elif img_data.ndim == 2:  # encode paletted image
         mode = 'L'
 
         if colormap is not None:
@@ -84,13 +83,10 @@ def array_to_png(arr: np.ndarray,
             palette = None
             transparency = 0
 
-    if transparency_mask is not None:
-        if transparency_mask.ndim != 2 or transparency_mask.dtype != np.bool:
-            raise ValueError('Alpha mask has to be a 2D boolean array')
+    if isinstance(img_data, np.ma.MaskedArray):
+        img_data = img_data.filled(0)
 
-        arr[transparency_mask, ...] = 0
-
-    img = Image.fromarray(arr, mode=mode)
+    img = Image.fromarray(img_data, mode=mode)
 
     if palette is not None:
         img.putpalette(palette)
@@ -112,17 +108,6 @@ def empty_image(size: Tuple[int, int]) -> BinaryIO:
     img.save(sio, 'png', compress_level=compress_level, transparency=0)
     sio.seek(0)
     return sio
-
-
-def get_valid_mask(data: np.ndarray, nodata: Number) -> np.ndarray:
-    """Return mask for data, masking out nodata and invalid values"""
-    out = data != nodata
-
-    # also mask out other invalid values if float
-    if np.issubdtype(data.dtype, np.floating):
-        out &= np.isfinite(data)
-
-    return out
 
 
 @trace('contrast_stretch')

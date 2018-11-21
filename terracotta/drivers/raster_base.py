@@ -94,8 +94,7 @@ class RasterDriver(Driver):
         return out
 
     @staticmethod
-    def _compute_image_stats_chunked(dataset: 'DatasetReader',
-                                     nodata: Number) -> Optional[Dict[str, Any]]:
+    def _compute_image_stats_chunked(dataset: 'DatasetReader') -> Optional[Dict[str, Any]]:
         """Loop over chunks and accumulate statistics"""
         from rasterio import features, warp, windows
         from shapely import geometry
@@ -110,19 +109,17 @@ class RasterDriver(Driver):
         for w in block_windows:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
-                block_data = dataset.read(1, window=w)
+                block_data = dataset.read(1, window=w, masked=True)
 
             total_count += int(block_data.size)
-
-            valid_data_mask = image.get_valid_mask(block_data, nodata)
-            valid_data = block_data[valid_data_mask]
+            valid_data = block_data.compressed()
 
             if valid_data.size == 0:
                 continue
 
             valid_data_count += int(valid_data.size)
 
-            hull_candidates = RasterDriver._hull_candidate_mask(valid_data_mask)
+            hull_candidates = RasterDriver._hull_candidate_mask(block_data.mask)
             hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
                 np.ones(hull_candidates.shape, 'uint8'),
                 mask=hull_candidates,
@@ -151,7 +148,6 @@ class RasterDriver(Driver):
 
     @staticmethod
     def _compute_image_stats(dataset: 'DatasetReader',
-                             nodata: Number,
                              max_shape: Sequence[int] = None) -> Optional[Dict[str, Any]]:
         from rasterio import features, warp, transform
         from shapely import geometry
@@ -167,15 +163,13 @@ class RasterDriver(Driver):
         data_transform = transform.from_bounds(
             *dataset.bounds, height=out_shape[0], width=out_shape[1]
         )
-        raster_data = dataset.read(1, out_shape=out_shape)
-
-        valid_data_mask = image.get_valid_mask(raster_data, nodata)
-        valid_data = raster_data[valid_data_mask]
+        raster_data = dataset.read(1, out_shape=out_shape, masked=True)
+        valid_data = raster_data.compressed()
 
         if valid_data.size == 0:
             return None
 
-        hull_candidates = RasterDriver._hull_candidate_mask(valid_data_mask)
+        hull_candidates = RasterDriver._hull_candidate_mask(raster_data.mask)
         hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
             np.ones(hull_candidates.shape, 'uint8'),
             mask=hull_candidates,
@@ -228,7 +222,6 @@ class RasterDriver(Driver):
                 )
 
             with rasterio.open(raster_path) as src:
-                nodata = src.nodata or 0
                 bounds = warp.transform_bounds(
                     src.crs, 'epsg:4326', *src.bounds, densify_pts=21
                 )
@@ -251,9 +244,9 @@ class RasterDriver(Driver):
                     use_chunks = False
 
                 if use_chunks:
-                    raster_stats = RasterDriver._compute_image_stats_chunked(src, nodata)
+                    raster_stats = RasterDriver._compute_image_stats_chunked(src)
                 else:
-                    raster_stats = RasterDriver._compute_image_stats(src, nodata, max_shape)
+                    raster_stats = RasterDriver._compute_image_stats(src, max_shape)
 
         if raster_stats is None:
             raise ValueError(f'Raster file {raster_path} does not contain any valid data')
@@ -261,7 +254,6 @@ class RasterDriver(Driver):
         row_data.update(raster_stats)
 
         row_data['bounds'] = bounds
-        row_data['nodata'] = nodata
         row_data['metadata'] = extra_metadata
 
         return row_data
@@ -347,6 +339,7 @@ class RasterDriver(Driver):
         import rasterio
         from rasterio import transform, windows, warp
         from rasterio.vrt import WarpedVRT
+        from rasterio.enums import MaskFlags
 
         dst_bounds: Tuple[float, float, float, float]
 
@@ -355,6 +348,9 @@ class RasterDriver(Driver):
         else:
             upsampling_enum = self._get_resampling_enum(upsampling_method)
             downsampling_enum = self._get_resampling_enum(downsampling_method)
+
+        def has_alpha_band(src: rasterio.DatasetReader) -> bool:
+            return any([MaskFlags.per_dataset in flags for flags in src.mask_flag_enums])
 
         with contextlib.ExitStack() as es:
             es.enter_context(rasterio.Env(**self.RIO_ENV_KEYS))
@@ -393,10 +389,15 @@ class RasterDriver(Driver):
             )
 
             # construct VRT
+            vrt_args = {}
+            if has_alpha_band(src):
+                vrt_args.update(add_alpha=True, src_nodata=None)
+
             vrt = es.enter_context(
                 WarpedVRT(
                     src, crs=self.TARGET_CRS, resampling=upsampling_enum,
                     transform=vrt_transform, width=vrt_width, height=vrt_height,
+                    **vrt_args
                 )
             )
 
@@ -420,11 +421,21 @@ class RasterDriver(Driver):
             # read data
             with warnings.catch_warnings(), trace('read_from_vrt'):
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
-                arr = vrt.read(
+                tile_data = vrt.read(
                     1, resampling=resampling_enum, window=out_window, out_shape=tile_size
                 )
 
-        return arr
+                if has_alpha_band(src):
+                    mask_idx = src.count + 1
+                    mask = np.logical_not(
+                        vrt.read(mask_idx, window=out_window, out_shape=tile_size)
+                    )
+                elif vrt.nodata is not None:
+                    mask = tile_data != vrt.nodata
+                else:
+                    mask = np.ma.nomask
+
+        return np.ma.masked_array(tile_data, mask=mask)
 
     # return type has to be Any until mypy supports conditional return types
     @requires_connection
