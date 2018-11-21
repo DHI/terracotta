@@ -123,7 +123,7 @@ def contrast_stretch(data: np.ndarray,
     if abs(norm) < 1e-8:  # prevent division by zero
         return np.full(data.shape, lower_bound_out, dtype='float64')
 
-    out_data = data.astype('float64', copy=True)
+    out_data = data.astype('float64').copy()
     out_data -= lower_bound_in
     out_data *= (upper_bound_out - lower_bound_out) / norm
     out_data += lower_bound_out
