@@ -120,10 +120,9 @@ def contrast_stretch(data: Union[np.ndarray, np.ma.MaskedArray],
     lower_bound_out, upper_bound_out = out_range
 
     out_data = data.astype('float64', copy=True)
-    norm = upper_bound_in - lower_bound_in
     out_data -= lower_bound_in
+    norm = upper_bound_in - lower_bound_in
     if abs(norm) > 1e-8:  # prevent division by 0
-        raise
         out_data *= (upper_bound_out - lower_bound_out) / norm
     out_data += lower_bound_out
 
