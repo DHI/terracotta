@@ -84,7 +84,6 @@ def array_to_png(img_data: Union[np.ndarray, np.ma.MaskedArray],
             assert palette.shape == (3 * 256,), palette.shape
 
     if isinstance(img_data, np.ma.MaskedArray):
-        print('compressing')
         img_data = img_data.filled(0)
 
     img = Image.fromarray(img_data, mode=mode)
