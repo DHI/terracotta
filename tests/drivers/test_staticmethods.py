@@ -88,8 +88,8 @@ def test_compute_metadata_approximate(big_raster_file):
     np.testing.assert_allclose(
         mtd['range'], (valid_data.min(), valid_data.max()), atol=valid_data.max() / 100
     )
-    np.testing.assert_allclose(mtd['mean'], valid_data.mean(), rtol=0.01)
-    np.testing.assert_allclose(mtd['stdev'], valid_data.std(), rtol=0.01)
+    np.testing.assert_allclose(mtd['mean'], valid_data.mean(), rtol=0.02)
+    np.testing.assert_allclose(mtd['stdev'], valid_data.std(), rtol=0.02)
 
     np.testing.assert_allclose(
         mtd['percentiles'],

@@ -43,7 +43,10 @@ def array_to_png(img_data: Union[np.ndarray, np.ma.MaskedArray],
     elif img_data.ndim == 2:  # encode paletted image
         mode = 'L'
 
-        if colormap is not None:
+        if colormap is None:
+            palette = None
+            transparency = 0
+        else:
             if isinstance(colormap, str):
                 # get and apply colormap by name
                 try:
@@ -79,11 +82,9 @@ def array_to_png(img_data: Union[np.ndarray, np.ma.MaskedArray],
                 )).tobytes()
 
             assert palette.shape == (3 * 256,), palette.shape
-        else:
-            palette = None
-            transparency = 0
 
     if isinstance(img_data, np.ma.MaskedArray):
+        print('compressing')
         img_data = img_data.filled(0)
 
     img = Image.fromarray(img_data, mode=mode)

@@ -28,7 +28,7 @@ try:
 except ImportError:
     has_crick = False
 
-from terracotta import get_settings, exceptions, image
+from terracotta import get_settings, exceptions
 from terracotta.drivers.base import requires_connection, Driver
 from terracotta.profile import trace
 
@@ -119,7 +119,7 @@ class RasterDriver(Driver):
 
             valid_data_count += int(valid_data.size)
 
-            hull_candidates = RasterDriver._hull_candidate_mask(block_data.mask)
+            hull_candidates = RasterDriver._hull_candidate_mask(~block_data.mask)
             hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
                 np.ones(hull_candidates.shape, 'uint8'),
                 mask=hull_candidates,
@@ -169,7 +169,7 @@ class RasterDriver(Driver):
         if valid_data.size == 0:
             return None
 
-        hull_candidates = RasterDriver._hull_candidate_mask(raster_data.mask)
+        hull_candidates = RasterDriver._hull_candidate_mask(~raster_data.mask)
         hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
             np.ones(hull_candidates.shape, 'uint8'),
             mask=hull_candidates,
@@ -389,7 +389,7 @@ class RasterDriver(Driver):
             )
 
             # construct VRT
-            vrt_args = {}
+            vrt_args: Dict[str, Any] = {}
             if has_alpha_band(src):
                 vrt_args.update(add_alpha=True, src_nodata=None)
 

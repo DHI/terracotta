@@ -22,7 +22,6 @@ def test_colormap_consistency(use_testdb, testdb, raster_file_xyz,
     from terracotta.xyz import get_tile_data
     from terracotta.handlers import singleband, colormap
 
-    nodata = 10000
     ds_keys = ['val21', 'x', 'val22']
 
     # get image with applied stretch and colormap
@@ -46,7 +45,7 @@ def test_colormap_consistency(use_testdb, testdb, raster_file_xyz,
     cmap = dict(row.values() for row in cmap)
 
     # test nodata
-    nodata_mask = tile_data == nodata
+    nodata_mask = tile_data.mask
     assert np.all(img_data[nodata_mask, -1] == 0)
 
     # test clipping
@@ -57,10 +56,9 @@ def test_colormap_consistency(use_testdb, testdb, raster_file_xyz,
     assert np.all(img_data[above_mask & ~nodata_mask, :-1] == cmap[stretch_range[1]])
 
     # test values inside stretch_range
-    values_to_test = np.unique(tile_data)
+    values_to_test = np.unique(tile_data.compressed())
     values_to_test = values_to_test[(values_to_test >= stretch_range[0])
-                                    & (values_to_test <= stretch_range[1])
-                                    & (values_to_test != nodata)]
+                                    & (values_to_test <= stretch_range[1])]
 
     for val in values_to_test:
         rgb = cmap[val]

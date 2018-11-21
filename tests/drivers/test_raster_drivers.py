@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 DRIVERS = ['sqlite', 'mysql']
-METADATA_KEYS = ('bounds', 'nodata', 'range', 'mean', 'stdev', 'percentiles', 'metadata')
+METADATA_KEYS = ('bounds', 'range', 'mean', 'stdev', 'percentiles', 'metadata')
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
