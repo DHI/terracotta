@@ -111,7 +111,7 @@ def empty_image(size: Tuple[int, int]) -> BinaryIO:
 
 
 @trace('contrast_stretch')
-def contrast_stretch(data: np.ndarray,
+def contrast_stretch(data: Union[np.ndarray, np.ma.MaskedArray],
                      in_range: Sequence[Number],
                      out_range: Sequence[Number],
                      clip: bool = True) -> np.ndarray:
@@ -119,13 +119,12 @@ def contrast_stretch(data: np.ndarray,
     lower_bound_in, upper_bound_in = in_range
     lower_bound_out, upper_bound_out = out_range
 
+    out_data = data.astype('float64', copy=True)
     norm = upper_bound_in - lower_bound_in
-    if abs(norm) < 1e-8:  # prevent division by zero
-        return np.full(data.shape, lower_bound_out, dtype='float64')
-
-    out_data = data.astype('float64').copy()
     out_data -= lower_bound_in
-    out_data *= (upper_bound_out - lower_bound_out) / norm
+    if abs(norm) > 1e-8:  # prevent division by 0
+        raise
+        out_data *= (upper_bound_out - lower_bound_out) / norm
     out_data += lower_bound_out
 
     if clip:

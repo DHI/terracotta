@@ -54,7 +54,7 @@ def test_rgb_lowzoom(use_testdb, raster_file, raster_file_xyz_lowzoom):
         assert 'data covers less than' in str(excinfo.value)
 
 
-@pytest.mark.parametrize('stretch_range', [[0, 20000], [10000, 20000], [-50000, 50000]])
+@pytest.mark.parametrize('stretch_range', [[0, 20000], [10000, 20000], [-50000, 50000], [100, 100]])
 def test_rgb_stretch(stretch_range, use_testdb, testdb, raster_file_xyz):
     import terracotta
     from terracotta.xyz import get_tile_data

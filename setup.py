@@ -24,7 +24,7 @@ setup(
         'flask_cors',
         'marshmallow>=3.0.0b12',
         'mercantile',
-        'numpy',
+        'numpy>=1.15',
         'pillow',
         'shapely',
         'rasterio>=1.0',
