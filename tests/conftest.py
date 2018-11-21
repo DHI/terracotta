@@ -189,36 +189,6 @@ def big_raster_file(tmpdir_factory):
 
 
 @pytest.fixture(scope='session')
-def big_raster_file_3857(tmpdir_factory, big_raster_file):
-    import rasterio.warp
-    from terracotta.drivers.raster_base import RasterDriver
-
-    target_crs = RasterDriver.TARGET_CRS
-    outpath = tmpdir_factory.mktemp('raster')
-    unoptimized_raster = outpath.join('img-raw.tif')
-
-    with rasterio.open(str(big_raster_file)) as src:
-        out_transform, out_width, out_height = RasterDriver._calculate_default_transform(
-            src.crs, target_crs, src.width, src.height, *src.bounds
-        )
-        out_profile = src.profile.copy()
-        out_profile.update(
-            width=out_width,
-            height=out_height,
-            crs=target_crs,
-            transform=out_transform
-        )
-
-        with rasterio.open(str(unoptimized_raster), 'w', **out_profile) as dst:
-            rasterio.warp.reproject(rasterio.band(src, 1), rasterio.band(dst, 1))
-
-    optimized_raster = outpath.join('img.tif')
-    cloud_optimize(unoptimized_raster, optimized_raster)
-
-    return optimized_raster
-
-
-@pytest.fixture(scope='session')
 def unoptimized_raster_file(tmpdir_factory):
     import affine
 
@@ -297,7 +267,7 @@ def raster_file_xyz(raster_file):
     raster_center_x = (raster_bounds[0] + raster_bounds[2]) / 2
     raster_center_y = (raster_bounds[1] + raster_bounds[3]) / 2
 
-    zoom = 12
+    zoom = 14
     tile = mercantile.tile(raster_center_x, raster_center_y, zoom)
     return (tile.x, tile.y, zoom)
 

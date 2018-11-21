@@ -82,20 +82,22 @@ def test_compute_metadata_approximate(big_raster_file):
     convex_hull = MultiPolygon([shape(s['geometry']) for s in dataset_shape]).convex_hull
 
     # compare
-    mtd = RasterDriver.compute_metadata(str(big_raster_file), max_shape=(256, 256))
+    mtd = RasterDriver.compute_metadata(str(big_raster_file), max_shape=(512, 512))
 
     np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size, atol=1)
-    np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()), atol=10)
+    np.testing.assert_allclose(
+        mtd['range'], (valid_data.min(), valid_data.max()), atol=valid_data.max() / 100
+    )
     np.testing.assert_allclose(mtd['mean'], valid_data.mean(), rtol=0.01)
     np.testing.assert_allclose(mtd['stdev'], valid_data.std(), rtol=0.01)
 
     np.testing.assert_allclose(
         mtd['percentiles'],
         np.percentile(valid_data, np.arange(1, 100)),
-        rtol=0.1
+        atol=valid_data.max() / 100, rtol=0.05
     )
 
-    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 0.01
+    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 0.1
 
 
 def test_compute_metadata_invalid_options(big_raster_file):

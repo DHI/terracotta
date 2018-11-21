@@ -27,7 +27,7 @@ setup(
         'numpy',
         'pillow',
         'shapely',
-        'rasterio>=1.0,<1.0.7',
+        'rasterio>=1.0',
         'shapely',
         'toml',
         'tqdm'

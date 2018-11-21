@@ -16,10 +16,10 @@ ZOOM_XYZ = {
 
 
 @pytest.fixture(scope='session')
-def cached_benchmark_database(big_raster_file, big_raster_file_3857, tmpdir_factory):
+def cached_benchmark_database(big_raster_file, tmpdir_factory):
     from terracotta import get_driver
 
-    keys = ['crs', 'band']
+    keys = ['band']
 
     dbpath = tmpdir_factory.mktemp('db').join('db-readonly.sqlite')
     driver = get_driver(dbpath, provider='sqlite')
@@ -28,10 +28,9 @@ def cached_benchmark_database(big_raster_file, big_raster_file_3857, tmpdir_fact
     mtd = driver.compute_metadata(str(big_raster_file))
 
     with driver.connect():
-        driver.insert(['native', '1'], str(big_raster_file), metadata=mtd)
-        driver.insert(['native', '2'], str(big_raster_file), metadata=mtd)
-        driver.insert(['native', '3'], str(big_raster_file), metadata=mtd)
-        driver.insert(['3857', '1'], str(big_raster_file_3857))
+        driver.insert(['1'], str(big_raster_file), metadata=mtd)
+        driver.insert(['2'], str(big_raster_file), metadata=mtd)
+        driver.insert(['3'], str(big_raster_file), metadata=mtd)
 
     return dbpath
 
@@ -60,7 +59,7 @@ def get_xyz(raster_file, zoom):
 
 @pytest.mark.parametrize('resampling', ['nearest', 'linear', 'cubic', 'average'])
 @pytest.mark.parametrize('zoom', ZOOM_XYZ.keys())
-def test_bench_rgb(benchmark, zoom, resampling, raster_file, benchmark_database):
+def test_bench_rgb(benchmark, zoom, resampling, big_raster_file, benchmark_database):
     from terracotta.server import create_app
     from terracotta import update_settings
 
@@ -77,15 +76,15 @@ def test_bench_rgb(benchmark, zoom, resampling, raster_file, benchmark_database)
     flask_app = create_app()
     with flask_app.test_client() as client:
         if zoom_level is not None:
-            x, y, z = get_xyz(raster_file, zoom_level)
-            rv = benchmark(client.get, f'/rgb/native/{z}/{x}/{y}.png?r=1&g=2&b=3')
+            x, y, z = get_xyz(big_raster_file, zoom_level)
+            rv = benchmark(client.get, f'/rgb/{z}/{x}/{y}.png?r=1&g=2&b=3')
         else:
-            rv = benchmark(client.get, f'/rgb/native/preview.png?r=1&g=2&b=3')
+            rv = benchmark(client.get, f'/rgb/preview.png?r=1&g=2&b=3')
 
     assert rv.status_code == 200
 
 
-def test_bench_rgb_out_of_bounds(benchmark, raster_file, benchmark_database):
+def test_bench_rgb_out_of_bounds(benchmark, big_raster_file, benchmark_database):
     from terracotta.server import create_app
     from terracotta import update_settings
 
@@ -99,16 +98,14 @@ def test_bench_rgb_out_of_bounds(benchmark, raster_file, benchmark_database):
 
     flask_app = create_app()
     with flask_app.test_client() as client:
-        rv = benchmark(client.get, f'/rgb/native/{z}/{x}/{y}.png?r=1&g=2&b=3')
+        rv = benchmark(client.get, f'/rgb/{z}/{x}/{y}.png?r=1&g=2&b=3')
 
     assert rv.status_code == 200
 
 
 @pytest.mark.parametrize('resampling', ['nearest', 'linear', 'cubic', 'average'])
 @pytest.mark.parametrize('zoom', ZOOM_XYZ.keys())
-@pytest.mark.parametrize('crs', ['native', '3857'])
-def test_bench_singleband(benchmark, crs, zoom, resampling, raster_file, raster_file_3857,
-                          benchmark_database):
+def test_bench_singleband(benchmark, zoom, resampling, big_raster_file, benchmark_database):
     from terracotta.server import create_app
     from terracotta import update_settings
 
@@ -125,15 +122,15 @@ def test_bench_singleband(benchmark, crs, zoom, resampling, raster_file, raster_
     flask_app = create_app()
     with flask_app.test_client() as client:
         if zoom_level is not None:
-            x, y, z = get_xyz(raster_file, zoom_level)
-            rv = benchmark(client.get, f'/singleband/{crs}/1/{z}/{x}/{y}.png')
+            x, y, z = get_xyz(big_raster_file, zoom_level)
+            rv = benchmark(client.get, f'/singleband/1/{z}/{x}/{y}.png')
         else:
-            rv = benchmark(client.get, f'/singleband/{crs}/1/preview.png')
+            rv = benchmark(client.get, f'/singleband/1/preview.png')
 
     assert rv.status_code == 200
 
 
-def test_bench_singleband_out_of_bounds(benchmark, raster_file, benchmark_database):
+def test_bench_singleband_out_of_bounds(benchmark, benchmark_database):
     from terracotta.server import create_app
     from terracotta import update_settings
 
@@ -147,7 +144,7 @@ def test_bench_singleband_out_of_bounds(benchmark, raster_file, benchmark_databa
 
     flask_app = create_app()
     with flask_app.test_client() as client:
-        rv = benchmark(client.get, f'/singleband/native/1/{z}/{x}/{y}.png')
+        rv = benchmark(client.get, f'/singleband/1/{z}/{x}/{y}.png')
 
     assert rv.status_code == 200
 

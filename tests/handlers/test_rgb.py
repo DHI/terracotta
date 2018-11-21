@@ -61,6 +61,7 @@ def test_rgb_stretch(stretch_range, use_testdb, testdb, raster_file_xyz):
     from terracotta.handlers import rgb
 
     ds_keys = ['val21', 'x', 'val22']
+    nodata = 10000
 
     raw_img = rgb.rgb(ds_keys[:2], ['val22', 'val23', 'val24'], raster_file_xyz,
                       stretch_ranges=[stretch_range] * 3)
@@ -74,7 +75,7 @@ def test_rgb_stretch(stretch_range, use_testdb, testdb, raster_file_xyz):
                                   tile_size=img_data.shape)
 
     # filter transparent values
-    valid_mask = tile_data != 0
+    valid_mask = tile_data != nodata
     assert np.all(img_data[~valid_mask] == 0)
 
     valid_img = img_data[valid_mask]
@@ -82,7 +83,8 @@ def test_rgb_stretch(stretch_range, use_testdb, testdb, raster_file_xyz):
 
     assert np.all(valid_img[valid_data < stretch_range[0]] == 1)
     stretch_range_mask = (valid_data > stretch_range[0]) & (valid_data < stretch_range[1])
-    assert not np.any(np.isin(valid_img[stretch_range_mask], [1, 255]))
+    assert np.all(valid_img[stretch_range_mask] >= 1)
+    assert np.all(valid_img[stretch_range_mask] <= 255)
     assert np.all(valid_img[valid_data > stretch_range[1]] == 255)
 
 

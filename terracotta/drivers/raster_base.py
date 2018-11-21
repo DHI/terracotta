@@ -345,7 +345,7 @@ class RasterDriver(Driver):
         Heavily inspired by mapbox/rio-tiler
         """
         import rasterio
-        from rasterio import transform, windows, crs
+        from rasterio import transform, windows, warp
         from rasterio.vrt import WarpedVRT
 
         dst_bounds: Tuple[float, float, float, float]
@@ -364,63 +364,55 @@ class RasterDriver(Driver):
             except OSError:
                 raise IOError('error while reading file {}'.format(path))
 
-            extra_args: Dict = {}
+            # compute suggested resolution and bounds in target CRS
+            dst_transform, _, _ = self._calculate_default_transform(
+                src.crs, self.TARGET_CRS, src.width, src.height, *src.bounds
+            )
+            dst_res = (dst_transform.a, dst_transform.e)
+            dst_bounds = warp.transform_bounds(src.crs, self.TARGET_CRS, *src.bounds)
 
-            if src.crs != crs.CRS(init=self.TARGET_CRS):
-                logger.debug(f'Constructing VRT for {path}')
-                # compute default bounds and transform in target CRS
-                dst_transform, dst_width, dst_height = self._calculate_default_transform(
-                    src.crs, self.TARGET_CRS, src.width, src.height, *src.bounds
+            if bounds is None:
+                bounds = dst_bounds
+
+            # pad tile bounds by 2 pixels to prevent interpolation artefacts
+            vrt_bounds = [
+                bounds[0] - 2 * dst_res[0],
+                bounds[1] + 2 * dst_res[1],
+                bounds[2] + 2 * dst_res[0],
+                bounds[3] - 2 * dst_res[1]
+            ]
+
+            # compute tile VRT shape and transform
+            vrt_width = max(1, round((vrt_bounds[2] - vrt_bounds[0]) / dst_res[0]))
+            vrt_height = max(1, round((vrt_bounds[1] - vrt_bounds[3]) / dst_res[1]))
+            vrt_transform = transform.from_bounds(*vrt_bounds, width=vrt_width, height=vrt_height)
+
+            # remove padding in output
+            out_window = windows.Window(
+                col_off=2, row_off=2, width=vrt_width - 4, height=vrt_height - 4
+            )
+
+            # construct VRT
+            vrt = es.enter_context(
+                WarpedVRT(
+                    src, crs=self.TARGET_CRS, resampling=upsampling_enum,
+                    transform=vrt_transform, width=vrt_width, height=vrt_height,
                 )
-                dst_res = (dst_transform.a, dst_transform.e)
-                dst_bounds = transform.array_bounds(dst_height, dst_width, dst_transform)
+            )
 
-                if bounds is None:
-                    bounds = dst_bounds
+            # prevent loads of very sparse data
+            out_window_bounds = windows.bounds(out_window, vrt_transform)
+            cover_ratio = (
+                (dst_bounds[2] - dst_bounds[0]) / (out_window_bounds[2] - out_window_bounds[0])
+                * (dst_bounds[1] - dst_bounds[3]) / (out_window_bounds[1] - out_window_bounds[3])
+            )
 
-                # update bounds to fit the whole tile
-                vrt_bounds = [
-                    min(dst_bounds[0], bounds[0]),
-                    min(dst_bounds[1], bounds[1]),
-                    max(dst_bounds[2], bounds[2]),
-                    max(dst_bounds[3], bounds[3])
-                ]
-
-                # re-compute shape and transform with updated bounds
-                vrt_width = math.ceil((vrt_bounds[2] - vrt_bounds[0]) / dst_res[0])
-                vrt_height = math.ceil((vrt_bounds[1] - vrt_bounds[3]) / dst_res[1])
-                vrt_transform = transform.from_bounds(
-                    *vrt_bounds, width=vrt_width, height=vrt_height
-                )
-
-                # construct VRT
-                vrt = es.enter_context(
-                    WarpedVRT(
-                        src, crs=self.TARGET_CRS, resampling=upsampling_enum,
-                        transform=vrt_transform, width=vrt_width, height=vrt_height
-                    )
-                )
-            else:
-                logger.debug(f'Raster file {path} is already in target CRS')
-                vrt, vrt_transform = src, src.transform
-                dst_height, dst_width = src.shape
-                if bounds is None:
-                    bounds = src.bounds
-                extra_args.update(boundless=True, fill_value=src.nodata)
-                if upsampling_method != 'nearest':
-                    raise
-
-            # compute output window
-            out_window = windows.from_bounds(*bounds, transform=vrt_transform)
-
-            # prevent expensive loads of very sparse data
-            window_ratio = dst_width / out_window.width * dst_height / out_window.height
-
-            if window_ratio < 0.001:
-                raise exceptions.TileOutOfBoundsError('data covers less than 0.1% of tile')
+            if cover_ratio < 0.01:
+                raise exceptions.TileOutOfBoundsError('dataset covers less than 1% of tile')
 
             # determine whether we are upsampling or downsampling
-            if window_ratio > 1:
+            pixel_ratio = min(out_window.width / tile_size[1], out_window.height / tile_size[0])
+            if pixel_ratio < 1:
                 resampling_enum = upsampling_enum
             else:
                 resampling_enum = downsampling_enum
@@ -428,13 +420,9 @@ class RasterDriver(Driver):
             # read data
             with warnings.catch_warnings(), trace('read_from_vrt'):
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
-                warnings.filterwarnings('ignore', message='Dataset has no geotransform set.*')
                 arr = vrt.read(
-                    1, resampling=resampling_enum, window=out_window,
-                    out_shape=tile_size, **extra_args
+                    1, resampling=resampling_enum, window=out_window, out_shape=tile_size
                 )
-
-            assert arr.shape == tile_size, arr.shape
 
         return arr
 
