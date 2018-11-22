@@ -164,6 +164,11 @@ class RasterDriver(Driver):
             *dataset.bounds, height=out_shape[0], width=out_shape[1]
         )
         raster_data = dataset.read(1, out_shape=out_shape, masked=True)
+
+        if dataset.profile['nodata'] is not None:
+            # nodata values might slip into output array if out_shape < dataset.shape
+            raster_data[raster_data == dataset.profile['nodata']] = np.ma.masked
+
         valid_data = raster_data.compressed()
 
         if valid_data.size == 0:
