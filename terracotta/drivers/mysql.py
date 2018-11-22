@@ -291,7 +291,6 @@ class MySQLDriver(RasterDriver):
 
         if where is None:
             cursor.execute(f'SELECT * FROM datasets {order_fragment} {page_fragment}')
-            rows = cursor.fetchall()
         else:
             if not all(key in self.key_names for key in where.keys()):
                 raise exceptions.InvalidKeyError('Encountered unrecognized keys in '
@@ -301,15 +300,11 @@ class MySQLDriver(RasterDriver):
                 f'SELECT * FROM datasets WHERE {where_fragment} {order_fragment} {page_fragment}',
                 list(where.values())
             )
-            rows = cursor.fetchall()
-
-        if rows is None:
-            rows = tuple()
 
         def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
 
-        return {keytuple(row): row['filepath'] for row in rows}
+        return {keytuple(row): row['filepath'] for row in cursor}
 
     @staticmethod
     def _encode_data(decoded: Mapping[str, Any]) -> Dict[str, Any]:

@@ -396,7 +396,7 @@ class RasterDriver(Driver):
             # construct VRT
             vrt_args: Dict[str, Any] = {}
             if has_alpha_band(src):
-                vrt_args.update(add_alpha=True, src_nodata=None)
+                vrt_args.update(add_alpha=True)
 
             vrt = es.enter_context(
                 WarpedVRT(
@@ -429,16 +429,12 @@ class RasterDriver(Driver):
                 tile_data = vrt.read(
                     1, resampling=resampling_enum, window=out_window, out_shape=tile_size
                 )
-
+                mask = False
                 if has_alpha_band(src):
                     mask_idx = src.count + 1
-                    mask = np.logical_not(
-                        vrt.read(mask_idx, window=out_window, out_shape=tile_size)
-                    )
-                elif vrt.nodata is not None:
-                    mask = tile_data != vrt.nodata
-                else:
-                    mask = np.ma.nomask
+                    mask |= vrt.read(mask_idx, window=out_window, out_shape=tile_size) == 0
+                if vrt.nodata is not None:
+                    mask |= tile_data == vrt.nodata
 
         return np.ma.masked_array(tile_data, mask=mask)
 

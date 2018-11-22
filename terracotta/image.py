@@ -23,6 +23,7 @@ Array = TypeVar('Array', np.ndarray, np.ma.MaskedArray)
 @trace('array_to_png')
 def array_to_png(img_data: Array,
                  colormap: Union[str, Palette, None] = None) -> BinaryIO:
+    """Encode an 8bit array as PNG"""
     from terracotta.cmaps import get_cmap
 
     transparency: Union[Tuple[int, int, int], int, bytes]

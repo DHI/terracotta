@@ -221,9 +221,6 @@ class SQLiteDriver(RasterDriver):
                 list(where.values())
             )
 
-        if rows is None:
-            rows = tuple()
-
         def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
 
