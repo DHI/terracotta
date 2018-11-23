@@ -7,8 +7,8 @@ import pytest
 from click.testing import CliRunner
 
 ZOOM_XYZ = {
-    'birds-eye': 6,
-    'subpixel': 22,
+    'birds-eye': 8,
+    'subpixel': 21,
     'preview': None
 }
 
@@ -94,8 +94,7 @@ def test_bench_rgb_out_of_bounds(benchmark, big_raster_file_nodata, benchmark_da
 
 @pytest.mark.parametrize('resampling', ['nearest', 'linear', 'cubic', 'average'])
 @pytest.mark.parametrize('zoom', ZOOM_XYZ.keys())
-def test_bench_singleband(benchmark, raster_type, zoom, resampling,
-                          big_raster_file_nodata, benchmark_database):
+def test_bench_singleband(benchmark, zoom, resampling, big_raster_file_nodata, benchmark_database):
     from terracotta.server import create_app
     from terracotta import update_settings
 

@@ -126,16 +126,16 @@ def big_raster_file_nodata(tmpdir_factory):
     import affine
 
     np.random.seed(17)
-    raster_data = np.random.randint(0, np.iinfo(np.uint16).max, size=(10000, 10000), dtype='uint16')
+    raster_data = np.random.randint(0, np.iinfo(np.uint16).max, size=(2048, 2048), dtype='uint16')
     nodata = 10000
 
     # include some big nodata regions
     ix, iy = np.indices(raster_data.shape)
     circular_mask = np.sqrt((ix - raster_data.shape[0] / 2) ** 2
-                            + (iy - raster_data.shape[1] / 2) ** 2) > 4000
+                            + (iy - raster_data.shape[1] / 2) ** 2) > 1000
     raster_data[circular_mask] = nodata
-    raster_data[2000:6000, 4000:8000] = nodata
-    raster_data[5000, :] = nodata
+    raster_data[500:1000, 1000:2000] = nodata
+    raster_data[1200, :] = nodata
 
     profile = {
         'driver': 'GTiff',
@@ -146,8 +146,8 @@ def big_raster_file_nodata(tmpdir_factory):
         'count': 1,
         'crs': {'init': 'epsg:32637'},
         'transform': affine.Affine(
-            2.0, 0.0, 694920.0,
-            0.0, -2.0, 2055666.0
+            10.0, 0.0, 694920.0,
+            0.0, -10.0, 2055666.0
         )
     }
 
