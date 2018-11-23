@@ -94,7 +94,6 @@ def test_bench_rgb_out_of_bounds(benchmark, big_raster_file_nodata, benchmark_da
 
 @pytest.mark.parametrize('resampling', ['nearest', 'linear', 'cubic', 'average'])
 @pytest.mark.parametrize('zoom', ZOOM_XYZ.keys())
-@pytest.mark.parametrize('raster_type', ['nodata', 'mask'])
 def test_bench_singleband(benchmark, raster_type, zoom, resampling,
                           big_raster_file_nodata, benchmark_database):
     from terracotta.server import create_app
@@ -113,9 +112,9 @@ def test_bench_singleband(benchmark, raster_type, zoom, resampling,
     with flask_app.test_client() as client:
         if zoom_level is not None:
             x, y, z = get_xyz(big_raster_file_nodata, zoom_level)
-            rv = benchmark(client.get, f'/singleband/{raster_type}/1/{z}/{x}/{y}.png')
+            rv = benchmark(client.get, f'/singleband/nodata/1/{z}/{x}/{y}.png')
         else:
-            rv = benchmark(client.get, f'/singleband/{raster_type}/1/preview.png')
+            rv = benchmark(client.get, f'/singleband/nodata/1/preview.png')
 
     assert rv.status_code == 200
 
