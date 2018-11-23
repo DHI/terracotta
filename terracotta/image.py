@@ -17,12 +17,13 @@ from terracotta import exceptions, get_settings
 Number = TypeVar('Number', int, float)
 RGBA = Tuple[Number, Number, Number, Number]
 Palette = Sequence[RGBA]
+Array = TypeVar('Array', np.ndarray, np.ma.MaskedArray)
 
 
 @trace('array_to_png')
-def array_to_png(arr: np.ndarray,
-                 transparency_mask: np.ndarray = None,
+def array_to_png(img_data: Array,
                  colormap: Union[str, Palette, None] = None) -> BinaryIO:
+    """Encode an 8bit array as PNG"""
     from terracotta.cmaps import get_cmap
 
     transparency: Union[Tuple[int, int, int], int, bytes]
@@ -30,8 +31,8 @@ def array_to_png(arr: np.ndarray,
     settings = get_settings()
     compress_level = settings.PNG_COMPRESS_LEVEL
 
-    if arr.ndim == 3:  # encode RGB image
-        if arr.shape[-1] != 3:
+    if img_data.ndim == 3:  # encode RGB image
+        if img_data.shape[-1] != 3:
             raise ValueError('3D input arrays must have three bands')
 
         if colormap is not None:
@@ -41,10 +42,13 @@ def array_to_png(arr: np.ndarray,
         transparency = (0, 0, 0)
         palette = None
 
-    elif arr.ndim == 2:  # encode paletted image
+    elif img_data.ndim == 2:  # encode paletted image
         mode = 'L'
 
-        if colormap is not None:
+        if colormap is None:
+            palette = None
+            transparency = 0
+        else:
             if isinstance(colormap, str):
                 # get and apply colormap by name
                 try:
@@ -80,17 +84,11 @@ def array_to_png(arr: np.ndarray,
                 )).tobytes()
 
             assert palette.shape == (3 * 256,), palette.shape
-        else:
-            palette = None
-            transparency = 0
 
-    if transparency_mask is not None:
-        if transparency_mask.ndim != 2 or transparency_mask.dtype != np.bool:
-            raise ValueError('Alpha mask has to be a 2D boolean array')
+    if isinstance(img_data, np.ma.MaskedArray):
+        img_data = img_data.filled(0)
 
-        arr[transparency_mask, ...] = 0
-
-    img = Image.fromarray(arr, mode=mode)
+    img = Image.fromarray(img_data, mode=mode)
 
     if palette is not None:
         img.putpalette(palette)
@@ -114,33 +112,20 @@ def empty_image(size: Tuple[int, int]) -> BinaryIO:
     return sio
 
 
-def get_valid_mask(data: np.ndarray, nodata: Number) -> np.ndarray:
-    """Return mask for data, masking out nodata and invalid values"""
-    out = data != nodata
-
-    # also mask out other invalid values if float
-    if np.issubdtype(data.dtype, np.floating):
-        out &= np.isfinite(data)
-
-    return out
-
-
 @trace('contrast_stretch')
-def contrast_stretch(data: np.ndarray,
+def contrast_stretch(data: Array,
                      in_range: Sequence[Number],
                      out_range: Sequence[Number],
-                     clip: bool = True) -> np.ndarray:
+                     clip: bool = True) -> Array:
     """Normalize input array from in_range to out_range"""
     lower_bound_in, upper_bound_in = in_range
     lower_bound_out, upper_bound_out = out_range
 
-    norm = upper_bound_in - lower_bound_in
-    if abs(norm) < 1e-8:  # prevent division by zero
-        return np.full(data.shape, lower_bound_out, dtype='float64')
-
     out_data = data.astype('float64', copy=True)
     out_data -= lower_bound_in
-    out_data *= (upper_bound_out - lower_bound_out) / norm
+    norm = upper_bound_in - lower_bound_in
+    if abs(norm) > 1e-8:  # prevent division by 0
+        out_data *= (upper_bound_out - lower_bound_out) / norm
     out_data += lower_bound_out
 
     if clip:
@@ -149,13 +134,13 @@ def contrast_stretch(data: np.ndarray,
     return out_data
 
 
-def to_uint8(data: np.ndarray, lower_bound: Number, upper_bound: Number) -> np.ndarray:
+def to_uint8(data: Array, lower_bound: Number, upper_bound: Number) -> Array:
     """Re-scale an array to [1, 255] and cast to uint8 (0 is used for transparency)"""
     rescaled = contrast_stretch(data, (lower_bound, upper_bound), (1, 255), clip=True)
     return rescaled.astype(np.uint8)
 
 
-def label(data: np.ndarray, labels: Sequence[Number]) -> np.ndarray:
+def label(data: Array, labels: Sequence[Number]) -> Array:
     """Create a labelled uint8 version of data, with output values starting at 1.
 
     Values not found in labels are replaced by 0.

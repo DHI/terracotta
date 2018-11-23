@@ -62,8 +62,7 @@ def rgb(some_keys: Sequence[str],
         futures = [get_band_future(key) for key in rgb_values]
         band_items = zip(rgb_values, stretch_ranges_, futures)
 
-        out = np.empty((*tile_size_, 3), dtype='uint8')
-        valid_mask = np.ones(tile_size_, dtype='bool')
+        out_arrays = []
 
         for i, (band_key, band_stretch_override, band_data_future) in enumerate(band_items):
             keys = (*some_keys, band_key)
@@ -84,7 +83,7 @@ def rgb(some_keys: Sequence[str],
                 )
 
             band_data = band_data_future.result()
-            valid_mask &= image.get_valid_mask(band_data, nodata=metadata['nodata'])
-            out[..., i] = image.to_uint8(band_data, *band_stretch_range)
+            out_arrays.append(image.to_uint8(band_data, *band_stretch_range))
 
-    return image.array_to_png(out, transparency_mask=~valid_mask)
+    out = np.ma.stack(out_arrays, axis=-1)
+    return image.array_to_png(out)

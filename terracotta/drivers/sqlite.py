@@ -53,7 +53,6 @@ class SQLiteDriver(RasterDriver):
         ('bounds_south', 'REAL'),
         ('bounds_west', 'REAL'),
         ('convex_hull', 'VARCHAR[max]'),
-        ('nodata', 'REAL'),
         ('valid_percentage', 'REAL'),
         ('min', 'REAL'),
         ('max', 'REAL'),
@@ -197,29 +196,32 @@ class SQLiteDriver(RasterDriver):
     @requires_connection
     @convert_exceptions('Could not retrieve datasets')
     def get_datasets(self, where: Mapping[str, str] = None,
-                     page: int = 0, limit: int = 100) -> Dict[Tuple[str, ...], str]:
+                     page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
         """Retrieve keys of datasets matching given pattern"""
         conn = self._connection
 
         if limit is not None:
-            # explicitly cast parameters to int to prevent SQL injection
-            page_query = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
+            # explicitly cast to int to prevent SQL injection
+            page_fragment = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
         else:
-            page_query = ''
+            page_fragment = ''
+
+        # sort by keys to ensure deterministic results
+        order_fragment = f'ORDER BY {", ".join(self.key_names)}'
 
         if where is None:
-            rows = conn.execute(f'SELECT * FROM datasets {page_query}')
+            rows = conn.execute(f'SELECT * FROM datasets {order_fragment} {page_fragment}')
         else:
             if not all(key in self.key_names for key in where.keys()):
-                raise exceptions.InvalidKeyError(
-                    'Encountered unrecognized keys in where clause'
-                )
-            where_string = ' AND '.join([f'{key}=?' for key in where.keys()])
+                raise exceptions.InvalidKeyError('Encountered unrecognized keys in '
+                                                 'where clause')
+            where_fragment = ' AND '.join([f'{key}=?' for key in where.keys()])
             rows = conn.execute(
-                f'SELECT * FROM datasets WHERE {where_string} {page_query}', list(where.values())
+                f'SELECT * FROM datasets WHERE {where_fragment} {order_fragment} {page_fragment}',
+                list(where.values())
             )
 
-        def keytuple(row: sqlite3.Row) -> Tuple[str, ...]:
+        def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
 
         return {keytuple(row): row['filepath'] for row in rows}
@@ -233,7 +235,6 @@ class SQLiteDriver(RasterDriver):
             'bounds_south': decoded['bounds'][2],
             'bounds_west': decoded['bounds'][3],
             'convex_hull': json.dumps(decoded['convex_hull']),
-            'nodata': decoded['nodata'],
             'valid_percentage': decoded['valid_percentage'],
             'min': decoded['range'][0],
             'max': decoded['range'][1],
@@ -250,7 +251,6 @@ class SQLiteDriver(RasterDriver):
         decoded = {
             'bounds': tuple([encoded[f'bounds_{d}'] for d in ('north', 'east', 'south', 'west')]),
             'convex_hull': json.loads(encoded['convex_hull']),
-            'nodata': encoded['nodata'],
             'valid_percentage': encoded['valid_percentage'],
             'range': (encoded['min'], encoded['max']),
             'mean': encoded['mean'],

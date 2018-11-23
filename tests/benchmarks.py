@@ -6,26 +6,30 @@ Run separately via `pytest tests/benchmarks.py`.
 import pytest
 from click.testing import CliRunner
 
-import shutil
-
 ZOOM_XYZ = {
-    'birds-eye': 13,
-    'subpixel': 22,
+    'birds-eye': 8,
+    'subpixel': 21,
     'preview': None
 }
 
 
-@pytest.fixture
-def benchmark_database(testdb, raster_file_3857, tmpdir):
-    """Always yields a fresh database to prevent caching"""
-    dbpath = tmpdir.join('db-readonly.sqlite')
-    shutil.copy(testdb, dbpath)
-
+@pytest.fixture(scope='session')
+def benchmark_database(big_raster_file_nodata, big_raster_file_mask, tmpdir_factory):
     from terracotta import get_driver
-    driver = get_driver(dbpath)
+
+    keys = ['type', 'band']
+
+    dbpath = tmpdir_factory.mktemp('db').join('db-readonly.sqlite')
+    driver = get_driver(dbpath, provider='sqlite')
+    driver.create(keys)
+
+    mtd = driver.compute_metadata(str(big_raster_file_nodata))
 
     with driver.connect():
-        driver.insert(('val21', 'x', '3857'), str(raster_file_3857))
+        driver.insert(['nodata', '1'], str(big_raster_file_nodata), metadata=mtd)
+        driver.insert(['nodata', '2'], str(big_raster_file_nodata), metadata=mtd)
+        driver.insert(['nodata', '3'], str(big_raster_file_nodata), metadata=mtd)
+        driver.insert(['mask', '1'], str(big_raster_file_mask), metadata=mtd)
 
     return dbpath
 
@@ -46,7 +50,7 @@ def get_xyz(raster_file, zoom):
 
 @pytest.mark.parametrize('resampling', ['nearest', 'linear', 'cubic', 'average'])
 @pytest.mark.parametrize('zoom', ZOOM_XYZ.keys())
-def test_bench_rgb(benchmark, zoom, resampling, raster_file, benchmark_database):
+def test_bench_rgb(benchmark, zoom, resampling, big_raster_file_nodata, benchmark_database):
     from terracotta.server import create_app
     from terracotta import update_settings
 
@@ -54,8 +58,7 @@ def test_bench_rgb(benchmark, zoom, resampling, raster_file, benchmark_database)
         DRIVER_PATH=str(benchmark_database),
         UPSAMPLING_METHOD=resampling,
         DOWNSAMPLING_METHOD=resampling,
-        RASTER_CACHE_SIZE=0,
-        METADATA_CACHE_SIZE=0
+        RASTER_CACHE_SIZE=0
     )
 
     zoom_level = ZOOM_XYZ[zoom]
@@ -63,38 +66,35 @@ def test_bench_rgb(benchmark, zoom, resampling, raster_file, benchmark_database)
     flask_app = create_app()
     with flask_app.test_client() as client:
         if zoom_level is not None:
-            x, y, z = get_xyz(raster_file, zoom_level)
-            rv = benchmark(client.get, f'/rgb/val21/x/{z}/{x}/{y}.png?r=val22&g=val23&b=val24')
+            x, y, z = get_xyz(big_raster_file_nodata, zoom_level)
+            rv = benchmark(client.get, f'/rgb/nodata/{z}/{x}/{y}.png?r=1&g=2&b=3')
         else:
-            rv = benchmark(client.get, f'/rgb/val21/x/preview.png?r=val22&g=val23&b=val24')
+            rv = benchmark(client.get, f'/rgb/nodata/preview.png?r=1&g=2&b=3')
 
     assert rv.status_code == 200
 
 
-def test_bench_rgb_out_of_bounds(benchmark, raster_file, benchmark_database):
+def test_bench_rgb_out_of_bounds(benchmark, big_raster_file_nodata, benchmark_database):
     from terracotta.server import create_app
     from terracotta import update_settings
 
     update_settings(
         DRIVER_PATH=str(benchmark_database),
-        RASTER_CACHE_SIZE=0,
-        METADATA_CACHE_SIZE=0
+        RASTER_CACHE_SIZE=0
     )
 
     x, y, z = 0, 0, 20
 
     flask_app = create_app()
     with flask_app.test_client() as client:
-        rv = benchmark(client.get, f'/rgb/val21/x/{z}/{x}/{y}.png?r=val22&g=val23&b=val24')
+        rv = benchmark(client.get, f'/rgb/nodata/{z}/{x}/{y}.png?r=1&g=2&b=3')
 
     assert rv.status_code == 200
 
 
 @pytest.mark.parametrize('resampling', ['nearest', 'linear', 'cubic', 'average'])
 @pytest.mark.parametrize('zoom', ZOOM_XYZ.keys())
-@pytest.mark.parametrize('native_crs', [False, True])
-def test_bench_singleband(benchmark, native_crs, zoom, resampling, raster_file, raster_file_3857,
-                          benchmark_database):
+def test_bench_singleband(benchmark, zoom, resampling, big_raster_file_nodata, benchmark_database):
     from terracotta.server import create_app
     from terracotta import update_settings
 
@@ -102,46 +102,49 @@ def test_bench_singleband(benchmark, native_crs, zoom, resampling, raster_file, 
         DRIVER_PATH=str(benchmark_database),
         UPSAMPLING_METHOD=resampling,
         DOWNSAMPLING_METHOD=resampling,
-        RASTER_CACHE_SIZE=0,
-        METADATA_CACHE_SIZE=0
+        RASTER_CACHE_SIZE=0
     )
 
     zoom_level = ZOOM_XYZ[zoom]
-    third_key = '3857' if native_crs else 'val22'
 
     flask_app = create_app()
     with flask_app.test_client() as client:
         if zoom_level is not None:
-            x, y, z = get_xyz(raster_file, zoom_level)
-            rv = benchmark(client.get, f'/singleband/val21/x/{third_key}/{z}/{x}/{y}.png')
+            x, y, z = get_xyz(big_raster_file_nodata, zoom_level)
+            rv = benchmark(client.get, f'/singleband/nodata/1/{z}/{x}/{y}.png')
         else:
-            rv = benchmark(client.get, f'/singleband/val21/x/{third_key}/preview.png')
+            rv = benchmark(client.get, f'/singleband/nodata/1/preview.png')
 
     assert rv.status_code == 200
 
 
-def test_bench_singleband_out_of_bounds(benchmark, raster_file, benchmark_database):
+def test_bench_singleband_out_of_bounds(benchmark, benchmark_database):
     from terracotta.server import create_app
     from terracotta import update_settings
 
     update_settings(
         DRIVER_PATH=str(benchmark_database),
-        RASTER_CACHE_SIZE=0,
-        METADATA_CACHE_SIZE=0
+        RASTER_CACHE_SIZE=0
     )
 
     x, y, z = 0, 0, 20
 
     flask_app = create_app()
     with flask_app.test_client() as client:
-        rv = benchmark(client.get, f'/singleband/val21/x/val22/{z}/{x}/{y}.png')
+        rv = benchmark(client.get, f'/singleband/nodata/1/{z}/{x}/{y}.png')
 
     assert rv.status_code == 200
 
 
 @pytest.mark.parametrize('chunks', [False, True])
-def test_bench_compute_metadata(benchmark, raster_file, chunks):
+@pytest.mark.parametrize('raster_type', ['nodata', 'masked'])
+def test_bench_compute_metadata(benchmark, big_raster_file_nodata, big_raster_file_mask,
+                                chunks, raster_type):
     from terracotta.drivers.raster_base import RasterDriver
+    if raster_type == 'nodata':
+        raster_file = big_raster_file_nodata
+    elif raster_type == 'masked':
+        raster_file = big_raster_file_mask
     benchmark(RasterDriver.compute_metadata, str(raster_file), use_chunks=chunks)
 
 

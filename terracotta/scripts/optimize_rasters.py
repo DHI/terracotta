@@ -129,7 +129,7 @@ TemporaryRasterFile = _named_tempfile
 )
 @click.option(
     '--compression', default='auto', type=click.Choice(['auto', 'deflate', 'lzw', 'zstd', 'none']),
-    help='Compression algorithm to use [default: auto (ZSTD if available, DEFLATE otherwise)'
+    help='Compression algorithm to use [default: auto (ZSTD if available, DEFLATE otherwise)]'
 )
 @click.option(
     '-q', '--quiet', is_flag=True, default=False, show_default=True,
