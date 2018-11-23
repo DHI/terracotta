@@ -1,3 +1,5 @@
+![GitHub release](https://img.shields.io/github/release/dhi-gras/terracotta.svg)
+![License](https://img.shields.io/github/license/dhi-gras/terracotta.svg)
 [![Build Status](https://travis-ci.com/DHI-GRAS/terracotta.svg?token=27HwdYKjJ1yP6smyEa25&branch=master)](https://travis-ci.com/DHI-GRAS/terracotta)
 [![codecov](https://codecov.io/gh/DHI-GRAS/terracotta/branch/master/graph/badge.svg?token=u16QBwwvvn)](https://codecov.io/gh/DHI-GRAS/terracotta)
 
