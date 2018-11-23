@@ -9,8 +9,7 @@ Terracotta? <#why-terracotta>`__ \| `Why not
 Terracotta? <#why-not-terracotta>`__ \| `Architecture <#architecture>`__
 \| `Installation <#installation>`__ \| `Ingestion <#ingestion>`__ \|
 `Web API <#web-api>`__ \| `Configuration <#configuration>`__ \|
-`Advanced recipes <#advanced-recipes>`__ \| `Known
-issues <#known-issues>`__
+`Advanced recipes <#advanced-recipes>`__
 
 A light-weight, versatile XYZ tile server, built with Flask and Rasterio
 :earth_africa:
@@ -451,28 +450,6 @@ Note that Zappa works best on Linux. Windows 10 users can use the
 `Windows Subsystem for
 Linux <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`__ to
 deploy Terracotta.
-
-Known Issues
-------------
-
-The sections below outline some common issues people encounter when
-using Terracotta. If your problem persists, `feel free to open an
-issue <https://github.com/DHI-GRAS/terracotta/issues>`__.
-
-``OSError: error while reading file`` while deploying to AWS λ
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Rasterio Linux wheels are built on CentOS, which stores SSL certificates
-in ``/etc/pki/tls/certs/ca-bundle.crt``. On other Linux flavors,
-certificates may be stored in a different location. On Ubuntu, you can
-e.g. run
-
-.. code:: bash
-
-   $ export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-
-to fix this issue. For more information, see
-`mapbox/rasterio#942 <https://github.com/mapbox/rasterio/issues/942>`__.
 
 .. |Build Status| image:: https://travis-ci.com/DHI-GRAS/terracotta.svg?token=27HwdYKjJ1yP6smyEa25&branch=master
    :target: https://travis-ci.org/DHI-GRAS/terracotta

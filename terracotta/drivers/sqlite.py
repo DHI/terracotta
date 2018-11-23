@@ -34,7 +34,10 @@ def convert_exceptions(msg: str) -> Iterator:
 class SQLiteDriver(RasterDriver):
     """SQLite-backed raster driver.
 
-    Thread-safe by opening a single connection per thread.
+    Note:
+
+        This driver is not thread-safe. It is not possible to connect to the database
+        outside the main thread.
 
     The SQLite database consists of 4 different tables:
 

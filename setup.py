@@ -1,16 +1,46 @@
 from setuptools import setup, find_packages
+from os import path
 
+here = path.abspath(path.dirname(__file__))
+
+# get the long description from the README file
+with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(
+    # metadata
     name='terracotta',
     description='A modern XYZ tile server written in Python',
+    long_description=long_description,
+    url='https://github.com/DHI-GRAS/terracotta',
     author='Philip Graae',
     author_email='phgr@dhigroup.com',
-    packages=find_packages(),
+    keywords='xyz tileserver rasterio cloud-optimized-geotiff serverless',
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: End Users/Desktop',
+        'Intended Audience :: Science/Research',
+        'Intended Audience :: System Administrators',
+        'Topic :: Software Development :: Build Tools',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Framework :: Flask',
+        'Operating System :: Microsoft :: Windows :: Windows 10',
+        'Operating System :: MacOS :: MacOS X',
+        'Operating System :: Unix',
+        'Topic :: Internet :: WWW/HTTP :: HTTP Servers',
+        'Topic :: Internet :: WWW/HTTP :: WSGI :: Application',
+        'Topic :: Multimedia :: Graphics :: Viewers',
+        'Topic :: Scientific/Engineering :: GIS'
+    ],
+    # module
+    packages=find_packages(exclude=['docs', 'tests']),
     python_requires='>=3.6',
     use_scm_version={
         'write_to': 'terracotta/_version.py'
     },
+    # dependencies
     setup_requires=[
         'setuptools_scm',
         'setuptools_scm_git_archive',
@@ -49,7 +79,8 @@ setup(
         ],
         'docs': [
             'sphinx',
-            'sphinx_autodoc_typehints'
+            'sphinx_autodoc_typehints',
+            'sphinxcontrib-programoutput'
         ],
         'recommended': [
             'colorlog',
@@ -57,15 +88,17 @@ setup(
             'pymysql'
         ]
     },
+    # CLI
     entry_points='''
         [console_scripts]
         terracotta=terracotta.scripts.cli:entrypoint
     ''',
+    # package data
     include_package_data=True,
     package_data={
         'terracotta': [
             'cmaps/*_rgb.npy',  # colormaps
             'templates/*.html', 'static/*.js', 'static/*.css', 'static/images/*.png'  # preview app
         ]
-    }
+    },
 )

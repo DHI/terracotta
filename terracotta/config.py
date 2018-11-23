@@ -16,7 +16,7 @@ class TerracottaSettings(NamedTuple):
     #: Path to database
     DRIVER_PATH: str = ''
 
-    #: Driver provider to use (sqlite, sqlite-remote, mysql; default: auto-detect)
+    #: Driver provider to use (sqlite, sqlite-remote, mysql; auto-detected by default)
     DRIVER_PROVIDER: Optional[str] = None
 
     #: Activate debug mode in Flask app
@@ -46,7 +46,7 @@ class TerracottaSettings(NamedTuple):
     #: Timeout in seconds for database connections
     DB_CONNECTION_TIMEOUT: int = 10
 
-    #: Path where cached remote SQLite databases are stored (sqlite-remote provider)
+    #: Path where cached remote SQLite databases are stored (when using sqlite-remote provider)
     REMOTE_DB_CACHE_DIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
 
     #: Time-to-live of remote database cache in seconds

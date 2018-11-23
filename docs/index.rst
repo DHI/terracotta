@@ -9,7 +9,9 @@ Contents
 .. toctree::
    :maxdepth: 2
    
-   tutorial
-   cli
+   get-started
    settings
+   cli
    api
+   tutorial
+   issues

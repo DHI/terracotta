@@ -1,5 +1,5 @@
-Deploying Terracotta with Nginx and Gunicorn
-============================================
+A traditional Terracotta deployment with Nginx and Gunicorn
+===========================================================
 
 This tutorial describes how to deploy Terracotta on a server running Ubunutu
 18.04. For this we will use Gunicorn to spin up the WSGI instance and

@@ -56,7 +56,11 @@ def _update_from_s3(remote_path: str, local_path: str) -> None:
 class RemoteSQLiteDriver(SQLiteDriver):
     """SQLite-backed raster driver, supports databases stored remotely in an S3 bucket.
 
-    This driver is read-only.
+    Note:
+
+        This driver is read-only. Any attempts to use the create, insert, or delete methods
+        will throw a NotImplementedError.
+
     """
     path: str
 
