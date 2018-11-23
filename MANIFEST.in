@@ -1,4 +1,0 @@
-include versioneer.py
-include terracotta/_version.py
-recursive-include terracotta/static *
-recursive-include terracotta/templates *
