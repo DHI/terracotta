@@ -2,12 +2,12 @@ apispec
 cachetools
 flask
 flask_cors
-marshmallow>=3.0.0b1
+marshmallow>=3.0.0b12
 mercantile
 numpy
 pillow
 shapely
-rasterio[s3]>=1.0,<1.0.7
+rasterio[s3]>=1.0
 
 aws_xray_sdk
 boto3

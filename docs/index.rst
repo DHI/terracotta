@@ -3,9 +3,11 @@
 Welcome to Terracotta
 =====================
 
+Contents
+--------
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
    
    tutorial
    cli

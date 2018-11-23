@@ -21,7 +21,7 @@
 from terracotta import __version__
 
 project = 'Terracotta'
-copyright = '2018, DHI GRAS'
+copyright = '2018, the Terracotta contributors'
 author = 'Dion Häfner, Philip Graae'
 
 # The short X.Y version
@@ -71,7 +71,7 @@ language = None
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'monokai'
+pygments_style = 'friendly'
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -93,9 +93,10 @@ html_theme_options = {
     'head_font_family': "'Lato', 'Garamond', 'Georgia', sans-serif",
     'body_text': '#000',
     'github_banner': 'true',
-    'github_user': 'dhi-gras',
+    'github_user': 'DHI-GRAS',
     'github_repo': 'terracotta',
     'github_button': 'true',
+    'github_type': 'star',
     'travis_button': 'true',
     'codecov_button': 'true'
 }

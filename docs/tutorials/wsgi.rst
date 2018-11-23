@@ -23,27 +23,27 @@ First we need a Ubuntu 18.04 VM (e.g. on Microsoft Azure) and install
 Anaconda on it. After installing Anaconda we can create a new conda
 environment and install Terracotta and Gunicorn:
 
-::
+.. code-block:: bash
 
-   conda create --name gunicorn
-   source activate ENVNAME
-   sudo apt install build-essential gdal-bin libgdal-dev
-   pip install cython
-   cd /path/to/terracotta
-   pip install -e .
-   pip install gunicorn
+   $ conda create --name gunicorn
+   $ source activate ENVNAME
+   $ sudo apt install build-essential gdal-bin libgdal-dev
+   $ pip install cython
+   $ cd /path/to/terracotta
+   $ pip install -e .
+   $ pip install gunicorn
 
 Additionally we will need to install Nginx:
 
-::
+.. code-block:: bash
 
-   sudo apt install nginx
+   $ sudo apt install nginx
 
 Check if everything is running fine with:
 
-::
+.. code-block:: bash
 
-   sudo systemctl status nginx
+   $ sudo systemctl status nginx
 
 If the status check went fine and the firewall is configured correctly,
 you should now be able to access the default nginx page via:
@@ -58,16 +58,16 @@ For further instructions on how to initially set up Nginx check `here`_
 Get data and optimize for Terracotta
 ------------------------------------
 
-Copy the rasters you want to serve to :path:`/mnt/data`, optimize them with
-:cmd:`terracotta optimize-rasters` and create a database with
-:cmd:`terracotta ingest`:
+Copy the rasters you want to serve to ``/mnt/data``, optimize them with
+``terracotta optimize-rasters`` and create a database with
+``terracotta ingest``:
 
-::
+.. code-block:: bash
 
-   terracotta optimize-rasters /mnt/data/rasters/*.tif -o /mnt/data/optimized-rasters
-   terracotta ingest /mnt/data/optimized-rasters/{name}.tif -o /mnt/data/optimized.sqlite
+   $ terracotta optimize-rasters /mnt/data/rasters/*.tif -o /mnt/data/optimized-rasters
+   $ terracotta ingest /mnt/data/optimized-rasters/{name}.tif -o /mnt/data/optimized.sqlite
 
-This will create the database at :path:`/mnt/data/optimized.sqlite` which we
+This will create the database at ``/mnt/data/optimized.sqlite`` which we
 will need later. While this is running we can set up systemd and nginx
 
 
@@ -75,9 +75,9 @@ Systemd
 -------
 
 Systemd will take care of starting and restarting the Gunicorn process.
-For the we create a file :path:`/etc/systemd/system/terracotta.service`:
+For the we create a file ``/etc/systemd/system/terracotta.service``:
 
-::
+.. code-block:: ini
 
    [Unit]
    Description=Gunicorn instance to serve Terracotta
@@ -105,15 +105,15 @@ Gunicorn command that starts the Terracotta instance. It consists of:
    directory
 -  Dotted path to the WSGI entry point, which consists of the path to
    the python module containing the main Flask app and the app object:
-   ``terracotta.app:app``
+   ``terracotta.server.app:app``
 
 The service and be started/enabled/restarted with:
 
-::
+.. code-block:: bash
 
-   sudo systemctl start terracotta
-   sudo systemctl enable terracotta
-   sudo systemctl restart terracotta
+   $ sudo systemctl start terracotta
+   $ sudo systemctl enable terracotta
+   $ sudo systemctl restart terracotta
 
 
 Nginx
@@ -138,17 +138,17 @@ forward requests to it. Create a file
 And link it to the sites-enabled folder and restart nginx and terracotta
 services.
 
-::
+.. code-block:: bash
 
-   sudo ln -s /etc/nginx/sites-available/terracotta /etc/nginx/sites-enabled/terracotta
-   sudo systemctl restart nginx
-   sudo systemctl restart terracotta
+   $ sudo ln -s /etc/nginx/sites-available/terracotta /etc/nginx/sites-enabled/terracotta
+   $ sudo systemctl restart nginx
+   $ sudo systemctl restart terracotta
 
 To check errors in the service and nginx files:
 
-::
+.. code-block:: bash
 
-   sudo nginx -t
+   $ sudo nginx -t
 
 This guide is adjusted from `here`_.
 
@@ -163,16 +163,16 @@ In this recipe only the main commands are quoted.
 
 To create a self signed key/certificate pair run
 
-::
+.. code-block:: bash
 
-   sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/nginx-selfsigned.key -out /etc/ssl/certs/nginx-selfsigned.crt
+   $ sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/nginx-selfsigned.key -out /etc/ssl/certs/nginx-selfsigned.crt
 
 and enter the requested information. We also create a Diffie-Hellman
 group with:
 
-::
+.. code-block:: bash
 
-   sudo openssl dhparam -out /etc/nginx/dhparam.pem 4096
+   $ sudo openssl dhparam -out /etc/nginx/dhparam.pem 4096
 
 This takes several minutes.
 
@@ -240,10 +240,10 @@ just performs a redirect from port 80 to 443. The new config file
 
 Finally check the syntax and restart Nginx.
 
-::
+.. code-block:: bash
 
-   sudo nginx -t
-   sudo systemctl restart nginx
+   $ sudo nginx -t
+   $ sudo systemctl restart nginx
 
 The warning of the syntax check as well as when you access the server
 for the first time via ``https://VM_IP`` are expected because we are
