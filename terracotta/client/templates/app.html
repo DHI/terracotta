@@ -20,9 +20,9 @@
 		<h1>Terracotta @ {{ hostname }}</h1>
 	</div>
 
-	<div class="el-wrapper">
-		<h2 class="info-title hoverable" onclick="toggleInfo();">What is this?</h2>
-		<img src="../static/images/IconPassiveMed.png" class="info-toggle" onclick="toggleInfo();">
+	<div class="el-wrapper el-wrapper--hover"  onclick="toggleInfo();">
+		<h2 class="info-title hoverable">What is this?</h2>
+		<img src="../static/images/IconPassiveMed.png" class="info-toggle">
 		<p class="clear" id="info-text" style="display:none">
 			This applet lets you explore the data on any running Terracotta server.
 			Just search for a dataset to get started!
@@ -47,6 +47,12 @@
 		</div>
 	</div>
 
+	<div class="el-wrapper" style="display: none;">
+		<h5>Computed URL</h5>
+		<p id="outputUrl"></p>
+		<h5><b>meta data</h5></p>
+		<p id="metadata-field"></p>
+	</div>
 	
 		<div id="colormap-wrapper">
 			<h3>Choose a colormap</h3>
@@ -57,12 +63,12 @@
 		<div id="contrast-wrapper">
 			<h3>Adjust contrast</h3>
 			<div class="singleband-slider"></div>
-			<span id="singleband-value-lower"></span>
-			<span id="singleband-value-upper"></span>
+			<input type="text" id="singleband-value-lower">
+			<input type="text" class="input__text--second" id="singleband-value-upper">
 		</div>
 
-	<div id="rgb" class="el-wrapper">
-		<h2 class="clickable" onclick="rgbSelectorChanged();">Show RGB image</h2>
+	<div id="rgb" class="el-wrapper el-wrapper--hover"  onclick="rgbSelectorChanged();">
+		<h2>Show RGB image</h2>
 		<div id="rgb-search-fields">
 		</div>
 		<div id="rgb-selectors">

@@ -22,6 +22,10 @@ h2, h3{
   line-height: 26px;
 }
 
+h5{
+  color: #0B4566;
+  font-size: 12px;
+}
 h3{
   margin: 10px 0px 10px 0px;
   font-size: 14px;
@@ -89,6 +93,17 @@ th, td {
   overflow-y: auto;
 }
 
+#contrast-wrapper input[type=text] {
+  border: 1px solid #ececec;
+  width: 25%;
+  min-width: 60px;
+  margin: 4px 0px;
+  font-size: 0.8em;
+}
+.input__text--second{
+    text-align: right;
+}
+
 .clear{
   clear: both;
 }
@@ -145,6 +160,15 @@ th, td {
   border-bottom: 1px solid #0b4566;
 }
 
+#outputUrl, #metadata-field{
+  font-size: 0.8em;
+  font-weight: normal;
+}
+
+#metadata-field{
+  margin-top: 0px;
+}
+
 #contrast-wrapper{
   float:left; 
   margin-left:20px;
@@ -153,6 +177,7 @@ th, td {
   padding-top: 10px;
   border-bottom: 1px solid #0b4566;
 }
+
 #singleband-value-lower{
   margin-left: -4px;
 }
@@ -178,6 +203,10 @@ th, td {
 
 .clickable:hover {
   background-color: #d0eff2;
+}
+
+.el-wrapper--hover{
+  cursor: pointer;
 }
 
 .error {

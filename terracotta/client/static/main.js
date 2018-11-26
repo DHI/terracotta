@@ -137,6 +137,7 @@ function assembleSinglebandURL(remote_host, keys, options, preview) {
             request_url += `&${option_key}=${options[option_key]}`;
         }
     }
+    updateComputedUrl(request_url);
     return request_url;
 }
 
@@ -170,6 +171,7 @@ function assembleRgbUrl(remote_host, first_keys, rgb_keys, options, preview) {
         if (!options.hasOwnProperty(option_key)) continue;
         request_url += `&${option_key}=${options[option_key]}`;
     }
+    updateComputedUrl(request_url);
     return request_url;
 }
 
@@ -301,7 +303,7 @@ function initUI(remote_host, keys) {
             document.getElementById('singleband-value-lower'),
             document.getElementById('singleband-value-upper')
         ];
-        showValue[handle].innerHTML = values[handle];
+        showValue[handle].value = values[handle];
     });
     singlebandSlider.setAttribute('disabled', 'true');
 
@@ -604,7 +606,7 @@ function updateColormap() {
  * @param {boolean} show 
  */
 function showCurrentThumnbnail(img, show) {
-    var thumbnail = document.getElementById('thumbnail-holder');
+    const thumbnail = document.getElementById('thumbnail-holder');
     if (show) {
         var backgroundProperty = `url(${img.src})`;
         thumbnail.style.backgroundImage = backgroundProperty;
@@ -626,6 +628,7 @@ function toggleDatasetMouseover(datasetTable) {
 
     if (datasetTable == null) {
         showCurrentThumnbnail(null, false);
+        updateMetadataText(null);
         return;
     }
     showCurrentThumnbnail(datasetTable.querySelector('img'), true);
@@ -640,8 +643,9 @@ function toggleDatasetMouseover(datasetTable) {
 
     const layer_id = serializeKeys(keys);
     const metadata = STATE.dataset_metadata[layer_id];
-
-    if (metadata == null) return;
+    updateMetadataText(metadata);
+ 
+     if (metadata == null) return;
 
     STATE.overlayLayer = L.geoJSON(metadata.convex_hull, {
         style: {
@@ -875,7 +879,6 @@ function rgbSelectorChanged() {
             });
         }
     }
-
     toggleRgbLayer(firstKeys, lastKeys);
 }
 
@@ -924,7 +927,7 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
         layer: L.tileLayer(layer_url).addTo(STATE.map)
     };
 
-    rgbControls.classList.add('active');
+    // rgbControls.classList.add('active');
     let rgbSliders = document.querySelectorAll('.rgb-slider');
     for (let i = 0; i < rgbSliders.length; i++) {
         rgbSliders[i].removeAttribute('disabled');
@@ -939,13 +942,42 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
     }
 }
 
+function updateComputedUrl(_url){
+    const computedUrl = document.getElementById("outputUrl");
+    computedUrl.parentElement.style.display = "block";
+    computedUrl.innerHTML = _url;
+}
+
+function updateMetadataText(_metadata){
+    const metadataField = document.getElementById("metadata-field");
+    if(_metadata){
+        metadataField.innerHTML =   "<b> mean:</b> " + String(_metadata.mean.toFixed(2)) +
+                                    "<b> range:</b> " + JSON.stringify(_metadata.range) +
+                                    "<b> stdev:</b> " + String(_metadata.stdev.toFixed(2)) +
+                                    "<b> valid_percentage:</b> " + String(_metadata.valid_percentage.toFixed(2));
+        if(_metadata.metadata.length> 0) metadataField.innerHTML +=  "<b> meta data:</b> " + JSON.stringify(_metadata.metadata);
+    }
+}
+
 function toggleInfo() {
     var text = document.getElementById('info-text');
     if (text.style.display === 'none') text.style.display = 'block';
     else text.style.display = 'none';
 }
 
+function addListenersToInputTypes(){
+    const singlebandLower = document.getElementById("singleband-value-lower");
+    const singlebandUpper = document.getElementById("singleband-value-upper");
 
+    singlebandLower.addEventListener("input", function(){updateSinglebandContrast(this, this.value);});
+    singlebandUpper.addEventListener("input", function(){updateSinglebandContrast(this, this.value);});
+}
+
+function updateSinglebandContrast(t, value){
+    console.log("LINK Update to slider action")
+    console.log(t);
+    console.log(value);
+}
 /**
  *  Main entrypoint.
  *  Called in app.html on window.onload.
@@ -971,4 +1003,5 @@ function initializeApp(hostname) {
                 layers: [osmBase]
             });
         });
+    addListenersToInputTypes();
 }
