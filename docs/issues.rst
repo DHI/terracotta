@@ -1,5 +1,5 @@
-Troubleshooting
-===============
+Known issues
+============
 
 The sections below outline some common issues people encounter when
 using Terracotta. If your problem persists, `feel free to open an

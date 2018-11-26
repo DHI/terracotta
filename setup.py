@@ -80,7 +80,7 @@ setup(
         'docs': [
             'sphinx',
             'sphinx_autodoc_typehints',
-            'sphinxcontrib-programoutput'
+            'sphinx-click'
         ],
         'recommended': [
             'colorlog',

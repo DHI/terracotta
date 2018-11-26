@@ -52,7 +52,7 @@ you should now be able to access the default nginx page via:
 
    http://your_server_ip
 
-For further instructions on how to initially set up Nginx check `here`_
+For further instructions on how to initially set up Nginx check `here`_.
 
 
 Get data and optimize for Terracotta
@@ -65,9 +65,9 @@ Copy the rasters you want to serve to ``/mnt/data``, optimize them with
 .. code-block:: bash
 
    $ terracotta optimize-rasters /mnt/data/rasters/*.tif -o /mnt/data/optimized-rasters
-   $ terracotta ingest /mnt/data/optimized-rasters/{name}.tif -o /mnt/data/optimized.sqlite
+   $ terracotta ingest /mnt/data/optimized-rasters/{name}.tif -o /mnt/data/terracotta.sqlite
 
-This will create the database at ``/mnt/data/optimized.sqlite`` which we
+This will create the database at ``/mnt/data/terracotta.sqlite`` which we
 will need later. While this is running we can set up systemd and nginx
 
 
@@ -75,7 +75,7 @@ Systemd
 -------
 
 Systemd will take care of starting and restarting the Gunicorn process.
-For the we create a file ``/etc/systemd/system/terracotta.service``:
+For that we create a file ``/etc/systemd/system/terracotta.service``:
 
 .. code-block:: ini
 
@@ -88,7 +88,7 @@ For the we create a file ``/etc/systemd/system/terracotta.service``:
    Group=www-data
    WorkingDirectory=/mnt/data
    Environment="PATH=/home/ubuntu/anaconda3/envs/gunicorn/bin"
-   Environment="TC_DRIVER_PATH=/mnt/data/optimized.sqlite"
+   Environment="TC_DRIVER_PATH=/mnt/data/terracotta.sqlite"
    ExecStart=/home/ubuntu/anaconda3/envs/gunicorn/bin/gunicorn \
                 --workers 3 --bind unix:terracotta.sock -m 007 terracotta.app:app
 

@@ -1,29 +1,14 @@
+.. _cli:
+
 Command-line interface
 ======================
 
-.. program-output:: terracotta --help
-   :prompt:
+.. toctree::
+   :maxdepth: 1
+   :caption: Available commands
 
-optimize-rasters
-----------------
-
-.. program-output:: terracotta optimize-rasters --help
-   :prompt:
-
-ingest
-------
-
-.. program-output:: terracotta ingest --help
-   :prompt:
-
-serve
------
-
-.. program-output:: terracotta serve --help
-   :prompt:
-
-connect
--------
-
-.. program-output:: terracotta connect --help
-   :prompt:
+   cli-commands/main
+   cli-commands/optimize-rasters
+   cli-commands/ingest
+   cli-commands/serve
+   cli-commands/connect
