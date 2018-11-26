@@ -969,14 +969,14 @@ function addListenersToInputTypes(){
     const singlebandLower = document.getElementById("singleband-value-lower");
     const singlebandUpper = document.getElementById("singleband-value-upper");
 
-    singlebandLower.addEventListener("input", function(){updateSinglebandContrast(this, this.value);});
-    singlebandUpper.addEventListener("input", function(){updateSinglebandContrast(this, this.value);});
+    singlebandLower.addEventListener("change", function(){updateSinglebandContrast(this.value, 0);});
+    singlebandUpper.addEventListener("change", function(){updateSinglebandContrast(this.value, 1);});
 }
 
-function updateSinglebandContrast(t, value){
-    console.log("LINK Update to slider action")
-    console.log(t);
-    console.log(value);
+function updateSinglebandContrast(value, handle){
+    const sliderval = document.querySelector(".singleband-slider");
+    if(handle === 0 )sliderval.noUiSlider.set([value,null]);
+    else sliderval.noUiSlider.set([null,value]);
 }
 /**
  *  Main entrypoint.
