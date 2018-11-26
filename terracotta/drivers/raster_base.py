@@ -119,12 +119,16 @@ class RasterDriver(Driver):
 
             valid_data_count += int(valid_data.size)
 
-            hull_candidates = RasterDriver._hull_candidate_mask(~block_data.mask)
-            hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
-                np.ones(hull_candidates.shape, 'uint8'),
-                mask=hull_candidates,
-                transform=windows.transform(w, dataset.transform)
-            ))
+            if np.any(block_data.mask):
+                hull_candidates = RasterDriver._hull_candidate_mask(~block_data.mask)
+                hull_shapes = [geometry.shape(s) for s, _ in features.shapes(
+                    np.ones(hull_candidates.shape, 'uint8'),
+                    mask=hull_candidates,
+                    transform=windows.transform(w, dataset.transform)
+                )]
+            else:
+                w, s, e, n = windows.bounds(w, dataset.transform)
+                hull_shapes = [geometry.Polygon([(w, s), (e, s), (e, n), (w, n)])]
             convex_hull = geometry.MultiPolygon([convex_hull, *hull_shapes]).convex_hull
 
             tdigest.update(valid_data)
@@ -165,22 +169,28 @@ class RasterDriver(Driver):
         )
         raster_data = dataset.read(1, out_shape=out_shape, masked=True)
 
-        if dataset.profile['nodata'] is not None:
+        if dataset.nodata is not None:
             # nodata values might slip into output array if out_shape < dataset.shape
-            raster_data[raster_data == dataset.profile['nodata']] = np.ma.masked
+            raster_data[raster_data == dataset.nodata] = np.ma.masked
 
         valid_data = raster_data.compressed()
 
         if valid_data.size == 0:
             return None
 
-        hull_candidates = RasterDriver._hull_candidate_mask(~raster_data.mask)
-        hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
-            np.ones(hull_candidates.shape, 'uint8'),
-            mask=hull_candidates,
-            transform=data_transform
-        ))
-        convex_hull = geometry.MultiPolygon(hull_shapes).convex_hull
+        if np.any(raster_data.mask):
+            hull_candidates = RasterDriver._hull_candidate_mask(~raster_data.mask)
+            hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
+                np.ones(hull_candidates.shape, 'uint8'),
+                mask=hull_candidates,
+                transform=data_transform
+            ))
+            convex_hull = geometry.MultiPolygon(hull_shapes).convex_hull
+        else:
+            # no masked entries -> convex hull == dataset bounds
+            w, s, e, n = dataset.bounds
+            convex_hull = geometry.Polygon([(w, s), (e, s), (e, n), (w, n)])
+
         convex_hull_wgs = warp.transform_geom(
             dataset.crs, 'epsg:4326', geometry.mapping(convex_hull)
         )
@@ -227,6 +237,12 @@ class RasterDriver(Driver):
                 )
 
             with rasterio.open(raster_path) as src:
+                if src.nodata is None and not cls._has_alpha_band(src):
+                    warnings.warn(
+                        f'Raster file {raster_path} does not have a valid nodata value, '
+                        'and does not contain an alpha band. No data will be masked.'
+                    )
+
                 bounds = warp.transform_bounds(
                     src.crs, 'epsg:4326', *src.bounds, densify_pts=21
                 )
@@ -329,6 +345,11 @@ class RasterDriver(Driver):
 
         return dst_transform, dst_width, dst_height
 
+    @staticmethod
+    def _has_alpha_band(src: 'DatasetReader') -> bool:
+        from rasterio.enums import MaskFlags
+        return any([MaskFlags.per_dataset in flags for flags in src.mask_flag_enums])
+
     @cachedmethod(operator.attrgetter('_raster_cache'))
     @trace('get_raster_tile')
     def _get_raster_tile(self, path: str, *,
@@ -344,7 +365,7 @@ class RasterDriver(Driver):
         import rasterio
         from rasterio import transform, windows, warp
         from rasterio.vrt import WarpedVRT
-        from rasterio.enums import MaskFlags
+        from affine import Affine
 
         dst_bounds: Tuple[float, float, float, float]
 
@@ -353,9 +374,6 @@ class RasterDriver(Driver):
         else:
             upsampling_enum = self._get_resampling_enum(upsampling_method)
             downsampling_enum = self._get_resampling_enum(downsampling_method)
-
-        def has_alpha_band(src: rasterio.DatasetReader) -> bool:
-            return any([MaskFlags.per_dataset in flags for flags in src.mask_flag_enums])
 
         with contextlib.ExitStack() as es:
             es.enter_context(rasterio.Env(**self.RIO_ENV_KEYS))
@@ -369,40 +387,34 @@ class RasterDriver(Driver):
             dst_transform, _, _ = self._calculate_default_transform(
                 src.crs, self.TARGET_CRS, src.width, src.height, *src.bounds
             )
-            dst_res = (dst_transform.a, dst_transform.e)
+            dst_res = (abs(dst_transform.a), abs(dst_transform.e))
             dst_bounds = warp.transform_bounds(src.crs, self.TARGET_CRS, *src.bounds)
 
             if bounds is None:
                 bounds = dst_bounds
 
-            # pad tile bounds by 2 pixels to prevent interpolation artefacts
-            vrt_bounds = [
-                bounds[0] - 2 * dst_res[0],
-                bounds[1] + 2 * dst_res[1],
-                bounds[2] + 2 * dst_res[0],
-                bounds[3] - 2 * dst_res[1]
-            ]
+            # pad tile bounds to prevent interpolation artefacts
+            num_pad_pixels = 2
 
             # compute tile VRT shape and transform
-            vrt_width = max(1, round((vrt_bounds[2] - vrt_bounds[0]) / dst_res[0]))
-            vrt_height = max(1, round((vrt_bounds[1] - vrt_bounds[3]) / dst_res[1]))
-            vrt_transform = transform.from_bounds(*vrt_bounds, width=vrt_width, height=vrt_height)
+            dst_width = max(1, round((bounds[2] - bounds[0]) / dst_res[0]))
+            dst_height = max(1, round((bounds[3] - bounds[1]) / dst_res[1]))
+            vrt_transform = (
+                transform.from_bounds(*bounds, width=dst_width, height=dst_height)
+                * Affine.translation(-num_pad_pixels, -num_pad_pixels)
+            )
+            vrt_height, vrt_width = dst_height + 2 * num_pad_pixels, dst_width + 2 * num_pad_pixels
 
             # remove padding in output
             out_window = windows.Window(
-                col_off=2, row_off=2, width=vrt_width - 4, height=vrt_height - 4
+                col_off=num_pad_pixels, row_off=num_pad_pixels, width=dst_width, height=dst_height
             )
 
             # construct VRT
-            vrt_args: Dict[str, Any] = {}
-            if has_alpha_band(src):
-                vrt_args.update(add_alpha=True)
-
             vrt = es.enter_context(
                 WarpedVRT(
-                    src, crs=self.TARGET_CRS, resampling=upsampling_enum,
-                    transform=vrt_transform, width=vrt_width, height=vrt_height,
-                    **vrt_args
+                    src, crs=self.TARGET_CRS, resampling=upsampling_enum, add_alpha=True,
+                    transform=vrt_transform, width=vrt_width, height=vrt_height
                 )
             )
 
@@ -410,7 +422,7 @@ class RasterDriver(Driver):
             out_window_bounds = windows.bounds(out_window, vrt_transform)
             cover_ratio = (
                 (dst_bounds[2] - dst_bounds[0]) / (out_window_bounds[2] - out_window_bounds[0])
-                * (dst_bounds[1] - dst_bounds[3]) / (out_window_bounds[1] - out_window_bounds[3])
+                * (dst_bounds[3] - dst_bounds[1]) / (out_window_bounds[3] - out_window_bounds[1])
             )
 
             if cover_ratio < 0.01:
@@ -429,12 +441,11 @@ class RasterDriver(Driver):
                 tile_data = vrt.read(
                     1, resampling=resampling_enum, window=out_window, out_shape=tile_size
                 )
-                mask = False
-                if has_alpha_band(src):
-                    mask_idx = src.count + 1
-                    mask |= vrt.read(mask_idx, window=out_window, out_shape=tile_size) == 0
-                if vrt.nodata is not None:
-                    mask |= tile_data == vrt.nodata
+                # read alpha mask
+                mask_idx = src.count + 1
+                mask = vrt.read(mask_idx, window=out_window, out_shape=tile_size) == 0
+                if src.nodata is not None:
+                    mask |= tile_data == src.nodata
 
         return np.ma.masked_array(tile_data, mask=mask)
 

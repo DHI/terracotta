@@ -20,7 +20,7 @@ def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory, reproject,
 
     runner = CliRunner()
 
-    flags = ['--compression', compression]
+    flags = ['--compression', compression, '-q']
 
     if in_memory is not None:
         flags.append('--in-memory' if in_memory else '--no-in-memory')
@@ -52,7 +52,7 @@ def test_optimize_rasters_nofiles(tmpdir):
 
     input_pattern = str(tmpdir.dirpath('*.tif'))
     runner = CliRunner()
-    result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o', str(tmpdir)])
+    result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o', str(tmpdir), '-q'])
 
     assert result.exit_code == 0
     assert 'No files given' in result.output
@@ -62,7 +62,7 @@ def test_optimize_rasters_invalid(tmpdir):
     from terracotta.scripts import cli
 
     runner = CliRunner()
-    result = runner.invoke(cli.cli, ['optimize-rasters', str(tmpdir), '-o', str(tmpdir)])
+    result = runner.invoke(cli.cli, ['optimize-rasters', str(tmpdir), '-o', str(tmpdir), '-q'])
 
     assert result.exit_code != 0
     assert 'not a file' in result.output
@@ -88,7 +88,10 @@ def test_optimize_rasters_multiband(tmpdir, unoptimized_raster_file):
     outfile = tmpdir / 'co' / unoptimized_raster_file.basename
 
     runner = CliRunner()
-    result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o', str(tmpdir / 'co')])
+    result = runner.invoke(
+        cli.cli,
+        ['optimize-rasters', input_pattern, '-o', str(tmpdir / 'co')]
+    )
 
     assert result.exit_code == 0
     assert 'has more than one band' in result.output

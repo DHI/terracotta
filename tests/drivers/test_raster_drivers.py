@@ -386,18 +386,24 @@ def test_default_transform():
 
 def geometry_mismatch(shape1, shape2):
     """Compute relative mismatch of two shapes"""
-    print(shape1.area, shape2.area)
     return shape1.symmetric_difference(shape2).area / shape1.union(shape2).area
 
 
 @pytest.mark.parametrize('use_chunks', [True, False])
-def test_compute_metadata(big_raster_file_nodata, use_chunks):
+@pytest.mark.parametrize('nodata_type', ['nodata', 'nomask'])
+def test_compute_metadata(big_raster_file_nodata, big_raster_file_nomask,
+                          nodata_type, use_chunks):
     from terracotta.drivers.raster_base import RasterDriver
+
+    if nodata_type == 'nodata':
+        raster_file = big_raster_file_nodata
+    elif nodata_type == 'nomask':
+        raster_file = big_raster_file_nomask
 
     if use_chunks:
         pytest.importorskip('crick')
 
-    with rasterio.open(str(big_raster_file_nodata)) as src:
+    with rasterio.open(str(raster_file)) as src:
         data = src.read(1, masked=True)
         valid_data = data.compressed()
         dataset_shape = list(rasterio.features.dataset_features(
@@ -407,7 +413,12 @@ def test_compute_metadata(big_raster_file_nodata, use_chunks):
     convex_hull = MultiPolygon([shape(s['geometry']) for s in dataset_shape]).convex_hull
 
     # compare
-    mtd = RasterDriver.compute_metadata(str(big_raster_file_nodata), use_chunks=use_chunks)
+    if nodata_type == 'nomask':
+        with pytest.warns(UserWarning) as record:
+            mtd = RasterDriver.compute_metadata(str(raster_file), use_chunks=use_chunks)
+            assert 'does not have a valid nodata value' in str(record[0].message)
+    else:
+        mtd = RasterDriver.compute_metadata(str(raster_file), use_chunks=use_chunks)
 
     np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)
     np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()))
@@ -418,19 +429,19 @@ def test_compute_metadata(big_raster_file_nodata, use_chunks):
     np.testing.assert_allclose(
         mtd['percentiles'],
         np.percentile(valid_data, np.arange(1, 100)),
-        rtol=2e-2
+        rtol=2e-2, atol=valid_data.max() / 100
     )
 
     assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-8
 
 
-@pytest.mark.parametrize('raster_type', ['nodata', 'masked'])
-def test_compute_metadata_approximate(raster_type, big_raster_file_nodata, big_raster_file_mask):
+@pytest.mark.parametrize('nodata_type', ['nodata', 'masked'])
+def test_compute_metadata_approximate(nodata_type, big_raster_file_nodata, big_raster_file_mask):
     from terracotta.drivers.raster_base import RasterDriver
 
-    if raster_type == 'nodata':
+    if nodata_type == 'nodata':
         raster_file = big_raster_file_nodata
-    elif raster_type == 'masked':
+    elif nodata_type == 'masked':
         raster_file = big_raster_file_mask
 
     with rasterio.open(str(raster_file)) as src:

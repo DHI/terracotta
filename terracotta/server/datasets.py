@@ -28,14 +28,17 @@ class DatasetOptionSchema(Schema):
 
 
 class DatasetSchema(Schema):
+    class Meta:
+        ordered = True
+
+    page = fields.Integer(description='Current page', required=True)
+    limit = fields.Integer(description='Maximum number of returned items', required=True)
     datasets = fields.List(
         fields.Dict(values=fields.String(example='value1'),
                     keys=fields.String(example='key1')),
         required=True,
         description='Array containing all available key combinations'
     )
-    limit = fields.Integer(description='Maximum number of returned items', required=True)
-    page = fields.Integer(description='Current page', required=True)
 
 
 @metadata_api.route('/datasets', methods=['GET'])
@@ -70,9 +73,9 @@ def get_datasets() -> str:
     keys = options or None
 
     payload = {
-        'datasets': datasets(keys, page=page, limit=limit),
         'limit': limit,
-        'page': page
+        'page': page,
+        'datasets': datasets(keys, page=page, limit=limit)
     }
 
     schema = DatasetSchema()
