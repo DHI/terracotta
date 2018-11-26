@@ -121,11 +121,11 @@ class RasterDriver(Driver):
 
             if np.any(block_data.mask):
                 hull_candidates = RasterDriver._hull_candidate_mask(~block_data.mask)
-                hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
+                hull_shapes = [geometry.shape(s) for s, _ in features.shapes(
                     np.ones(hull_candidates.shape, 'uint8'),
                     mask=hull_candidates,
                     transform=windows.transform(w, dataset.transform)
-                ))
+                )]
             else:
                 w, s, e, n = windows.bounds(w, dataset.transform)
                 hull_shapes = [geometry.Polygon([(w, s), (e, s), (e, n), (w, n)])]

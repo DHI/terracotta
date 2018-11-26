@@ -386,7 +386,6 @@ def test_default_transform():
 
 def geometry_mismatch(shape1, shape2):
     """Compute relative mismatch of two shapes"""
-    print(shape1.area, shape2.area)
     return shape1.symmetric_difference(shape2).area / shape1.union(shape2).area
 
 
