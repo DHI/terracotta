@@ -42,7 +42,7 @@ def mysql_server(request):
     return request.config.getoption('mysql_server')
 
 
-def cloud_optimize(raster_file, outfile, create_mask=False):
+def cloud_optimize(raster_file, outfile, create_mask=False, remove_nodata=False):
     import math
     import contextlib
     import rasterio
@@ -70,6 +70,9 @@ def cloud_optimize(raster_file, outfile, create_mask=False):
 
         profile = src.profile.copy()
         profile.update(COG_PROFILE)
+
+        if remove_nodata:
+            profile['nodata'] = None
 
         memfile = es.enter_context(rasterio.io.MemoryFile())
         dst = es.enter_context(memfile.open(**profile))
@@ -166,7 +169,17 @@ def big_raster_file_nodata(tmpdir_factory):
 def big_raster_file_mask(tmpdir_factory, big_raster_file_nodata):
     outpath = tmpdir_factory.mktemp('raster')
     optimized_raster = outpath.join('img-alpha.tif')
-    cloud_optimize(big_raster_file_nodata, optimized_raster, create_mask=True)
+    cloud_optimize(big_raster_file_nodata, optimized_raster,
+                   create_mask=True, remove_nodata=False)
+    return optimized_raster
+
+
+@pytest.fixture(scope='session')
+def big_raster_file_nomask(tmpdir_factory, big_raster_file_nodata):
+    outpath = tmpdir_factory.mktemp('raster')
+    optimized_raster = outpath.join('img-alpha.tif')
+    cloud_optimize(big_raster_file_nodata, optimized_raster,
+                   create_mask=False, remove_nodata=True)
     return optimized_raster
 
 

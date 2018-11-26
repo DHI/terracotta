@@ -8,6 +8,7 @@ from click.testing import CliRunner
 
 ZOOM_XYZ = {
     'birds-eye': 8,
+    'balanced': 12,
     'subpixel': 21,
     'preview': None
 }
