@@ -17,16 +17,20 @@
 
 <div id='controls'>
 	<div class="el-wrapper">
-		<h1>Terracotta @ {{ hostname }}</h1>
+		<h1>Terracotta Preview App</h1>
 	</div>
 
-	<div class="el-wrapper el-wrapper--hover"  onclick="toggleInfo();">
-		<h2 class="info-title hoverable">What is this?</h2>
+	<div class="el-wrapper el-wrapper--hover" onclick="toggleInfo();">
+		<h2 class="info-title hoverable">Details</h2>
 		<img src="../static/images/IconPassiveMed.png" class="info-toggle">
-		<p class="clear" id="info-text" style="display:none">
-			This applet lets you explore the data on any running Terracotta server.
-			Just search for a dataset to get started!
-		</p>
+		<div id="details__content">
+			<p class="clear" id="info-text">
+				This applet lets you explore the data on any running Terracotta server.
+				Just search for a dataset to get started!
+			</p>
+			<p id="outputUrl"><b>Host name: </b>{{ hostname }}</p>
+			<p id="metadata-field"></p>
+		</div>
 	</div>
 
 	<div class="el-wrapper">
@@ -47,13 +51,6 @@
 		</div>
 	</div>
 
-	<div class="el-wrapper" style="display: none;">
-		<h5>Computed URL</h5>
-		<p id="outputUrl"></p>
-		<h5><b>meta data</h5></p>
-		<p id="metadata-field"></p>
-	</div>
-	
 		<div id="colormap-wrapper">
 			<h3>Choose a colormap</h3>
 			<select id="colormap-selector" onchange="updateColormap();">
@@ -64,10 +61,10 @@
 			<h3>Adjust contrast</h3>
 			<div class="singleband-slider"></div>
 			<input type="text" id="singleband-value-lower">
-			<input type="text" class="input__text--second" id="singleband-value-upper">
+			<input type="text" class="input__text--upper" id="singleband-value-upper">
 		</div>
 
-	<div id="rgb" class="el-wrapper el-wrapper--hover"  onclick="rgbSelectorChanged();">
+	<div id="rgb" class="el-wrapper el-wrapper--hover" onclick="activateRGBgroup()">
 		<h2>Show RGB image</h2>
 		<div id="rgb-search-fields">
 		</div>
@@ -75,23 +72,23 @@
 			<div class="horizontal-list">
 				<span class="rgb-label">R</span>
 				<select class="rgb-selector" id="R" onchange="rgbSelectorChanged();" disabled></select>
-				<span class="rgb-value-lower" id="R"></span>
+				<input type="text" class="rgb-value-lower" id="R">
 				<div class="rgb-slider" id="R"></div>
-				<span class="rgb-value-upper" id="R"></span>
+				<input type="text" class="rgb-value-upper input__text--upper" id="R">
 			</div>
 			<div class="horizontal-list">
 				<span class="rgb-label">G</span>
 				<select class="rgb-selector" id="G" onchange="rgbSelectorChanged();" disabled></select>
-				<span class="rgb-value-lower" id="G"></span>
+				<input type="text" class="rgb-value-lower" id="G">
 				<div class="rgb-slider" id="G"></div>
-				<span class="rgb-value-upper" id="G"></span>
+				<input type="text" class="rgb-value-upper input__text--upper" id="G">
 			</div>
 			<div class="horizontal-list">
 				<span class="rgb-label">B</span>
 				<select class="rgb-selector" id="B" onchange="rgbSelectorChanged();" disabled></select>
-				<span class="rgb-value-lower" id="B"></span>
+				<input type="text" class="rgb-value-lower" id="B">
 				<div class="rgb-slider" id="B"></div>
-				<span class="rgb-value-upper" id="B"></span>
+				<input type="text" class="rgb-value-upper input__text--upper" id="B">
 			</div>
 		</div>
 	</div>

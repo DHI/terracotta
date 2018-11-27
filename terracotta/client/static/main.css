@@ -100,7 +100,19 @@ th, td {
   margin: 4px 0px;
   font-size: 0.8em;
 }
-.input__text--second{
+
+.horizontal-list input[type=text] {
+  border: 1px solid #ececec;
+  width: 40px;
+  margin: 4px 12px;
+  font-size: 0.8em;
+}
+
+.horizontal-list > input[type=text].rgb-value-upper {
+  margin-right: 0px;
+}
+
+.input__text--upper{
     text-align: right;
 }
 
@@ -328,4 +340,12 @@ ul#errors {
 
 #errors li span:hover {
   opacity: 0.8;
+}
+
+.passiveRGB #R .noUi-connect, .passiveRGB #G .noUi-connect, .passiveRGB #B .noUi-connect {
+  background: #939393;
+}
+
+.passiveRGB .noUi-handle{
+  background: #525252;
 }
