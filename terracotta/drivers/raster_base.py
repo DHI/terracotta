@@ -12,7 +12,6 @@ import functools
 import operator
 import logging
 import math
-import sys
 import warnings
 
 import numpy as np
@@ -49,7 +48,10 @@ class RasterDriver(Driver):
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         settings = get_settings()
-        self._raster_cache = LRUCache(settings.RASTER_CACHE_SIZE, getsizeof=sys.getsizeof)
+        self._raster_cache = LRUCache(
+            settings.RASTER_CACHE_SIZE,
+            getsizeof=operator.attrgetter('nbytes')
+        )
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
         super().__init__(*args, **kwargs)
 
@@ -474,6 +476,7 @@ class RasterDriver(Driver):
             upsampling_method=settings.UPSAMPLING_METHOD,
             downsampling_method=settings.DOWNSAMPLING_METHOD
         )
+        print(self._raster_cache.currsize)
 
         if asynchronous:
             return self._executor.submit(task)

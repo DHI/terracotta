@@ -16,9 +16,11 @@ ZOOM_XYZ = {
 
 @pytest.fixture(scope='session')
 def benchmark_database(big_raster_file_nodata, big_raster_file_mask, tmpdir_factory):
-    from terracotta import get_driver
+    from terracotta import get_driver, update_settings
 
     keys = ['type', 'band']
+
+    update_settings(RASTER_CACHE_SIZE=0)
 
     dbpath = tmpdir_factory.mktemp('db').join('db-readonly.sqlite')
     driver = get_driver(dbpath, provider='sqlite')
@@ -58,8 +60,7 @@ def test_bench_rgb(benchmark, zoom, resampling, big_raster_file_nodata, benchmar
     update_settings(
         DRIVER_PATH=str(benchmark_database),
         UPSAMPLING_METHOD=resampling,
-        DOWNSAMPLING_METHOD=resampling,
-        RASTER_CACHE_SIZE=0
+        DOWNSAMPLING_METHOD=resampling
     )
 
     zoom_level = ZOOM_XYZ[zoom]
@@ -79,10 +80,7 @@ def test_bench_rgb_out_of_bounds(benchmark, big_raster_file_nodata, benchmark_da
     from terracotta.server import create_app
     from terracotta import update_settings
 
-    update_settings(
-        DRIVER_PATH=str(benchmark_database),
-        RASTER_CACHE_SIZE=0
-    )
+    update_settings(DRIVER_PATH=str(benchmark_database))
 
     x, y, z = 0, 0, 20
 
@@ -97,13 +95,12 @@ def test_bench_rgb_out_of_bounds(benchmark, big_raster_file_nodata, benchmark_da
 @pytest.mark.parametrize('zoom', ZOOM_XYZ.keys())
 def test_bench_singleband(benchmark, zoom, resampling, big_raster_file_nodata, benchmark_database):
     from terracotta.server import create_app
-    from terracotta import update_settings
+    from terracotta import update_settings, get_driver
 
     update_settings(
         DRIVER_PATH=str(benchmark_database),
         UPSAMPLING_METHOD=resampling,
-        DOWNSAMPLING_METHOD=resampling,
-        RASTER_CACHE_SIZE=0
+        DOWNSAMPLING_METHOD=resampling
     )
 
     zoom_level = ZOOM_XYZ[zoom]
@@ -117,16 +114,14 @@ def test_bench_singleband(benchmark, zoom, resampling, big_raster_file_nodata, b
             rv = benchmark(client.get, f'/singleband/nodata/1/preview.png')
 
     assert rv.status_code == 200
+    assert not len(get_driver(str(benchmark_database))._raster_cache)
 
 
 def test_bench_singleband_out_of_bounds(benchmark, benchmark_database):
     from terracotta.server import create_app
     from terracotta import update_settings
 
-    update_settings(
-        DRIVER_PATH=str(benchmark_database),
-        RASTER_CACHE_SIZE=0
-    )
+    update_settings(DRIVER_PATH=str(benchmark_database))
 
     x, y, z = 0, 0, 20
 
