@@ -46,7 +46,7 @@ def serve(database: str = None,
 
     Example:
 
-        terracotta serve -r /path/to/rasters/{name}/{date}_{band}_{}.tif
+        $ terracotta serve -r /path/to/rasters/{name}/{date}_{band}_{}.tif
 
     The empty group {} is replaced by a wildcard matching anything (similar to * in glob patterns).
 

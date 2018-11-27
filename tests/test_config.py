@@ -3,6 +3,13 @@ import json
 import pytest
 
 
+def test_schema_integrity():
+    from terracotta import config
+    settings_fields = config.TerracottaSettings._fields
+    schema_fields = config.SettingSchema._declared_fields
+    assert set(settings_fields) == set(schema_fields)
+
+
 def test_env_config(monkeypatch):
     from terracotta import config
 
@@ -31,6 +38,12 @@ def test_env_config_invalid(monkeypatch):
         m.setenv('TC_DEBUG', 'foo')  # not a boolean
         with pytest.raises(ValueError):
             config.parse_config()
+
+    with monkeypatch.context() as m:
+        m.setenv('TC_REMOTE_DB_CACHE_DIR', '/foo/test.sqlite')  # non-existing folder
+        with pytest.raises(ValueError):
+            config.parse_config()
+
     assert True
 
 

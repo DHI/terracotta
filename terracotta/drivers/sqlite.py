@@ -21,6 +21,11 @@ from terracotta.profile import trace
 from terracotta.drivers.base import requires_connection
 from terracotta.drivers.raster_base import RasterDriver
 
+_ERROR_ON_CONNECT = (
+    'Could not retrieve version from database. Make sure that the given path points '
+    'to a valid Terracotta database, and that you ran driver.create().'
+)
+
 
 @contextlib.contextmanager
 def convert_exceptions(msg: str) -> Iterator:
@@ -76,13 +81,18 @@ class SQLiteDriver(RasterDriver):
         self._connection: Connection
         self._connected = False
 
-        super().__init__(path)
+        super().__init__(os.path.realpath(path))
 
     @contextlib.contextmanager
     def connect(self, check: bool = True) -> Iterator:
         try:
             close = False
             if not self._connected:
+                # if check and not os.path.isfile(self.path):
+                #     raise exceptions.InvalidDatabaseError(
+                #         f'Database file {self.path} does not exist '
+                #         f'(run driver.create() before connecting to a new database)'
+                #     )
                 with convert_exceptions('Unable to connect to database'):
                     self._connection = sqlite3.connect(
                         self.path, timeout=self.DB_CONNECTION_TIMEOUT
@@ -98,6 +108,7 @@ class SQLiteDriver(RasterDriver):
             except Exception:
                 self._connection.rollback()
                 raise
+
         finally:
             if close:
                 self._connection.commit()
@@ -105,7 +116,7 @@ class SQLiteDriver(RasterDriver):
                 self._connected = False
 
     @requires_connection
-    @convert_exceptions('Could not retrieve version from database')
+    @convert_exceptions(_ERROR_ON_CONNECT)
     def _get_db_version(self) -> str:
         """Getter for db_version"""
         conn = self._connection
@@ -116,12 +127,6 @@ class SQLiteDriver(RasterDriver):
 
     def _connection_callback(self) -> None:
         """Called after opening a new connection"""
-        if not os.path.isfile(self.path):
-            raise exceptions.InvalidDatabaseError(
-                f'Database file {self.path} does not exist '
-                f'(run driver.create() before connecting to a new database)'
-            )
-
         # check for version compatibility
         def versiontuple(version_string: str) -> Sequence[str]:
             return version_string.split('.')
@@ -271,7 +276,9 @@ class SQLiteDriver(RasterDriver):
         keys = tuple(self._key_dict_to_sequence(keys))
 
         if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError('Got wrong number of keys')
+            raise exceptions.InvalidKeyError(
+                f'Got wrong number of keys (available keys: {self.key_names})'
+            )
 
         conn = self._connection
 
@@ -307,7 +314,9 @@ class SQLiteDriver(RasterDriver):
         conn = self._connection
 
         if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError(f'Not enough keys (available keys: {self.key_names})')
+            raise exceptions.InvalidKeyError(
+                f'Got wrong number of keys (available keys: {self.key_names})'
+            )
 
         if override_path is None:
             override_path = filepath
@@ -335,7 +344,9 @@ class SQLiteDriver(RasterDriver):
         conn = self._connection
 
         if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError(f'Not enough keys (available keys: {self.key_names})')
+            raise exceptions.InvalidKeyError(
+                f'Got wrong number of keys (available keys: {self.key_names})'
+            )
 
         keys = self._key_dict_to_sequence(keys)
         key_dict = dict(zip(self.key_names, keys))

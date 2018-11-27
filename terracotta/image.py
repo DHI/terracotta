@@ -84,6 +84,8 @@ def array_to_png(img_data: Array,
                 )).tobytes()
 
             assert palette.shape == (3 * 256,), palette.shape
+    else:
+        raise ValueError('Input array must have 2 or 3 dimensions')
 
     if isinstance(img_data, np.ma.MaskedArray):
         img_data = img_data.filled(0)

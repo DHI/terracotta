@@ -22,7 +22,15 @@ from terracotta import get_settings, update_settings, logs, __version__
 def cli(ctx: click.Context,
         config: Mapping[str, Any] = None,
         loglevel: str = None) -> None:
-    """The Terracotta command line interface"""
+    """The command line interface for the Terracotta tile server.
+
+    All flags must be passed before specifying a subcommand.
+
+    Example:
+
+        $ terracotta -c config.toml connect localhost:5000
+
+    """
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
 

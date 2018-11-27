@@ -18,6 +18,7 @@
 
 
 # -- Project information -----------------------------------------------------
+import re
 from terracotta import __version__
 
 project = 'Terracotta'
@@ -25,7 +26,7 @@ copyright = '2018, the Terracotta contributors'
 author = 'Dion Häfner, Philip Graae'
 
 # The short X.Y version
-version = __version__
+version = re.match(r'(\d+\.\d+\.\d+)', __version__).group(1)
 # The full version, including alpha/beta/rc tags
 release = __version__
 
@@ -40,6 +41,7 @@ release = __version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.intersphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
@@ -74,6 +76,10 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'friendly'
 
+# -- Extension settings --------------------------------------------------------
+
+autodoc_member_order = 'bysource'
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -93,13 +99,15 @@ html_theme_options = {
     'font_family': "'Lato', 'minion pro', 'bell mt', Georgia, 'Hiragino Mincho Pro', sans-serif",
     'head_font_family': "'Lato', 'Garamond', 'Georgia', sans-serif",
     'body_text': '#000',
+    'sidebar_header': '#4B4032',
+    'sidebar_text': '#49443E',
     'github_banner': 'true',
     'github_user': 'DHI-GRAS',
     'github_repo': 'terracotta',
     'github_button': 'true',
     'github_type': 'star',
     'travis_button': 'true',
-    'codecov_button': 'true'
+    'codecov_button': 'true',
 }
 
 

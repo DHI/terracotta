@@ -28,6 +28,11 @@ from terracotta.profile import trace
 
 T = TypeVar('T')
 
+_ERROR_ON_CONNECT = (
+    'Could not retrieve version from database. Make sure that the given path points '
+    'to a valid Terracotta database, and that you ran driver.create().'
+)
+
 
 @contextlib.contextmanager
 def convert_exceptions(msg: str) -> Iterator:
@@ -130,7 +135,7 @@ class MySQLDriver(RasterDriver):
         return path
 
     @requires_connection
-    @convert_exceptions('Could not retrieve version from database')
+    @convert_exceptions(_ERROR_ON_CONNECT)
     def _get_db_version(self) -> str:
         """Getter for db_version"""
         cursor = self._cursor
@@ -386,7 +391,9 @@ class MySQLDriver(RasterDriver):
         cursor = self._cursor
 
         if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError(f'Not enough keys (available keys: {self.key_names})')
+            raise exceptions.InvalidKeyError(
+                f'Got wrong number of keys (available keys: {self.key_names})'
+            )
 
         if override_path is None:
             override_path = filepath
@@ -415,7 +422,9 @@ class MySQLDriver(RasterDriver):
         cursor = self._cursor
 
         if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError(f'Not enough keys (available keys: {self.key_names})')
+            raise exceptions.InvalidKeyError(
+                f'Got wrong number of keys (available keys: {self.key_names})'
+            )
 
         keys = self._key_dict_to_sequence(keys)
         key_dict = dict(zip(self.key_names, keys))

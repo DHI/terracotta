@@ -290,6 +290,11 @@ def test_get_colormap(client):
     assert len(json.loads(rv.data)['colormap']) == 100
 
 
+def test_get_colormap_invalid(client):
+    rv = client.get('/colormap?stretch_range=[0,1')
+    assert rv.status_code == 400
+
+
 def test_get_colormap_extra_args(client):
     rv = client.get('/colormap?stretch_range=[0,1]&num_values=100&foo=bar&baz=quz')
     assert rv.status_code == 200

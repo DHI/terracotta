@@ -10,7 +10,7 @@ import logging.handlers
 try:
     import colorlog
     use_colors = True
-except ImportError:
+except ImportError:  # pragma: no cover
     use_colors = False
 
 

@@ -149,7 +149,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     Example:
 
-        terracotta optimize-rasters rasters/*.tif -o cloud-optimized/
+        $ terracotta optimize-rasters rasters/*.tif -o cloud-optimized/
 
     Note that all rasters may only contain a single band.
     """

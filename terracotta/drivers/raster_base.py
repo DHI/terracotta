@@ -19,13 +19,13 @@ import numpy as np
 from cachetools import cachedmethod, LRUCache
 from affine import Affine
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from rasterio.io import DatasetReader  # noqa: F401
 
 try:
     from crick import TDigest, SummaryStats
     has_crick = True
-except ImportError:
+except ImportError:  # pragma: no cover
     has_crick = False
 
 from terracotta import get_settings, exceptions

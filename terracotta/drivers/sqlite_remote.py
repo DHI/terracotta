@@ -106,9 +106,4 @@ class RemoteSQLiteDriver(SQLiteDriver):
 
     def __del__(self) -> None:
         """Clean up temporary database upon exit"""
-        rm = self.__rm
-        try:
-            rm(self.path)
-        except AttributeError:
-            # object is deleted before self.path is declared
-            pass
+        self.__rm(self.path)

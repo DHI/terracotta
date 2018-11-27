@@ -12,6 +12,14 @@ def test_auto_detect(driver_path, provider):
     from terracotta import drivers
     db = drivers.get_driver(driver_path)
     assert db.__class__.__name__ == DRIVER_CLASSES[provider]
+    assert drivers.get_driver(driver_path, provider=provider) is db
+
+
+def test_get_driver_invalid():
+    from terracotta import drivers
+    with pytest.raises(ValueError) as exc:
+        drivers.get_driver('', provider='foo')
+    assert 'Unknown database provider' in str(exc.value)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -46,7 +54,7 @@ def test_creation_invalid(driver_path, provider):
     with pytest.raises(exceptions.InvalidKeyError) as exc:
         db.create(keys)
 
-        assert 'must be alphanumeric' in str(exc.value)
+    assert 'must be alphanumeric' in str(exc.value)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -58,7 +66,7 @@ def test_creation_invalid_description(driver_path, provider):
     with pytest.raises(exceptions.InvalidKeyError) as exc:
         db.create(keys, key_descriptions={'unknown_key': 'blah'})
 
-        assert 'contains unknown keys' in str(exc.value)
+    assert 'contains unknown keys' in str(exc.value)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -70,7 +78,7 @@ def test_creation_reserved_names(driver_path, provider):
     with pytest.raises(exceptions.InvalidKeyError) as exc:
         db.create(keys)
 
-        assert 'key names cannot be one of' in str(exc.value)
+    assert 'key names cannot be one of' in str(exc.value)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -82,7 +90,7 @@ def test_connect_before_create(driver_path, provider):
         with db.connect():
             pass
 
-        assert 'run driver.create()' in str(exc.value)
+    assert 'ran driver.create()' in str(exc.value)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -132,4 +140,4 @@ def test_version_conflict(driver_path, provider, raster_file, monkeypatch):
             with db.connect(check=True):
                 pass
 
-            assert fake_version in str(exc.value)
+        assert fake_version in str(exc.value)
