@@ -23,7 +23,8 @@ def get_tile_data(driver: Driver,
     if tile_xyz is None:
         # read whole dataset
         return driver.get_raster_tile(
-            keys, tile_size=tile_size, preserve_values=preserve_values, asynchronous=asynchronous
+            keys, tile_size=tile_size, preserve_values=preserve_values,
+            asynchronous=asynchronous
         )
 
     # determine bounds for given tile

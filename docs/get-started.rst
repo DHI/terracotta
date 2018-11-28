@@ -7,22 +7,78 @@ Installation
 ------------
 
 On most systems, the easiest way to install Terracotta is `through the
-Conda package manager <https://conda.io/miniconda.html>`__. After
-installing ``conda``, the following command creates a new environment
-containing all dependencies and Terracotta:
+Conda package manager <https://conda.io/miniconda.html>`__. Just
+install ``conda``, clone the repository, and execute the following command
+to create a new environment containing all dependencies and Terracotta:
 
-.. code:: bash
+.. code-block:: bash
 
    $ conda env create -f environment.yml
 
 If you already have a Python 3.6 installation that you want to use, you
 can just run
 
-.. code:: bash
+.. code-block:: bash
 
    $ pip install -e .
 
 in the root of the Terracotta repository instead.
+
+.. seealso::
+
+   If you are using Windows 10 and find yourself struggling with installing
+   Terracotta, :doc:`check out our Windows 10 installation guide <tutorials/windows>`!
+
+
+Usage in a nutshell
+-------------------
+
+The simplest way to use Terracotta is to cycle through the following commands:
+
+1. :doc:`terracotta optimize-rasters <cli-commands/optimize-rasters>` to
+   pre-process your raster files;
+2. :doc:`terracotta ingest <cli-commands/ingest>` to create a database;
+3. :doc:`terracotta serve <cli-commands/serve>` to spawn a server; and
+4. :doc:`terracotta connect <cli-commands/connect>` to connect to this server.
+
+The following sections guide you through these steps in more detail.
+
+
+Data exploration through Terracotta
+-----------------------------------
+
+If you have some raster files lying around (e.g. in GeoTiff format),
+you can use Terracotta to serve them up.
+
+Assume you are in a folder containing some files named with the pattern 
+:file:`S2A_<date>_<band>.tif`. You can start a Terracotta server via
+
+.. code-block:: bash
+
+   $ terracotta serve -r {}_{date}_{band}.tif
+
+.. note::
+
+   Terracotta profits heavily from the cloud-optimized GeoTiff format.
+   If your raster files are not cloud-optimized or you are unsure,
+   you can preprocess them with
+   :doc:`terracotta optimize-rasters <cli-commands/optimize-rasters>`.
+
+which will serve your data at ``http://localhost:5000``. Try the following
+URLs and see what happens:
+
+- `http://localhost:5000/keys`__
+- `http://localhost:5000/datasets`__
+- `http://localhost:5000/apidoc`__
+
+Because it is cumbersome to explore a Terracotta instance by manually
+constructing URLs, we have built a tool that lets you inspect it
+interactively:
+
+.. code-block:: bash
+
+   $ terracotta connect localhost:5000
+
 
 Creating a raster database
 --------------------------
@@ -35,11 +91,11 @@ store:
 1. Through the CLI
 ++++++++++++++++++
 
-A simple but limited way to build a database is to use the command line
-interface. All you need to do is to point Terracotta to a folder of
-(cloud-optimized) GeoTiffs:
+A simple but limited way to build a database is to use 
+:doc:`terracotta ingest <cli-commands/ingest>`. All you need to do is
+to point Terracotta to a folder of (cloud-optimized) GeoTiffs:
 
-.. code:: bash
+.. code-block:: bash
 
    $ terracotta ingest \
         /path/to/gtiffs/{sensor}_{name}_{date}_{band}.tif \
@@ -51,15 +107,16 @@ the given pattern into it.
 
 For available options, see
 
-.. code:: bash
+.. code-block:: bash
 
    $ terracotta ingest --help
 
 2. Using the Python API
 +++++++++++++++++++++++
 
-Terracotta’s driver API gives you fine-grained control over ingestion
-and retrieval. Metadata can be computed at three different times:
+:ref:`Terracotta’s driver API <drivers>` gives you fine-grained control
+over ingestion and retrieval. Metadata can be computed at three
+different times:
 
 1. Automatically during a call to ``driver.insert`` (fine for most
    applications);
@@ -83,13 +140,34 @@ database into an S3 bucket.
 
 :download:`Download the script <example-ingestion-script.py>`
 
-Note that the above script is just a simple example to show you some
-capabilities of the Terracotta Python API. More sophisticated solutions
-could e.g. attach additional metadata to database entries, or accept
-parameters from the command line.
+.. note::
 
-Serving data
-------------
+   The above script is just a simple example to show you some
+   capabilities of the Terracotta Python API. More sophisticated solutions
+   could e.g. attach additional metadata to database entries, process
+   many rasters in parallel, or accept parameters from the command line.
 
-Connecting to a running Terracotta server
------------------------------------------
+
+Serving data from a raster database
+-----------------------------------
+
+After creating a database, you can use
+:doc:`terracotta serve <cli-commands/serve>` to serve the rasters
+inserted into it:
+
+.. code-block:: bash
+
+   $ terracotta serve -d /path/to/database.sqlite
+
+To explore the server, you can once again use
+:doc:`terracotta connect <cli-commands/connect>`:
+
+.. code-block:: bash
+
+   $ terracotta connect localhost:5000
+
+.. note::
+
+   The server spawned by ``terracotta serve`` is indended for development
+   and data exploration only. For sophisticated production deployments,
+   :doc:`have a look at our tutorials <tutorial>`.

@@ -15,9 +15,9 @@ settings in several different ways:
 
      $ export TC_UPSAMPLING_METHOD=cubic
 
-  will set the corresponding setting 
-  ``UPSAMPLING_METHOD`` to ``cubic`` in all Terracotta instances. This is particularly useful
-  for serverless deployments. You can set list values in JSON array notation:
+  will set the corresponding setting ``UPSAMPLING_METHOD`` to ``cubic`` in all Terracotta
+  instances. This is particularly useful for serverless deployments. You can set list
+  values in JSON array notation:
 
   .. code-block:: bash
 
@@ -61,3 +61,4 @@ All runtime settings are contained in the following :class:`~typing.NamedTuple`.
 
 .. autoclass:: terracotta.config.TerracottaSettings
    :members:
+   :member-order: bysource

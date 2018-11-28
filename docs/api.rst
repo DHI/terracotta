@@ -8,30 +8,37 @@ Get and set runtime settings
 
 .. autofunction:: terracotta.update_settings
 
+.. _drivers:
+
 Get a driver instance
 ---------------------
 
 .. autofunction:: terracotta.get_driver
 
-Driver interface
-----------------
+SQLite driver
+-------------
 
-.. seealso::
-
-   The following class defines the common interface for all Terracotta
-   drivers. For a reference on a specific drivers refer to :ref:`available-drivers`.
-
-.. autoclass:: terracotta.drivers.base.Driver
+.. autoclass:: terracotta.drivers.sqlite.SQLiteDriver
    :members:
+   :undoc-members:
+   :special-members: __init__
+   :inherited-members:
 
-.. _available-drivers:
+Remote SQLite driver
+--------------------
 
-Available drivers
------------------
+.. autoclass:: terracotta.drivers.sqlite_remote.RemoteSQLiteDriver
+   :members:
+   :undoc-members:
+   :special-members: __init__
+   :inherited-members:
+   :exclude-members: delete, insert, create
 
-.. toctree::
-   :maxdepth: 1
+MySQL driver
+------------
 
-   drivers/sqlite
-   drivers/sqlite-remote
-   drivers/mysql
+.. autoclass:: terracotta.drivers.mysql.MySQLDriver
+   :members:
+   :undoc-members:
+   :special-members: __init__
+   :inherited-members:

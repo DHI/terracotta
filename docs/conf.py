@@ -78,8 +78,10 @@ pygments_style = 'friendly'
 
 # -- Extension settings --------------------------------------------------------
 
-autodoc_member_order = 'bysource'
-intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+}
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -96,8 +98,8 @@ html_theme_options = {
     'description': 'A light-weight, versatile XYZ tile server built with Flask and Rasterio',
     'code_font_family': "'Roboto Mono', 'Consolas', 'Menlo', 'Deja Vu Sans Mono', "
                         "'Bitstream Vera Sans Mono', monospace",
-    'font_family': "'Lato', 'minion pro', 'bell mt', Georgia, 'Hiragino Mincho Pro', sans-serif",
-    'head_font_family': "'Lato', 'Garamond', 'Georgia', sans-serif",
+    'font_family': "'Lato', Arial, sans-serif",
+    'head_font_family': "'Lato', Arial, sans-serif",
     'body_text': '#000',
     'sidebar_header': '#4B4032',
     'sidebar_text': '#49443E',
@@ -107,7 +109,7 @@ html_theme_options = {
     'github_button': 'true',
     'github_type': 'star',
     'travis_button': 'true',
-    'codecov_button': 'true',
+    'codecov_button': 'true'
 }
 
 

@@ -57,9 +57,9 @@ def get_driver(url_or_path: URLOrPathType, provider: str = None) -> Driver:
     Arguments:
 
         url_or_path: A path indentifying the database to connect to.
-                     The expected format depends on the driver provider.
+            The expected format depends on the driver provider.
         provider: Driver provider to use (one of sqlite, sqlite-remote, mysql;
-                  default: auto-detect).
+            default: auto-detect).
 
     Example:
 
