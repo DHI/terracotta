@@ -52,7 +52,8 @@ you should now be able to access the default nginx page via:
 
    http://your_server_ip
 
-For further instructions on how to initially set up Nginx check `here`_.
+For further instructions on how to initially set up Nginx check
+`here <https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-18-04>`__.
 
 
 Get data and optimize for Terracotta
@@ -150,7 +151,7 @@ To check errors in the service and nginx files:
 
    $ sudo nginx -t
 
-This guide is adjusted from `here`_.
+This guide is adjusted from `here <https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-18-04>`__.
 
 
 Optional: SSL Encryption
@@ -250,5 +251,3 @@ for the first time via ``https://VM_IP`` are expected because we are
 using a self signed SSL certificate. The traffic is encrypted, the
 certificate is just not signed by any of the trusted certificate
 authorities.
-
-.. _here: https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-18-04

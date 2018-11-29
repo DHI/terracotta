@@ -49,9 +49,6 @@ extensions = [
     'sphinx_click.ext'
 ]
 
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
-
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
@@ -75,6 +72,28 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'friendly'
+
+# -- Dirty HAXX to compile and serve preview app -----------------------------
+
+preview_hostname = 'https://2truhxo59g.execute-api.eu-central-1.amazonaws.com/production'
+
+# Add any paths that contain templates here, relative to this directory.
+templates_path = ['_templates', '../terracotta/client/templates']
+
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files,
+# so a file named "default.css" will overwrite the builtin "default.css".
+html_static_path = ['_static', '../terracotta/client/static']
+
+html_additional_pages = {
+    'preview-app': 'app.html',
+}
+
+# Inject Jinja variables defined by Flask
+html_context = {
+    'hostname': preview_hostname,
+    'url_for': lambda _, filename: f'_static/{filename}'
+}
 
 # -- Extension settings --------------------------------------------------------
 
@@ -115,12 +134,6 @@ html_theme_options = {
 
 def setup(app):
     app.add_stylesheet('https://fonts.googleapis.com/css?family=Lato|Roboto+Mono')
-
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

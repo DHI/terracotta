@@ -4,9 +4,10 @@
 Terracotta
 ==========
 
-`Try the demo <https://satlas.dk>`__ \| 
-`Read the docs <https://terracotta-python.readthedocs.org>`__ \|
-`Explore the API <https://2truhxo59g.execute-api.eu-central-1.amazonaws.com/production/apidoc>`__
+`Try the demo <https://terracotta-python.readthedocs.io/en/latest/preview-app.html>`__ \|
+`Read the docs <https://terracotta-python.readthedocs.io/en/latest>`__ \|
+`Explore the API <https://2truhxo59g.execute-api.eu-central-1.amazonaws.com/production/apidoc>`__ \|
+`Satlas, powered by Terracotta <http://satlas.dk>`__
 
 A light-weight, versatile XYZ tile server, built with Flask and Rasterio
 :earth_africa:

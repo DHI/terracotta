@@ -10,7 +10,7 @@ settings in several different ways:
 
 - Terracotta is fully configurable through environment variables that are prefixed with ``TC_``.
   E.g., running
-  
+
   .. code-block:: bash
 
      $ export TC_UPSAMPLING_METHOD=cubic
@@ -54,10 +54,10 @@ Available runtime settings
 
 All runtime settings are contained in the following :class:`~typing.NamedTuple`.
 
-.. seealso:: 
+.. seealso::
     
     To see the types and default values of the settings,
-    `have a look at the TerracottaSettings source code <_modules/terracotta/config.html#TerracottaSettings>`_.
+    `have a look at the TerracottaSettings source code <_modules/terracotta/config.html#TerracottaSettings>`__.
 
 .. autoclass:: terracotta.config.TerracottaSettings
    :members:

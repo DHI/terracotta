@@ -91,8 +91,7 @@ Already implemented drivers include:
 -  **MySQL + GeoTiff**: Similar to the SQLite driver, but uses a
    centralized MySQL database to store metadata. This driver is an
    excellent candidate for deployments on cloud services, e.g. through
-   `AWS Aurora
-   Serverless <https://aws.amazon.com/rds/aurora/serverless/>`__.
+   `AWS Aurora Serverless <https://aws.amazon.com/rds/aurora/serverless/>`__.
 
 Web API
 -------
@@ -102,6 +101,11 @@ Every Terracotta deployment exposes the API it uses as a
 ``http://server.com/swagger.json`` and ``http://server.com/apidoc``,
 respectively. This is the best way to find out which API *your*
 deployment of Terracotta uses.
+
+Why serverless?
+---------------
+
+
 
 Limitations
 -----------
@@ -134,10 +138,11 @@ Contents
 
 .. toctree::
    :maxdepth: 2
-   
+
    get-started
    settings
    cli
    api
    tutorial
    issues
+   preview-app

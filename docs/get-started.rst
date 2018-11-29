@@ -50,7 +50,7 @@ Data exploration through Terracotta
 If you have some raster files lying around (e.g. in GeoTiff format),
 you can use Terracotta to serve them up.
 
-Assume you are in a folder containing some files named with the pattern 
+Assume you are in a folder containing some files named with the pattern
 :file:`S2A_<date>_<band>.tif`. You can start a Terracotta server via
 
 .. code-block:: bash
@@ -67,9 +67,9 @@ Assume you are in a folder containing some files named with the pattern
 which will serve your data at ``http://localhost:5000``. Try the following
 URLs and see what happens:
 
-- `http://localhost:5000/keys`__
-- `http://localhost:5000/datasets`__
-- `http://localhost:5000/apidoc`__
+- `localhost:5000/keys <http://localhost:5000/keys>`__
+- `localhost:5000/datasets <http://localhost:5000/datasets>`__
+- `localhost:5000/apidoc <http://localhost:5000/apidoc>`__
 
 Because it is cumbersome to explore a Terracotta instance by manually
 constructing URLs, we have built a tool that lets you inspect it
@@ -78,6 +78,9 @@ interactively:
 .. code-block:: bash
 
    $ terracotta connect localhost:5000
+
+If you did everything correctly, a new window should open in your browser,
+showing something :doc:`similar to this <preview-app>`.
 
 
 Creating a raster database
@@ -91,7 +94,7 @@ store:
 1. Through the CLI
 ++++++++++++++++++
 
-A simple but limited way to build a database is to use 
+A simple but limited way to build a database is to use
 :doc:`terracotta ingest <cli-commands/ingest>`. All you need to do is
 to point Terracotta to a folder of (cloud-optimized) GeoTiffs:
 
@@ -166,8 +169,10 @@ To explore the server, you can once again use
 
    $ terracotta connect localhost:5000
 
-.. note::
+However, the server spawned by ``terracotta serve`` is indended for
+development and data exploration only. For sophisticated production
+deployments, :doc:`have a look at our tutorials <tutorial>`.
 
-   The server spawned by ``terracotta serve`` is indended for development
-   and data exploration only. For sophisticated production deployments,
-   :doc:`have a look at our tutorials <tutorial>`.
+If you are unsure which kind of deployment to choose, we recommend
+you to try out a :doc:`serverless deployment on AWS λ <tutorials/aws>`,
+via the remote SQLite driver.

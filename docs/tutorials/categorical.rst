@@ -26,7 +26,7 @@ During ingestion
    sense for your given application.
 
 2. Attach a mapping ``category name -> pixel value`` to the metadata of
-   your categorical dataset. Using the :doc:`Python API <api>`, you
+   your categorical dataset. Using the :doc:`Python API <../api>`, you
    could do it like this:
 
    .. code-block:: python
