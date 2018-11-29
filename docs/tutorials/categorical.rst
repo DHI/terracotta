@@ -1,7 +1,7 @@
 How to serve categorical data with Terracotta
 =============================================
 
-Categorical datasets are special in that the numerical pixel values
+Categorical datasets are special , because the numerical pixel values
 carry no direct meaning, but rather encode which category or label the
 pixel belongs to. Because labels must be preserved, serving categorical
 data comes with its own set of complications:
@@ -12,7 +12,7 @@ data comes with its own set of complications:
 
 Terracotta does not know categories and labels, but the API is flexible
 enough to give you the tools to build your own system and do the
-interpretation in the frontend. Categorical data can be served by
+interpretation in the frontend. You can serve categorical data by
 following these steps:
 
 During ingestion
@@ -24,18 +24,19 @@ During ingestion
    ``[type, sensor, date, band]``, where ``type`` can take one of the
    values ``categorical``, ``index``, ``reflectance``, or whatever makes
    sense for your given application.
-2. Attach a mapping ``category name -> pixel value`` to the metadata of
-   your categorical dataset. Using the Python API, this could e.g. be
-   done like this:
 
-   .. code:: python
+2. Attach a mapping ``category name -> pixel value`` to the metadata of
+   your categorical dataset. Using the :doc:`Python API <api>`, you
+   could do it like this:
+
+   .. code-block:: python
 
       import terracotta as tc
 
       driver = tc.get_driver('terracotta.sqlite')
 
-      # assuming keys are [type, sensor, date, band]
-      keys = ['categorical', 'S2', '20181010', 'cloudmask']
+      # assuming key names are [type, sensor, date, band]
+      key_values = ['categorical', 'S2', '20181010', 'cloudmask']
       raster_path = 'cloud_mask.tif'
 
       category_map = {
@@ -46,8 +47,12 @@ During ingestion
       }
 
       with driver.connect():
-          metadata = driver.compute_metadata(raster_path, extra_metadata={'categories': category_map})
-          driver.insert(keys, raster_path, metadata=metadata)
+          metadata = driver.compute_metadata(
+              raster_path,
+              extra_metadata={'categories': category_map}
+          )
+          driver.insert(key_values, raster_path, metadata=metadata)
+
 
 In the frontend
 ---------------
@@ -62,7 +67,7 @@ can use the following functionality:
    ``example.com/metadata/categorical/S2/20181010/cloudmask``. The
    returned JSON object will contain a section like this:
 
-   .. code:: json
+   .. code-block:: json
 
       {
           "metadata": {
@@ -77,15 +82,24 @@ can use the following functionality:
 
 -  To get correctly labelled imagery, the frontend will have to pass an
    explicit color mapping of pixel values to colors by using
-   ``/singleband``\ ’s ``explicit_color_map`` argument. In our case,
-   this could look like this:
-   ``example.com/singleband/categorical/S2/20181010/cloudmask/{z}/{x}/{y}.png?colormap=explicit&explicit_color_map={"0": "99d594", "1": "2b83ba", "2": "ffffff", "3": "404040"}``.
+   ``/singleband``'s ``explicit_color_map`` argument. In our case,
+   this could look like this::
+
+      example.com/singleband/categorical/S2/20181010/cloudmask/
+      {z}/{x}/{y}.png?colormap=explicit&explicit_color_map=
+      {"0": "99d594", "1": "2b83ba", "2": "ffffff", "3": "404040"}
+
+   .. note::
+
+      Depending on your architecture, it might be required to encode all
+      special characters in the query, such as ``{``, ``}``, and ``:``.
+      This is e.g. the case when using AWS API Gateway / AWS λ.
 
    Supplying an explicit color map in this fashion suppresses
    stretching, and forces Terracotta to only use nearest neighbor
    resampling when reading the data.
 
-   Colors can be passed as hex strings (as in this example) or RGB color
+   Colors can be passed as hex strings (as in this example) or RGBA color
    tuples. In case you are looking for a nice color scheme for your
    categorical datasets, `color brewer <http://colorbrewer2.org>`__
    features some excellent suggestions.

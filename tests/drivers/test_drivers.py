@@ -131,13 +131,8 @@ def test_version_conflict(driver_path, provider, raster_file, monkeypatch):
         m.setattr(f'{db.__module__}.__version__', fake_version)
         db._version_checked = False
 
-        # works
-        with db.connect(check=False):
-            pass
-
-        # fails
         with pytest.raises(exceptions.InvalidDatabaseError) as exc:
-            with db.connect(check=True):
+            with db.connect():
                 pass
 
         assert fake_version in str(exc.value)

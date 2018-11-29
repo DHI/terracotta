@@ -8,7 +8,7 @@ from typing import (Tuple, Dict, Iterator, Sequence, Union,
                     Mapping, Any, Optional, cast, TypeVar, NamedTuple)
 from collections import OrderedDict
 import contextlib
-from contextlib import ContextDecorator
+from contextlib import AbstractContextManager
 import re
 import json
 import urllib.parse as urlparse
@@ -184,7 +184,7 @@ class MySQLDriver(RasterDriver):
 
     key_names = cast(Tuple[str], property(_get_key_names))
 
-    def connect(self) -> ContextDecorator:
+    def connect(self) -> AbstractContextManager:
         return self._connect(check=True)
 
     @contextlib.contextmanager

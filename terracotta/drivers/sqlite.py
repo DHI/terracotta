@@ -7,7 +7,7 @@ to be present on disk.
 from typing import Any, Sequence, Mapping, Tuple, Union, Iterator, Dict, cast
 import os
 import contextlib
-from contextlib import ContextDecorator
+from contextlib import AbstractContextManager
 import json
 import re
 import sqlite3
@@ -105,7 +105,7 @@ class SQLiteDriver(RasterDriver):
 
         super().__init__(os.path.realpath(path))
 
-    def connect(self) -> ContextDecorator:
+    def connect(self) -> AbstractContextManager:
         return self._connect(check=True)
 
     @contextlib.contextmanager

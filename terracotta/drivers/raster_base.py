@@ -57,7 +57,7 @@ class RasterDriver(Driver):
 
     # specify signature and docstring for insert
     @abstractmethod
-    def insert(self,
+    def insert(self,  # type: ignore
                keys: Union[Sequence[str], Mapping[str, str]],
                filepath: str, *,
                metadata: Mapping[str, Any] = None,
@@ -541,9 +541,9 @@ class RasterDriver(Driver):
                         asynchronous: bool = False) -> Any:
         settings = get_settings()
         key_tuple = tuple(self._key_dict_to_sequence(keys))
-        path = self.get_datasets(dict(zip(self.key_names, key_tuple)))
-        assert len(path) == 1
-        path = path[key_tuple]
+        datasets = self.get_datasets(dict(zip(self.key_names, key_tuple)))
+        assert len(datasets) == 1
+        path = datasets[key_tuple]
 
         if tile_size is None:
             tile_size = settings.DEFAULT_TILE_SIZE

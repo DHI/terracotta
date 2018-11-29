@@ -78,7 +78,7 @@ class Driver(ABC):
 
     @abstractmethod
     def get_datasets(self, where: Mapping[str, str] = None,
-                     limit: int = 500, page: int = 1) -> Dict[Tuple[str, ...], Any]:
+                     page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], Any]:
         # Get all known dataset key combinations matching the given constraints,
         # and a handle to retrieve the data (driver dependent)
         pass
@@ -150,13 +150,14 @@ class Driver(ABC):
 
     @abstractmethod
     def insert(self, keys: Union[Sequence[str], Mapping[str, str]],
-               *args: Any, **kwargs: Any) -> None:
+               handle: Any, **kwargs: Any) -> None:
         """Register a new dataset. Used to populate metadata database.
 
         Arguments:
 
             keys: Keys of the dataset. Can either be given as a sequence of key values, or
                 as a mapping ``{key_name: key_value}``.
+            handle: Handle to access dataset (driver dependent).
 
         """
         pass
