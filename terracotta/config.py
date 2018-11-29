@@ -59,7 +59,7 @@ class TerracottaSettings(NamedTuple):
     DOWNSAMPLING_METHOD: str = 'nearest'
 
 
-AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._field_types.keys())
+AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._fields)
 
 
 def _is_writable(path: str) -> bool:

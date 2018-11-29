@@ -12,20 +12,19 @@ import functools
 import operator
 import logging
 import math
-import sys
 import warnings
 
 import numpy as np
-from cachetools import cachedmethod, LRUCache
+from cachetools import cachedmethod, LFUCache
 from affine import Affine
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from rasterio.io import DatasetReader  # noqa: F401
 
 try:
     from crick import TDigest, SummaryStats
     has_crick = True
-except ImportError:
+except ImportError:  # pragma: no cover
     has_crick = False
 
 from terracotta import get_settings, exceptions
@@ -42,18 +41,86 @@ class RasterDriver(Driver):
 
     get_datasets has to return path to raster file as sole dict value.
     """
-    TARGET_CRS: str = 'epsg:3857'
-    LARGE_RASTER_THRESHOLD: int = 10980 * 10980
-    RIO_ENV_KEYS = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', GDAL_TIFF_INTERNAL_MASK=True)
+    _TARGET_CRS: str = 'epsg:3857'
+    _LARGE_RASTER_THRESHOLD: int = 10980 * 10980
+    _RIO_ENV_KEYS = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', GDAL_TIFF_INTERNAL_MASK=True)
 
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         settings = get_settings()
-        self._raster_cache = LRUCache(settings.RASTER_CACHE_SIZE, getsizeof=sys.getsizeof)
+        self._raster_cache = LFUCache(
+            settings.RASTER_CACHE_SIZE,
+            getsizeof=operator.attrgetter('nbytes')
+        )
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
         super().__init__(*args, **kwargs)
 
+    # specify signature and docstring for insert
+    @abstractmethod
+    def insert(self,  # type: ignore
+               keys: Union[Sequence[str], Mapping[str, str]],
+               filepath: str, *,
+               metadata: Mapping[str, Any] = None,
+               skip_metadata: bool = False,
+               override_path: str = None) -> None:
+        """Insert a raster file into the database.
+
+        Arguments:
+
+            keys: Keys identifying the new dataset. Can either be given as a sequence of key
+                values, or as a mapping ``{key_name: key_value}``.
+            filepath: Path to the GDAL-readable raster file.
+            metadata: If not given (default), call :meth:`compute_metadata` with default arguments
+                to compute raster metadata. Otherwise, use the given values. This can be used to
+                decouple metadata computation from insertion, or to use the optional arguments
+                of :meth:`compute_metadata`.
+            skip_metadata: Do not compute any raster metadata (will be computed during the first
+                request instead). Use sparingly; this option has a detrimental result on the end
+                user experience and might lead to surprising results. Has no effect if ``metadata``
+                is given.
+            override_path: Override the path to the raster file in the database. Use this option if
+                you intend to copy the data somewhere else after insertion (e.g. when moving files
+                to a cloud storage later on).
+
+        """
+        pass
+
+    # specify signature and docstring for get_datasets
+    @abstractmethod
+    def get_datasets(self, where: Mapping[str, str] = None,
+                     page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
+        """Retrieve keys and file paths of datasets.
+
+        Arguments:
+
+            where: Constraints on returned datasets in the form ``{key_name: allowed_key_value}``.
+                Returns all datasets if not given (default).
+            page: Current page of results. Has no effect if ``limit`` is not given.
+            limit: If given, return at most this many datasets. Unlimited by default.
+
+
+        Returns:
+
+            :class:`dict` containing
+            ``{(key_value1, key_value2, ...): raster_file_path}``
+
+        Example:
+
+            >>> import terracotta as tc
+            >>> driver = tc.get_driver('tc.sqlite')
+            >>> driver.get_datasets()
+            {
+                ('reflectance', '20180101', 'B04'): 'reflectance_20180101_B04.tif',
+                ('reflectance', '20180102', 'B04'): 'reflectance_20180102_B04.tif',
+            }
+            >>> driver.get_datasets({'date': '20180101'})
+            {('reflectance', '20180101', 'B04'): 'reflectance_20180101_B04.tif'}
+
+        """
+        pass
+
     def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]) -> List[Any]:
+        """Convert {key_name: key_value} to [key_value] with the correct key order."""
         try:
             keys_as_mapping = cast(Mapping[str, Any], keys)
             return [keys_as_mapping[key] for key in self.key_names]
@@ -95,7 +162,7 @@ class RasterDriver(Driver):
 
     @staticmethod
     def _compute_image_stats_chunked(dataset: 'DatasetReader') -> Optional[Dict[str, Any]]:
-        """Loop over chunks and accumulate statistics"""
+        """Compute statistics for the given rasterio dataset by looping over chunks."""
         from rasterio import features, warp, windows
         from shapely import geometry
 
@@ -153,6 +220,7 @@ class RasterDriver(Driver):
     @staticmethod
     def _compute_image_stats(dataset: 'DatasetReader',
                              max_shape: Sequence[int] = None) -> Optional[Dict[str, Any]]:
+        """Compute statistics for the given rasterio dataset by reading it into memory."""
         from rasterio import features, warp, transform
         from shapely import geometry
 
@@ -212,7 +280,21 @@ class RasterDriver(Driver):
                          max_shape: Sequence[int] = None) -> Dict[str, Any]:
         """Read given raster file and compute metadata from it.
 
-        This handles most of the heavy lifting during raster ingestion.
+        This handles most of the heavy lifting during raster ingestion. The returned metadata can
+        be passed directly to :meth:`insert`.
+
+        Arguments:
+
+            raster_path: Path to GDAL-readable raster file
+            extra_metadata: Any additional metadata to attach to the dataset. Will be
+                JSON-serialized and returned verbatim by :meth:`get_metadata`.
+            use_chunks: Whether to process the image in chunks (slower, but uses less memory).
+                If not given, use chunks for large images only.
+            max_shape: Gives the maximum number of pixels used in each dimension to compute
+                metadata. Setting this to a relatively small size such as ``(1024, 1024)`` will
+                result in much faster metadata computation for large images, at the expense of
+                inaccurate results.
+
         """
         import rasterio
         from rasterio import warp
@@ -227,7 +309,7 @@ class RasterDriver(Driver):
         if use_chunks and max_shape is not None:
             raise ValueError('Cannot use both use_chunks and max_shape arguments')
 
-        with rasterio.Env(**cls.RIO_ENV_KEYS):
+        with rasterio.Env(**cls._RIO_ENV_KEYS):
             if not validate(raster_path):
                 warnings.warn(
                     f'Raster file {raster_path} is not a valid cloud-optimized GeoTIFF. '
@@ -248,12 +330,12 @@ class RasterDriver(Driver):
                 )
 
                 if use_chunks is None and max_shape is None:
-                    use_chunks = src.width * src.height > RasterDriver.LARGE_RASTER_THRESHOLD
+                    use_chunks = src.width * src.height > RasterDriver._LARGE_RASTER_THRESHOLD
 
                     if use_chunks:
                         logger.debug(
                             f'Computing metadata for file {raster_path} using more than '
-                            f'{RasterDriver.LARGE_RASTER_THRESHOLD // 10**6}M pixels, iterating '
+                            f'{RasterDriver._LARGE_RASTER_THRESHOLD // 10**6}M pixels, iterating '
                             'over chunks'
                         )
 
@@ -300,7 +382,7 @@ class RasterDriver(Driver):
     @staticmethod
     @trace('calculate_default_transform')
     def _calculate_default_transform(src_crs: Union[Dict[str, str], str],
-                                     target_crs: Union[Dict[str, str], str],
+                                     _TARGET_CRS: Union[Dict[str, str], str],
                                      width: int,
                                      height: int,
                                      *bounds: Number) -> Tuple[Affine, int, int]:
@@ -319,7 +401,7 @@ class RasterDriver(Driver):
         # transform image corners to target CRS
         dst_corner_sw, dst_corner_nw, dst_corner_se, dst_corner_ne = (
             list(zip(*warp.transform(
-                src_crs, target_crs,
+                src_crs, _TARGET_CRS,
                 [bounds[0], bounds[0], bounds[2], bounds[2]],
                 [bounds[1], bounds[3], bounds[1], bounds[3]]
             )))
@@ -338,7 +420,7 @@ class RasterDriver(Driver):
         target_res = (dst_corner_transform.a, dst_corner_transform.e)
 
         # get transform spanning whole bounds (not just projected corners)
-        dst_bounds = warp.transform_bounds(src_crs, target_crs, *bounds)
+        dst_bounds = warp.transform_bounds(src_crs, _TARGET_CRS, *bounds)
         dst_width = math.ceil((dst_bounds[2] - dst_bounds[0]) / target_res[0])
         dst_height = math.ceil((dst_bounds[1] - dst_bounds[3]) / target_res[1])
         dst_transform = transform.from_bounds(*dst_bounds, width=dst_width, height=dst_height)
@@ -376,7 +458,7 @@ class RasterDriver(Driver):
             downsampling_enum = self._get_resampling_enum(downsampling_method)
 
         with contextlib.ExitStack() as es:
-            es.enter_context(rasterio.Env(**self.RIO_ENV_KEYS))
+            es.enter_context(rasterio.Env(**self._RIO_ENV_KEYS))
             try:
                 with trace('open_dataset'):
                     src = es.enter_context(rasterio.open(path))
@@ -385,10 +467,10 @@ class RasterDriver(Driver):
 
             # compute suggested resolution and bounds in target CRS
             dst_transform, _, _ = self._calculate_default_transform(
-                src.crs, self.TARGET_CRS, src.width, src.height, *src.bounds
+                src.crs, self._TARGET_CRS, src.width, src.height, *src.bounds
             )
             dst_res = (abs(dst_transform.a), abs(dst_transform.e))
-            dst_bounds = warp.transform_bounds(src.crs, self.TARGET_CRS, *src.bounds)
+            dst_bounds = warp.transform_bounds(src.crs, self._TARGET_CRS, *src.bounds)
 
             if bounds is None:
                 bounds = dst_bounds
@@ -413,7 +495,7 @@ class RasterDriver(Driver):
             # construct VRT
             vrt = es.enter_context(
                 WarpedVRT(
-                    src, crs=self.TARGET_CRS, resampling=upsampling_enum, add_alpha=True,
+                    src, crs=self._TARGET_CRS, resampling=upsampling_enum, add_alpha=True,
                     transform=vrt_transform, width=vrt_width, height=vrt_height
                 )
             )
@@ -454,15 +536,17 @@ class RasterDriver(Driver):
     def get_raster_tile(self,
                         keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
-                        tile_size: Sequence[int] = (256, 256),
+                        tile_size: Sequence[int] = None,
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
-        """Load tile with given keys and bounds"""
         settings = get_settings()
         key_tuple = tuple(self._key_dict_to_sequence(keys))
-        path = self.get_datasets(dict(zip(self.key_names, key_tuple)))
-        assert len(path) == 1
-        path = path[key_tuple]
+        datasets = self.get_datasets(dict(zip(self.key_names, key_tuple)))
+        assert len(datasets) == 1
+        path = datasets[key_tuple]
+
+        if tile_size is None:
+            tile_size = settings.DEFAULT_TILE_SIZE
 
         # make sure all arguments are hashable
         task = functools.partial(

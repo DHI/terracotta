@@ -77,7 +77,7 @@ def _prefered_compression_method() -> str:
 
 def _get_vrt(src: DatasetReader, rs_method: int) -> WarpedVRT:
     from terracotta.drivers.raster_base import RasterDriver
-    target_crs = RasterDriver.TARGET_CRS
+    target_crs = RasterDriver._TARGET_CRS
     vrt_transform, vrt_width, vrt_height = RasterDriver._calculate_default_transform(
         src.crs, target_crs, src.width, src.height, *src.bounds
     )
@@ -149,7 +149,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     Example:
 
-        terracotta optimize-rasters rasters/*.tif -o cloud-optimized/
+        $ terracotta optimize-rasters rasters/*.tif -o cloud-optimized/
 
     Note that all rasters may only contain a single band.
     """

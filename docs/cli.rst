@@ -5,7 +5,7 @@ Command-line interface
 
 .. toctree::
    :maxdepth: 1
-   :caption: Available commands
+   :caption: Available commands:
 
    cli-commands/main
    cli-commands/optimize-rasters

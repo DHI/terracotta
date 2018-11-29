@@ -21,15 +21,15 @@ def test_array_to_png_singleband_invalid():
 
     with pytest.raises(exceptions.InvalidArgumentsError) as exc:
         image.array_to_png(np.zeros((20, 20)), colormap='unknown')
-        assert 'invalid color map' in exc.value
+    assert 'invalid color map' in str(exc.value)
 
     with pytest.raises(exceptions.InvalidArgumentsError) as exc:
         image.array_to_png(np.zeros((20, 20)), colormap=[(0, 0, 0, 0)] * 1000)
-        assert 'must contain less' in exc.value
+    assert 'must contain less' in str(exc.value)
 
     with pytest.raises(ValueError) as exc:
         image.array_to_png(np.zeros((20, 20)), colormap=[(0, 0, 0)] * 10)
-        assert 'must have shape' in exc.value
+    assert 'must have shape' in str(exc.value)
 
 
 def test_array_to_png_rgb():
@@ -50,11 +50,15 @@ def test_array_to_png_rgb_invalid():
     too_many_bands = np.random.randint(0, 256, size=(256, 512, 4), dtype='uint8')
     with pytest.raises(ValueError) as exc:
         image.array_to_png(too_many_bands)
-        assert 'must have three bands' in exc.value
+    assert 'must have three bands' in str(exc.value)
 
     with pytest.raises(ValueError) as exc:
         image.array_to_png(np.zeros((20, 20, 3)), colormap='viridis')
-        assert 'Colormap argument cannot be given' in exc.value
+    assert 'Colormap argument cannot be given' in str(exc.value)
+
+    with pytest.raises(ValueError) as exc:
+        image.array_to_png(np.array([]))
+    assert '2 or 3 dimensions' in str(exc.value)
 
 
 def test_contrast_stretch():
@@ -100,4 +104,4 @@ def test_label_invalid():
     data = np.array([15, 16, 17])
     with pytest.raises(ValueError) as exc:
         image.label(data, list(range(1000)))
-        assert 'more than 255 labels' in exc.value
+    assert 'more than 255 labels' in str(exc.value)

@@ -1,26 +1,87 @@
 Get started
 ===========
 
+.. _installation:
+
 Installation
 ------------
 
 On most systems, the easiest way to install Terracotta is `through the
-Conda package manager <https://conda.io/miniconda.html>`__. After
-installing ``conda``, the following command creates a new environment
-containing all dependencies and Terracotta:
+Conda package manager <https://conda.io/miniconda.html>`__. Just
+install ``conda``, clone the repository, and execute the following command
+to create a new environment containing all dependencies and Terracotta:
 
-.. code:: bash
+.. code-block:: bash
 
    $ conda env create -f environment.yml
 
 If you already have a Python 3.6 installation that you want to use, you
 can just run
 
-.. code:: bash
+.. code-block:: bash
 
    $ pip install -e .
 
-in the root of this repository instead.
+in the root of the Terracotta repository instead.
+
+.. seealso::
+
+   If you are using Windows 10 and find yourself struggling with installing
+   Terracotta, :doc:`check out our Windows 10 installation guide <tutorials/windows>`!
+
+
+Usage in a nutshell
+-------------------
+
+The simplest way to use Terracotta is to cycle through the following commands:
+
+1. :doc:`terracotta optimize-rasters <cli-commands/optimize-rasters>` to
+   pre-process your raster files;
+2. :doc:`terracotta ingest <cli-commands/ingest>` to create a database;
+3. :doc:`terracotta serve <cli-commands/serve>` to spawn a server; and
+4. :doc:`terracotta connect <cli-commands/connect>` to connect to this server.
+
+The following sections guide you through these steps in more detail.
+
+
+Data exploration through Terracotta
+-----------------------------------
+
+If you have some raster files lying around (e.g. in GeoTiff format),
+you can use Terracotta to serve them up.
+
+Assume you are in a folder containing some files named with the pattern
+:file:`S2A_<date>_<band>.tif`. You can start a Terracotta server via
+
+.. code-block:: bash
+
+   $ terracotta serve -r {}_{date}_{band}.tif
+
+.. note::
+
+   Terracotta profits heavily from the cloud-optimized GeoTiff format.
+   If your raster files are not cloud-optimized or you are unsure,
+   you can preprocess them with
+   :doc:`terracotta optimize-rasters <cli-commands/optimize-rasters>`.
+
+which will serve your data at ``http://localhost:5000``. Try the following
+URLs and see what happens:
+
+- `localhost:5000/keys <http://localhost:5000/keys>`__
+- `localhost:5000/datasets <http://localhost:5000/datasets>`__
+- `localhost:5000/apidoc <http://localhost:5000/apidoc>`__
+
+Because it is cumbersome to explore a Terracotta instance by manually
+constructing URLs, we have built a tool that lets you inspect it
+interactively:
+
+.. code-block:: bash
+
+   $ terracotta connect localhost:5000
+
+If you did everything correctly, a new window should open in your browser,
+showing something :doc:`similar to this <preview-app>`.
+
 
 Creating a raster database
 --------------------------
@@ -31,15 +92,17 @@ ingested into a database. There are two ways to populate this metadata
 store:
 
 1. Through the CLI
-~~~~~~~~~~~~~~~~~~
+++++++++++++++++++
 
-A simple but limited way to build a database is to use the command line
-interface. All you need to do is to point Terracotta to a folder of
-(cloud-optimized) GeoTiffs:
+A simple but limited way to build a database is to use
+:doc:`terracotta ingest <cli-commands/ingest>`. All you need to do is
+to point Terracotta to a folder of (cloud-optimized) GeoTiffs:
 
-.. code:: bash
+.. code-block:: bash
 
-   $ terracotta ingest /path/to/gtiffs/{sensor}_{name}_{date}_{band}.tif -o terracotta.sqlite
+   $ terracotta ingest \
+        /path/to/gtiffs/{sensor}_{name}_{date}_{band}.tif \
+        -o terracotta.sqlite
 
 This will create a new database with the keys ``sensor``, ``name``,
 ``date``, and ``band`` (in this order), and ingest all files matching
@@ -47,15 +110,16 @@ the given pattern into it.
 
 For available options, see
 
-.. code:: bash
+.. code-block:: bash
 
    $ terracotta ingest --help
 
 2. Using the Python API
-~~~~~~~~~~~~~~~~~~~~~~~
++++++++++++++++++++++++
 
-Terracotta’s driver API gives you fine-grained control over ingestion
-and retrieval. Metadata can be computed at three different times:
+:ref:`Terracotta’s driver API <drivers>` gives you fine-grained control
+over ingestion and retrieval. Metadata can be computed at three
+different times:
 
 1. Automatically during a call to ``driver.insert`` (fine for most
    applications);
@@ -73,79 +137,42 @@ local directory. It extracts the appropriate keys from the file name,
 ingests them into a database, and pushes the rasters and the resulting
 database into an S3 bucket.
 
-.. code:: python
+.. literalinclude:: example-ingestion-script.py
+   :language: python
+   :caption: example-ingestion-script.py
 
-   #!/usr/bin/env python3
+:download:`Download the script <example-ingestion-script.py>`
 
-   import os
-   import re
-   import glob
+.. note::
 
-   import tqdm
-   import boto3
-   s3 = boto3.resource('s3')
+   The above script is just a simple example to show you some
+   capabilities of the Terracotta Python API. More sophisticated solutions
+   could e.g. attach additional metadata to database entries, process
+   many rasters in parallel, or accept parameters from the command line.
 
-   import terracotta as tc
 
-   # settings
-   DB_NAME = 'terracotta.sqlite'
-   RASTER_GLOB = r'/path/to/rasters/*.tif'
-   RASTER_NAME_PATTERN = r'(?P<sensor>\w{2})_(?P<tile>\w{5})_(?P<date>\d{8})_(?P<band>\w+).tif'
-   KEYS = ('sensor', 'tile', 'date', 'band')
-   KEY_DESCRIPTIONS = {
-       'sensor': 'Sensor short name',
-       'tile': 'Sentinel-2 tile ID',
-       'date': 'Sensing date',
-       'band': 'Band or index name'
-   }
-   S3_BUCKET = 'tc-testdata'
-   S3_RASTER_FOLDER = 'rasters'
-   S3_PATH = f's3://{S3_BUCKET}/{S3_RASTER_FOLDER}'
+Serving data from a raster database
+-----------------------------------
 
-   driver = tc.get_driver(DB_NAME)
+After creating a database, you can use
+:doc:`terracotta serve <cli-commands/serve>` to serve the rasters
+inserted into it:
 
-   # create an empty database if it doesn't exist
-   if not os.path.isfile(DB_NAME):
-       driver.create(KEYS, KEY_DESCRIPTIONS)
+.. code-block:: bash
 
-   # sanity check
-   assert driver.key_names == KEYS
+   $ terracotta serve -d /path/to/database.sqlite
 
-   available_datasets = driver.get_datasets()
-   raster_files = list(glob.glob(RASTER_GLOB))
-   pbar = tqdm.tqdm(raster_files)
+To explore the server, you can once again use
+:doc:`terracotta connect <cli-commands/connect>`:
 
-   for raster_path in pbar:
-       pbar.set_postfix(file=raster_path)
+.. code-block:: bash
 
-       raster_filename = os.path.basename(raster_path)
+   $ terracotta connect localhost:5000
 
-       # extract keys from filename
-       match = re.match(RASTER_NAME_PATTERN, raster_filename)
-       if match is None:
-           raise ValueError(f'Input file {raster_filename} does not match raster pattern')
+However, the server spawned by ``terracotta serve`` is indended for
+development and data exploration only. For sophisticated production
+deployments, :doc:`have a look at our tutorials <tutorial>`.
 
-       keys = match.groups()
-
-       # skip already processed data
-       if keys in available_datasets:
-               continue
-
-       with driver.connect():
-           # since the rasters will be served from S3, we need to pass the correct remote path
-           driver.insert(keys, raster_path, override_path=f'{S3_PATH}/{raster_filename}')
-           s3.meta.client.upload_file(raster_path, S3_BUCKET, f'{S3_RASTER_FOLDER}/{raster_filename}')
-
-   # upload database to S3
-   s3.meta.client.upload_file(DB_NAME, S3_BUCKET, DB_NAME)
-
-Note that the above script is just a simple example to show you some
-capabilities of the Terracotta Python API. More sophisticated solutions
-could e.g. attach additional metadata to database entries, or accept
-parameters from the command line.
-
-Serving data
-------------
-
-Connecting to a running Terracotta server
------------------------------------------
+If you are unsure which kind of deployment to choose, we recommend
+you to try out a :doc:`serverless deployment on AWS λ <tutorials/aws>`,
+via the remote SQLite driver.

@@ -32,20 +32,20 @@ def ingest(raster_pattern: RasterPatternType,
            skip_metadata: bool = False,
            rgb_key: str = None,
            quiet: bool = False) -> None:
-    """Ingest a collection of raster files into a SQLite database.
+    """Ingest a collection of raster files into a (new or existing) SQLite database.
 
     First argument is a format pattern defining paths and keys of all raster files.
 
     Example:
 
-        terracotta create-database /path/to/rasters/{name}/{date}_{band}{}.tif -o out.sqlite
+        $ terracotta create-database /path/to/rasters/{name}/{date}_{band}{}.tif -o out.sqlite
 
     The empty group {} is replaced by a wildcard matching anything (similar to * in glob patterns).
 
     Existing datasets are silently overwritten.
 
-    This command only supports the creation of a simple SQLite database without any additional
-    metadata. For more sophisticated use cases use the Terracotta Python API.
+    This command only supports the creation of a simple, local SQLite database without any
+    additional metadata. For more sophisticated use cases use the Terracotta Python API.
     """
     from terracotta import get_driver
 

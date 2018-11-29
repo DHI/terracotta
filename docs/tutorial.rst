@@ -6,7 +6,7 @@ These tutorials are supposed to help you get started with Terracotta; they are n
 as authoritive references or strict demonstrations of best practices.
 
 If you run into problems following any of the tutorials, please let us know by 
-`opening an issue <https://github.com/DHI-GRAS/terracotta/issues>`_.
+`opening an issue <https://github.com/DHI-GRAS/terracotta/issues>`__.
 
 .. toctree::
    :maxdepth: 1

@@ -6,27 +6,32 @@ Welcome to Terracotta
 Use cases
 ---------
 
-Terracotta covers three major use cases:
-
 1. Use it as data exploration tool to quickly serve up a folder
    containing GeoTiff images with ``terracotta serve``.
-2. Make it your tile server backend on an existing webserver. Refer to
-   `the Flask
-   documentation <http://flask.pocoo.org/docs/1.0/deploying/>`__ for
-   more information. You can ingest your data `ahead of
-   time <#ingestion>`__ (recommended) or on-demand.
-3. Deploy it on serverless architectures such as AWS λ to serve tiles
-   from S3 buckets. This allows you to build apps that scale almost
+2. :doc:`Make it your tile server backend on an existing webserver. <tutorials/wsgi>`
+   You can ingest your data `ahead of time <#ingestion>`__ (recommended)
+   or on-demand.
+3. :doc:`Deploy it on serverless architectures such as AWS λ to serve tiles
+   from S3 buckets. <tutorials/aws>` This allows you to build apps that scale almost
    infinitely with minimal maintenance! To make it as easy as possible
    to deploy to AWS λ, we make use of the magic provided by
-   `Zappa <https://github.com/Miserlou/Zappa>`__. See `Deployment on
-   AWS <#deployment-to-aws-λ>`__ for more details.
+   `Zappa <https://github.com/Miserlou/Zappa>`__.
+
+Installation
+------------
+
+.. code-block:: bash
+
+    $ pip install terracotta[recommended]
+
+Or see :ref:`our installation guide <installation>` for conda-based
+and development installations.
 
 Why Terracotta?
 ---------------
 
 There are many good reasons to ditch your ancient raster data workflow
-and switch to Terracotta. Some of them are listed here:
+and switch to Terracotta:
 
 -  It is trivial to get going. Got a folder full of cloud-optimized
    GeoTiffs in different projections you want to have a look at in your
@@ -86,8 +91,7 @@ Already implemented drivers include:
 -  **MySQL + GeoTiff**: Similar to the SQLite driver, but uses a
    centralized MySQL database to store metadata. This driver is an
    excellent candidate for deployments on cloud services, e.g. through
-   `AWS Aurora
-   Serverless <https://aws.amazon.com/rds/aurora/serverless/>`__.
+   `AWS Aurora Serverless <https://aws.amazon.com/rds/aurora/serverless/>`__.
 
 Web API
 -------
@@ -97,6 +101,11 @@ Every Terracotta deployment exposes the API it uses as a
 ``http://server.com/swagger.json`` and ``http://server.com/apidoc``,
 respectively. This is the best way to find out which API *your*
 deployment of Terracotta uses.
+
+Why serverless?
+---------------
+
+
 
 Limitations
 -----------
@@ -129,10 +138,11 @@ Contents
 
 .. toctree::
    :maxdepth: 2
-   
+
    get-started
    settings
    cli
    api
    tutorial
    issues
+   preview-app

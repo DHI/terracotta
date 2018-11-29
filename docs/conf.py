@@ -18,6 +18,7 @@
 
 
 # -- Project information -----------------------------------------------------
+import re
 from terracotta import __version__
 
 project = 'Terracotta'
@@ -25,7 +26,7 @@ copyright = '2018, the Terracotta contributors'
 author = 'Dion Häfner, Philip Graae'
 
 # The short X.Y version
-version = __version__
+version = re.match(r'(\d+\.\d+\.\d+)', __version__).group(1)
 # The full version, including alpha/beta/rc tags
 release = __version__
 
@@ -40,15 +41,13 @@ release = __version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.intersphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx_autodoc_typehints',
     'sphinx_click.ext'
 ]
-
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -74,6 +73,34 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'friendly'
 
+# -- Dirty HAXX to compile and serve preview app -----------------------------
+
+preview_hostname = 'https://2truhxo59g.execute-api.eu-central-1.amazonaws.com/production'
+
+# Add any paths that contain templates here, relative to this directory.
+templates_path = ['_templates', '../terracotta/client/templates']
+
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files,
+# so a file named "default.css" will overwrite the builtin "default.css".
+html_static_path = ['_static', '../terracotta/client/static']
+
+html_additional_pages = {
+    'preview-app': 'app.html',
+}
+
+# Inject Jinja variables defined by Flask
+html_context = {
+    'hostname': preview_hostname,
+    'url_for': lambda _, filename: f'_static/{filename}'
+}
+
+# -- Extension settings --------------------------------------------------------
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+}
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -90,9 +117,11 @@ html_theme_options = {
     'description': 'A light-weight, versatile XYZ tile server built with Flask and Rasterio',
     'code_font_family': "'Roboto Mono', 'Consolas', 'Menlo', 'Deja Vu Sans Mono', "
                         "'Bitstream Vera Sans Mono', monospace",
-    'font_family': "'Lato', 'minion pro', 'bell mt', Georgia, 'Hiragino Mincho Pro', sans-serif",
-    'head_font_family': "'Lato', 'Garamond', 'Georgia', sans-serif",
+    'font_family': "'Lato', Arial, sans-serif",
+    'head_font_family': "'Lato', Arial, sans-serif",
     'body_text': '#000',
+    'sidebar_header': '#4B4032',
+    'sidebar_text': '#49443E',
     'github_banner': 'true',
     'github_user': 'DHI-GRAS',
     'github_repo': 'terracotta',
@@ -105,12 +134,6 @@ html_theme_options = {
 
 def setup(app):
     app.add_stylesheet('https://fonts.googleapis.com/css?family=Lato|Roboto+Mono')
-
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

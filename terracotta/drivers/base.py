@@ -22,13 +22,14 @@ def requires_connection(fun: Callable[..., T]) -> Callable[..., T]:
 
 
 class Driver(ABC):
-    """Abstract base class for all data backends.
+    """Abstract base class for all Terracotta data backends.
 
-    Defines a common interface for all handlers.
+    Defines a common interface for all drivers.
     """
-    RESERVED_KEYS = ('limit', 'page')
+    _RESERVED_KEYS = ('limit', 'page')
 
-    key_names: Tuple[str]
+    db_version: str  #: Terracotta version used to create the database
+    key_names: Tuple[str]  #: Names of all keys defined by the database
 
     @abstractmethod
     def __init__(self, url_or_path: str) -> None:
@@ -37,40 +38,73 @@ class Driver(ABC):
     @abstractmethod
     def create(self, keys: Sequence[str], *args: Any,
                key_descriptions: Mapping[str, str] = None, **kwargs: Any) -> None:
-        """Create a new, empty data storage"""
+        # Create a new, empty database (driver dependent)
         pass
 
     @abstractmethod
     def connect(self) -> contextlib.AbstractContextManager:
-        """Context manager to connect to a given database and clean up on exit."""
+        """Context manager to connect to a given database and clean up on exit.
+
+        This allows you to pool interactions with the database to prevent possibly
+        expensive reconnects, or to roll back several interactions if one of them fails.
+
+        Note:
+
+            Make sure to call :meth:`create` on a fresh database before using this method.
+
+        Example:
+
+            >>> import terracotta as tc
+            >>> driver = tc.get_driver('tc.sqlite')
+            >>> with driver.connect():
+            ...     for keys, dataset in datasets.items():
+            ...         # connection will be kept open between insert operations
+            ...         driver.insert(keys, dataset)
+
+        """
         pass
 
     @abstractmethod
     def get_keys(self) -> OrderedDict:
-        """Get all known keys and their fulltext descriptions."""
+        """Get all known keys and their fulltext descriptions.
+
+        Returns:
+
+            An :class:`~collections.OrderedDict` in the form
+            ``{key_name: key_description}``
+
+        """
         pass
 
     @abstractmethod
     def get_datasets(self, where: Mapping[str, str] = None,
-                     limit: int = 500, page: int = 1) -> Dict[Tuple[str, ...], Any]:
-        """Get all known dataset key combinations matching the given pattern (all if not given).
-
-        Return dict values are a handle to retrieve data (e.g. file path or callback).
-        """
+                     page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], Any]:
+        # Get all known dataset key combinations matching the given constraints,
+        # and a handle to retrieve the data (driver dependent)
         pass
 
     @abstractmethod
     def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
         """Return all stored metadata for given keys.
 
-        Metadata has to contain the following keys:
-          - range: global minimum and maximum value in dataset
-          - bounds: physical bounds covered by dataset
-          - convex_hull: GeoJSON shape specifying total data coverage
-          - percentiles: array of pre-computed percentiles in range(1, 100)
-          - mean: global mean
-          - stdev: global standard deviation
-          - metadata: any additional client-relevant metadata
+        Arguments:
+
+            keys: Keys of the requested dataset. Can either be given as a sequence of key values,
+                or as a mapping ``{key_name: key_value}``.
+
+        Returns:
+
+            A :class:`dict` with the values
+
+            - ``range``: global minimum and maximum value in dataset
+            - ``bounds``: physical bounds covered by dataset in latitude-longitude projection
+            - ``convex_hull``: GeoJSON shape specifying total data coverage in latitude-longitude
+              projection
+            - ``percentiles``: array of pre-computed percentiles from 1% through 99%
+            - ``mean``: global mean
+            - ``stdev``: global standard deviation
+            - ``metadata``: any additional client-relevant metadata
+
         """
         pass
 
@@ -81,30 +115,63 @@ class Driver(ABC):
                         tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
-        """Get raster tile as a NumPy array for given keys and bounds.
+        """Load a raster tile with given keys and bounds.
 
-        If asynchronous=True, returns a Future containing the result instead.
+        Arguments:
+
+            keys: Keys of the requested dataset. Can either be given as a sequence of key values,
+                or as a mapping ``{key_name: key_value}``.
+            bounds: Physical bounds of the tile to read, in Web Mercator projection (EPSG3857).
+                Reads the whole dataset if not given.
+            tile_size: Shape of the output array to return. Must be two-dimensional.
+                Defaults to :attr:`~terracotta.config.TerracottaSettings.DEFAULT_TILE_SIZE`.
+            preserve_values: Whether to preserve exact numerical values (e.g. when reading
+                categorical data). Sets all interpolation to nearest neighbor.
+            asynchronous: If given, the tile will be read asynchronously in a separate thread.
+                This function will return immediately with a :class:`~concurrent.futures.Future`
+                that can be used to retrieve the result.
+
+        Returns:
+
+            Requested tile as :class:`~numpy.ma.MaskedArray` of shape ``tile_size`` if
+            ``asynchronous=False``, otherwise a :class:`~concurrent.futures.Future` containing
+            the result.
+
         """
         pass
 
     @staticmethod
     @abstractmethod
     def compute_metadata(data: Any, *,
-                         extra_metadata: Any = None) -> Dict[str, Any]:
-        """Compute metadata for a given input file."""
+                         extra_metadata: Any = None,
+                         **kwargs: Any) -> Dict[str, Any]:
+        # Compute metadata for a given input file (driver dependent)
         pass
 
     @abstractmethod
-    def insert(self, *args: Any,
-               metadata: Mapping[str, Any] = None,
-               skip_metadata: bool = False,
-               **kwargs: Any) -> None:
-        """Register a new dataset. Used to populate data storage."""
+    def insert(self, keys: Union[Sequence[str], Mapping[str, str]],
+               handle: Any, **kwargs: Any) -> None:
+        """Register a new dataset. Used to populate metadata database.
+
+        Arguments:
+
+            keys: Keys of the dataset. Can either be given as a sequence of key values, or
+                as a mapping ``{key_name: key_value}``.
+            handle: Handle to access dataset (driver dependent).
+
+        """
         pass
 
     @abstractmethod
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
-        """Remove a dataset from metadata storage."""
+        """Remove a dataset from the metadata database.
+
+        Arguments:
+
+            keys:  Keys of the dataset. Can either be given as a sequence of key values, or
+                as a mapping ``{key_name: key_value}``.
+
+        """
         pass
 
     def __repr__(self) -> str:

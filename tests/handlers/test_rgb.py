@@ -28,6 +28,14 @@ def test_rgb_invalid_keys(use_testdb, raster_file_xyz):
         rgb.rgb(['val21', 'x', 'y', 'z'], ['val22', 'val23', 'val24'], raster_file_xyz)
 
 
+def test_rgb_invalid_args(use_testdb, raster_file_xyz):
+    from terracotta import exceptions
+    from terracotta.handlers import rgb
+
+    with pytest.raises(exceptions.InvalidArgumentsError):
+        rgb.rgb(['val21', 'x'], ['val22', 'val23', 'val24'], raster_file_xyz, stretch_ranges=[])
+
+
 def test_rgb_invalid_rgb_values(use_testdb, raster_file_xyz):
     from terracotta import exceptions
     from terracotta.handlers import rgb

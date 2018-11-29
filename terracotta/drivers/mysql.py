@@ -8,16 +8,16 @@ from typing import (Tuple, Dict, Iterator, Sequence, Union,
                     Mapping, Any, Optional, cast, TypeVar, NamedTuple)
 from collections import OrderedDict
 import contextlib
+from contextlib import AbstractContextManager
 import re
 import json
 import urllib.parse as urlparse
 from urllib.parse import ParseResult
-from pathlib import Path
 
 import numpy as np
 import pymysql
 from pymysql.connections import Connection
-from pymysql.cursors import DictCursor  # noqa: F401
+from pymysql.cursors import DictCursor
 
 from terracotta import get_settings, __version__
 from terracotta.drivers.raster_base import RasterDriver
@@ -27,6 +27,11 @@ from terracotta.profile import trace
 
 
 T = TypeVar('T')
+
+_ERROR_ON_CONNECT = (
+    'Could not connect to database. Make sure that the given path points '
+    'to a valid Terracotta database, and that you ran driver.create().'
+)
 
 
 @contextlib.contextmanager
@@ -48,18 +53,24 @@ class MySQLCredentials(NamedTuple):
 
 
 class MySQLDriver(RasterDriver):
-    """MySQL-backed raster driver.
+    """A MySQL-backed raster driver.
+
+    Assumes raster data to be present in separate GDAL-readable files on disk or remotely.
+    Stores metadata and paths to raster files in MySQL.
+
+    Requires a running MySQL server.
 
     The MySQL database consists of 4 different tables:
 
-    - `terracotta`: Metadata about the database itself.
-    - `keys`: Contains a single column holding all available keys.
-    - `datasets`: Maps indices to raster file path.
-    - `metadata`: Contains actual metadata as separate columns. Indexed via keys.
+    - ``terracotta``: Metadata about the database itself.
+    - ``key_names``: Contains two columns holding all available keys and their description.
+    - ``datasets``: Maps key values to physical raster path.
+    - ``metadata``: Contains actual metadata as separate columns. Indexed via key values.
 
+    This driver caches raster data and key names, but not metadata.
     """
-    MAX_PRIMARY_KEY_LENGTH = 767 // 4  # Max key length for MySQL is at least 767B
-    METADATA_COLUMNS: Tuple[Tuple[str, ...], ...] = (
+    _MAX_PRIMARY_KEY_LENGTH = 767 // 4  # Max key length for MySQL is at least 767B
+    _METADATA_COLUMNS: Tuple[Tuple[str, ...], ...] = (
         ('bounds_north', 'REAL'),
         ('bounds_east', 'REAL'),
         ('bounds_south', 'REAL'),
@@ -73,17 +84,28 @@ class MySQLDriver(RasterDriver):
         ('percentiles', 'BLOB'),
         ('metadata', 'LONGTEXT')
     )
-    CHARSET: str = 'utf8mb4'
+    _CHARSET: str = 'utf8mb4'
 
-    def __init__(self, path: Union[str, Path]) -> None:
+    def __init__(self, mysql_path: str) -> None:
+        """Initialize the MySQLDriver.
+
+        This should not be called directly, use :func:`~terracotta.get_driver` instead.
+
+        Arguments:
+
+            mysql_path: URL to running MySQL server, in the form
+                ``mysql://username:password@hostname/database``
+
+        """
+
         settings = get_settings()
 
         self.DB_CONNECTION_TIMEOUT: int = settings.DB_CONNECTION_TIMEOUT
 
-        con_params = urlparse.urlparse(str(path))
+        con_params = urlparse.urlparse(mysql_path)
 
         if not con_params.hostname:
-            con_params = urlparse.urlparse(f'mysql://{path}')
+            con_params = urlparse.urlparse(f'mysql://{mysql_path}')
 
         if con_params.scheme != 'mysql':
             raise ValueError(f'unsupported URL scheme "{con_params.scheme}"')
@@ -130,9 +152,9 @@ class MySQLDriver(RasterDriver):
         return path
 
     @requires_connection
-    @convert_exceptions('Could not retrieve version from database')
+    @convert_exceptions(_ERROR_ON_CONNECT)
     def _get_db_version(self) -> str:
-        """Getter for db_version"""
+        """Terracotta version used to create the database"""
         cursor = self._cursor
         cursor.execute('SELECT version from terracotta')
         db_row = cast(Dict[str, str], cursor.fetchone())
@@ -157,17 +179,20 @@ class MySQLDriver(RasterDriver):
             self._version_checked = True
 
     def _get_key_names(self) -> Tuple[str, ...]:
-        """Getter for key_names"""
+        """Names of all keys defined by the database"""
         return tuple(self.get_keys().keys())
 
     key_names = cast(Tuple[str], property(_get_key_names))
 
+    def connect(self) -> AbstractContextManager:
+        return self._connect(check=True)
+
     @contextlib.contextmanager
-    def connect(self, check: bool = True) -> Iterator:
+    def _connect(self, check: bool = True) -> Iterator:
         close = False
         try:
             if not self._connected:
-                with convert_exceptions('Unable to connect to database'):
+                with convert_exceptions(_ERROR_ON_CONNECT):
                     self._connection = pymysql.connect(
                         host=self._db_args.host, user=self._db_args.user, db=self._db_args.db,
                         password=self._db_args.password, port=self._db_args.port,
@@ -186,6 +211,7 @@ class MySQLDriver(RasterDriver):
             except Exception:
                 self._connection.rollback()
                 raise
+
         finally:
             if close:
                 self._cursor.close()
@@ -195,9 +221,17 @@ class MySQLDriver(RasterDriver):
 
     @convert_exceptions('Could not create database')
     def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> None:
-        """Initialize database with empty tables.
+        """Create and initialize database with empty tables.
 
-        This must be called before opening the first connection.
+        This must be called before opening the first connection. The MySQL database must not
+        exist already.
+
+        Arguments:
+
+            keys: Key names to use throughout the Terracotta database.
+            key_descriptions: Optional (but recommended) full-text description for some keys,
+                in the form of ``{key_name: description}``.
+
         """
         if key_descriptions is None:
             key_descriptions = {}
@@ -210,15 +244,15 @@ class MySQLDriver(RasterDriver):
         if not all(re.match(r'^\w+$', key) for key in keys):
             raise exceptions.InvalidKeyError('key names must be alphanumeric')
 
-        if any(key in self.RESERVED_KEYS for key in keys):
-            raise exceptions.InvalidKeyError(f'key names cannot be one of {self.RESERVED_KEYS!s}')
+        if any(key in self._RESERVED_KEYS for key in keys):
+            raise exceptions.InvalidKeyError(f'key names cannot be one of {self._RESERVED_KEYS!s}')
 
         for key in keys:
             if key not in key_descriptions:
                 key_descriptions[key] = ''
 
         # total primary key length has an upper limit in MySQL
-        key_size = self.MAX_PRIMARY_KEY_LENGTH // len(keys)
+        key_size = self._MAX_PRIMARY_KEY_LENGTH // len(keys)
         key_type = f'VARCHAR({key_size})'
 
         with pymysql.connect(host=self._db_args.host, user=self._db_args.user,
@@ -228,34 +262,30 @@ class MySQLDriver(RasterDriver):
                              binary_prefix=True, charset='utf8mb4') as con:
             con.execute(f'CREATE DATABASE {self._db_args.db}')
 
-        with self.connect(check=False):
+        with self._connect(check=False):
             cursor = self._cursor
             cursor.execute(f'CREATE TABLE terracotta (version VARCHAR(255)) '
-                           f'CHARACTER SET {self.CHARSET}')
+                           f'CHARACTER SET {self._CHARSET}')
             cursor.execute('INSERT INTO terracotta VALUES (%s)', [str(__version__)])
 
             cursor.execute(f'CREATE TABLE key_names (key_name {key_type}, '
-                           f'description VARCHAR(8000)) CHARACTER SET {self.CHARSET}')
+                           f'description VARCHAR(8000)) CHARACTER SET {self._CHARSET}')
             key_rows = [(key, key_descriptions[key]) for key in keys]
             cursor.executemany('INSERT INTO key_names VALUES (%s, %s)', key_rows)
 
             key_string = ', '.join([f'{key} {key_type}' for key in keys])
             cursor.execute(f'CREATE TABLE datasets ({key_string}, filepath VARCHAR(8000), '
-                           f'PRIMARY KEY({", ".join(keys)})) CHARACTER SET {self.CHARSET}')
+                           f'PRIMARY KEY({", ".join(keys)})) CHARACTER SET {self._CHARSET}')
 
             column_string = ', '.join(f'{col} {col_type}' for col, col_type
-                                      in self.METADATA_COLUMNS)
+                                      in self._METADATA_COLUMNS)
             cursor.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
-                           f'PRIMARY KEY ({", ".join(keys)})) CHARACTER SET {self.CHARSET}')
+                           f'PRIMARY KEY ({", ".join(keys)})) CHARACTER SET {self._CHARSET}')
 
         # invalidate key cache
         self._db_keys = None
 
     def get_keys(self) -> OrderedDict:
-        """Retrieve key names and descriptions from database.
-
-        Caches keys after first call.
-        """
         if self._db_keys is None:
             self._db_keys = self._get_keys()
         return self._db_keys
@@ -277,7 +307,6 @@ class MySQLDriver(RasterDriver):
     @convert_exceptions('Could not retrieve datasets')
     def get_datasets(self, where: Mapping[str, str] = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
-        """Retrieve keys of datasets matching given pattern"""
         cursor = self._cursor
 
         if limit is not None:
@@ -344,7 +373,6 @@ class MySQLDriver(RasterDriver):
     @requires_connection
     @convert_exceptions('Could not retrieve metadata')
     def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
-        """Retrieve metadata for given keys"""
         keys = tuple(self._key_dict_to_sequence(keys))
 
         if len(keys) != len(self.key_names):
@@ -369,7 +397,7 @@ class MySQLDriver(RasterDriver):
 
         assert row
 
-        data_columns, _ = zip(*self.METADATA_COLUMNS)
+        data_columns, _ = zip(*self._METADATA_COLUMNS)
         encoded_data = {col: row[col] for col in self.key_names + data_columns}
         return self._decode_data(encoded_data)
 
@@ -382,11 +410,12 @@ class MySQLDriver(RasterDriver):
                metadata: Mapping[str, Any] = None,
                skip_metadata: bool = False,
                override_path: str = None) -> None:
-        """Insert a dataset into the database"""
         cursor = self._cursor
 
         if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError(f'Not enough keys (available keys: {self.key_names})')
+            raise exceptions.InvalidKeyError(
+                f'Got wrong number of keys (available keys: {self.key_names})'
+            )
 
         if override_path is None:
             override_path = filepath
@@ -411,11 +440,12 @@ class MySQLDriver(RasterDriver):
     @requires_connection
     @convert_exceptions('Could not write to database')
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
-        """Delete a dataset from the database"""
         cursor = self._cursor
 
         if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError(f'Not enough keys (available keys: {self.key_names})')
+            raise exceptions.InvalidKeyError(
+                f'Got wrong number of keys (available keys: {self.key_names})'
+            )
 
         keys = self._key_dict_to_sequence(keys)
         key_dict = dict(zip(self.key_names, keys))

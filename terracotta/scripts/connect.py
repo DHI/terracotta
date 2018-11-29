@@ -28,7 +28,12 @@ from terracotta.scripts.http_utils import find_open_port
 def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None) -> None:
     """Connect to a running Terracotta and interactively explore data in it.
 
-    First argument is hostname and port to connect to (e.g. localhost:5000).
+    First argument is hostname and port to connect to.
+
+    Example:
+
+        $ terracotta connect localhost:5000
+
     """
     from terracotta.client.flask_api import create_app
 

@@ -1,43 +1,44 @@
-.. _api:
-
 Python API
 ==========
 
-Top-level interface
--------------------
-
-.. autofunction:: terracotta.get_driver
+Get and set runtime settings
+----------------------------
 
 .. autofunction:: terracotta.get_settings
 
 .. autofunction:: terracotta.update_settings
 
-Drivers
--------
+.. _drivers:
 
-Common interface
-++++++++++++++++
+Get a driver instance
+---------------------
 
-.. autoclass:: terracotta.drivers.base.Driver
-   :members:
+.. autofunction:: terracotta.get_driver
 
-Available drivers
-+++++++++++++++++
-
-SQLite
-~~~~~~
+SQLite driver
+-------------
 
 .. autoclass:: terracotta.drivers.sqlite.SQLiteDriver
-   :members: __init__
+   :members:
+   :undoc-members:
+   :special-members: __init__
+   :inherited-members:
 
-Remote SQLite on S3
-~~~~~~~~~~~~~~~~~~~
+Remote SQLite driver
+--------------------
 
 .. autoclass:: terracotta.drivers.sqlite_remote.RemoteSQLiteDriver
-   :members: __init__
+   :members:
+   :undoc-members:
+   :special-members: __init__
+   :inherited-members:
+   :exclude-members: delete, insert, create
 
-MySQL
-~~~~~
+MySQL driver
+------------
 
 .. autoclass:: terracotta.drivers.mysql.MySQLDriver
-   :members: __init__
+   :members:
+   :undoc-members:
+   :special-members: __init__
+   :inherited-members:

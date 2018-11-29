@@ -70,7 +70,7 @@ def test_where(driver_path, provider, raster_file):
 
     with pytest.raises(exceptions.InvalidKeyError) as exc:
         db.get_datasets(where=dict(unknown='foo'))
-        assert 'unrecognized keys' in str(exc.value)
+    assert 'unrecognized keys' in str(exc.value)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -174,15 +174,15 @@ def test_wrong_key_number(driver_path, provider, raster_file):
 
     with pytest.raises(exceptions.InvalidKeyError) as exc:
         db.get_metadata(['a', 'b'])
-        assert 'not enough keys' in str(exc.value)
+    assert 'wrong number of keys' in str(exc.value)
 
     with pytest.raises(exceptions.InvalidKeyError) as exc:
         db.insert(['a', 'b'], '')
-        assert 'not enough keys' in str(exc.value)
+    assert 'wrong number of keys' in str(exc.value)
 
     with pytest.raises(exceptions.InvalidKeyError) as exc:
         db.delete(['a', 'b'])
-        assert 'not enough keys' in str(exc.value)
+    assert 'wrong number of keys' in str(exc.value)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
