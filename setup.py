@@ -80,7 +80,8 @@ setup(
         'docs': [
             'sphinx',
             'sphinx_autodoc_typehints',
-            'sphinx-click'
+            'sphinx-click',
+            'pymysql'
         ],
         'recommended': [
             'colorlog',
