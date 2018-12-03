@@ -1,8 +1,7 @@
 |Build Status| |Documentation Status| |codecov| |GitHub release|
 |License|
 
-Terracotta
-==========
+|Logo|
 
 `Try the demo <https://terracotta-python.readthedocs.io/en/latest/preview-app.html>`__ \|
 `Read the docs <https://terracotta-python.readthedocs.io/en/latest>`__ \|
@@ -155,3 +154,4 @@ This has a few trade-offs:
 .. |GitHub release| image:: https://img.shields.io/github/release/dhi-gras/terracotta.svg
 .. |License| image:: https://img.shields.io/github/license/dhi-gras/terracotta.svg
 
+.. |Logo| image:: docs/_static/logo.svg?raw=true

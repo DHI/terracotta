@@ -89,10 +89,16 @@ html_additional_pages = {
     'preview-app': 'app.html',
 }
 
+
+def _url_for(folder, filename):
+    assert folder == 'static'
+    return f'_static/{filename}'
+
+
 # Inject Jinja variables defined by Flask
 html_context = {
     'hostname': preview_hostname,
-    'url_for': lambda _, filename: f'_static/{filename}'
+    'url_for': _url_for
 }
 
 # -- Extension settings --------------------------------------------------------
@@ -128,8 +134,11 @@ html_theme_options = {
     'github_button': 'true',
     'github_type': 'star',
     'travis_button': 'true',
-    'codecov_button': 'true'
+    'codecov_button': 'true',
+    'logo': 'logo-200px.png'
 }
+
+html_favicon = '_static/favicon.ico'
 
 
 def setup(app):

@@ -76,6 +76,10 @@ sound: In the same scheme as above, you could introduce a type
 Architecture
 ------------
 
+.. image:: _static/architecture-660px.png
+   :width: 660px
+
+
 In Terracotta, all heavy lifting is done by a so-called **driver**. The
 driver specifies where and how Terracotta can find the raster data and
 metadata it requires to serve a dataset. Most drivers use a database to
