@@ -1,15 +1,7 @@
-`Try the demo <https://terracotta-python.readthedocs.io/en/latest/preview-app.html>`__ \|
-`Read the docs <https://terracotta-python.readthedocs.io/en/latest>`__ \|
-`Explore the API <https://2truhxo59g.execute-api.eu-central-1.amazonaws.com/production/apidoc>`__ \|
-`Satlas, powered by Terracotta <http://satlas.dk>`__
+|Build Status| |Documentation Status| |codecov| |GitHub release|
+|License|
 
-.. class:: center
-
-   |Logo|
-
-   |Build Status| |Documentation Status| |codecov| |GitHub release|
-   |License|
-
+|Logo|
 
 Terracotta runs as a WSGI app on a dedicated webserver or as a
 serverless app on AWS λ. For convenient data exploration, debugging, and
@@ -25,6 +17,11 @@ Terracotta is built on a modern Python 3.6 stack, powered by awesome
 open-source software such as `Flask <http://flask.pocoo.org>`__,
 `Zappa <https://github.com/Miserlou/Zappa>`__, and
 `Rasterio <https://github.com/mapbox/rasterio>`__.
+
+`Try the demo <https://terracotta-python.readthedocs.io/en/latest/preview-app.html>`__ \|
+`Read the docs <https://terracotta-python.readthedocs.io/en/latest>`__ \|
+`Explore the API <https://2truhxo59g.execute-api.eu-central-1.amazonaws.com/production/apidoc>`__ \|
+`Satlas, powered by Terracotta <http://satlas.dk>`__
 
 Use cases
 ---------
