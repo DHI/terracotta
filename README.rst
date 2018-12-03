@@ -154,4 +154,4 @@ This has a few trade-offs:
 .. |GitHub release| image:: https://img.shields.io/github/release/dhi-gras/terracotta.svg
 .. |License| image:: https://img.shields.io/github/license/dhi-gras/terracotta.svg
 
-.. |Logo| image:: docs/_static/logo.svg?raw=true
+.. |Logo| image:: docs/_static/logo-banner.svg
