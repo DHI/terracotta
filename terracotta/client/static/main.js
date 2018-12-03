@@ -171,7 +171,6 @@ function assembleRgbUrl(remote_host, first_keys, rgb_keys, options, preview) {
         if (!options.hasOwnProperty(option_key)) continue;
         request_url += `&${option_key}=${options[option_key]}`;
     }
-    updateComputedUrl(request_url, keys.join('/'));
     return request_url;
 }
 
@@ -411,6 +410,7 @@ function renderErrors(errors) {
         )
         .join('');
     document.querySelector('#errors').innerHTML = errorHtml;
+
 }
 
 /**
@@ -719,7 +719,6 @@ function addSinglebandMapLayer(ds_keys, resetView = true) {
         layer_options.stretch_range = JSON.stringify(STATE.current_singleband_stretch);
     }
     const layer_url = assembleSinglebandURL(STATE.remote_host, ds_keys, layer_options);
-
     STATE.activeSinglebandLayer = {
         keys: ds_keys,
         layer: L.tileLayer(layer_url).addTo(STATE.map)
@@ -943,8 +942,6 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
         layer: L.tileLayer(layer_url).addTo(STATE.map)
     };
 
-    console.log(STATE.activeRgbLayer);
-
     // rgbControls.classList.add('active');
     let rgbSliders = document.querySelectorAll('.rgb-slider');
     for (let i = 0; i < rgbSliders.length; i++) {
@@ -963,27 +960,36 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
 }
 
 function updateComputedUrl(_url, _keys){
-    const computedUrl = document.getElementById("outputUrl");
-    computedUrl.parentElement.style.display = "block";
-    computedUrl.innerHTML = "<b>current data: </b>" + _url;
+    const computedUrl = document.getElementById("layerInfo__URL");
+    const layerInfoParent = document.getElementById("layerInfo__container");
+   if(layerInfoParent.style.display !== "block"){
+        layerInfoParent.style.display = "block";
+        computedUrl.parentElement.style.display = "block";
+    }
+   
+    computedUrl.innerHTML = "<b>current layer - </b>" + _url;
 
     let _metadata = getMetadata(_keys);
     updateMetadataText(_metadata);
 }
 
 function updateMetadataText(_metadata){
-    const metadataField = document.getElementById("metadata-field");
+    const metadataField = document.getElementById("layerInfo__metadata");
     if(_metadata){
-        metadataField.innerHTML =   "<b>current meta data -</b> " +
-                                    "<i> mean:</i> " + String(_metadata.mean.toFixed(2)) +
-                                    "<i> range:</i> " + JSON.stringify(_metadata.range) +
-                                    "<i> stdev:</i> " + String(_metadata.stdev.toFixed(2)) +
-                                    "<i> valid_percentage:</i> " + String(_metadata.valid_percentage.toFixed(2));
-        if(_metadata.metadata.length> 0) metadataField.innerHTML +=  "<i> meta data:</i> " + JSON.stringify(_metadata.metadata);
+        metadataField.innerHTML =   "<b>current metadata -</b> " +
+                                    "mean: " + String(_metadata.mean.toFixed(2)) +
+                                    ", range: " + JSON.stringify(_metadata.range) +
+                                    ", stdev: " + String(_metadata.stdev.toFixed(2)) +
+                                    ", valid_percentage: " + String(_metadata.valid_percentage.toFixed(2)) ;
+        if(_metadata.metadata.length> 0) metadataField.innerHTML +=  ", meta data:<i> " + JSON.stringify(_metadata.metadata);
     }
 }
 
-function getMetadata(_keys){
+function activateRGBgroup(){
+    console.log("toggle active styling");
+}
+
+function getMetadata(_keys, _lastKeys){
     const tdElements = document.getElementById("dataset-" + _keys).querySelectorAll('td');
     const keys = [];
     for (let i = 0; i < tdElements.length; i++) {
@@ -996,8 +1002,7 @@ function getMetadata(_keys){
 
 function toggleInfo() {
     const details = document.getElementById('details__content');
-    if (details.style.display === 'block') details.style.display = 'none';
-    else details.style.display = 'block';
+    details.style.display = details.style.display === 'block' ? 'none' : 'block';
 }
 
 function addListenersToInputTypes(){
@@ -1012,6 +1017,11 @@ function addListenersToInputTypes(){
 
     document.querySelector('.rgb-value-lower#B').addEventListener("change", function(){updateRGBContast(this.id, this.value, 0)});  
     document.querySelector('.rgb-value-upper#B').addEventListener("change", function(){updateRGBContast(this.id, this.value, 1)});
+}
+
+function toggleLayerInfo(){
+    const layerContent = document.getElementById("layerInfo__container--content");
+    layerContent.style.display = layerContent.style.display === 'block' ? 'none' : 'block';
 
 }
 
@@ -1026,6 +1036,7 @@ function updateRGBContast(_id, _value, _handle){
     if(_handle === 0 ) sliderval.noUiSlider.set([_value,null]);
     else sliderval.noUiSlider.set([null,_value]);
 }
+
 /**
  *  Main entrypoint.
  *  Called in app.html on window.onload.
@@ -1033,6 +1044,7 @@ function updateRGBContast(_id, _value, _handle){
  * @param {string} hostname The hostname of the remote Terracotta server (evaluated in map.html).
  * @global
  */
+var panel = null;
 function initializeApp(hostname) {
     STATE.remote_host = hostname;
 
@@ -1052,4 +1064,40 @@ function initializeApp(hostname) {
             });
         });
     addListenersToInputTypes();
+    addResizeListeners();
 }
+
+function addResizeListeners(){
+        const BORDER_SIZE = 6;
+        panel = document.getElementById("resizable__buffer");
+        panel.addEventListener("mousedown", function(e){
+      if (e.offsetX < BORDER_SIZE) {
+        m_pos = e.x;
+        document.addEventListener("mousemove", resize, false);
+      }
+    }, false);
+
+    document.addEventListener("mouseup", function(){
+        document.removeEventListener("mousemove", resize, false);
+    }, false);
+}
+
+
+
+
+
+let m_pos;
+function resize(e){
+    const sidebar = document.getElementById("controls");
+    const resizeBuffer = document.getElementById("resizable__buffer");
+    const map = document.getElementById("map");
+
+    const dx = e.x - m_pos;
+    m_pos = e.x;
+    let posX = (parseInt(getComputedStyle(panel, '').marginLeft) + dx) + "px";
+
+    sidebar.style.width = (parseInt(getComputedStyle(panel, '').marginLeft) + dx -50) + "px";
+    resizeBuffer.style.marginLeft = posX;
+    map.style.left = posX;
+}
+

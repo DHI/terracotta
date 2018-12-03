@@ -159,10 +159,18 @@ th, td {
     float:right;
     width:128px;
     height:128px;
+    margin-bottom: 10px;
 }
 
 #search-fields{
   margin: 10px 0px;
+  clear:both;
+  width: calc(100% - 128px);
+  float:left;
+}
+
+#search-fields input[type=text] {
+  margin-right: 10px;
 }
 
 #colormap-wrapper{
@@ -172,13 +180,69 @@ th, td {
   border-bottom: 1px solid #0b4566;
 }
 
-#outputUrl, #metadata-field{
+#metadata-field{
   font-size: 0.8em;
   font-weight: normal;
 }
 
 #metadata-field{
   margin-top: 0px;
+}
+
+#details__host--title{
+  clear:both;
+}
+
+#details__host--url{
+  font-style: italic;
+}
+
+#details__content{
+  display: none;
+}
+
+#layerInfo__container{
+  display:  none;
+  position: fixed;
+  right: 0px;
+  top: 50px;
+  z-index: 1000;
+  cursor: pointer;
+}
+
+#layerInfo__URL, #layerInfo__metadata{
+    width: 420px;
+    padding: 10px;
+    margin: 0px;
+    font-size: 0.8em;
+}
+
+
+#layerInfo__container--title{
+    background: #fff;
+    height: 40px;
+    min-width: 140px;
+}
+
+#layerInfo__container--title:hover{
+  background: #f1feff;
+}
+
+#layerInfo__toggle--icon{
+    padding: 8px 10px;
+    float: right;
+}
+
+#layerInfo__toggle--title{
+    float: left;
+    cursor: pointer;
+    width: calc(100% - 60px);
+    padding-left: 10px;
+}
+
+#layerInfo__container--content{
+  display:none;
+  background: #fff;
 }
 
 #contrast-wrapper{
@@ -188,6 +252,10 @@ th, td {
   height: 100px;
   padding-top: 10px;
   border-bottom: 1px solid #0b4566;
+}
+
+#key-list{
+  padding-left:0px;
 }
 
 #singleband-value-lower{
@@ -301,11 +369,10 @@ th, td {
 }
 
 .error-container {
-  position: absolute;
+  display:absolute;
   right: 16px;
-  top: 0;
+  top: 200px;
   width: 320px;
-  height: 100vh;
   overflow: auto;
   z-index: 9999;
   pointer-events: none;
@@ -342,10 +409,12 @@ ul#errors {
   opacity: 0.8;
 }
 
-.passiveRGB #R .noUi-connect, .passiveRGB #G .noUi-connect, .passiveRGB #B .noUi-connect {
-  background: #939393;
-}
-
-.passiveRGB .noUi-handle{
-  background: #525252;
+#resizable__buffer{
+  position:fixed;
+  margin-left: 450px;
+  height:100vh;
+  width: 6px;
+  background: #0b4566;
+  cursor: w-resize;
+  z-index:1100;
 }
