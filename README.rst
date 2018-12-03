@@ -1,15 +1,15 @@
-|Build Status| |Documentation Status| |codecov| |GitHub release|
-|License|
-
-|Logo|
-
 `Try the demo <https://terracotta-python.readthedocs.io/en/latest/preview-app.html>`__ \|
 `Read the docs <https://terracotta-python.readthedocs.io/en/latest>`__ \|
 `Explore the API <https://2truhxo59g.execute-api.eu-central-1.amazonaws.com/production/apidoc>`__ \|
 `Satlas, powered by Terracotta <http://satlas.dk>`__
 
-A light-weight, versatile XYZ tile server, built with Flask and Rasterio
-:earth_africa:
+.. class:: center
+
+   |Logo|
+
+   |Build Status| |Documentation Status| |codecov| |GitHub release|
+   |License|
+
 
 Terracotta runs as a WSGI app on a dedicated webserver or as a
 serverless app on AWS λ. For convenient data exploration, debugging, and
@@ -152,6 +152,10 @@ This has a few trade-offs:
 .. |codecov| image:: https://codecov.io/gh/DHI-GRAS/terracotta/branch/master/graph/badge.svg?token=u16QBwwvvn
    :target: https://codecov.io/gh/DHI-GRAS/terracotta
 .. |GitHub release| image:: https://img.shields.io/github/release/dhi-gras/terracotta.svg
+   :target: https://github.com/DHI-GRAS/terracotta/releases
 .. |License| image:: https://img.shields.io/github/license/dhi-gras/terracotta.svg
+   :target: https://github.com/DHI-GRAS/terracotta/blob/master/LICENSE
 
 .. |Logo| image:: docs/_static/logo-banner.svg
+   :width: 80%
+   :target: #
