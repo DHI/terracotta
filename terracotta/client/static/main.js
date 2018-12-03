@@ -298,6 +298,7 @@ function initUI(remote_host, keys) {
         addSinglebandMapLayer(currentKeys, false);
     });
     singlebandSlider.noUiSlider.on('update', function(values, handle) {
+
         let showValue = [
             document.getElementById('singleband-value-lower'),
             document.getElementById('singleband-value-upper')
@@ -313,6 +314,7 @@ function initUI(remote_host, keys) {
     let rgbIds = ['R', 'G', 'B'];
     for (let i = 0; i < rgbSliders.length; i++) {
         noUiSlider.create(rgbSliders[i], sliderDummyOptions).on('change.one', function() {
+
             STATE.current_rgb_stretch = [
                 rgbSliders[0].noUiSlider.get(),
                 rgbSliders[1].noUiSlider.get(),
@@ -340,6 +342,7 @@ function initUI(remote_host, keys) {
         rgbSliders[i].setAttribute('disabled', 'true');
     }
     updateColormap();
+    removeSpinner();
 }
 
 // ===================================================
@@ -647,7 +650,7 @@ function toggleDatasetMouseover(datasetTable) {
 
     STATE.overlayLayer = L.geoJSON(metadata.convex_hull, {
         style: {
-            color: '#ff7800',
+            color: '#0B4566',
             weight: 5,
             opacity: 0.65
         }
@@ -708,6 +711,7 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
 }
 
 function addSinglebandMapLayer(ds_keys, resetView = true) {
+    console.log("deactive RGB, activate singleband");
     const layer_id = serializeKeys(ds_keys);
     const metadata = STATE.dataset_metadata[layer_id];
 
@@ -798,6 +802,8 @@ function rgbSearchFieldChanged() {
             value: searchFields[i].value
         };
     }
+
+
 
     const datasetURL = assembleDatasetURL(remote_host, searchKeys, 1000, 0);
     return httpGet(datasetURL).then((res) => {
@@ -899,6 +905,7 @@ function rgbSelectorChanged() {
 }
 
 function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
+
     const rgbControls = document.getElementById('rgb');
     if (STATE.activeRgbLayer != null) {
         STATE.map.removeLayer(STATE.activeRgbLayer.layer);
@@ -926,7 +933,7 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
     if (STATE.activeSinglebandLayer != null) {
         toggleSinglebandMapLayer(STATE.activeSinglebandLayer.keys);
     }
-
+    console.log("activate RGB, deactivate singleband");
     let layerOptions = {};
     if (STATE.current_rgb_stretch != null) {
         layerOptions.r_range = JSON.stringify(STATE.current_rgb_stretch[0]);
@@ -936,6 +943,11 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
 
     let layer_url = assembleRgbUrl(STATE.remote_host, firstKeys, lastKeys, layerOptions, false);
 
+    console.log("continue working on stringification of Slider numbers");
+    console.log(typeof STATE.current_rgb_stretch[0][0]);
+    console.log(STATE.current_rgb_stretch[0][0]);
+
+    updateComputedUrl(layer_url, null);
     STATE.activeRgbLayer = {
         index_keys: firstKeys,
         rgb_keys: lastKeys,
@@ -962,32 +974,31 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
 function updateComputedUrl(_url, _keys){
     const computedUrl = document.getElementById("layerInfo__URL");
     const layerInfoParent = document.getElementById("layerInfo__container");
-   if(layerInfoParent.style.display !== "block"){
+    if(layerInfoParent.style.display !== "block"){
         layerInfoParent.style.display = "block";
         computedUrl.parentElement.style.display = "block";
     }
-   
     computedUrl.innerHTML = "<b>current layer - </b>" + _url;
-
-    let _metadata = getMetadata(_keys);
-    updateMetadataText(_metadata);
+    if(_keys){
+        let _metadata = getMetadata(_keys);
+        updateMetadataText(_metadata);
+    }
+    else updateMetadataText(null);
 }
 
 function updateMetadataText(_metadata){
     const metadataField = document.getElementById("layerInfo__metadata");
     if(_metadata){
+        metadataField.style.display = "block"
         metadataField.innerHTML =   "<b>current metadata -</b> " +
                                     "mean: " + String(_metadata.mean.toFixed(2)) +
                                     ", range: " + JSON.stringify(_metadata.range) +
                                     ", stdev: " + String(_metadata.stdev.toFixed(2)) +
                                     ", valid_percentage: " + String(_metadata.valid_percentage.toFixed(2)) ;
         if(_metadata.metadata.length> 0) metadataField.innerHTML +=  ", meta data:<i> " + JSON.stringify(_metadata.metadata);
-    }
+    } else metadataField.style.display = "none";
 }
 
-function activateRGBgroup(){
-    console.log("toggle active styling");
-}
 
 function getMetadata(_keys, _lastKeys){
     const tdElements = document.getElementById("dataset-" + _keys).querySelectorAll('td');
@@ -1009,18 +1020,20 @@ function addListenersToInputTypes(){
     document.getElementById("singleband-value-lower").addEventListener("change", function(){updateSinglebandContrast(this.value, 0);});
     document.getElementById("singleband-value-upper").addEventListener("change", function(){updateSinglebandContrast(this.value, 1);});
 
-    document.querySelector('.rgb-value-lower#R').addEventListener("change", function(){updateRGBContast(this.id, this.value, 0)});  
-    document.querySelector('.rgb-value-upper#R').addEventListener("change", function(){updateRGBContast(this.id, this.value, 1)});
+    document.querySelector('.rgb-value-lower#R').addEventListener("change", function(){updateRGBContrast(this.id, this.value, 0)});  
+    document.querySelector('.rgb-value-upper#R').addEventListener("change", function(){updateRGBContrast(this.id, this.value, 1)});
 
-    document.querySelector('.rgb-value-lower#G').addEventListener("change", function(){updateRGBContast(this.id, this.value, 0)});  
-    document.querySelector('.rgb-value-upper#G').addEventListener("change", function(){updateRGBContast(this.id, this.value, 1)});
+    document.querySelector('.rgb-value-lower#G').addEventListener("change", function(){updateRGBContrast(this.id, this.value, 0)});  
+    document.querySelector('.rgb-value-upper#G').addEventListener("change", function(){updateRGBContrast(this.id, this.value, 1)});
 
-    document.querySelector('.rgb-value-lower#B').addEventListener("change", function(){updateRGBContast(this.id, this.value, 0)});  
-    document.querySelector('.rgb-value-upper#B').addEventListener("change", function(){updateRGBContast(this.id, this.value, 1)});
+    document.querySelector('.rgb-value-lower#B').addEventListener("change", function(){updateRGBContrast(this.id, this.value, 0)});  
+    document.querySelector('.rgb-value-upper#B').addEventListener("change", function(){updateRGBContrast(this.id, this.value, 1)});
 }
 
 function toggleLayerInfo(){
     const layerContent = document.getElementById("layerInfo__container--content");
+    const layerToggle = document.getElementById("layerInfo__toggle--icon");
+    layerToggle.innerHTML = layerToggle.innerHTML === 'x' ? 'i' : 'x';
     layerContent.style.display = layerContent.style.display === 'block' ? 'none' : 'block';
 
 }
@@ -1029,12 +1042,30 @@ function updateSinglebandContrast(_value, _handle){
     const sliderval = document.querySelector(".singleband-slider");
     if(_handle === 0 ) sliderval.noUiSlider.set([_value,null]);
     else sliderval.noUiSlider.set([null,_value]);
+
+    STATE.current_singleband_stretch = sliderval.noUiSlider.get();
+    let currentKeys = STATE.activeSinglebandLayer.keys;
+    toggleSinglebandMapLayer();
+    addSinglebandMapLayer(currentKeys, false);
 }
 
-function updateRGBContast(_id, _value, _handle){
+function updateRGBContrast(_id, _value, _handle){
     const sliderval = document.querySelector(".rgb-slider#" + _id);
     if(_handle === 0 ) sliderval.noUiSlider.set([_value,null]);
     else sliderval.noUiSlider.set([null,_value]);
+
+    const rgbSliders = document.querySelectorAll('.rgb-slider');
+    console.log(rgbSliders[0].noUiSlider.get());
+    STATE.current_rgb_stretch = [
+                rgbSliders[0].noUiSlider.get(),
+                rgbSliders[1].noUiSlider.get(),
+                rgbSliders[2].noUiSlider.get()
+            ];
+    let currentIndexKeys = STATE.activeRgbLayer.index_keys;
+    let currentRgbKeys = STATE.activeRgbLayer.rgb_keys;
+
+    toggleRgbLayer();
+    toggleRgbLayer(currentIndexKeys, currentRgbKeys, false);
 }
 
 /**
@@ -1082,22 +1113,28 @@ function addResizeListeners(){
     }, false);
 }
 
-
+function removeSpinner(){
+   document.getElementById("loader__container").style.display = "none";
+}
 
 
 
 let m_pos;
 function resize(e){
+    e.preventDefault();
+
     const sidebar = document.getElementById("controls");
     const resizeBuffer = document.getElementById("resizable__buffer");
     const map = document.getElementById("map");
 
     const dx = e.x - m_pos;
     m_pos = e.x;
-    let posX = (parseInt(getComputedStyle(panel, '').marginLeft) + dx) + "px";
 
-    sidebar.style.width = (parseInt(getComputedStyle(panel, '').marginLeft) + dx -50) + "px";
-    resizeBuffer.style.marginLeft = posX;
-    map.style.left = posX;
+    if(m_pos > 450){
+        let posX = (parseInt(getComputedStyle(panel, '').marginLeft) + dx) + "px";
+        sidebar.style.width = (parseInt(getComputedStyle(panel, '').marginLeft) + dx -50) + "px";
+        resizeBuffer.style.marginLeft = posX;
+        map.style.left = posX;
+    }
 }
 

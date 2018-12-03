@@ -65,7 +65,7 @@
 			<input type="text" class="input__text--upper" id="singleband-value-upper">
 		</div>
 
-	<div id="rgb" class="el-wrapper el-wrapper--hover" onclick="activateRGBgroup()">
+	<div id="rgb" class="el-wrapper el-wrapper--hover">
 		<h2>Show RGB image</h2>
 		<div id="rgb-search-fields">
 		</div>
@@ -93,16 +93,22 @@
 			</div>
 		</div>
 	</div>
+
+	<div id="loader__container">
+		<div id="loader__spinner--control" class="loader__spinner"></div>
+	</div>
+
 </div>
 
 <div id="resizable__buffer"></div>
 
-<div id="map"></div>
+<div id="map">
+</div>
 
 <div id="layerInfo__container">
 	<div id="layerInfo__container--title" onclick="toggleLayerInfo()">
-		<h3 id="layerInfo__toggle--title"  >Layer info</h3>
-		<img src="../static/images/IconPassiveMed.png" id="layerInfo__toggle--icon">
+		<h3 id="layerInfo__toggle--title" class="no-select">Layer info</h3>
+		<p id="layerInfo__toggle--icon"  class="no-select">x</p>
 	</div>
 	<div id="layerInfo__container--content">
 		<p id="layerInfo__URL">current layer: </p>
