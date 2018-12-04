@@ -213,8 +213,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     f'Output file {output_file!s} exists (use --overwrite to ignore)'
                 )
 
-            with contextlib.ExitStack() as es:
-                es.enter_context(warnings.catch_warnings())
+            with contextlib.ExitStack() as es, warnings.catch_warnings():
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
 
                 src = es.enter_context(rasterio.open(str(input_file)))
