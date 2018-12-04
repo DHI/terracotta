@@ -5,7 +5,7 @@ channels:
 dependencies:
   - python>=3.6
   - numpy
-  - rasterio>=1.0,<1.0.7
+  - rasterio>=1.0
   - shapely
   - crick
   - pip:

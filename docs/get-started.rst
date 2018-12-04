@@ -82,6 +82,7 @@ interactively:
 If you did everything correctly, a new window should open in your browser,
 showing something :doc:`similar to this <preview-app>`.
 
+.. _ingestion:
 
 Creating a raster database
 --------------------------
