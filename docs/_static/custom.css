@@ -1,0 +1,7 @@
+div.body p, div.body dd, div.body li {
+    line-height: 1.5em;
+}
+
+div.sphinxsidebar a {
+    border-bottom: none;
+}

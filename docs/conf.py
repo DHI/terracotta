@@ -144,6 +144,7 @@ html_favicon = '_static/favicon.ico'
 def setup(app):
     app.add_stylesheet('https://fonts.googleapis.com/css?family=Lato|Roboto+Mono')
 
+
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
 #
