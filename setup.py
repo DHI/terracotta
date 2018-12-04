@@ -1,17 +1,26 @@
 from setuptools import setup, find_packages
 from os import path
+import re
 
 here = path.abspath(path.dirname(__file__))
 
 # get the long description from the README file
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
+
+# resolve relative links to figures
+long_description = re.sub(
+    r'!\[(\w+)\]\((docs/_figures/.*)\)',
+    r'![\1](https://github.com/DHI-GRAS/terracotta/tree/master/\2?raw=true)',
+    long_description
+)
 
 setup(
     # metadata
     name='terracotta',
     description='A modern XYZ tile server written in Python',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/DHI-GRAS/terracotta',
     author='Philip Graae',
     author_email='phgr@dhigroup.com',

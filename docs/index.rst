@@ -32,16 +32,13 @@ and development installations.
 Why Terracotta?
 ---------------
 
-There are many good reasons to ditch your ancient raster data workflow
-and switch to Terracotta:
-
 -  It is trivial to get going. Got a folder full of cloud-optimized
    GeoTiffs in different projections you want to have a look at in your
    browser? ``terracotta serve -p {name}.tif`` and
    ``terracotta connect localhost:5000`` get you there.
 -  We make minimal assumptions about your data, so *you stay in charge*.
    Keep using the tools you know and love to create and organize your
-   data, we serve it exactly as it is.
+   data, Terracotta serves it exactly as it is.
 -  Serverless deployment is a first-priority use case, so you don’t have
    to worry about maintaining or scaling your architecture.
 -  Terracotta instances are self-documenting. Everything the frontend
