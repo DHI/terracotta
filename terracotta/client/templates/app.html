@@ -60,36 +60,36 @@
 
 		<div id="contrast-wrapper">
 			<h3>Adjust contrast</h3>
-			<div class="singleband-slider"></div>
-			<input type="text" id="singleband-value-lower">
-			<input type="text" class="input__text--upper" id="singleband-value-upper">
+			<div class="singleband-slider" id="singlebandSlider"></div>
+			<input type="text" id="singleband-value-lower" disabled="true">
+			<input type="text" class="input__text--upper" id="singleband-value-upper" disabled="true">
 		</div>
 
-	<div id="rgb" class="el-wrapper el-wrapper--hover">
-		<h2>Show RGB image</h2>
+	<div id="rgb" class="el-wrapper" >
+		<h2 class="clickable" onclick="rgbSelectorChanged()"> Show RGB image</h2>
 		<div id="rgb-search-fields">
 		</div>
 		<div id="rgb-selectors">
 			<div class="horizontal-list">
 				<span class="rgb-label">R</span>
-				<select class="rgb-selector" id="R" onchange="rgbSelectorChanged();" disabled></select>
-				<input type="text" class="rgb-value-lower" id="R">
+				<select class="rgb-selector" id="R" onchange="rgbSelectorChanged()" disabled></select>
+				<input type="text" class="rgb-value-lower" id="R"  disabled="true">
 				<div class="rgb-slider" id="R"></div>
-				<input type="text" class="rgb-value-upper input__text--upper" id="R">
+				<input type="text" class="rgb-value-upper input__text--upper" id="R" disabled="true">
 			</div>
 			<div class="horizontal-list">
 				<span class="rgb-label">G</span>
-				<select class="rgb-selector" id="G" onchange="rgbSelectorChanged();" disabled></select>
-				<input type="text" class="rgb-value-lower" id="G">
+				<select class="rgb-selector" id="G" onchange="rgbSelectorChanged()" disabled></select>
+				<input type="text" class="rgb-value-lower" id="G" disabled="true">
 				<div class="rgb-slider" id="G"></div>
-				<input type="text" class="rgb-value-upper input__text--upper" id="G">
+				<input type="text" class="rgb-value-upper input__text--upper" id="G" disabled="true">
 			</div>
 			<div class="horizontal-list">
 				<span class="rgb-label">B</span>
-				<select class="rgb-selector" id="B" onchange="rgbSelectorChanged();" disabled></select>
-				<input type="text" class="rgb-value-lower" id="B">
+				<select class="rgb-selector" id="B" onchange="rgbSelectorChanged()" disabled></select>
+				<input type="text" class="rgb-value-lower" id="B" disabled="true">
 				<div class="rgb-slider" id="B"></div>
-				<input type="text" class="rgb-value-upper input__text--upper" id="B">
+				<input type="text" class="rgb-value-upper input__text--upper" id="B" disabled="true">
 			</div>
 		</div>
 	</div>
