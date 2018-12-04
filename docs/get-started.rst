@@ -50,19 +50,19 @@ Data exploration through Terracotta
 If you have some raster files lying around (e.g. in GeoTiff format),
 you can use Terracotta to serve them up.
 
-Assume you are in a folder containing some files named with the pattern
-:file:`S2A_<date>_<band>.tif`. You can start a Terracotta server via
-
-.. code-block:: bash
-
-   $ terracotta serve -r {}_{date}_{band}.tif
-
 .. note::
 
    Terracotta profits heavily from the cloud-optimized GeoTiff format.
    If your raster files are not cloud-optimized or you are unsure,
    you can preprocess them with
    :doc:`terracotta optimize-rasters <cli-commands/optimize-rasters>`.
+
+Assume you are in a folder containing some files named with the pattern
+:file:`S2A_<date>_<band>.tif`. You can start a Terracotta server via
+
+.. code-block:: bash
+
+   $ terracotta serve -r {}_{date}_{band}.tif
 
 which will serve your data at ``http://localhost:5000``. Try the following
 URLs and see what happens:

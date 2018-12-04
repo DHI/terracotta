@@ -22,21 +22,22 @@ following the pattern
 The placeholders in curly brackets is what we call *keys*. You can see
 that this pattern of keys covers all raster files:
 
-- ``reflectances/S2_denmark_20180524_B03.tif`` has type ``reflectances``,
-  sensor ``S2``, date ``20180524``, and band ``B03``;
-- ``radar/S1_denmark_20180615_A_073_VV.tif`` has type ``radar``, sensor
-  ``S1``, date ``20180615``, and band ``VV``;
-- ``indices/S2_denmark_20180506_ndvi.tif`` has type ``indices``, sensor
-  ``S2``, date ``20180506``, and band ``ndvi`` (even though NDVI is not
-  strictly a spectral band, it does fit the scheme well - sometimes
-  organizing your data is about making compromises).
+   ``reflectances/S2_denmark_20180524_B03.tif``
 
-.. note::
+      has type ``reflectances``, sensor ``S2``, date ``20180524``,
+      and band ``B03``
 
-   While keys in Terracotta are certainly inspired by file naming
-   conventions, they do not need to conincide with actual file names. You
-   are free to ingest a file called ``myraster.tif`` with the keys
-   ``('S2', '20180601', 'B04')`` should you wish to do so.
+   ``radar/S1_denmark_20180615_A_073_VV.tif``
+
+      has type ``radar``, sensor ``S1``, date ``20180615``,
+      and band ``VV``
+
+   ``indices/S2_denmark_20180506_ndvi.tif``
+
+      has type ``indices``, sensor ``S2``, date ``20180506``,
+      and band ``ndvi`` (even though NDVI is not really a spectral
+      band, it does fit the scheme well - sometimes organizing your
+      data is about making compromises).
 
 Keys can have any names and (string) values, and they do have a fixed
 order. In Terracotta, the keys identifying a dataset immediately lead
@@ -69,6 +70,13 @@ layer. You can also search for data; the query
 
 returns a JSON array of all known NDVI datasets.
 
+.. note::
+
+   While keys in Terracotta are certainly inspired by file naming
+   conventions, they do not need to conincide with actual file names. You
+   are free to ingest a file called ``myraster.tif`` with the keys
+   ``('S2', '20180601', 'B04')`` should you wish to do so.
+
 
 Architecture
 ------------
@@ -83,14 +91,19 @@ neither of those assumptions are enforced by the API.
 
 Already implemented drivers include:
 
--  **SQLite + GeoTiff**: Metadata is backed in an SQLite database, along
-   with the paths to the (physical) raster files. This is the simplest
-   driver, and is used by default in most applications. Both the SQLite
-   database and the raster files may be stored in AWS S3 buckets.
--  **MySQL + GeoTiff**: Similar to the SQLite driver, but uses a
-   centralized MySQL database to store metadata. This driver is an
-   excellent candidate for deployments on cloud services, e.g. through
-   `AWS Aurora Serverless <https://aws.amazon.com/rds/aurora/serverless/>`__.
+   **SQLite + GeoTiff**
+
+      Metadata is backed in an SQLite database, along
+      with the paths to the (physical) raster files. This is the simplest
+      driver, and is used by default in most applications. Both the SQLite
+      database and the raster files may be stored in AWS S3 buckets.
+
+   **MySQL + GeoTiff**
+
+      Similar to the SQLite driver, but uses a
+      centralized MySQL database to store metadata. This driver is an
+      excellent candidate for deployments on cloud services, e.g. through
+      `AWS Aurora Serverless <https://aws.amazon.com/rds/aurora/serverless/>`__.
 
 
 Why serverless?

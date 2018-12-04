@@ -7,7 +7,7 @@ Status](https://readthedocs.org/projects/terracotta-python/badge/?version=latest
 release](https://img.shields.io/github/release/dhi-gras/terracotta.svg)](https://github.com/DHI-GRAS/terracotta/releases)
 [![License](https://img.shields.io/github/license/dhi-gras/terracotta.svg)](https://github.com/DHI-GRAS/terracotta/blob/master/LICENSE)
 
-![Logo](docs/_figures/logo-banner-700px.png)
+[![Logo](docs/_figures/logo-banner.svg)](#)
 
 Terracotta is a pure Python tile server that runs as a WSGI app on a
 dedicated webserver or as a serverless app on AWS λ. It is built on a

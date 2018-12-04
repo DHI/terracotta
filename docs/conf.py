@@ -135,7 +135,7 @@ html_theme_options = {
     'github_type': 'star',
     'travis_button': 'true',
     'codecov_button': 'true',
-    'logo': 'logo-200px.png'
+    'logo': 'logo.svg'
 }
 
 html_favicon = '_static/favicon.ico'
