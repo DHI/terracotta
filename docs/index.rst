@@ -21,12 +21,15 @@ Use cases
 Installation
 ------------
 
+If you are using Linux and already have Python 3.6+ installed, all you need to
+do to check out Terracotta is
+
 .. code-block:: bash
 
     $ pip install terracotta[recommended]
 
-Or see :ref:`our installation guide <installation>` for conda-based
-and development installations.
+Otherwise, see :ref:`our installation guide <installation>` for conda-based
+and development installations on all platforms.
 
 
 Why Terracotta?
