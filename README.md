@@ -4,7 +4,7 @@
 [![GitHub release](https://img.shields.io/github/release-pre/dhi-gras/terracotta.svg)](https://github.com/DHI-GRAS/terracotta/releases)
 [![PyPI release](https://img.shields.io/pypi/v/terracotta.svg)](https://pypi.org/project/terracotta)
 [![License](https://img.shields.io/github/license/dhi-gras/terracotta.svg)](https://github.com/DHI-GRAS/terracotta/blob/master/LICENSE)
-![Python versions](https://img.shields.io/pypi/pyversions/terracotta.svg)
+[![Python versions](https://img.shields.io/pypi/pyversions/terracotta.svg)](https://pypi.org/project/terracotta)
 
 [![Logo](docs/_figures/logo-banner.svg)](#)
 
