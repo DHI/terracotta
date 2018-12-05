@@ -109,12 +109,12 @@ Already implemented drivers include:
 Why serverless?
 ---------------
 
-We think that serverless architectures (specifically AWS λ) are a great
+We think that serverless architectures (specifically AWS Lambda) are a great
 fit for tile servers:
 
 - Many tile servers host highly specialized data that is only used
   sporadically. However, even a single user fires hundreds of concurrent
-  requests. AWS λ makes it possible to keep costs low when things are slow
+  requests. AWS Lambda makes it possible to keep costs low when things are slow
   while providing the capacity needed for peak times.
 - Concurrency is key to a good user experience, and much more important
   than single-tile loading times.

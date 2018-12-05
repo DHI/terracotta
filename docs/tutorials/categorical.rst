@@ -93,7 +93,7 @@ can use the following functionality:
 
       Depending on your architecture, it might be required to encode all
       special characters in the query, such as ``{``, ``}``, and ``:``.
-      This is e.g. the case when using AWS API Gateway / AWS λ.
+      This is e.g. the case when using AWS API Gateway / AWS Lambda.
 
    Supplying an explicit color map in this fashion suppresses
    stretching, and forces Terracotta to only use nearest neighbor

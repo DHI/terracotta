@@ -11,7 +11,7 @@ Use cases
 2. :doc:`Make it your tile server backend on an existing webserver. <tutorials/wsgi>`
    You can ingest your data :ref:`ahead of time <ingestion>` (recommended)
    or on-demand.
-3. :doc:`Deploy it on serverless architectures such as AWS λ to serve tiles
+3. :doc:`Deploy it on serverless architectures such as AWS Lambda to serve tiles
    from S3 buckets. <tutorials/aws>` This allows you to build apps that
    scale almost infinitely with minimal maintenance!
 

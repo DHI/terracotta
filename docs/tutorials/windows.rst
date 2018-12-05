@@ -107,7 +107,7 @@ Optional: Set up Zappa on WSL
 -----------------------------
 
 We rely on the magic provided by `Zappa <https://github.com/Miserlou/Zappa>`__ to deploy
-Terracotta on AWS λ. Since AWS λ workers run on Linux, we cannot use a Windows environment
+Terracotta on AWS Lambda. Since AWS Lambda workers run on Linux, we cannot use a Windows environment
 for deployment. This is why we rely on the Windows subsystem for Linux (WSL).
 
 1. First up, `install the Windows subsystem for Linux <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`__.
@@ -157,4 +157,4 @@ for deployment. This is why we rely on the Windows subsystem for Linux (WSL).
       $ pip install awscli
       $ aws configure
 
-And you're done! You should now be able to :doc:`deploy Terracotta on AWS λ <aws>`.
+And you're done! You should now be able to :doc:`deploy Terracotta on AWS Lambda <aws>`.

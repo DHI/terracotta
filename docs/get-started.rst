@@ -176,5 +176,5 @@ development and data exploration only. For sophisticated production
 deployments, :doc:`have a look at our tutorials <tutorial>`.
 
 If you are unsure which kind of deployment to choose, we recommend
-you to try out a :doc:`serverless deployment on AWS λ <tutorials/aws>`,
+you to try out a :doc:`serverless deployment on AWS Lambda <tutorials/aws>`,
 via the remote SQLite driver.

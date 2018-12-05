@@ -1,4 +1,4 @@
-A serverless Terracotta deployment on AWS λ
+A serverless Terracotta deployment on AWS Lambda
 ===========================================
 
 .. warning::
@@ -11,9 +11,9 @@ A serverless Terracotta deployment on AWS λ
 Environment setup
 -----------------
 
-The easiest way to deploy Terracotta to AWS λ is by using
+The easiest way to deploy Terracotta to AWS Lambda is by using
 `Zappa <https://github.com/Miserlou/Zappa>`__. Zappa takes care of packaging
-Terracotta and its dependencies, and creates endpoints on AWS λ and API
+Terracotta and its dependencies, and creates endpoints on AWS Lambda and API
 Gateway for us.
 
 .. seealso::
@@ -68,7 +68,7 @@ a deployment environment:
    This requires that you have an account `on AWS <aws.amazon.com>`__ and a valid
    IAM user with programmatic access to all relevant resources.
 
-Make sure that you have proper access to S3 and AWS λ before continuing, e.g. by
+Make sure that you have proper access to S3 and AWS Lambda before continuing, e.g. by
 running
 
 .. code-block:: bash

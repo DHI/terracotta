@@ -5,7 +5,7 @@ The sections below outline some common issues people encounter when
 using Terracotta. If your problem persists, `feel free to open an
 issue <https://github.com/DHI-GRAS/terracotta/issues>`__.
 
-``OSError: error while reading file`` while deploying to AWS λ
+``OSError: error while reading file`` while deploying to AWS Lambda
 --------------------------------------------------------------
 
 Rasterio Linux wheels are built on CentOS, which stores SSL certificates
