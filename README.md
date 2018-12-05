@@ -2,9 +2,9 @@
 [![Documentation Status](https://readthedocs.org/projects/terracotta-python/badge/?version=latest)](https://terracotta-python.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/DHI-GRAS/terracotta/branch/master/graph/badge.svg?token=u16QBwwvvn)](https://codecov.io/gh/DHI-GRAS/terracotta)
 [![GitHub release](https://img.shields.io/github/release-pre/dhi-gras/terracotta.svg)](https://github.com/DHI-GRAS/terracotta/releases)
-[![PyPI release](https://img.shields.io/pypi/v/nine.svg)](https://pypi.org/project/terracotta)
+[![PyPI release](https://img.shields.io/pypi/v/terracotta.svg)](https://pypi.org/project/terracotta)
 [![License](https://img.shields.io/github/license/dhi-gras/terracotta.svg)](https://github.com/DHI-GRAS/terracotta/blob/master/LICENSE)
-![https://img.shields.io/pypi/pyversions/terracotta.svg]
+![Python versions](https://img.shields.io/pypi/pyversions/terracotta.svg)
 
 [![Logo](docs/_figures/logo-banner.svg)](#)
 
