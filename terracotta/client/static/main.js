@@ -151,13 +151,16 @@ function assembleSinglebandURL(remote_host, keys, options, preview) {
  * @return {string} rgb URL.
  */
 function assembleRgbUrl(remote_host, first_keys, rgb_keys, options, preview) {
-    let request_url;
+    let request_url = `${remote_host}/rgb/`;
+
+    if (first_keys.length > 0) {
+        request_url += `${first_keys.join('/')}/`;
+    }
 
     if (preview) {
-        request_url =
-            remote_host + '/rgb/' + first_keys.join('/') + '/preview.png?tile_size=' + JSON.stringify(THUMBNAIL_SIZE);
+        request_url += `preview.png?tile_size=${JSON.stringify(THUMBNAIL_SIZE)}`;
     } else {
-        request_url = remote_host + '/rgb/' + first_keys.join('/') + '/{z}/{x}/{y}.png';
+        request_url += '{z}/{x}/{y}.png';
     }
 
     const [r, g, b] = rgb_keys;
@@ -277,6 +280,9 @@ function initUI(remote_host, keys) {
     }
 
     resetRgbSelectors(false);
+    if (keys.length == 1) {
+        rgbSearchFieldChanged();
+    }
 
     // create sliders
     let sliderDummyOptions = {
@@ -802,8 +808,6 @@ function rgbSearchFieldChanged() {
             value: searchFields[i].value
         };
     }
-
-
 
     const datasetURL = assembleDatasetURL(remote_host, searchKeys, 1000, 0);
     return httpGet(datasetURL).then((res) => {
