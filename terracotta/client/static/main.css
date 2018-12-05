@@ -71,6 +71,8 @@ th, td {
   text-align: left;
 }
 
+*:focus {outline:none !important}
+
 /* Specific elements */
 
 #map {
@@ -283,11 +285,7 @@ th, td {
   background-color: #d0eff2;
 }
 
-.clickable:hover {
-  background-color: #d0eff2;
-}
-
-.el-wrapper--hover{
+.clickable {
   cursor: pointer;
 }
 
@@ -463,4 +461,21 @@ ul#errors {
 @keyframes spinControl {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+.rgb-slider#R[disabled] .noUi-connect, 
+.rgb-slider#G[disabled] .noUi-connect, 
+.rgb-slider#B[disabled] .noUi-connect{
+  background-color: #bbb9b9;
+}
+
+.singlebandSlider[disabled] .noUi-connect{
+  filter: grayscale(1);
+}
+
+.rgb-slider#R[disabled] .noUi-handle, 
+.rgb-slider#G[disabled] .noUi-handle, 
+.rgb-slider#B[disabled] .noUi-handle,
+.singleband-slider[disabled] .noUi-handle{
+  background-color: #838383;
 }
