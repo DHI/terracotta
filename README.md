@@ -21,9 +21,10 @@ and [Rasterio](https://github.com/mapbox/rasterio).
 
 ## Why Terracotta?
 
-- It is trivial to get going. Got a folder full of cloud-optimized
-  GeoTiffs in different projections you want to have a look at in your
-  browser? `terracotta serve -p {name}.tif` and
+- It is trivial to get going. Got a folder full of
+  [cloud-optimized GeoTiffs](https://www.cogeo.org/) in different
+  projections you want to have a look at in your browser?
+  `terracotta serve -p {name}.tif` and
   `terracotta connect localhost:5000` get you there.
 - We make minimal assumptions about your data, so *you stay in charge*.
   Keep using the tools you know and love to create and organize your

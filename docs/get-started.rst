@@ -52,7 +52,8 @@ you can use Terracotta to serve them up.
 
 .. note::
 
-   Terracotta profits heavily from the cloud-optimized GeoTiff format.
+   Terracotta profits heavily from the
+   `cloud-optimized GeoTiff format <https://www.cogeo.org/>`__.
    If your raster files are not cloud-optimized or you are unsure,
    you can preprocess them with
    :doc:`terracotta optimize-rasters <cli-commands/optimize-rasters>`.

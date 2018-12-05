@@ -13,9 +13,7 @@ Use cases
    or on-demand.
 3. :doc:`Deploy it on serverless architectures such as AWS λ to serve tiles
    from S3 buckets. <tutorials/aws>` This allows you to build apps that
-   scale almost infinitely with minimal maintenance! To make it as easy as
-   possible to deploy to AWS λ, we make use of the magic provided by
-   `Zappa <https://github.com/Miserlou/Zappa>`__.
+   scale almost infinitely with minimal maintenance!
 
 
 Installation
