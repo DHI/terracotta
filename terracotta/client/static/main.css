@@ -45,6 +45,7 @@ a{
 input[type=text]{
   border: 1px solid #86A2B3;
   width: 200px;
+  max-width: 50%;
   margin: 4px 0px;
 }
 
@@ -98,7 +99,7 @@ th, td {
 #contrast-wrapper input[type=text] {
   border: 1px solid #ececec;
   width: 25%;
-  min-width: 60px;
+  min-width: 40px;
   margin: 4px 0px;
   font-size: 0.8em;
 }

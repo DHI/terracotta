@@ -55,10 +55,10 @@ const STATE = {
     map: undefined,
     overlayLayer: undefined,
     activeSinglebandLayer: undefined,
-    activeRgbLayer: undefined
+    activeRgbLayer: undefined,
+    storedSinglebandKeys: [0,0,0,0]
 };
 
-const storedSinglebandKeys = [0,0,0,0];
 
 
 // ===================================================
@@ -677,8 +677,8 @@ function toggleDatasetMouseover(datasetTable) {
 }
 
 function activateSingleband(_ds_keys, resetView = true){
-    let theSameValues = compareArray(_ds_keys, storedSinglebandKeys);
-    storedSinglebandKeys = _ds_keys;
+    let theSameValues = compareArray(_ds_keys, STATE.storedSinglebandKeys);
+    STATE.storedSinglebandKeys = _ds_keys;
     if(theSameValues) return
     toggleSinglebandMapLayer(_ds_keys);   
 }
@@ -1179,8 +1179,6 @@ function removeSpinner(){
    document.getElementById("loader__container").style.display = "none";
 }
 
-
-
 let m_pos;
 function resize(e){
     e.preventDefault();
@@ -1192,11 +1190,9 @@ function resize(e){
     const dx = e.x - m_pos;
     m_pos = e.x;
 
-    if(m_pos > 450){
         let posX = (parseInt(getComputedStyle(panel, '').marginLeft) + dx) + "px";
         sidebar.style.width = (parseInt(getComputedStyle(panel, '').marginLeft) + dx -50) + "px";
         resizeBuffer.style.marginLeft = posX;
         map.style.left = posX;
-    }
 }
 
