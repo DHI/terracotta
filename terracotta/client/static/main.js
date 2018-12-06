@@ -58,6 +58,8 @@ const STATE = {
     activeRgbLayer: undefined
 };
 
+const storedSinglebandKeys = [0,0,0,0];
+
 
 // ===================================================
 // Convenience functions to get valid Terracotta URLs.
@@ -372,11 +374,9 @@ function compareArray(arr1, arr2){
   for(i = i; i < arr1.length; i++){
     if(arr1[i] !== arr2[i]) identical = false;
   }
-  console.log(i);
   for(i = i; i< arr2.length; i++){
    if(arr1[i] !== arr2[i]) identical = false;
   }
-  console.log(i);
    return identical;
 }
 
@@ -676,10 +676,9 @@ function toggleDatasetMouseover(datasetTable) {
     }).addTo(STATE.map);
 }
 
-var prevSingleBandKeys = [0,0,0,0];
 function activateSingleband(_ds_keys, resetView = true){
-    let theSameValues = compareArray(_ds_keys, prevSingleBandKeys);
-    prevSingleBandKeys = _ds_keys;
+    let theSameValues = compareArray(_ds_keys, storedSinglebandKeys);
+    storedSinglebandKeys = _ds_keys;
     if(theSameValues) return
     toggleSinglebandMapLayer(_ds_keys);   
 }
