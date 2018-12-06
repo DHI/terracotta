@@ -366,6 +366,20 @@ function serializeKeys(keys) {
     return keys.join('/');
 }
 
+function compareArray(arr1, arr2){  
+  let identical = true;
+  let i = 0
+  for(i = i; i < arr1.length; i++){
+    if(arr1[i] !== arr2[i]) identical = false;
+  }
+  console.log(i);
+  for(i = i; i< arr2.length; i++){
+   if(arr1[i] !== arr2[i]) identical = false;
+  }
+  console.log(i);
+   return identical;
+}
+
 /**
  * Stores metadata.
  *
@@ -419,7 +433,6 @@ function renderErrors(errors) {
         )
         .join('');
     document.querySelector('#errors').innerHTML = errorHtml;
-
 }
 
 /**
@@ -525,7 +538,7 @@ function updateDatasetList(remote_host = STATE.remote_host, datasets, keys) {
         }
         resultRow.id = 'dataset-' + serializeKeys(ds_keys);
         resultRow.classList.add('clickable');
-        resultRow.addEventListener('click', toggleSinglebandMapLayer.bind(null, ds_keys));
+        resultRow.addEventListener('click', activateSingleband.bind(null, ds_keys));
         resultRow.addEventListener('mouseenter', toggleDatasetMouseover.bind(null, resultRow));
         resultRow.addEventListener('mouseleave', toggleDatasetMouseover.bind(null, null));
 
@@ -663,6 +676,15 @@ function toggleDatasetMouseover(datasetTable) {
     }).addTo(STATE.map);
 }
 
+var prevSingleBandKeys = [0,0,0,0];
+function activateSingleband(_ds_keys, resetView = true){
+    let theSameValues = compareArray(_ds_keys, prevSingleBandKeys);
+    prevSingleBandKeys = _ds_keys;
+    if(theSameValues) return
+    toggleSinglebandMapLayer(_ds_keys);   
+}
+
+
 /**
  * @param {Array<string>} [ds_keys]
  * @param {boolean} [resetView]
@@ -673,8 +695,11 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
      */
     let singlebandSlider = document.querySelector('.singleband-slider');
 
+   
+
     if (STATE.activeSinglebandLayer != null || ds_keys == null) {
-        STATE.map.removeLayer(STATE.activeSinglebandLayer.layer);
+ 
+       STATE.map.removeLayer(STATE.activeSinglebandLayer.layer);
         const currentKeys = STATE.activeSinglebandLayer.keys;
         STATE.activeSinglebandLayer = null;
 
@@ -688,6 +713,7 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
         if (ds_keys === null || currentKeys === ds_keys) {
             return;
         }
+        previousToggleKeys = ds_keys;
     }
 
     if (STATE.activeRgbLayer !== null) {
@@ -846,18 +872,20 @@ function populateRgbPickers(remote_host, rgbDatasets, keys) {
     return Promise.all(rgbDataPromises);
 }
 
+function activateRGBs(){
+    const enabledSliders = document.querySelector(".rgb-value-lower#R");
+    if(enabledSliders.disabled === false ) return;
+    rgbSelectorChanged();   
+}
+
 /**
  * Used in app.html as 'onchange' event for .rgb-selector.
  * @global
  */
 function rgbSelectorChanged() {
-    // console.log("rgbSelectorChanged");
     /**
      * @type {NodeListOf<HTMLInputElement>}
      */
-     // const rgbSection = document.getElementById("rgb");
-     // rgbSection.classList.toggle("passiveRGB"); 
-
     let searchFields = document.querySelectorAll('#rgb-search-fields > input');
 
     let firstKeys = [];
@@ -878,7 +906,7 @@ function rgbSelectorChanged() {
     for (let i = 0; i < rgbSelectors.length; i++) {
         if (!rgbSelectors[i].value){
      
-         return toggleRgbLayer();       console.log("toggled rgb layer");
+         return toggleRgbLayer();   
      }
        lastKeys[i] = rgbSelectors[i].value;
     }
@@ -914,7 +942,6 @@ function rgbSelectorChanged() {
 }
 
 function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
-
     const rgbControls = document.getElementById('rgb');
     if (STATE.activeRgbLayer != null) {
         STATE.map.removeLayer(STATE.activeRgbLayer.layer);
