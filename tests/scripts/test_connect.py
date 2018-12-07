@@ -45,3 +45,16 @@ def test_connect_invalid_path(test_server):
     result = runner.invoke(cli.cli, ['connect', f'{test_server}/foo', '--no-browser'])
     assert result.exit_code != 0
     assert 'Could not connect' in result.output
+
+
+def test_connect_version_mismatch(test_server, monkeypatch):
+    from terracotta.scripts import cli
+    fake_version = '0.0.0'
+
+    with monkeypatch.context() as m:
+        m.setattr('terracotta.scripts.connect.__version__', fake_version)
+
+        runner = CliRunner()
+        result = runner.invoke(cli.cli, ['connect', test_server, '--no-browser'])
+        assert result.exit_code != 0
+        assert fake_version in result.output

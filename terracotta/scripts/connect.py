@@ -3,7 +3,10 @@
 Use Flask development server to serve Terracotta client app.
 """
 
+from typing import Sequence
+
 import os
+import json
 import socket
 import threading
 import webbrowser
@@ -12,6 +15,7 @@ from urllib.error import HTTPError, URLError
 
 import click
 
+from terracotta import __version__
 from terracotta.scripts.click_types import Hostname
 from terracotta.scripts.http_utils import find_open_port
 
@@ -37,6 +41,7 @@ def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None
     """
     from terracotta.client.flask_api import create_app
 
+    # check if remote host is running Terracotta
     test_url = f'{terracotta_hostname}/keys'
 
     try:
@@ -44,8 +49,25 @@ def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None
             pass
     except (HTTPError, URLError, socket.timeout):
         click.echo(
-            f'Could not connect to {test_url}, check hostname and ensure '
+            f'Could not connect to {terracotta_hostname}, check hostname and ensure '
             'that Terracotta is running on the server', err=True
+        )
+        raise click.Abort()
+
+    # catch version incompatibility
+    spec_url = f'{terracotta_hostname}/swagger.json'
+    with urllib.request.urlopen(spec_url, timeout=5) as response:
+            spec = json.loads(response.read())
+
+    def versiontuple(version_string: str) -> Sequence[str]:
+        return version_string.split('.')
+
+    remote_version = spec['info']['version']
+    if versiontuple(__version__)[:2] != versiontuple(remote_version)[:2]:
+        click.echo(
+            f'Incompatible version: The server running at {terracotta_hostname} is '
+            f'using Terracotta v{remote_version}, but this is v{__version__}',
+            err=True
         )
         raise click.Abort()
 
