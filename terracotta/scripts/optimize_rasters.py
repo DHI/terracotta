@@ -6,6 +6,7 @@ Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 from typing import Sequence, Iterator, Union
 import os
 import math
+import warnings
 import itertools
 import contextlib
 import tempfile
@@ -58,7 +59,7 @@ RESAMPLING_METHODS = {
 
 
 def _prefered_compression_method() -> str:
-    if GDALVersion.runtime() < GDALVersion.parse('2.3'):
+    if not GDALVersion.runtime().at_least('2.3'):
         return 'DEFLATE'
 
     # check if we can use ZSTD (fails silently for GDAL < 2.3)
@@ -77,7 +78,7 @@ def _prefered_compression_method() -> str:
 
 def _get_vrt(src: DatasetReader, rs_method: int) -> WarpedVRT:
     from terracotta.drivers.raster_base import RasterDriver
-    target_crs = RasterDriver.TARGET_CRS
+    target_crs = RasterDriver._TARGET_CRS
     vrt_transform, vrt_width, vrt_height = RasterDriver._calculate_default_transform(
         src.crs, target_crs, src.width, src.height, *src.bounds
     )
@@ -129,7 +130,7 @@ TemporaryRasterFile = _named_tempfile
 )
 @click.option(
     '--compression', default='auto', type=click.Choice(['auto', 'deflate', 'lzw', 'zstd', 'none']),
-    help='Compression algorithm to use [default: auto (ZSTD if available, DEFLATE otherwise)'
+    help='Compression algorithm to use [default: auto (ZSTD if available, DEFLATE otherwise)]'
 )
 @click.option(
     '-q', '--quiet', is_flag=True, default=False, show_default=True,
@@ -149,7 +150,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     Example:
 
-        terracotta optimize-rasters rasters/*.tif -o cloud-optimized/
+        $ terracotta optimize-rasters rasters/*.tif -o cloud-optimized/
 
     Note that all rasters may only contain a single band.
     """
@@ -212,7 +213,9 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     f'Output file {output_file!s} exists (use --overwrite to ignore)'
                 )
 
-            with contextlib.ExitStack() as es:
+            with contextlib.ExitStack() as es, warnings.catch_warnings():
+                warnings.filterwarnings('ignore', message='invalid value encountered.*')
+
                 src = es.enter_context(rasterio.open(str(input_file)))
 
                 if reproject:

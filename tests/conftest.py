@@ -42,7 +42,7 @@ def mysql_server(request):
     return request.config.getoption('mysql_server')
 
 
-def cloud_optimize(raster_file, outfile):
+def cloud_optimize(raster_file, outfile, create_mask=False, remove_nodata=False):
     import math
     import contextlib
     import rasterio
@@ -71,10 +71,16 @@ def cloud_optimize(raster_file, outfile):
         profile = src.profile.copy()
         profile.update(COG_PROFILE)
 
+        if remove_nodata:
+            profile['nodata'] = None
+
         memfile = es.enter_context(rasterio.io.MemoryFile())
         dst = es.enter_context(memfile.open(**profile))
 
         dst.write(src.read())
+
+        if create_mask:
+            dst.write_mask(src.dataset_mask())
 
         max_overview_level = math.ceil(math.log2(max(
             dst.height // profile['blockysize'],
@@ -119,61 +125,32 @@ def raster_file(tmpdir_factory):
 
 
 @pytest.fixture(scope='session')
-def raster_file_3857(tmpdir_factory, raster_file):
-    import rasterio.warp
-    from terracotta.drivers.raster_base import RasterDriver
-
-    target_crs = RasterDriver.TARGET_CRS
-    outpath = tmpdir_factory.mktemp('raster')
-    unoptimized_raster = outpath.join('img-raw.tif')
-
-    with rasterio.open(str(raster_file)) as src:
-        out_transform, out_width, out_height = RasterDriver._calculate_default_transform(
-            src.crs, target_crs, src.width, src.height, *src.bounds
-        )
-        out_profile = src.profile.copy()
-        out_profile.update(
-            width=out_width,
-            height=out_height,
-            crs=target_crs,
-            transform=out_transform
-        )
-
-        with rasterio.open(str(unoptimized_raster), 'w', **out_profile) as dst:
-            rasterio.warp.reproject(rasterio.band(src, 1), rasterio.band(dst, 1))
-
-    optimized_raster = outpath.join('img.tif')
-    cloud_optimize(unoptimized_raster, optimized_raster)
-
-    return optimized_raster
-
-
-@pytest.fixture(scope='session')
-def big_raster_file(tmpdir_factory):
+def big_raster_file_nodata(tmpdir_factory):
     import affine
 
     np.random.seed(17)
-    raster_data = np.random.randint(0, np.iinfo(np.uint16).max, size=(1024, 1024), dtype='uint16')
+    raster_data = np.random.randint(0, np.iinfo(np.uint16).max, size=(2048, 2048), dtype='uint16')
+    nodata = 10000
 
     # include some big nodata regions
     ix, iy = np.indices(raster_data.shape)
     circular_mask = np.sqrt((ix - raster_data.shape[0] / 2) ** 2
-                            + (iy - raster_data.shape[1] / 2) ** 2) > 400
-    raster_data[circular_mask] = 0
-    raster_data[200:600, 400:800] = 0
-    raster_data[500, :] = 0
+                            + (iy - raster_data.shape[1] / 2) ** 2) > 1000
+    raster_data[circular_mask] = nodata
+    raster_data[500:1000, 1000:2000] = nodata
+    raster_data[1200, :] = nodata
 
     profile = {
         'driver': 'GTiff',
         'dtype': 'uint16',
-        'nodata': 0,
+        'nodata': nodata,
         'width': raster_data.shape[1],
         'height': raster_data.shape[0],
         'count': 1,
         'crs': {'init': 'epsg:32637'},
         'transform': affine.Affine(
-            2.0, 0.0, 694920.0,
-            0.0, -2.0, 2055666.0
+            10.0, 0.0, 694920.0,
+            0.0, -10.0, 2055666.0
         )
     }
 
@@ -182,9 +159,27 @@ def big_raster_file(tmpdir_factory):
     with rasterio.open(str(unoptimized_raster), 'w', **profile) as dst:
         dst.write(raster_data, 1)
 
-    optimized_raster = outpath.join('img.tif')
+    optimized_raster = outpath.join('img-nodata.tif')
     cloud_optimize(unoptimized_raster, optimized_raster)
 
+    return optimized_raster
+
+
+@pytest.fixture(scope='session')
+def big_raster_file_mask(tmpdir_factory, big_raster_file_nodata):
+    outpath = tmpdir_factory.mktemp('raster')
+    optimized_raster = outpath.join('img-alpha.tif')
+    cloud_optimize(big_raster_file_nodata, optimized_raster,
+                   create_mask=True, remove_nodata=False)
+    return optimized_raster
+
+
+@pytest.fixture(scope='session')
+def big_raster_file_nomask(tmpdir_factory, big_raster_file_nodata):
+    outpath = tmpdir_factory.mktemp('raster')
+    optimized_raster = outpath.join('img-alpha.tif')
+    cloud_optimize(big_raster_file_nodata, optimized_raster,
+                   create_mask=False, remove_nodata=True)
     return optimized_raster
 
 
@@ -194,19 +189,20 @@ def unoptimized_raster_file(tmpdir_factory):
 
     np.random.seed(17)
     raster_data = np.random.randint(0, np.iinfo(np.uint16).max, size=(1024, 1024), dtype='uint16')
+    nodata = 10000
 
     # include some big nodata regions
     ix, iy = np.indices(raster_data.shape)
     circular_mask = np.sqrt((ix - raster_data.shape[0] / 2) ** 2
                             + (iy - raster_data.shape[1] / 2) ** 2) > 400
-    raster_data[circular_mask] = 0
-    raster_data[200:600, 400:800] = 0
-    raster_data[500, :] = 0
+    raster_data[circular_mask] = nodata
+    raster_data[200:600, 400:800] = nodata
+    raster_data[500, :] = nodata
 
     profile = {
         'driver': 'GTiff',
         'dtype': 'uint16',
-        'nodata': 0,
+        'nodata': nodata,
         'width': raster_data.shape[1],
         'height': raster_data.shape[0],
         'count': 1,
@@ -267,7 +263,7 @@ def raster_file_xyz(raster_file):
     raster_center_x = (raster_bounds[0] + raster_bounds[2]) / 2
     raster_center_y = (raster_bounds[1] + raster_bounds[3]) / 2
 
-    zoom = 12
+    zoom = 14
     tile = mercantile.tile(raster_center_x, raster_center_y, zoom)
     return (tile.x, tile.y, zoom)
 
@@ -289,7 +285,7 @@ def raster_file_xyz_lowzoom(raster_file):
 
 
 @pytest.fixture(scope='session')
-def testdb(raster_file, raster_file_3857, tmpdir_factory):
+def testdb(raster_file, tmpdir_factory):
     """A read-only, pre-populated test database"""
     from terracotta import get_driver
 

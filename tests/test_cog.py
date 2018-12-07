@@ -2,6 +2,7 @@ import pytest
 
 import affine
 import rasterio
+from rasterio.io import MemoryFile
 from rasterio.shutil import copy
 from rasterio.enums import Resampling
 
@@ -35,7 +36,7 @@ def test_validate_optimized(tmpdir):
         blockysize=256
     )
 
-    with rasterio.open(outfile, 'w', **profile) as dst:
+    with MemoryFile() as mf, mf.open(**profile) as dst:
         dst.write(raster_data, 1)
 
         overviews = [2 ** j for j in range(1, 4)]
@@ -170,8 +171,6 @@ def test_validate_external_overview(tmpdir):
 
             overviews = [2 ** j for j in range(1, 4)]
             dst.build_overviews(overviews, Resampling.nearest)
-
-            copy(dst, outfile, copy_src_overviews=False, **profile)
 
         assert os.path.isfile(f'{outfile}.ovr')
 

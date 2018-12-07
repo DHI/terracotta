@@ -12,23 +12,22 @@ import functools
 import operator
 import logging
 import math
-import sys
 import warnings
 
 import numpy as np
-from cachetools import cachedmethod, LRUCache
+from cachetools import cachedmethod, LFUCache
 from affine import Affine
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from rasterio.io import DatasetReader  # noqa: F401
 
 try:
     from crick import TDigest, SummaryStats
     has_crick = True
-except ImportError:
+except ImportError:  # pragma: no cover
     has_crick = False
 
-from terracotta import get_settings, exceptions, image
+from terracotta import get_settings, exceptions
 from terracotta.drivers.base import requires_connection, Driver
 from terracotta.profile import trace
 
@@ -42,18 +41,86 @@ class RasterDriver(Driver):
 
     get_datasets has to return path to raster file as sole dict value.
     """
-    TARGET_CRS: str = 'epsg:3857'
-    LARGE_RASTER_THRESHOLD: int = 10980 * 10980
-    RIO_ENV_KEYS = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR')
+    _TARGET_CRS: str = 'epsg:3857'
+    _LARGE_RASTER_THRESHOLD: int = 10980 * 10980
+    _RIO_ENV_KEYS = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', GDAL_TIFF_INTERNAL_MASK=True)
 
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         settings = get_settings()
-        self._raster_cache = LRUCache(settings.RASTER_CACHE_SIZE, getsizeof=sys.getsizeof)
+        self._raster_cache = LFUCache(
+            settings.RASTER_CACHE_SIZE,
+            getsizeof=operator.attrgetter('nbytes')
+        )
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
         super().__init__(*args, **kwargs)
 
+    # specify signature and docstring for insert
+    @abstractmethod
+    def insert(self,  # type: ignore
+               keys: Union[Sequence[str], Mapping[str, str]],
+               filepath: str, *,
+               metadata: Mapping[str, Any] = None,
+               skip_metadata: bool = False,
+               override_path: str = None) -> None:
+        """Insert a raster file into the database.
+
+        Arguments:
+
+            keys: Keys identifying the new dataset. Can either be given as a sequence of key
+                values, or as a mapping ``{key_name: key_value}``.
+            filepath: Path to the GDAL-readable raster file.
+            metadata: If not given (default), call :meth:`compute_metadata` with default arguments
+                to compute raster metadata. Otherwise, use the given values. This can be used to
+                decouple metadata computation from insertion, or to use the optional arguments
+                of :meth:`compute_metadata`.
+            skip_metadata: Do not compute any raster metadata (will be computed during the first
+                request instead). Use sparingly; this option has a detrimental result on the end
+                user experience and might lead to surprising results. Has no effect if ``metadata``
+                is given.
+            override_path: Override the path to the raster file in the database. Use this option if
+                you intend to copy the data somewhere else after insertion (e.g. when moving files
+                to a cloud storage later on).
+
+        """
+        pass
+
+    # specify signature and docstring for get_datasets
+    @abstractmethod
+    def get_datasets(self, where: Mapping[str, str] = None,
+                     page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
+        """Retrieve keys and file paths of datasets.
+
+        Arguments:
+
+            where: Constraints on returned datasets in the form ``{key_name: allowed_key_value}``.
+                Returns all datasets if not given (default).
+            page: Current page of results. Has no effect if ``limit`` is not given.
+            limit: If given, return at most this many datasets. Unlimited by default.
+
+
+        Returns:
+
+            :class:`dict` containing
+            ``{(key_value1, key_value2, ...): raster_file_path}``
+
+        Example:
+
+            >>> import terracotta as tc
+            >>> driver = tc.get_driver('tc.sqlite')
+            >>> driver.get_datasets()
+            {
+                ('reflectance', '20180101', 'B04'): 'reflectance_20180101_B04.tif',
+                ('reflectance', '20180102', 'B04'): 'reflectance_20180102_B04.tif',
+            }
+            >>> driver.get_datasets({'date': '20180101'})
+            {('reflectance', '20180101', 'B04'): 'reflectance_20180101_B04.tif'}
+
+        """
+        pass
+
     def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]) -> List[Any]:
+        """Convert {key_name: key_value} to [key_value] with the correct key order."""
         try:
             keys_as_mapping = cast(Mapping[str, Any], keys)
             return [keys_as_mapping[key] for key in self.key_names]
@@ -94,9 +161,8 @@ class RasterDriver(Driver):
         return out
 
     @staticmethod
-    def _compute_image_stats_chunked(dataset: 'DatasetReader',
-                                     nodata: Number) -> Optional[Dict[str, Any]]:
-        """Loop over chunks and accumulate statistics"""
+    def _compute_image_stats_chunked(dataset: 'DatasetReader') -> Optional[Dict[str, Any]]:
+        """Compute statistics for the given rasterio dataset by looping over chunks."""
         from rasterio import features, warp, windows
         from shapely import geometry
 
@@ -110,24 +176,26 @@ class RasterDriver(Driver):
         for w in block_windows:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
-                block_data = dataset.read(1, window=w)
+                block_data = dataset.read(1, window=w, masked=True)
 
             total_count += int(block_data.size)
-
-            valid_data_mask = image.get_valid_mask(block_data, nodata)
-            valid_data = block_data[valid_data_mask]
+            valid_data = block_data.compressed()
 
             if valid_data.size == 0:
                 continue
 
             valid_data_count += int(valid_data.size)
 
-            hull_candidates = RasterDriver._hull_candidate_mask(valid_data_mask)
-            hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
-                np.ones(hull_candidates.shape, 'uint8'),
-                mask=hull_candidates,
-                transform=windows.transform(w, dataset.transform)
-            ))
+            if np.any(block_data.mask):
+                hull_candidates = RasterDriver._hull_candidate_mask(~block_data.mask)
+                hull_shapes = [geometry.shape(s) for s, _ in features.shapes(
+                    np.ones(hull_candidates.shape, 'uint8'),
+                    mask=hull_candidates,
+                    transform=windows.transform(w, dataset.transform)
+                )]
+            else:
+                w, s, e, n = windows.bounds(w, dataset.transform)
+                hull_shapes = [geometry.Polygon([(w, s), (e, s), (e, n), (w, n)])]
             convex_hull = geometry.MultiPolygon([convex_hull, *hull_shapes]).convex_hull
 
             tdigest.update(valid_data)
@@ -151,8 +219,8 @@ class RasterDriver(Driver):
 
     @staticmethod
     def _compute_image_stats(dataset: 'DatasetReader',
-                             nodata: Number,
                              max_shape: Sequence[int] = None) -> Optional[Dict[str, Any]]:
+        """Compute statistics for the given rasterio dataset by reading it into memory."""
         from rasterio import features, warp, transform
         from shapely import geometry
 
@@ -167,21 +235,30 @@ class RasterDriver(Driver):
         data_transform = transform.from_bounds(
             *dataset.bounds, height=out_shape[0], width=out_shape[1]
         )
-        raster_data = dataset.read(1, out_shape=out_shape)
+        raster_data = dataset.read(1, out_shape=out_shape, masked=True)
 
-        valid_data_mask = image.get_valid_mask(raster_data, nodata)
-        valid_data = raster_data[valid_data_mask]
+        if dataset.nodata is not None:
+            # nodata values might slip into output array if out_shape < dataset.shape
+            raster_data[raster_data == dataset.nodata] = np.ma.masked
+
+        valid_data = raster_data.compressed()
 
         if valid_data.size == 0:
             return None
 
-        hull_candidates = RasterDriver._hull_candidate_mask(valid_data_mask)
-        hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
-            np.ones(hull_candidates.shape, 'uint8'),
-            mask=hull_candidates,
-            transform=data_transform
-        ))
-        convex_hull = geometry.MultiPolygon(hull_shapes).convex_hull
+        if np.any(raster_data.mask):
+            hull_candidates = RasterDriver._hull_candidate_mask(~raster_data.mask)
+            hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
+                np.ones(hull_candidates.shape, 'uint8'),
+                mask=hull_candidates,
+                transform=data_transform
+            ))
+            convex_hull = geometry.MultiPolygon(hull_shapes).convex_hull
+        else:
+            # no masked entries -> convex hull == dataset bounds
+            w, s, e, n = dataset.bounds
+            convex_hull = geometry.Polygon([(w, s), (e, s), (e, n), (w, n)])
+
         convex_hull_wgs = warp.transform_geom(
             dataset.crs, 'epsg:4326', geometry.mapping(convex_hull)
         )
@@ -203,7 +280,21 @@ class RasterDriver(Driver):
                          max_shape: Sequence[int] = None) -> Dict[str, Any]:
         """Read given raster file and compute metadata from it.
 
-        This handles most of the heavy lifting during raster ingestion.
+        This handles most of the heavy lifting during raster ingestion. The returned metadata can
+        be passed directly to :meth:`insert`.
+
+        Arguments:
+
+            raster_path: Path to GDAL-readable raster file
+            extra_metadata: Any additional metadata to attach to the dataset. Will be
+                JSON-serialized and returned verbatim by :meth:`get_metadata`.
+            use_chunks: Whether to process the image in chunks (slower, but uses less memory).
+                If not given, use chunks for large images only.
+            max_shape: Gives the maximum number of pixels used in each dimension to compute
+                metadata. Setting this to a relatively small size such as ``(1024, 1024)`` will
+                result in much faster metadata computation for large images, at the expense of
+                inaccurate results.
+
         """
         import rasterio
         from rasterio import warp
@@ -218,7 +309,7 @@ class RasterDriver(Driver):
         if use_chunks and max_shape is not None:
             raise ValueError('Cannot use both use_chunks and max_shape arguments')
 
-        with rasterio.Env(**cls.RIO_ENV_KEYS):
+        with rasterio.Env(**cls._RIO_ENV_KEYS):
             if not validate(raster_path):
                 warnings.warn(
                     f'Raster file {raster_path} is not a valid cloud-optimized GeoTIFF. '
@@ -228,18 +319,23 @@ class RasterDriver(Driver):
                 )
 
             with rasterio.open(raster_path) as src:
-                nodata = src.nodata or 0
+                if src.nodata is None and not cls._has_alpha_band(src):
+                    warnings.warn(
+                        f'Raster file {raster_path} does not have a valid nodata value, '
+                        'and does not contain an alpha band. No data will be masked.'
+                    )
+
                 bounds = warp.transform_bounds(
                     src.crs, 'epsg:4326', *src.bounds, densify_pts=21
                 )
 
                 if use_chunks is None and max_shape is None:
-                    use_chunks = src.width * src.height > RasterDriver.LARGE_RASTER_THRESHOLD
+                    use_chunks = src.width * src.height > RasterDriver._LARGE_RASTER_THRESHOLD
 
                     if use_chunks:
                         logger.debug(
                             f'Computing metadata for file {raster_path} using more than '
-                            f'{RasterDriver.LARGE_RASTER_THRESHOLD // 10**6}M pixels, iterating '
+                            f'{RasterDriver._LARGE_RASTER_THRESHOLD // 10**6}M pixels, iterating '
                             'over chunks'
                         )
 
@@ -251,9 +347,9 @@ class RasterDriver(Driver):
                     use_chunks = False
 
                 if use_chunks:
-                    raster_stats = RasterDriver._compute_image_stats_chunked(src, nodata)
+                    raster_stats = RasterDriver._compute_image_stats_chunked(src)
                 else:
-                    raster_stats = RasterDriver._compute_image_stats(src, nodata, max_shape)
+                    raster_stats = RasterDriver._compute_image_stats(src, max_shape)
 
         if raster_stats is None:
             raise ValueError(f'Raster file {raster_path} does not contain any valid data')
@@ -261,7 +357,6 @@ class RasterDriver(Driver):
         row_data.update(raster_stats)
 
         row_data['bounds'] = bounds
-        row_data['nodata'] = nodata
         row_data['metadata'] = extra_metadata
 
         return row_data
@@ -287,7 +382,7 @@ class RasterDriver(Driver):
     @staticmethod
     @trace('calculate_default_transform')
     def _calculate_default_transform(src_crs: Union[Dict[str, str], str],
-                                     target_crs: Union[Dict[str, str], str],
+                                     _TARGET_CRS: Union[Dict[str, str], str],
                                      width: int,
                                      height: int,
                                      *bounds: Number) -> Tuple[Affine, int, int]:
@@ -306,7 +401,7 @@ class RasterDriver(Driver):
         # transform image corners to target CRS
         dst_corner_sw, dst_corner_nw, dst_corner_se, dst_corner_ne = (
             list(zip(*warp.transform(
-                src_crs, target_crs,
+                src_crs, _TARGET_CRS,
                 [bounds[0], bounds[0], bounds[2], bounds[2]],
                 [bounds[1], bounds[3], bounds[1], bounds[3]]
             )))
@@ -325,12 +420,17 @@ class RasterDriver(Driver):
         target_res = (dst_corner_transform.a, dst_corner_transform.e)
 
         # get transform spanning whole bounds (not just projected corners)
-        dst_bounds = warp.transform_bounds(src_crs, target_crs, *bounds)
+        dst_bounds = warp.transform_bounds(src_crs, _TARGET_CRS, *bounds)
         dst_width = math.ceil((dst_bounds[2] - dst_bounds[0]) / target_res[0])
         dst_height = math.ceil((dst_bounds[1] - dst_bounds[3]) / target_res[1])
         dst_transform = transform.from_bounds(*dst_bounds, width=dst_width, height=dst_height)
 
         return dst_transform, dst_width, dst_height
+
+    @staticmethod
+    def _has_alpha_band(src: 'DatasetReader') -> bool:
+        from rasterio.enums import MaskFlags
+        return any([MaskFlags.per_dataset in flags for flags in src.mask_flag_enums])
 
     @cachedmethod(operator.attrgetter('_raster_cache'))
     @trace('get_raster_tile')
@@ -339,15 +439,15 @@ class RasterDriver(Driver):
                          downsampling_method: str,
                          bounds: Tuple[float, float, float, float] = None,
                          tile_size: Tuple[int, int] = (256, 256),
-                         nodata: Number = 0,
-                         preserve_values: bool = False) -> np.ndarray:
+                         preserve_values: bool = False) -> np.ma.MaskedArray:
         """Load a raster dataset from a file through rasterio.
 
         Heavily inspired by mapbox/rio-tiler
         """
         import rasterio
-        from rasterio import transform, windows, crs
+        from rasterio import transform, windows, warp
         from rasterio.vrt import WarpedVRT
+        from affine import Affine
 
         dst_bounds: Tuple[float, float, float, float]
 
@@ -358,69 +458,61 @@ class RasterDriver(Driver):
             downsampling_enum = self._get_resampling_enum(downsampling_method)
 
         with contextlib.ExitStack() as es:
-            es.enter_context(rasterio.Env(**self.RIO_ENV_KEYS))
+            es.enter_context(rasterio.Env(**self._RIO_ENV_KEYS))
             try:
                 with trace('open_dataset'):
                     src = es.enter_context(rasterio.open(path))
             except OSError:
                 raise IOError('error while reading file {}'.format(path))
 
-            extra_args: Dict = {}
+            # compute suggested resolution and bounds in target CRS
+            dst_transform, _, _ = self._calculate_default_transform(
+                src.crs, self._TARGET_CRS, src.width, src.height, *src.bounds
+            )
+            dst_res = (abs(dst_transform.a), abs(dst_transform.e))
+            dst_bounds = warp.transform_bounds(src.crs, self._TARGET_CRS, *src.bounds)
 
-            if src.crs != crs.CRS(init=self.TARGET_CRS):
-                logger.debug(f'Constructing VRT for {path}')
-                # compute default bounds and transform in target CRS
-                dst_transform, dst_width, dst_height = self._calculate_default_transform(
-                    src.crs, self.TARGET_CRS, src.width, src.height, *src.bounds
+            if bounds is None:
+                bounds = dst_bounds
+
+            # pad tile bounds to prevent interpolation artefacts
+            num_pad_pixels = 2
+
+            # compute tile VRT shape and transform
+            dst_width = max(1, round((bounds[2] - bounds[0]) / dst_res[0]))
+            dst_height = max(1, round((bounds[3] - bounds[1]) / dst_res[1]))
+            vrt_transform = (
+                transform.from_bounds(*bounds, width=dst_width, height=dst_height)
+                * Affine.translation(-num_pad_pixels, -num_pad_pixels)
+            )
+            vrt_height, vrt_width = dst_height + 2 * num_pad_pixels, dst_width + 2 * num_pad_pixels
+
+            # remove padding in output
+            out_window = windows.Window(
+                col_off=num_pad_pixels, row_off=num_pad_pixels, width=dst_width, height=dst_height
+            )
+
+            # construct VRT
+            vrt = es.enter_context(
+                WarpedVRT(
+                    src, crs=self._TARGET_CRS, resampling=upsampling_enum, add_alpha=True,
+                    transform=vrt_transform, width=vrt_width, height=vrt_height
                 )
-                dst_res = (dst_transform.a, dst_transform.e)
-                dst_bounds = transform.array_bounds(dst_height, dst_width, dst_transform)
+            )
 
-                if bounds is None:
-                    bounds = dst_bounds
+            # prevent loads of very sparse data
+            out_window_bounds = windows.bounds(out_window, vrt_transform)
+            cover_ratio = (
+                (dst_bounds[2] - dst_bounds[0]) / (out_window_bounds[2] - out_window_bounds[0])
+                * (dst_bounds[3] - dst_bounds[1]) / (out_window_bounds[3] - out_window_bounds[1])
+            )
 
-                # update bounds to fit the whole tile
-                vrt_bounds = [
-                    min(dst_bounds[0], bounds[0]),
-                    min(dst_bounds[1], bounds[1]),
-                    max(dst_bounds[2], bounds[2]),
-                    max(dst_bounds[3], bounds[3])
-                ]
-
-                # re-compute shape and transform with updated bounds
-                vrt_width = math.ceil((vrt_bounds[2] - vrt_bounds[0]) / dst_res[0])
-                vrt_height = math.ceil((vrt_bounds[1] - vrt_bounds[3]) / dst_res[1])
-                vrt_transform = transform.from_bounds(
-                    *vrt_bounds, width=vrt_width, height=vrt_height
-                )
-
-                # construct VRT
-                vrt = es.enter_context(
-                    WarpedVRT(
-                        src, crs=self.TARGET_CRS, resampling=upsampling_enum, init_dest_nodata=True,
-                        src_nodata=nodata, nodata=nodata, transform=vrt_transform, width=vrt_width,
-                        height=vrt_height
-                    )
-                )
-            else:
-                logger.debug(f'Raster file {path} is already in target CRS')
-                vrt, vrt_transform = src, src.transform
-                dst_height, dst_width = src.shape
-                if bounds is None:
-                    bounds = src.bounds
-                extra_args.update(boundless=True, fill_value=nodata)
-
-            # compute output window
-            out_window = windows.from_bounds(*bounds, transform=vrt_transform)
-
-            # prevent expensive loads of very sparse data
-            window_ratio = dst_width / out_window.width * dst_height / out_window.height
-
-            if window_ratio < 0.001:
-                raise exceptions.TileOutOfBoundsError('data covers less than 0.1% of tile')
+            if cover_ratio < 0.01:
+                raise exceptions.TileOutOfBoundsError('dataset covers less than 1% of tile')
 
             # determine whether we are upsampling or downsampling
-            if window_ratio > 1:
+            pixel_ratio = min(out_window.width / tile_size[1], out_window.height / tile_size[0])
+            if pixel_ratio < 1:
                 resampling_enum = upsampling_enum
             else:
                 resampling_enum = downsampling_enum
@@ -428,30 +520,33 @@ class RasterDriver(Driver):
             # read data
             with warnings.catch_warnings(), trace('read_from_vrt'):
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
-                arr = vrt.read(
-                    1, resampling=resampling_enum, window=out_window,
-                    out_shape=tile_size, **extra_args
+                tile_data = vrt.read(
+                    1, resampling=resampling_enum, window=out_window, out_shape=tile_size
                 )
+                # read alpha mask
+                mask_idx = src.count + 1
+                mask = vrt.read(mask_idx, window=out_window, out_shape=tile_size) == 0
+                if src.nodata is not None:
+                    mask |= tile_data == src.nodata
 
-            assert arr.shape == tile_size, arr.shape
+        return np.ma.masked_array(tile_data, mask=mask)
 
-        return arr
-
+    # return type has to be Any until mypy supports conditional return types
     @requires_connection
     def get_raster_tile(self,
                         keys: Union[Sequence[str], Mapping[str, str]], *,
                         bounds: Sequence[float] = None,
-                        tile_size: Sequence[int] = (256, 256),
+                        tile_size: Sequence[int] = None,
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
-        """Load tile with given keys and bounds"""
         settings = get_settings()
-        nodata = self.get_metadata(keys)['nodata']
-
         key_tuple = tuple(self._key_dict_to_sequence(keys))
-        path = self.get_datasets(dict(zip(self.key_names, key_tuple)))
-        assert len(path) == 1
-        path = path[key_tuple]
+        datasets = self.get_datasets(dict(zip(self.key_names, key_tuple)))
+        assert len(datasets) == 1
+        path = datasets[key_tuple]
+
+        if tile_size is None:
+            tile_size = settings.DEFAULT_TILE_SIZE
 
         # make sure all arguments are hashable
         task = functools.partial(
@@ -459,7 +554,6 @@ class RasterDriver(Driver):
             path,
             bounds=tuple(bounds) if bounds else None,
             tile_size=tuple(tile_size),
-            nodata=nodata,
             preserve_values=preserve_values,
             upsampling_method=settings.UPSAMPLING_METHOD,
             downsampling_method=settings.DOWNSAMPLING_METHOD

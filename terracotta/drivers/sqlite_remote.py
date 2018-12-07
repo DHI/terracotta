@@ -4,7 +4,7 @@ SQLite-backed raster driver. Metadata is stored in an SQLite database, raster da
 to be present on disk.
 """
 
-from typing import Any, Union, Iterator
+from typing import Any, Iterator
 import os
 import tempfile
 import shutil
@@ -12,7 +12,6 @@ import operator
 import logging
 import contextlib
 import urllib.parse as urlparse
-from pathlib import Path
 
 from cachetools import cachedmethod, TTLCache
 
@@ -54,14 +53,42 @@ def _update_from_s3(remote_path: str, local_path: str) -> None:
 
 
 class RemoteSQLiteDriver(SQLiteDriver):
-    """SQLite-backed raster driver, supports databases stored remotely in an S3 bucket.
+    """An SQLite-backed raster driver, where the database file is stored remotely on S3.
 
-    This driver is read-only.
+    Assumes raster data to be present in separate GDAL-readable files on disk or remotely.
+    Stores metadata and paths to raster files in SQLite.
+
+    See also:
+
+        :class:`~terracotta.drivers.sqlite.SQLiteDriver` for the local version of this
+        driver.
+
+    The SQLite database is simply a file that can be stored together with the actual
+    raster files on S3. Before handling the first request, this driver will download a
+    temporary copy of the remote database file. It is thus not feasible for large databases.
+
+    The local database copy will be updated in regular intervals defined by
+    :attr:`~terracotta.config.TerracottaSettings.REMOTE_DB_CACHE_TTL`.
+
+    Warning:
+
+        This driver is read-only. Any attempts to use the create, insert, or delete methods
+        will throw a NotImplementedError.
+
     """
     path: str
 
-    def __init__(self, path: Union[str, Path]) -> None:
-        """Use given database URL to read metadata."""
+    def __init__(self, remote_path: str) -> None:
+        """Initialize the RemoteSQLiteDriver.
+
+        This should not be called directly, use :func:`~terracotta.get_driver` instead.
+
+        Arguments:
+
+            remote_path: S3 URL in the form ``s3://bucket/key`` to remote SQLite database
+                (has to exist).
+
+        """
         settings = get_settings()
 
         self.__rm = os.remove  # keep reference to use in __del__
@@ -75,7 +102,7 @@ class RemoteSQLiteDriver(SQLiteDriver):
         )
         local_db_file.close()
 
-        self._remote_path: str = str(path)
+        self._remote_path: str = str(remote_path)
         self._checkdb_cache = TTLCache(maxsize=1, ttl=settings.REMOTE_DB_CACHE_TTL)
 
         super().__init__(local_db_file.name)
@@ -102,9 +129,4 @@ class RemoteSQLiteDriver(SQLiteDriver):
 
     def __del__(self) -> None:
         """Clean up temporary database upon exit"""
-        rm = self.__rm
-        try:
-            rm(self.path)
-        except AttributeError:
-            # object is deleted before self.path is declared
-            pass
+        self.__rm(self.path)

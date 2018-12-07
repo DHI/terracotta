@@ -3,34 +3,24 @@
 Define an interface to retrieve Terracotta drivers.
 """
 
-from typing import Callable, Any, Union, Dict, Type
-import functools
+from typing import Union, Tuple, Dict, Type
 import urllib.parse as urlparse
 from pathlib import Path
 
 from terracotta.drivers.base import Driver
 
-
-def singleton(fun: Callable) -> Callable:
-    instance_cache: Dict[Any, Any] = {}
-
-    @functools.wraps(fun)
-    def inner(*args: Any, **kwargs: Any) -> Any:
-        key = tuple(args) + tuple(kwargs.items())
-        if key not in instance_cache:
-            instance_cache[key] = fun(*args, **kwargs)
-        return instance_cache[key]
-
-    return inner
+URLOrPathType = Union[str, Path]
 
 
 def load_driver(provider: str) -> Type[Driver]:
     if provider == 'sqlite-remote':
         from terracotta.drivers.sqlite_remote import RemoteSQLiteDriver
         return RemoteSQLiteDriver
+
     if provider == 'mysql':
         from terracotta.drivers.mysql import MySQLDriver
         return MySQLDriver
+
     if provider == 'sqlite':
         from terracotta.drivers.sqlite import SQLiteDriver
         return SQLiteDriver
@@ -44,17 +34,54 @@ def auto_detect_provider(url_or_path: Union[str, Path]) -> str:
     scheme = parsed_path.scheme
     if scheme == 's3':
         return 'sqlite-remote'
+
     if scheme == 'mysql':
         return 'mysql'
 
     return 'sqlite'
 
 
-@singleton
-def get_driver(url_or_path: Union[str, Path], provider: str = None) -> Driver:
+_DRIVER_CACHE: Dict[Tuple[URLOrPathType, str], Driver] = {}
+
+
+def get_driver(url_or_path: URLOrPathType, provider: str = None) -> Driver:
+    """Retrieve Terracotta driver instance for the given path.
+
+    This function always returns the same instance for identical inputs.
+
+    Warning:
+
+       Always retrieve Driver instances through this function instead of
+       instantiating them directly to prevent caching issues.
+
+    Arguments:
+
+        url_or_path: A path indentifying the database to connect to.
+            The expected format depends on the driver provider.
+        provider: Driver provider to use (one of sqlite, sqlite-remote, mysql;
+            default: auto-detect).
+
+    Example:
+
+        >>> import terracotta as tc
+        >>> tc.get_driver('tc.sqlite')
+        SQLiteDriver('/home/terracotta/tc.sqlite')
+        >>> tc.get_driver('mysql://root@localhost/tc')
+        MySQLDriver('mysql://root@localhost:3306/tc')
+        >>> # pass provider if path is given in a non-standard way
+        >>> tc.get_driver('root@localhost/tc', provider='mysql')
+        MySQLDriver('mysql://root@localhost:3306/tc')
+
+    """
     if provider is None:  # try and auto-detect
         provider = auto_detect_provider(url_or_path)
 
-    DriverClass = load_driver(provider)
+    if isinstance(url_or_path, Path) or provider == 'sqlite':
+        url_or_path = Path(url_or_path).resolve()
 
-    return DriverClass(url_or_path)
+    cache_key = (url_or_path, provider)
+    if cache_key not in _DRIVER_CACHE:
+        DriverClass = load_driver(provider)
+        _DRIVER_CACHE[cache_key] = DriverClass(url_or_path)
+
+    return _DRIVER_CACHE[cache_key]

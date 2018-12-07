@@ -1,6 +1,6 @@
 """config.py
 
-Implement settings parsing.
+Terracotta settings parsing.
 """
 
 from typing import Mapping, Any, Tuple, NamedTuple, Dict, Optional
@@ -13,32 +13,53 @@ from marshmallow import Schema, fields, validate, pre_load, post_load, Validatio
 
 class TerracottaSettings(NamedTuple):
     """Contains all settings for the current Terracotta instance."""
+    #: Path to database
     DRIVER_PATH: str = ''
+
+    #: Driver provider to use (sqlite, sqlite-remote, mysql; auto-detected by default)
     DRIVER_PROVIDER: Optional[str] = None
 
+    #: Activate debug mode in Flask app
     DEBUG: bool = False
+
+    #: Print profile information after every request
     FLASK_PROFILE: bool = False
+
+    #: Send performance traces to AWS X-Ray
     XRAY_PROFILE: bool = False
 
+    #: Default log level (debug, info, warning, error, critical)
     LOGLEVEL: str = 'warning'
 
+    #: Size of raster file in-memory cache in bytes
     RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490 MB
-    METADATA_CACHE_SIZE: int = 1024 * 1024 * 10  # 10 MB
 
+    #: Tile size to return if not given in parameters
     DEFAULT_TILE_SIZE: Tuple[int, int] = (256, 256)
+
+    #: Maximum size to use when lazy loading metadata (less is faster but less accurate)
     LAZY_LOADING_MAX_SHAPE: Tuple[int, int] = (1024, 1024)
 
+    #: Compression level of output PNGs from 0-10
     PNG_COMPRESS_LEVEL: int = 1
 
+    #: Timeout in seconds for database connections
     DB_CONNECTION_TIMEOUT: int = 10
+
+    #: Path where cached remote SQLite databases are stored (when using sqlite-remote provider)
     REMOTE_DB_CACHE_DIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
+
+    #: Time-to-live of remote database cache in seconds
     REMOTE_DB_CACHE_TTL: int = 10 * 60  # 10 min
 
+    #: Resampling method to use when upsampling data (high zoom levels)
     UPSAMPLING_METHOD: str = 'cubic'
+
+    #: Resampling method to use when downsampling data (low zoom levels)
     DOWNSAMPLING_METHOD: str = 'nearest'
 
 
-AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._field_types.keys())
+AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._fields)
 
 
 def _is_writable(path: str) -> bool:
@@ -46,7 +67,7 @@ def _is_writable(path: str) -> bool:
 
 
 class SettingSchema(Schema):
-    """Schema used to create TerracottaSettings objects"""
+    """Schema used to create and validate TerracottaSettings objects"""
     DRIVER_PATH = fields.String()
     DRIVER_PROVIDER = fields.String(allow_none=True)
 
@@ -55,11 +76,10 @@ class SettingSchema(Schema):
     XRAY_PROFILE = fields.Boolean()
 
     LOGLEVEL = fields.String(
-        validate=validate.OneOf(['trace', 'debug', 'info', 'warning', 'error', 'critical'])
+        validate=validate.OneOf(['debug', 'info', 'warning', 'error', 'critical'])
     )
 
     RASTER_CACHE_SIZE = fields.Integer()
-    METADATA_CACHE_SIZE = fields.Integer()
 
     DEFAULT_TILE_SIZE = fields.List(fields.Integer(), validate=validate.Length(equal=2))
     LAZY_LOADING_MAX_SHAPE = fields.List(fields.Integer(), validate=validate.Length(equal=2))
@@ -89,12 +109,14 @@ class SettingSchema(Schema):
         return data
 
     @post_load
-    def encode_tuples(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def make_settings(self, data: Dict[str, Any]) -> TerracottaSettings:
+        # encode tuples
         for var in ('DEFAULT_TILE_SIZE',):
             val = data.get(var)
             if val:
                 data[var] = tuple(val)
-        return data
+
+        return TerracottaSettings(**data)
 
 
 def parse_config(config: Mapping[str, Any] = None) -> TerracottaSettings:
@@ -108,9 +130,8 @@ def parse_config(config: Mapping[str, Any] = None) -> TerracottaSettings:
 
     schema = SettingSchema()
     try:
-        parsed_settings = schema.load(config_dict)
+        new_settings = schema.load(config_dict)
     except ValidationError as exc:
         raise ValueError('Could not parse configuration') from exc
 
-    new_settings = TerracottaSettings(**parsed_settings)
     return new_settings

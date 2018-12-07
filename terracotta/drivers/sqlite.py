@@ -7,6 +7,7 @@ to be present on disk.
 from typing import Any, Sequence, Mapping, Tuple, Union, Iterator, Dict, cast
 import os
 import contextlib
+from contextlib import AbstractContextManager
 import json
 import re
 import sqlite3
@@ -21,6 +22,11 @@ from terracotta.profile import trace
 from terracotta.drivers.base import requires_connection
 from terracotta.drivers.raster_base import RasterDriver
 
+_ERROR_ON_CONNECT = (
+    'Could not connect to database. Make sure that the given path points '
+    'to a valid Terracotta database, and that you ran driver.create().'
+)
+
 
 @contextlib.contextmanager
 def convert_exceptions(msg: str) -> Iterator:
@@ -32,28 +38,43 @@ def convert_exceptions(msg: str) -> Iterator:
 
 
 class SQLiteDriver(RasterDriver):
-    """SQLite-backed raster driver.
+    """An SQLite-backed raster driver.
 
-    Thread-safe by opening a single connection per thread.
+    Assumes raster data to be present in separate GDAL-readable files on disk or remotely.
+    Stores metadata and paths to raster files in SQLite.
+
+    This is the simplest Terracotta driver, as it requires no additional infrastructure.
+    The SQLite database is simply a file that can be stored together with the actual
+    raster files.
+
+    Note:
+
+        This driver requires the SQLite database to be physically present on the server.
+        For remote SQLite databases hosted on S3, use
+        :class:`~terracotta.drivers.sqlite_remote.RemoteSQLiteDriver`.
 
     The SQLite database consists of 4 different tables:
 
-    - `terracotta`: Metadata about the database itself.
-    - `keys`: Contains a single column holding all available keys.
-    - `datasets`: Maps indices to raster file path.
-    - `metadata`: Contains actual metadata as separate columns. Indexed via keys.
+    - ``terracotta``: Metadata about the database itself.
+    - ``keys``: Contains two columns holding all available keys and their description.
+    - ``datasets``: Maps key values to physical raster path.
+    - ``metadata``: Contains actual metadata as separate columns. Indexed via key values.
 
-    This driver caches raster data in RasterDriver.
+    This driver caches raster data, but not metadata.
+
+    Warning:
+
+        This driver is not thread-safe. It is not possible to connect to the database
+        outside the main thread.
 
     """
-    KEY_TYPE: str = 'VARCHAR[256]'
-    METADATA_COLUMNS: Tuple[Tuple[str, ...], ...] = (
+    _KEY_TYPE: str = 'VARCHAR[256]'
+    _METADATA_COLUMNS: Tuple[Tuple[str, ...], ...] = (
         ('bounds_north', 'REAL'),
         ('bounds_east', 'REAL'),
         ('bounds_south', 'REAL'),
         ('bounds_west', 'REAL'),
         ('convex_hull', 'VARCHAR[max]'),
-        ('nodata', 'REAL'),
         ('valid_percentage', 'REAL'),
         ('min', 'REAL'),
         ('max', 'REAL'),
@@ -64,7 +85,15 @@ class SQLiteDriver(RasterDriver):
     )
 
     def __init__(self, path: Union[str, Path]) -> None:
-        """Use given database path to read and store metadata."""
+        """Initialize the SQLiteDriver.
+
+        This should not be called directly, use :func:`~terracotta.get_driver` instead.
+
+        Arguments:
+
+            path: File path to target SQLite database (may or may not exist yet)
+
+        """
         path = str(path)
 
         settings = get_settings()
@@ -74,14 +103,17 @@ class SQLiteDriver(RasterDriver):
         self._connection: Connection
         self._connected = False
 
-        super().__init__(path)
+        super().__init__(os.path.realpath(path))
+
+    def connect(self) -> AbstractContextManager:
+        return self._connect(check=True)
 
     @contextlib.contextmanager
-    def connect(self, check: bool = True) -> Iterator:
+    def _connect(self, check: bool = True) -> Iterator:
         try:
             close = False
             if not self._connected:
-                with convert_exceptions('Unable to connect to database'):
+                with convert_exceptions(_ERROR_ON_CONNECT):
                     self._connection = sqlite3.connect(
                         self.path, timeout=self.DB_CONNECTION_TIMEOUT
                     )
@@ -96,6 +128,7 @@ class SQLiteDriver(RasterDriver):
             except Exception:
                 self._connection.rollback()
                 raise
+
         finally:
             if close:
                 self._connection.commit()
@@ -103,9 +136,9 @@ class SQLiteDriver(RasterDriver):
                 self._connected = False
 
     @requires_connection
-    @convert_exceptions('Could not retrieve version from database')
+    @convert_exceptions(_ERROR_ON_CONNECT)
     def _get_db_version(self) -> str:
-        """Getter for db_version"""
+        """Terracotta version used to create the database"""
         conn = self._connection
         db_row = conn.execute('SELECT version from terracotta').fetchone()
         return db_row['version']
@@ -114,12 +147,6 @@ class SQLiteDriver(RasterDriver):
 
     def _connection_callback(self) -> None:
         """Called after opening a new connection"""
-        if not os.path.isfile(self.path):
-            raise exceptions.InvalidDatabaseError(
-                f'Database file {self.path} does not exist '
-                f'(run driver.create() before connecting to a new database)'
-            )
-
         # check for version compatibility
         def versiontuple(version_string: str) -> Sequence[str]:
             return version_string.split('.')
@@ -134,16 +161,23 @@ class SQLiteDriver(RasterDriver):
             )
 
     def _get_key_names(self) -> Tuple[str, ...]:
-        """Getter for key_names"""
+        """Names of all keys defined by the database"""
         return tuple(self.get_keys().keys())
 
     key_names = cast(Tuple[str], property(_get_key_names))
 
     @convert_exceptions('Could not create database')
     def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> None:
-        """Initialize database file with empty tables.
+        """Create and initialize database with empty tables.
 
-        This must be called before opening the first connection.
+        This must be called before opening the first connection. Tables must not exist already.
+
+        Arguments:
+
+            keys: Key names to use throughout the Terracotta database.
+            key_descriptions: Optional (but recommended) full-text description for some keys,
+                in the form of ``{key_name: description}``.
+
         """
         if key_descriptions is None:
             key_descriptions = {}
@@ -156,35 +190,34 @@ class SQLiteDriver(RasterDriver):
         if not all(re.match(r'^\w+$', key) for key in keys):
             raise exceptions.InvalidKeyError('key names must be alphanumeric')
 
-        if any(key in self.RESERVED_KEYS for key in keys):
-            raise exceptions.InvalidKeyError(f'key names cannot be one of {self.RESERVED_KEYS!s}')
+        if any(key in self._RESERVED_KEYS for key in keys):
+            raise exceptions.InvalidKeyError(f'key names cannot be one of {self._RESERVED_KEYS!s}')
 
         for key in keys:
             if key not in key_descriptions:
                 key_descriptions[key] = ''
 
-        with self.connect(check=False):
+        with self._connect(check=False):
             conn = self._connection
             conn.execute('CREATE TABLE terracotta (version VARCHAR[255])')
             conn.execute('INSERT INTO terracotta VALUES (?)', [str(__version__)])
 
-            conn.execute(f'CREATE TABLE keys (key {self.KEY_TYPE}, description VARCHAR[max])')
+            conn.execute(f'CREATE TABLE keys (key {self._KEY_TYPE}, description VARCHAR[max])')
             key_rows = [(key, key_descriptions[key]) for key in keys]
             conn.executemany('INSERT INTO keys VALUES (?, ?)', key_rows)
 
-            key_string = ', '.join([f'{key} {self.KEY_TYPE}' for key in keys])
+            key_string = ', '.join([f'{key} {self._KEY_TYPE}' for key in keys])
             conn.execute(f'CREATE TABLE datasets ({key_string}, filepath VARCHAR[8000], '
                          f'PRIMARY KEY({", ".join(keys)}))')
 
             column_string = ', '.join(f'{col} {col_type}' for col, col_type
-                                      in self.METADATA_COLUMNS)
+                                      in self._METADATA_COLUMNS)
             conn.execute(f'CREATE TABLE metadata ({key_string}, {column_string}, '
                          f'PRIMARY KEY ({", ".join(keys)}))')
 
     @requires_connection
     @convert_exceptions('Could not retrieve keys from database')
     def get_keys(self) -> OrderedDict:
-        """Retrieve key names and descriptions from database"""
         conn = self._connection
         key_rows = conn.execute('SELECT * FROM keys')
 
@@ -197,29 +230,31 @@ class SQLiteDriver(RasterDriver):
     @requires_connection
     @convert_exceptions('Could not retrieve datasets')
     def get_datasets(self, where: Mapping[str, str] = None,
-                     page: int = 0, limit: int = 100) -> Dict[Tuple[str, ...], str]:
-        """Retrieve keys of datasets matching given pattern"""
+                     page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
         conn = self._connection
 
         if limit is not None:
-            # explicitly cast parameters to int to prevent SQL injection
-            page_query = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
+            # explicitly cast to int to prevent SQL injection
+            page_fragment = f'LIMIT {int(limit)} OFFSET {int(page) * int(limit)}'
         else:
-            page_query = ''
+            page_fragment = ''
+
+        # sort by keys to ensure deterministic results
+        order_fragment = f'ORDER BY {", ".join(self.key_names)}'
 
         if where is None:
-            rows = conn.execute(f'SELECT * FROM datasets {page_query}')
+            rows = conn.execute(f'SELECT * FROM datasets {order_fragment} {page_fragment}')
         else:
             if not all(key in self.key_names for key in where.keys()):
-                raise exceptions.InvalidKeyError(
-                    'Encountered unrecognized keys in where clause'
-                )
-            where_string = ' AND '.join([f'{key}=?' for key in where.keys()])
+                raise exceptions.InvalidKeyError('Encountered unrecognized keys in '
+                                                 'where clause')
+            where_fragment = ' AND '.join([f'{key}=?' for key in where.keys()])
             rows = conn.execute(
-                f'SELECT * FROM datasets WHERE {where_string} {page_query}', list(where.values())
+                f'SELECT * FROM datasets WHERE {where_fragment} {order_fragment} {page_fragment}',
+                list(where.values())
             )
 
-        def keytuple(row: sqlite3.Row) -> Tuple[str, ...]:
+        def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
 
         return {keytuple(row): row['filepath'] for row in rows}
@@ -233,7 +268,6 @@ class SQLiteDriver(RasterDriver):
             'bounds_south': decoded['bounds'][2],
             'bounds_west': decoded['bounds'][3],
             'convex_hull': json.dumps(decoded['convex_hull']),
-            'nodata': decoded['nodata'],
             'valid_percentage': decoded['valid_percentage'],
             'min': decoded['range'][0],
             'max': decoded['range'][1],
@@ -250,7 +284,6 @@ class SQLiteDriver(RasterDriver):
         decoded = {
             'bounds': tuple([encoded[f'bounds_{d}'] for d in ('north', 'east', 'south', 'west')]),
             'convex_hull': json.loads(encoded['convex_hull']),
-            'nodata': encoded['nodata'],
             'valid_percentage': encoded['valid_percentage'],
             'range': (encoded['min'], encoded['max']),
             'mean': encoded['mean'],
@@ -264,11 +297,12 @@ class SQLiteDriver(RasterDriver):
     @requires_connection
     @convert_exceptions('Could not retrieve metadata')
     def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
-        """Retrieve metadata for given keys"""
         keys = tuple(self._key_dict_to_sequence(keys))
 
         if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError('Got wrong number of keys')
+            raise exceptions.InvalidKeyError(
+                f'Got wrong number of keys (available keys: {self.key_names})'
+            )
 
         conn = self._connection
 
@@ -287,7 +321,7 @@ class SQLiteDriver(RasterDriver):
 
         assert row
 
-        data_columns, _ = zip(*self.METADATA_COLUMNS)
+        data_columns, _ = zip(*self._METADATA_COLUMNS)
         encoded_data = {col: row[col] for col in self.key_names + data_columns}
         return self._decode_data(encoded_data)
 
@@ -300,11 +334,12 @@ class SQLiteDriver(RasterDriver):
                metadata: Mapping[str, Any] = None,
                skip_metadata: bool = False,
                override_path: str = None) -> None:
-        """Insert a dataset into the database"""
         conn = self._connection
 
         if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError(f'Not enough keys (available keys: {self.key_names})')
+            raise exceptions.InvalidKeyError(
+                f'Got wrong number of keys (available keys: {self.key_names})'
+            )
 
         if override_path is None:
             override_path = filepath
@@ -328,11 +363,12 @@ class SQLiteDriver(RasterDriver):
     @requires_connection
     @convert_exceptions('Could not write to database')
     def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
-        """Delete a dataset from the database"""
         conn = self._connection
 
         if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError(f'Not enough keys (available keys: {self.key_names})')
+            raise exceptions.InvalidKeyError(
+                f'Got wrong number of keys (available keys: {self.key_names})'
+            )
 
         keys = self._key_dict_to_sequence(keys)
         key_dict = dict(zip(self.key_names, keys))
