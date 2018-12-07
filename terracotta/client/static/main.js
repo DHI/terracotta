@@ -57,7 +57,7 @@ const STATE = {
     activeSinglebandLayer: undefined,
     activeRgbLayer: undefined,
     storedSinglebandKeys: [0,0,0,0],
-    m_pos = 0
+    m_pos: 0
 };
 
 

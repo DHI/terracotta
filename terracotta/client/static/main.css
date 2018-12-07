@@ -378,7 +378,6 @@ th, td {
   float:right;
   overflow: auto;
   z-index: 9990;
-  pointer-events: none;
 }
 
 ul#errors {
