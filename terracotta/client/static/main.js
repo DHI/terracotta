@@ -7,7 +7,9 @@
 Big parts of following file were written by a Python programmer with minimal exposure
 to idiomatic Javascript. It should not serve as an authoritive reference on how a
 frontend for Terracotta should be written.
+*/
 
+/*
 Some notes:
 - methods marked with @global are expected to be available in the DOM (i.e. app.html).
 */
@@ -139,7 +141,7 @@ function assembleSinglebandURL(remote_host, keys, options, preview) {
             request_url += `&${option_key}=${options[option_key]}`;
         }
     }
-    updateComputedUrl(request_url, keys.join('/'));
+    updateComputedUrl(request_url, keys);
     return request_url;
 }
 
@@ -307,12 +309,12 @@ function initUI(remote_host, keys) {
         addSinglebandMapLayer(currentKeys, false);
     });
     singlebandSlider.noUiSlider.on('update', function(values, handle) {
-
-        let showValue = [
-            document.getElementById('singleband-value-lower'),
-            document.getElementById('singleband-value-upper')
-        ];
-        showValue[handle].value = values[handle];
+        const inputId = handle == 0 ? 'lower' : 'upper';
+        /**
+         * @type {HTMLInputElement}
+         */
+        const valueInput = document.querySelector(`#singleband-value-${inputId}`);
+        valueInput.value = values[handle];
     });
     singlebandSlider.setAttribute('disabled', 'true');
 
@@ -329,8 +331,8 @@ function initUI(remote_host, keys) {
                 rgbSliders[1].noUiSlider.get(),
                 rgbSliders[2].noUiSlider.get()
             ];
-            let currentIndexKeys = STATE.activeRgbLayer.index_keys;
-            let currentRgbKeys = STATE.activeRgbLayer.rgb_keys;
+            const currentIndexKeys = STATE.activeRgbLayer.index_keys;
+            const currentRgbKeys = STATE.activeRgbLayer.rgb_keys;
 
             // reload layer
             toggleRgbLayer();
@@ -340,11 +342,12 @@ function initUI(remote_host, keys) {
         rgbSliders[i].noUiSlider.on(
             'update',
             function(id, values, handle) {
-                let showValue = [
-                    document.querySelector('.rgb-value-lower#' + id),
-                    document.querySelector('.rgb-value-upper#' + id)
-                ];
-                showValue[handle].value = values[handle];
+                const inputId = handle == 0 ? 'lower' : 'upper';
+                /**
+                 * @type {HTMLInputElement}
+                 */
+                const valueInput = document.querySelector(`.rgb-value-${inputId}#${id}`);
+                valueInput.value = values[handle];
             }.bind(null, rgbIds[i])
         );
 
@@ -369,16 +372,12 @@ function serializeKeys(keys) {
     return keys.join('/');
 }
 
-function compareArray(arr1, arr2){  
-  let identical = true;
-  let i = 0
-  for(i = i; i < arr1.length; i++){
-    if(arr1[i] !== arr2[i]) identical = false;
+function compareArray(arr1, arr2){
+  if (arr1.length !== arr2.length) return false;
+  for(let i = 0; i < arr1.length; i++){
+    if(arr1[i] !== arr2[i]) return false;
   }
-  for(i = i; i< arr2.length; i++){
-   if(arr1[i] !== arr2[i]) identical = false;
-  }
-   return identical;
+  return true;
 }
 
 /**
@@ -695,8 +694,6 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
      */
     let singlebandSlider = document.querySelector('.singleband-slider');
 
-   
-
     if (STATE.activeSinglebandLayer != null || ds_keys == null) {
  
        STATE.map.removeLayer(STATE.activeSinglebandLayer.layer);
@@ -713,7 +710,6 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
         if (ds_keys === null || currentKeys === ds_keys) {
             return;
         }
-        previousToggleKeys = ds_keys;
     }
 
     if (STATE.activeRgbLayer !== null) {
@@ -731,8 +727,6 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
                 start: STATE.current_singleband_stretch,
                 range: {
                     min: metadata.range[0],
-                    '20%': metadata.percentiles[2],
-                    '80%': metadata.percentiles[last - 2],
                     max: metadata.range[1]
                 }
             });
@@ -770,31 +764,31 @@ function addSinglebandMapLayer(ds_keys, resetView = true) {
     document.querySelector('.singleband-slider').removeAttribute('disabled');
 
     if (resetView && metadata) {
-        const [minLng, minLat, maxLng, maxLat] = metadata.bounds;
-
-        let screenCover = calcScreenCovered([minLng, minLat, maxLng, maxLat], STATE.map.getBounds());
-        if(screenCover < 0.2) STATE.map.flyToBounds(L.latLngBounds([minLat, minLng], [maxLat, maxLng]));
+        const screen = STATE.map.getBounds();
+        const screenBounds = [
+            screen._southWest.lng,
+            screen._southWest.lat,
+            screen._northEast.lng,
+            screen._northEast.lat
+        ];
+        const dsBounds = metadata.bounds;
+        const screenCover = calcScreenCovered(dsBounds, screenBounds);
+        if (screenCover < 0.2) STATE.map.flyToBounds(L.latLngBounds([dsBounds[1], dsBounds[0]], [dsBounds[3], dsBounds[2]]));
     }
 }
 
 /**
  * Checks how much of area is in screen to determine zooming behavior
- * @param {area} bounding box of TC layer
- * @param {screen} bouding box of user's screen
+ * @param {Array[Number]} dsBounds bounding box of TC dataset [w, s, e, n]
+ * @param {Array[Number]} screenBounds bouding box of user's screen [w, s, e, n]
  *
- * @return {percentage} float
+ * @return {Number} ratio of screen covered by dataset in range (0, 1)
  */ 
-function calcScreenCovered(area, screen){
-    let screenLat = screen._northEast.lat - screen._southWest.lat;
-    let areaLat = area[3] - area[1];
-
-    let screenLng = screen._northEast.lng - screen._southWest.lng;
-    let areaLng = area[2] - area[0];
-
-    let percentage = (areaLat * areaLng) / (screenLat * screenLng);
-
-    return percentage;
-
+function calcScreenCovered(dsBounds, screenBounds){
+    const x_overlap = Math.max(0, Math.min(dsBounds[2], screenBounds[2]) - Math.max(dsBounds[0], screenBounds[0]));
+    const y_overlap = Math.max(0, Math.min(dsBounds[3], screenBounds[3]) - Math.max(dsBounds[1], screenBounds[1]));
+    const overlapArea = x_overlap * y_overlap;
+    return overlapArea / (screenBounds[3] - screenBounds[1]) / (screenBounds[2] - screenBounds[0]);
 }
 
 /**
@@ -884,8 +878,11 @@ function populateRgbPickers(remote_host, rgbDatasets, keys) {
  * @global
  */
 function activateRGBs(){
+    /**
+     * @type {HTMLInputElement}
+     */
     const enabledSliders = document.querySelector(".rgb-value-lower#R");
-    if(enabledSliders.disabled === false ) return;
+    if (!enabledSliders.disabled) return;
     rgbSelectorChanged();   
 }
 
@@ -942,8 +939,6 @@ function rgbSelectorChanged() {
                 start: STATE.current_rgb_stretch[i],
                 range: {
                     min: metadata.range[0],
-                    '20%': metadata.percentiles[2],
-                    '80%': metadata.percentiles[last - 2],
                     max: metadata.range[1]
                 }
             });
@@ -966,8 +961,8 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
         }
 
         if (
-            serializeKeys(currentFirstKeys) === serializeKeys(firstKeys) &&
-            serializeKeys(currentLastKeys) === serializeKeys(lastKeys)
+            compareArray(currentFirstKeys, firstKeys) &&
+            compareArray(currentLastKeys, lastKeys)
         ) {
             return;
         }
@@ -1009,15 +1004,23 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
     let metadata = STATE.dataset_metadata[someKeys];
 
     if (resetView && metadata != null) {
-        const [minLng, minLat, maxLng, maxLat] = metadata.bounds;
-        let screenCover = calcScreenCovered([minLng, minLat, maxLng, maxLat], STATE.map.getBounds());
-        if(screenCover < 0.2) STATE.map.flyToBounds(L.latLngBounds([minLat, minLng], [maxLat, maxLng]));
+        const screen = STATE.map.getBounds();
+        const screenBounds = [
+            screen._southWest.lng,
+            screen._southWest.lat,
+            screen._northEast.lng,
+            screen._northEast.lat
+        ];
+        const dsBounds = metadata.bounds;
+        const screenCover = calcScreenCovered(dsBounds, screenBounds);
+        if (screenCover < 0.2) STATE.map.flyToBounds(L.latLngBounds([dsBounds[1], dsBounds[0]], [dsBounds[3], dsBounds[2]]));
     }
 }
 
 /**
  * Toggles 'disabled' and styling on  element when switching between RGB and Singleband
- * @param {RGBactive}{Singlebandactive} bool
+ * @param {boolean} RGBactive
+ * @param {boolean} Singlebandactive
  */ 
 function activateRGBorSingleBand(RGBactive, Singlebandactive){
     const rgbSliders = document.getElementById("rgb-selectors").querySelectorAll(".rgb-slider");
@@ -1027,7 +1030,7 @@ function activateRGBorSingleBand(RGBactive, Singlebandactive){
     const singleBandInputs = document.getElementById("contrast-wrapper").querySelectorAll("input");
 
     if(RGBactive){
-        singleBandSelector.setAttribute('disabled', true);
+        singleBandSelector.setAttribute('disabled', 'true');
         singleBandSelector.style.filter = "grayscale(1)";
         for(let i = 0; i < rgbSliders.length; i++){ rgbSliders[i].removeAttribute('disabled'); }
         for(let j = 0; j < rgbSliderInput.length; j++){ rgbSliderInput[j].disabled = false; }
@@ -1037,7 +1040,7 @@ function activateRGBorSingleBand(RGBactive, Singlebandactive){
     if(Singlebandactive){
         singleBandSelector.removeAttribute('disabled');
         singleBandSelector.style.filter = "grayscale(0)";
-        for(let i = 0; i < rgbSliders.length; i++){rgbSliders[i].setAttribute('disabled', true); }
+        for(let i = 0; i < rgbSliders.length; i++){rgbSliders[i].setAttribute('disabled', 'true'); }
         for(let j = 0; j < rgbSliderInput.length; j++){ rgbSliderInput[j].disabled = true; }
         for(let k = 0; k < singleBandInputs.length; k++){ singleBandInputs[k].disabled = false; }
     }
@@ -1055,9 +1058,9 @@ function updateComputedUrl(_url, _keys){
         layerInfoParent.style.display = "block";
         computedUrl.parentElement.style.display = "block";
     }
-    computedUrl.innerHTML = "<b>current layer - </b>" + _url;
+    computedUrl.innerHTML = "<b>current XYZ URL - </b>" + _url;
     if(_keys){
-        let _metadata = getMetadata(_keys);
+        const _metadata = getMetadata(serializeKeys(_keys));
         updateMetadataText(_metadata);
     }
     else updateMetadataText(null);
@@ -1065,7 +1068,7 @@ function updateComputedUrl(_url, _keys){
 
 /**
  * Updates Layer info container with metadata text
- * @param {Array<string>} _metadata Dataset keys i.e. [<mean>, <range>, <stdev>, <valid_percentage>, <metadata>].
+ * @param {Object<string, any>} _metadata Dataset metadata i.e. {<mean>, <range>, <stdev>, <valid_percentage>, <metadata>}.
  */ 
 function updateMetadataText(_metadata){
     const metadataField = document.getElementById("layerInfo__metadata");
@@ -1076,7 +1079,7 @@ function updateMetadataText(_metadata){
         if(_metadata.range) metadataField.innerHTML += " range: " + JSON.stringify(_metadata.range);
         if(_metadata.stdev) metadataField.innerHTML += " stdev: " + String(_metadata.stdev.toFixed(2));
         if(_metadata.valid_percentage) metadataField.innerHTML += " valid_percentage: " + String(_metadata.valid_percentage.toFixed(2)) ;
-        if(_metadata.metadata.length > 0) metadataField.innerHTML +=  " meta data:" + JSON.stringify(_metadata.metadata);
+        if(_metadata.metadata.length > 0) metadataField.innerHTML +=  " metadata:" + JSON.stringify(_metadata.metadata);
     } else metadataField.style.display = "none";
 }
 
@@ -1135,8 +1138,8 @@ function toggleLayerInfo(){
 
 /**
  *  Updates layer after slider interaction
- *  @param {float} _value
- *  @param {int} _handle id
+ *  @param {number} _value
+ *  @param {number} _handle id
  */
 function updateSinglebandContrast(_value, _handle){
     const sliderval = document.querySelector(".singleband-slider");
@@ -1152,22 +1155,25 @@ function updateSinglebandContrast(_value, _handle){
 /**
  *  Updates layer after slider interaction
  *  @param {string} _id
- *  @param {float} _value
- *  @param {int} _handle id
+ *  @param {number} _value
+ *  @param {number} _handle id
  */
 function updateRGBContrast(_id, _value, _handle){
     const sliderval = document.querySelector(".rgb-slider#" + _id);
     if(_handle === 0 ) sliderval.noUiSlider.set([_value,null]);
     else sliderval.noUiSlider.set([null,_value]);
 
+    /**
+     * @type {NodeListOf<noUiSlider.SliderElement>}
+     */
     const rgbSliders = document.querySelectorAll('.rgb-slider');
     STATE.current_rgb_stretch = [
                 rgbSliders[0].noUiSlider.get(),
                 rgbSliders[1].noUiSlider.get(),
                 rgbSliders[2].noUiSlider.get()
             ];
-    let currentIndexKeys = STATE.activeRgbLayer.index_keys;
-    let currentRgbKeys = STATE.activeRgbLayer.rgb_keys;
+    const currentIndexKeys = STATE.activeRgbLayer.index_keys;
+    const currentRgbKeys = STATE.activeRgbLayer.rgb_keys;
 
     toggleRgbLayer();
     toggleRgbLayer(currentIndexKeys, currentRgbKeys, false);
@@ -1215,11 +1221,11 @@ function addResizeListeners(){
     const BORDER_SIZE = 6;
     panel = document.getElementById("resizable__buffer");
     panel.addEventListener("mousedown", function(e){
-    
-    if (e.offsetX < BORDER_SIZE) {
-        STATE.m_pos = e.x;
-        document.addEventListener("mousemove", resize, false);
-      }
+        e.preventDefault();
+        if (e.offsetX < BORDER_SIZE) {
+            STATE.m_pos = e.x;
+            document.addEventListener("mousemove", resize, false);
+        }
     }, false);
 
     document.addEventListener("mouseup", function(){
@@ -1239,8 +1245,6 @@ function removeSpinner(){
  *  Resizes map and sidebar, repositions resize bar
  */
 function resize(e){
-    e.preventDefault();
-
     const sidebar = document.getElementById("controls");
     const resizeBuffer = document.getElementById("resizable__buffer");
     const map = document.getElementById("map");
@@ -1249,7 +1253,7 @@ function resize(e){
     STATE.m_pos = e.x;
 
     let posX = (parseInt(getComputedStyle(panel, '').marginLeft) + dx) + "px";
-    sidebar.style.width = (parseInt(getComputedStyle(panel, '').marginLeft) + dx -50) + "px";
+    sidebar.style.width = (parseInt(getComputedStyle(panel, '').marginLeft) + dx - 50) + "px";
     resizeBuffer.style.marginLeft = posX;
     map.style.left = posX;
 }
