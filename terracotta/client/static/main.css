@@ -55,11 +55,11 @@ button{
   text-decoration: none;
   font-size: 10px;
   margin: 18px 0px;
-  cursor: pointer;
 }
 
-button:hover{
+button:hover:enabled{
   background-color: #86A2B3;
+  cursor: pointer;
 }
 
 table{

@@ -1112,8 +1112,8 @@ function toggleDetails() {
  *  Called after initializeApp. adds event listeners to Text fields for controlling sliders through text input.
  */
 function addListenersToInputTypes(){
-    document.getElementById("singleband-value-lower").addEventListener("change", function(){updateSinglebandContrast(this.value, 0);});
-    document.getElementById("singleband-value-upper").addEventListener("change", function(){updateSinglebandContrast(this.value, 1);});
+    document.querySelector("#singleband-value-lower").addEventListener("change", function(){updateSinglebandContrast(this.value, 0);});
+    document.querySelector("#singleband-value-upper").addEventListener("change", function(){updateSinglebandContrast(this.value, 1);});
 
     document.querySelector('.rgb-value-lower#R').addEventListener("change", function(){updateRGBContrast(this.id, this.value, 0)});  
     document.querySelector('.rgb-value-upper#R').addEventListener("change", function(){updateRGBContrast(this.id, this.value, 1)});
@@ -1142,11 +1142,15 @@ function toggleLayerInfo(){
  *  @param {number} _handle id
  */
 function updateSinglebandContrast(_value, _handle){
-    const sliderval = document.querySelector(".singleband-slider");
-    if(_handle === 0 ) sliderval.noUiSlider.set([_value,null]);
-    else sliderval.noUiSlider.set([null,_value]);
+    /**
+     * @type {noUiSlider.SliderElement}
+     */
+    const slider = document.querySelector(".singleband-slider");
+    let sliderval = [null, null];
+    sliderval[_handle] = _value
+    slider.noUiSlider.set(sliderval);
 
-    STATE.current_singleband_stretch = sliderval.noUiSlider.get();
+    STATE.current_singleband_stretch = slider.noUiSlider.get();
     let currentKeys = STATE.activeSinglebandLayer.keys;
     toggleSinglebandMapLayer();
     addSinglebandMapLayer(currentKeys, false);
@@ -1159,9 +1163,13 @@ function updateSinglebandContrast(_value, _handle){
  *  @param {number} _handle id
  */
 function updateRGBContrast(_id, _value, _handle){
-    const sliderval = document.querySelector(".rgb-slider#" + _id);
-    if(_handle === 0 ) sliderval.noUiSlider.set([_value,null]);
-    else sliderval.noUiSlider.set([null,_value]);
+    /**
+     * @type {noUiSlider.SliderElement}
+     */
+    const slider = document.querySelector(".rgb-slider#" + _id);
+    let sliderval = [null, null];
+    sliderval[_handle] = _value
+    slider.noUiSlider.set(sliderval);
 
     /**
      * @type {NodeListOf<noUiSlider.SliderElement>}
