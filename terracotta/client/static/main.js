@@ -1,13 +1,15 @@
-/// <reference path="./types/leaflet.d.ts" />
-/// <reference path="./types/no-ui-slider.d.ts" />
-/// <reference path="./types/map.d.ts" />
+/// <reference path='./types/leaflet.d.ts' />
+/// <reference path='./types/no-ui-slider.d.ts' />
+/// <reference path='./types/main.d.ts' />
 
 /* BEWARE! THERE BE DRAGONS! 🐉
 
 Big parts of following file were written by a Python programmer with minimal exposure
 to idiomatic Javascript. It should not serve as an authoritive reference on how a
 frontend for Terracotta should be written.
+*/
 
+/*
 Some notes:
 - methods marked with @global are expected to be available in the DOM (i.e. app.html).
 */
@@ -29,7 +31,26 @@ const errorProxy = (arr) =>
         }
     });
 
-const DATASETS_PER_PAGE = 5;
+
+const rgbStretchProxy = (arr) =>
+    new Proxy(arr, {
+        set: (target, property, value) => {
+            target[property] = value;
+            updateRGBStretch();
+            return true;
+        }
+    });
+
+const singlebandStretchProxy = (arr) =>
+    new Proxy(arr, {
+        set: (target, property, value) => {
+            target[property] = value;
+            updateSinglebandStretch();
+            return true;
+        }
+    });
+
+const DATASETS_PER_PAGE = 16;
 const THUMBNAIL_SIZE = [128, 128];
 const COLORMAPS = [
     { display_name: 'Greyscale', id: 'greys_r' },
@@ -50,13 +71,19 @@ const STATE = {
     dataset_metadata: {},
     colormap_values: {},
     current_colormap: '',
-    current_singleband_stretch: [],
-    current_rgb_stretch: [],
+    current_singleband_stretch: singlebandStretchProxy([0, 1]),
+    current_rgb_stretch: [
+        rgbStretchProxy([0, 1]), 
+        rgbStretchProxy([0, 1]),
+        rgbStretchProxy([0, 1])
+    ],
     map: undefined,
     overlayLayer: undefined,
     activeSinglebandLayer: undefined,
-    activeRgbLayer: undefined
+    activeRgbLayer: undefined,
+    m_pos: 0
 };
+
 
 
 // ===================================================
@@ -68,7 +95,7 @@ const STATE = {
  *
  * @param {string} remote_host
  *
- * @return { Promise<Array<Terracotta.IKey>> }
+ * @return {Promise<Array<Terracotta.IKey>>}
  */
 function getKeys(remote_host) {
     const keyUrl = `${remote_host}/keys`;
@@ -101,7 +128,7 @@ function assembleDatasetURL(remote_host, key_constraints, limit, page) {
 function assembleMetadataURL(remote_host, ds_keys) {
     let request_url = `${remote_host}/metadata`;
     for (let i = 0; i < ds_keys.length; i++) {
-        request_url += '/' + ds_keys[i];
+        request_url += `/${ds_keys[i]}`;
     }
     return request_url;
 }
@@ -118,10 +145,9 @@ function assembleSinglebandURL(remote_host, keys, options, preview) {
     let request_url;
 
     if (preview) {
-        request_url =
-            remote_host + '/singleband/' + keys.join('/') + '/preview.png?tile_size=' + JSON.stringify(THUMBNAIL_SIZE);
+        request_url = `${remote_host}/singleband/${keys.join('/')}/preview.png?tile_size=${JSON.stringify(THUMBNAIL_SIZE)}`;
     } else {
-        request_url = remote_host + '/singleband/' + keys.join('/') + '/{z}/{x}/{y}.png';
+        request_url = `${remote_host}/singleband/${keys.join('/')}/{z}/{x}/{y}.png`;
     }
 
     if (options == null) return request_url;
@@ -137,26 +163,30 @@ function assembleSinglebandURL(remote_host, keys, options, preview) {
             request_url += `&${option_key}=${options[option_key]}`;
         }
     }
+    updateComputedUrl(request_url, keys);
     return request_url;
 }
 
 /**
+ * @param {string} remote_host
  * @param {Array<string>} first_keys
- * @param {Array<number>} rgb_keys
+ * @param {Array<string>} rgb_keys
  * @param {Terracotta.IOptions} options
  * @param {boolean} preview
- * @param {string} remote_host
  *
  * @return {string} rgb URL.
  */
 function assembleRgbUrl(remote_host, first_keys, rgb_keys, options, preview) {
-    let request_url;
+    let request_url = `${remote_host}/rgb/`;
 
+    if (first_keys.length > 0) {
+        request_url += `${first_keys.join('/')}/`;
+    }
+   
     if (preview) {
-        request_url =
-            remote_host + '/rgb/' + first_keys.join('/') + '/preview.png?tile_size=' + JSON.stringify(THUMBNAIL_SIZE);
+        request_url += `preview.png?tile_size=${JSON.stringify(THUMBNAIL_SIZE)}`;
     } else {
-        request_url = remote_host + '/rgb/' + first_keys.join('/') + '/{z}/{x}/{y}.png';
+        request_url += '{z}/{x}/{y}.png';
     }
 
     const [r, g, b] = rgb_keys;
@@ -222,9 +252,9 @@ function initUI(remote_host, keys) {
     keyList.innerHTML = '';
     for (let i = 0; i < keys.length; i++) {
         let keyEntry = document.createElement('li');
-        keyEntry.innerHTML = '<b>' + keys[i].key + '</b>';
+        keyEntry.innerHTML = `<b>${keys[i].key}</b>`;
         if (keys[i].description != null) {
-            keyEntry.innerHTML += ': ' + keys[i].description;
+            keyEntry.innerHTML += `:${keys[i].description}`;
         }
         keyList.appendChild(keyEntry);
     }
@@ -276,6 +306,7 @@ function initUI(remote_host, keys) {
     }
 
     resetRgbSelectors(false);
+    rgbSearchFieldChanged();
 
     // create sliders
     let sliderDummyOptions = {
@@ -286,59 +317,30 @@ function initUI(remote_host, keys) {
     };
 
     /**
-     * @type { noUiSlider.SliderElement }
+     * @type {noUiSlider.SliderElement}
      */
     let singlebandSlider = document.querySelector('.singleband-slider');
-    noUiSlider.create(singlebandSlider, sliderDummyOptions).on('change.one', function() {
-        STATE.current_singleband_stretch = singlebandSlider.noUiSlider.get();
-        let currentKeys = STATE.activeSinglebandLayer.keys;
-        // reload layer
-        toggleSinglebandMapLayer();
-        addSinglebandMapLayer(currentKeys, false);
-    });
-    singlebandSlider.noUiSlider.on('update', function(values, handle) {
-        let showValue = [
-            document.getElementById('singleband-value-lower'),
-            document.getElementById('singleband-value-upper')
-        ];
-        showValue[handle].innerHTML = values[handle];
-    });
-    singlebandSlider.setAttribute('disabled', 'true');
+    noUiSlider.create(singlebandSlider, sliderDummyOptions).on(
+        'change.one',
+        function (values, handle) {
+            STATE.current_singleband_stretch[handle] = values[handle];
+        }
+    );
 
-    /**
-     * @type {  NodeListOf<noUiSlider.SliderElement> }
-     */
-    let rgbSliders = document.querySelectorAll('.rgb-slider');
-    let rgbIds = ['R', 'G', 'B'];
-    for (let i = 0; i < rgbSliders.length; i++) {
-        noUiSlider.create(rgbSliders[i], sliderDummyOptions).on('change.one', function() {
-            STATE.current_rgb_stretch = [
-                rgbSliders[0].noUiSlider.get(),
-                rgbSliders[1].noUiSlider.get(),
-                rgbSliders[2].noUiSlider.get()
-            ];
-            let currentIndexKeys = STATE.activeRgbLayer.index_keys;
-            let currentRgbKeys = STATE.activeRgbLayer.rgb_keys;
-            // reload layer
-            toggleRgbLayer();
-            toggleRgbLayer(currentIndexKeys, currentRgbKeys, false);
-        });
-
-        rgbSliders[i].noUiSlider.on(
-            'update',
+    const rgbIds = ['R', 'G', 'B'];
+    for (let i = 0; i < rgbIds.length; i++) {
+        let id = rgbIds[i];
+        let slider = document.querySelector(`.rgb-slider#${id}`);
+        noUiSlider.create(slider, sliderDummyOptions).on(
+            'change.one',
             function(id, values, handle) {
-                let showValue = [
-                    document.querySelector('.rgb-value-lower#' + id),
-                    document.querySelector('.rgb-value-upper#' + id)
-                ];
-                showValue[handle].innerHTML = values[handle];
-            }.bind(null, rgbIds[i])
+                STATE.current_rgb_stretch[id][handle] = values[handle];
+            }.bind(null, i)
         );
-
-        rgbSliders[i].setAttribute('disabled', 'true');
     }
-
+    resetLayerState();
     updateColormap();
+    removeSpinner();
 }
 
 // ===================================================
@@ -346,7 +348,7 @@ function initUI(remote_host, keys) {
 // ===================================================
 
 /**
- * Concats an array of strings, separated by '/'.
+ * Serializes an array of keys to a single string
  *
  * @param {Array<string>} keys
  *
@@ -354,6 +356,21 @@ function initUI(remote_host, keys) {
  */
 function serializeKeys(keys) {
     return keys.join('/');
+}
+
+/**
+ * Compares whether two arrays are equal element-wise
+ * 
+ * @param {Array} arr1 
+ * @param {Array} arr2 
+ */
+function compareArray(arr1, arr2){
+  if (arr1 == null || arr2 == null) return false;
+  if (arr1.length !== arr2.length) return false;
+  for(let i = 0; i < arr1.length; i++){
+    if(arr1[i] !== arr2[i]) return false;
+  }
+  return true;
 }
 
 /**
@@ -401,7 +418,7 @@ function renderErrors(errors) {
             <li>
                 ${error.text} <br/>
                 <small>${error.url}</small>
-                <span onclick="dismissError.call(null, ${index})">
+                <span onclick='dismissError.call(null, ${index})'>
                     &times;
                 </span>
             </li>
@@ -423,7 +440,7 @@ function dismissError(errorIndex) {
 /**
  * Handle search results and singleband layers.
  *
- * @param { Array<Terracotta.IKey> } keys The keys to update results for.
+ * @param {Array<Terracotta.IKey>} keys The keys to update results for.
  */
 function updateSearchResults(remote_host = STATE.remote_host, keys = STATE.keys) {
     // initialize table header for search results
@@ -441,7 +458,7 @@ function updateSearchResults(remote_host = STATE.remote_host, keys = STATE.keys)
     let key_constraints = [];
 
     /**
-     * @type { NodeListOf<HTMLInputElement> }
+     * @type {NodeListOf<HTMLInputElement>}
      */
     const datasetSearchFields = document.querySelectorAll('#search-fields input');
     for (let i = 0; i < datasetSearchFields.length; i++) {
@@ -465,12 +482,12 @@ function updateSearchResults(remote_host = STATE.remote_host, keys = STATE.keys)
  * @param {Array<Terracotta.IDataset>} datasets
  * @param {Array<Terracotta.IKey>} keys
  */
-function updateDatasetList(remote_host, datasets, keys) {
+function updateDatasetList(remote_host = STATE.remote_host, datasets, keys) {
     let datasetTable = document.getElementById('search-results');
 
     // disable next page if there are no more datasets
     /**
-     * @type { HTMLButtonElement }
+     * @type {HTMLButtonElement }
      */
     let next_page_button = document.querySelector('#next-page');
     if (datasets.length < DATASETS_PER_PAGE) {
@@ -480,24 +497,9 @@ function updateDatasetList(remote_host, datasets, keys) {
     }
 
     // update table rows
-    if (datasets == null) {
-        let resultRow = document.createElement('tr');
-        resultRow.innerHTML = [
-            '<td colspan=',
-            keys.length,
-            '>',
-            '<span class="error">',
-            'Error while querying datasets',
-            '</span>',
-            '</td>'
-        ].join('');
-        datasetTable.appendChild(resultRow);
-        return;
-    }
-
     if (datasets.length === 0) {
         let resultRow = document.createElement('tr');
-        resultRow.innerHTML = '<td colspan=' + keys.length + '>No datasets found</td>';
+        resultRow.innerHTML = `<td colspan=${keys.length}>No datasets found</td>`;
         datasetTable.appendChild(resultRow);
         return;
     }
@@ -512,16 +514,19 @@ function updateDatasetList(remote_host, datasets, keys) {
             resultEntry.innerHTML = ds_keys[j];
             resultRow.appendChild(resultEntry);
         }
-        resultRow.id = 'dataset-' + serializeKeys(ds_keys);
+        resultRow.id = `dataset-${serializeKeys(ds_keys)}`;
+        if (STATE.activeSinglebandLayer && compareArray(STATE.activeSinglebandLayer.keys, ds_keys)) {
+            resultRow.classList.add('active');
+        }
         resultRow.classList.add('clickable');
         resultRow.addEventListener('click', toggleSinglebandMapLayer.bind(null, ds_keys));
-        resultRow.addEventListener('mouseenter', toggleFootprintOverlay.bind(null, ds_keys));
-        resultRow.addEventListener('mouseleave', toggleFootprintOverlay.bind(null, null));
+        resultRow.addEventListener('mouseenter', toggleDatasetMouseover.bind(null, resultRow));
+        resultRow.addEventListener('mouseleave', toggleDatasetMouseover.bind(null, null));
 
         // show thumbnails
         let detailsRow = document.createElement('tr');
         let thumbnailUrl = assembleSinglebandURL(remote_host, ds_keys, null, true);
-        detailsRow.innerHTML = '<td colspan=' + keys.length + '><img src="' + thumbnailUrl + '"></td>';
+        detailsRow.innerHTML = `<td colspan=${keys.length}><img src=${thumbnailUrl} class='thumbnail-image'></td>`;
         resultRow.appendChild(detailsRow);
 
         datasetTable.appendChild(resultRow);
@@ -548,10 +553,9 @@ function incrementResultsPage(step) {
  * Updates the page counter & prev page button.
  */
 function updatePageControls() {
-    document.getElementById('page-counter').innerHTML = `${STATE.current_dataset_page + 1}`;
-
+    document.getElementById('page-counter').innerHTML = String(STATE.current_dataset_page + 1);
     /**
-     * @type { HTMLButtonElement }
+     * @type {HTMLButtonElement}
      */
     let prevPageButton = document.querySelector('#prev-page');
     if (STATE.current_dataset_page > 0) {
@@ -567,13 +571,13 @@ function updatePageControls() {
  */
 function updateColormap() {
     /**
-     * @type { HTMLSelectElement }
+     * @type {HTMLSelectElement}
      */
     const colormapSelector = document.querySelector('select#colormap-selector');
     STATE.current_colormap = colormapSelector.selectedOptions[0].value;
 
     /**
-     * @type { HTMLElement }
+     * @type {HTMLElement}
      */
     let slider = document.querySelector('.singleband-slider .noUi-connect');
     let colorbar = STATE.colormap_values[STATE.current_colormap];
@@ -583,8 +587,8 @@ function updateColormap() {
     }
 
     let gradient = 'linear-gradient(to right';
-    for (let i = 0; i < colorbar.length; i++) {
-        gradient += ', rgb(' + colorbar[i].join(',') + ')';
+    for (let i = 0; i < colorbar.length; i++) { 
+        gradient += `, rgb(${colorbar[i].join(',')})`;
     }
     gradient += ')';
     slider.style.backgroundImage = gradient;
@@ -592,91 +596,120 @@ function updateColormap() {
     if (STATE.activeSinglebandLayer == null) return;
 
     // toggle layer on and off to reload
-    let ds_keys = STATE.activeSinglebandLayer.keys;
-    toggleSinglebandMapLayer();
-    addSinglebandMapLayer(ds_keys, false);
+    const ds_keys = STATE.activeSinglebandLayer.keys;
+    updateSinglebandLayer(ds_keys, false);
 }
+
+
+/**
+ * Updates thumbnail preview
+ * @param {HTMLImageElement} img 
+ * @param {boolean} show 
+ */
+function showCurrentThumnbnail(img, show) {
+    const thumbnail = document.getElementById('thumbnail-holder');
+    if (show) {
+        var backgroundProperty = `url(${img.src})`;
+        thumbnail.style.backgroundImage = backgroundProperty;
+    }
+    else {
+        thumbnail.style.backgroundImage = 'none';
+    }
+}
+
 
 /**
  * Adds a footprint overlay to map
- * @param {Array<string>} keys
+ * @param {HTMLElement} datasetTable
  */
-function toggleFootprintOverlay(keys) {
+function toggleDatasetMouseover(datasetTable) {
     if (STATE.overlayLayer != null) {
         STATE.map.removeLayer(STATE.overlayLayer);
     }
 
-    if (keys == null) {
+    if (datasetTable == null) {
+        showCurrentThumnbnail(null, false);
         return;
     }
+    showCurrentThumnbnail(datasetTable.querySelector('img'), true);
+    /**
+     * @type {NodeListOf<HTMLTableCellElement>}
+     */
+    const tdElements = datasetTable.querySelectorAll('td');
+    const keys = [];
+    for (let i = 0; i < tdElements.length; i++) {
+        if (tdElements[i].parentElement.classList.contains('clickable')) keys.push(tdElements[i].innerHTML);
+    }
+
     const layer_id = serializeKeys(keys);
     const metadata = STATE.dataset_metadata[layer_id];
-
-    if (metadata == null) return;
+ 
+    if (!metadata) return;
 
     STATE.overlayLayer = L.geoJSON(metadata.convex_hull, {
         style: {
-            color: '#ff7800',
+            color: '#0B4566',
             weight: 5,
             opacity: 0.65
         }
     }).addTo(STATE.map);
 }
 
+
 /**
- * @param {Array<string>} [ds_keys]
- * @param {boolean} [resetView]
+ * Toggle active singleband layer.
+ * 
+ * @global
+ * @param {Array<string>} ds_keys
+ * @param {boolean} resetView
  */
 function toggleSinglebandMapLayer(ds_keys, resetView = true) {
+    let currentKeys;
+    if (STATE.activeSinglebandLayer) {
+        currentKeys = STATE.activeSinglebandLayer.keys;
+    }
+
+    resetLayerState();
+
+    if (!ds_keys || compareArray(currentKeys, ds_keys)) {
+        return;
+    }
+
+    const layer_id = serializeKeys(ds_keys);
+    const metadata = STATE.dataset_metadata[layer_id];
     /**
-     * @type { noUiSlider.SliderElement }
+     * @type {noUiSlider.SliderElement}
      */
-    let singlebandSlider = document.querySelector('.singleband-slider');
+    const singlebandSlider = document.querySelector('#singlebandSlider');
 
-    if (STATE.activeSinglebandLayer != null || ds_keys == null) {
-        STATE.map.removeLayer(STATE.activeSinglebandLayer.layer);
-        const currentKeys = STATE.activeSinglebandLayer.keys;
-        STATE.activeSinglebandLayer = null;
-
-        const currentActiveRow = document.querySelector('#search-results > .active');
-        if (currentActiveRow != null) {
-            currentActiveRow.classList.remove('active');
-        }
-
-        singlebandSlider.setAttribute('disabled', 'true');
-
-        if (ds_keys === null || currentKeys === ds_keys) {
-            return;
-        }
+    if (metadata) {
+        const last = metadata.percentiles.length - 1;
+        STATE.current_singleband_stretch = singlebandStretchProxy([
+            metadata.percentiles[2],
+            metadata.percentiles[last - 2]
+        ]);
+        singlebandSlider.noUiSlider.updateOptions({
+            range: {
+                min: metadata.range[0],
+                max: metadata.range[1]
+            }
+        });
     }
-
-    if (STATE.activeRgbLayer !== null) {
-        toggleRgbLayer();
-    }
-
-    if (ds_keys) {
-        const layer_id = serializeKeys(ds_keys);
-        const metadata = STATE.dataset_metadata[layer_id];
-
-        if (metadata != null) {
-            const last = metadata.percentiles.length - 1;
-            STATE.current_singleband_stretch = [metadata.percentiles[2], metadata.percentiles[last - 2]];
-            singlebandSlider.noUiSlider.updateOptions({
-                start: STATE.current_singleband_stretch,
-                range: {
-                    min: metadata.range[0],
-                    '20%': metadata.percentiles[2],
-                    '80%': metadata.percentiles[last - 2],
-                    max: metadata.range[1]
-                }
-            });
-        }
-
-        addSinglebandMapLayer(ds_keys, resetView);
-    }
+    updateSinglebandStretch(false);
+    updateSinglebandLayer(ds_keys, resetView);
 }
 
-function addSinglebandMapLayer(ds_keys, resetView = true) {
+
+/**
+ * Switch current active layer to the given singleband dataset.
+ * 
+ * @param {Array<string>} ds_keys Keys of new layer
+ * @param {boolean} resetView Fly to new dataset if not already on screen
+ */
+function updateSinglebandLayer(ds_keys, resetView = true) {
+    removeRasterLayer();
+    activateRGBorSingleBand(false, true);
+
     const layer_id = serializeKeys(ds_keys);
     const metadata = STATE.dataset_metadata[layer_id];
 
@@ -688,13 +721,12 @@ function addSinglebandMapLayer(ds_keys, resetView = true) {
         layer_options.stretch_range = JSON.stringify(STATE.current_singleband_stretch);
     }
     const layer_url = assembleSinglebandURL(STATE.remote_host, ds_keys, layer_options);
-
     STATE.activeSinglebandLayer = {
         keys: ds_keys,
         layer: L.tileLayer(layer_url).addTo(STATE.map)
     };
 
-    const dataset_layer = document.getElementById('dataset-' + layer_id);
+    const dataset_layer = document.getElementById(`dataset-${layer_id}`);
 
     if (dataset_layer) {
         // Depending on search, the dataset layer might not be present in the DOM.
@@ -704,9 +736,32 @@ function addSinglebandMapLayer(ds_keys, resetView = true) {
     document.querySelector('.singleband-slider').removeAttribute('disabled');
 
     if (resetView && metadata) {
-        const [minLng, minLat, maxLng, maxLat] = metadata.bounds;
-        STATE.map.flyToBounds(L.latLngBounds([minLat, minLng], [maxLat, maxLng]));
+        const screen = STATE.map.getBounds();
+        const screenBounds = [
+            screen._southWest.lng,
+            screen._southWest.lat,
+            screen._northEast.lng,
+            screen._northEast.lat
+        ];
+        const dsBounds = metadata.bounds;
+        const screenCover = calcScreenCovered(dsBounds, screenBounds);
+        if (screenCover < 0.2) STATE.map.flyToBounds(L.latLngBounds([dsBounds[1], dsBounds[0]], [dsBounds[3], dsBounds[2]]));
     }
+}
+
+/**
+ * Checks how much of area is in screen to determine zooming behavior
+ * @param {Array[number]} dsBounds bounding box of TC dataset [w, s, e, n]
+ * @param {Array[number]} screenBounds bouding box of user's screen [w, s, e, n]
+ *
+ * @return {number} ratio of screen covered by dataset in range (0, 1)
+ */ 
+function calcScreenCovered(dsBounds, screenBounds){
+    const x_overlap = Math.max(0, Math.min(dsBounds[2], screenBounds[2]) - Math.max(dsBounds[0], screenBounds[0]));
+    const y_overlap = Math.max(0, Math.min(dsBounds[3], screenBounds[3]) - Math.max(dsBounds[1], screenBounds[1]));
+    const overlapArea = x_overlap * y_overlap;
+    const screenArea = (screenBounds[3] - screenBounds[1]) * (screenBounds[2] - screenBounds[0]);
+    return overlapArea / screenArea;
 }
 
 /**
@@ -721,9 +776,15 @@ function searchFieldChanged() {
 // ===================================================
 // Handle RGB layer controls
 // ===================================================
+
+/**
+ * Reset RGB band selectors
+ * 
+ * @param {boolean} enabled 
+ */
 function resetRgbSelectors(enabled) {
     /**
-     * @type { NodeListOf<HTMLInputElement> }
+     * @type {NodeListOf<HTMLInputElement>}
      */
     let rgbSelectors = document.querySelectorAll('.rgb-selector');
     for (let i = 0; i < rgbSelectors.length; i++) {
@@ -732,13 +793,17 @@ function resetRgbSelectors(enabled) {
     }
 }
 
+/**
+ * Triggered when a search field is changed.
+ * Does nothing unless all search fields are filled in.
+ */
 function rgbSearchFieldChanged() {
     const remote_host = STATE.remote_host;
     const keys = STATE.keys;
 
     // if all RGB search fields are filled in, populate band selectors
     /**
-     * @type { NodeListOf<HTMLSelectElement> }
+     * @type {NodeListOf<HTMLSelectElement>}
      */
     let searchFields = document.querySelectorAll('#rgb-search-fields > input');
 
@@ -760,10 +825,18 @@ function rgbSearchFieldChanged() {
     });
 }
 
+/**
+ * Populate RGB band pickers after all search fields are filled in
+ * 
+ * @param {string} remote_host 
+ * @param {Array<Terracotta.IDataset>} rgbDatasets 
+ * @param {Array<Terracotta.IKey>} keys 
+ */
 function populateRgbPickers(remote_host, rgbDatasets, keys) {
     const lastKey = keys[keys.length - 1].key;
 
     resetRgbSelectors(true);
+    rgbSelectorChanged();
 
     const rgbSelectors = [
         document.querySelector('.rgb-selector#R'),
@@ -791,123 +864,402 @@ function populateRgbPickers(remote_host, rgbDatasets, keys) {
     return Promise.all(rgbDataPromises);
 }
 
+
 /**
  * Used in app.html as 'onchange' event for .rgb-selector.
  * @global
  */
 function rgbSelectorChanged() {
+    const currentRgbLayer = STATE.activeRgbLayer;
+    resetLayerState();
+
     /**
-     * @type { NodeListOf<HTMLInputElement> }
+     * @type {NodeListOf<HTMLInputElement>}
      */
     let searchFields = document.querySelectorAll('#rgb-search-fields > input');
+
     let firstKeys = [];
     for (let i = 0; i < searchFields.length; i++) {
         firstKeys[i] = searchFields[i].value;
     }
 
     /**
-     * @type { Array<HTMLSelectElement> }
+     * @type {Array<HTMLSelectElement>}
      */
     const rgbSelectors = [
         document.querySelector('.rgb-selector#R'),
         document.querySelector('.rgb-selector#G'),
         document.querySelector('.rgb-selector#B')
     ];
+
     let lastKeys = [];
     for (let i = 0; i < rgbSelectors.length; i++) {
-        if (!rgbSelectors[i].value) return toggleRgbLayer();
-        lastKeys[i] = rgbSelectors[i].value;
+        if (!rgbSelectors[i].value){
+            return;
+     }
+       lastKeys[i] = rgbSelectors[i].value;
     }
+
+    if (currentRgbLayer &&
+        compareArray(firstKeys, currentRgbLayer.index_keys) &&
+        compareArray(lastKeys, currentRgbLayer.rgb_keys)) {
+            return;
+        }
 
     // initialize sliders
     /**
-     * @type { Array<noUiSlider.SliderElement> }
+     * @type {Array<noUiSlider.SliderElement>}
      */
     const rgbSliders = [
         document.querySelector('.rgb-slider#R'),
         document.querySelector('.rgb-slider#G'),
         document.querySelector('.rgb-slider#B')
     ];
-    STATE.current_rgb_stretch = [];
     for (let i = 0; i < 3; i++) {
-        let someKeys = serializeKeys(firstKeys.concat([lastKeys[i]]));
-        let metadata = STATE.dataset_metadata[someKeys];
+        const someKeys = serializeKeys(firstKeys.concat([lastKeys[i]]));
+        const metadata = STATE.dataset_metadata[someKeys];
         if (metadata != null) {
-            let last = metadata.percentiles.length - 1;
-            STATE.current_rgb_stretch[i] = [metadata.percentiles[2], metadata.percentiles[last - 2]];
+            const last = metadata.percentiles.length - 1;
             rgbSliders[i].noUiSlider.updateOptions({
-                start: STATE.current_rgb_stretch[i],
                 range: {
                     min: metadata.range[0],
-                    '20%': metadata.percentiles[2],
-                    '80%': metadata.percentiles[last - 2],
                     max: metadata.range[1]
                 }
             });
+            STATE.current_rgb_stretch[i] = rgbStretchProxy([
+                metadata.percentiles[2],
+                metadata.percentiles[last - 2]
+            ]);
         }
     }
-
-    toggleRgbLayer(firstKeys, lastKeys);
+    updateRGBStretch(false);
+    updateRGBLayer(firstKeys, lastKeys);
 }
 
-function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
-    const rgbControls = document.getElementById('rgb');
 
+/** 
+ * Reset all layer state
+ * (remove layers from map, deactivate navigation section, clear info box)
+ */
+function resetLayerState() {
+    removeRasterLayer();
+    activateRGBorSingleBand(false, false);
+    document.getElementById('layerInfo__container').style.display = 'none';
+}
+
+
+/**
+ * Remove all current layers from map
+ */
+function removeRasterLayer() {
     if (STATE.activeRgbLayer != null) {
         STATE.map.removeLayer(STATE.activeRgbLayer.layer);
-        let currentFirstKeys = STATE.activeRgbLayer.index_keys;
-        let currentLastKeys = STATE.activeRgbLayer.rgb_keys;
         STATE.activeRgbLayer = null;
-        rgbControls.classList.remove('active');
-
-        if (firstKeys == null || lastKeys == null) {
-            return;
-        }
-
-        if (
-            serializeKeys(currentFirstKeys) === serializeKeys(firstKeys) &&
-            serializeKeys(currentLastKeys) === serializeKeys(lastKeys)
-        ) {
-            return;
-        }
-    }
-
-    if (firstKeys == null || lastKeys == null) {
-        return;
     }
 
     if (STATE.activeSinglebandLayer != null) {
-        toggleSinglebandMapLayer(STATE.activeSinglebandLayer.keys);
+        STATE.map.removeLayer(STATE.activeSinglebandLayer.layer);
+        STATE.activeSinglebandLayer = null;
     }
+}
+
+
+/**
+ * Toggle RGB layer on map
+ * @param {Array<string>} firstKeys first keys of the layer
+ * @param {Array<string>} lastKeys last keys of the layer [r, g, b]
+ * @param {boolean} resetView fly to dataset location if not already visible
+ */
+function updateRGBLayer(firstKeys, lastKeys, resetView = true) {
+    removeRasterLayer();
+    activateRGBorSingleBand(true, false);
 
     let layerOptions = {};
-    if (STATE.current_rgb_stretch != null) {
-        layerOptions.r_range = JSON.stringify(STATE.current_rgb_stretch[0]);
-        layerOptions.g_range = JSON.stringify(STATE.current_rgb_stretch[1]);
-        layerOptions.b_range = JSON.stringify(STATE.current_rgb_stretch[2]);
-    }
+    layerOptions.r_range = JSON.stringify(STATE.current_rgb_stretch[0]);
+    layerOptions.g_range = JSON.stringify(STATE.current_rgb_stretch[1]);
+    layerOptions.b_range = JSON.stringify(STATE.current_rgb_stretch[2]);
 
-    let layer_url = assembleRgbUrl(STATE.remote_host, firstKeys, lastKeys, layerOptions, false);
+    const layer_url = assembleRgbUrl(STATE.remote_host, firstKeys, lastKeys, layerOptions, false);
 
+    updateComputedUrl(layer_url, null);
+    
     STATE.activeRgbLayer = {
         index_keys: firstKeys,
         rgb_keys: lastKeys,
         layer: L.tileLayer(layer_url).addTo(STATE.map)
     };
 
-    rgbControls.classList.add('active');
-    let rgbSliders = document.querySelectorAll('.rgb-slider');
-    for (let i = 0; i < rgbSliders.length; i++) {
-        rgbSliders[i].removeAttribute('disabled');
-    }
-
-    let someKeys = serializeKeys(firstKeys.concat([lastKeys[0]]));
-    let metadata = STATE.dataset_metadata[someKeys];
+    const someKeys = serializeKeys(firstKeys.concat([lastKeys[0]]));
+    const metadata = STATE.dataset_metadata[someKeys];
 
     if (resetView && metadata != null) {
-        const [minLng, minLat, maxLng, maxLat] = metadata.bounds;
-        STATE.map.flyToBounds(L.latLngBounds([minLat, minLng], [maxLat, maxLng]));
+        const screen = STATE.map.getBounds();
+        const screenBounds = [
+            screen._southWest.lng,
+            screen._southWest.lat,
+            screen._northEast.lng,
+            screen._northEast.lat
+        ];
+        const dsBounds = metadata.bounds;
+        const screenCover = calcScreenCovered(dsBounds, screenBounds);
+        if (screenCover < 0.2) STATE.map.flyToBounds(L.latLngBounds([dsBounds[1], dsBounds[0]], [dsBounds[3], dsBounds[2]]));
     }
+}
+
+/**
+ * Toggles 'disabled' and styling on  element when switching between RGB and Singleband
+ * @param {boolean} rgbActive
+ * @param {boolean} singlebandActive
+ */ 
+function activateRGBorSingleBand(rgbActive, singlebandActive){
+    /**
+     * @type {NodeListOf<noUiSlider.SliderElement>}
+     */
+    const rgbSliders = document.querySelectorAll('#rgb-selectors .rgb-slider');
+
+    /**
+     * @type {NodeListOf<HTMLInputElement>}
+     */
+    const rgbSliderInput = document.querySelectorAll('#rgb-selectors input');
+
+    if(rgbActive){
+        for(let i = 0; i < rgbSliders.length; i++){
+            rgbSliders[i].removeAttribute('disabled');
+            rgbSliders[i].style.filter = 'grayscale(0)';
+        }
+        for(let j = 0; j < rgbSliderInput.length; j++){ rgbSliderInput[j].disabled = false; }
+    } else {
+        for (let i = 0; i < rgbSliders.length; i++) {
+            rgbSliders[i].setAttribute('disabled', 'true');
+            rgbSliders[i].style.filter = 'grayscale(1)';
+        }
+        for (let j = 0; j < rgbSliderInput.length; j++) { rgbSliderInput[j].disabled = true; }
+    }
+
+    /**
+     * @type {noUiSlider.SliderElement}
+     */
+    const singleBandSlider = document.querySelector('#singlebandSlider');
+    /**
+     * @type {NodeListOf<noUiSlider.SliderElement>}
+     */
+    const singleBandInputs = document.querySelectorAll('#contrast-wrapper input');
+    const colormapSelector = document.querySelector('#colormap-selector');
+
+    if (singlebandActive) {
+        colormapSelector.removeAttribute('disabled');
+        singleBandSlider.removeAttribute('disabled');
+        singleBandSlider.style.filter = 'grayscale(0)';
+        for (let k = 0; k < singleBandInputs.length; k++) { singleBandInputs[k].removeAttribute('disabled'); }
+    } else {
+        colormapSelector.setAttribute('disabled', 'true');
+        singleBandSlider.setAttribute('disabled', 'true');
+        singleBandSlider.style.filter = 'grayscale(1)';
+        const currentActiveRows = document.querySelectorAll('#search-results .active');
+        for (let i = 0; i < currentActiveRows.length; i++) {
+            currentActiveRows[i].classList.remove('active');
+        }
+        for (let k = 0; k < singleBandInputs.length; k++) { singleBandInputs[k].setAttribute('disabled', 'true'); }
+    }
+}
+
+/**
+ * Updates Layer info container with current URL and metadata 
+ * @param {string} url
+ * @param {Array<string>} keys Dataset keys i.e. [<type>, <date>, <id>, <band>].
+ */ 
+function updateComputedUrl(url, keys = null){
+    const computedUrl = document.getElementById('layerInfo__URL');
+    const layerInfoParent = document.getElementById('layerInfo__container');
+    if(layerInfoParent.style.display !== 'block'){
+        layerInfoParent.style.display = 'block';
+        computedUrl.parentElement.style.display = 'block';
+    }
+    computedUrl.innerHTML = `<b>current XYZ URL - </b>${url}`;
+    let metadata = null;
+    if (keys != null) {
+        metadata = STATE.dataset_metadata[serializeKeys(keys)];
+    }
+    updateMetadataText(metadata);
+}
+
+/**
+ * Updates Layer info container with metadata text
+ * @param {Terracotta.IMetadata} metadata Dataset metadata
+ */ 
+function updateMetadataText(metadata){
+    const metadataField = document.getElementById('layerInfo__metadata');
+    if(!metadata){
+        metadataField.style.display = 'none';
+        return;
+    }
+    metadataField.style.display = 'block'
+    metadataField.innerHTML = '<b>current metadata -</b> ';
+    if(metadata.mean) metadataField.innerHTML += `mean: ${metadata.mean.toFixed(2)}`;
+    if(metadata.range) metadataField.innerHTML += ` range: ${JSON.stringify(metadata.range)}`;
+    if(metadata.stdev) metadataField.innerHTML += ` stdev: ${metadata.stdev.toFixed(2)}`;
+    if(metadata.valid_percentage) metadataField.innerHTML += ` valid_percentage: ${metadata.valid_percentage.toFixed(2)}`;
+    if(Object.keys(metadata.metadata).length > 0) metadataField.innerHTML += ` metadata: ${JSON.stringify(metadata.metadata)}`;
+}
+
+
+/**
+ *  Called in app.html on Details info toggle
+ * @global
+ */
+function toggleDetails() {
+    const details = document.getElementById('details__content');
+    details.style.display = details.style.display === 'block' ? 'none' : 'block';
+}
+
+
+/**
+ *  Called after initializeApp. adds event listeners to Text fields for controlling sliders through text input.
+ */
+function addListenersToSliderRanges(){
+    document.querySelector('#singleband-value-lower').addEventListener(
+        'change',
+        function(){STATE.current_singleband_stretch[0] = parseFloat(this.value);}
+    );
+    document.querySelector('#singleband-value-upper').addEventListener(
+        'change',
+        function(){STATE.current_singleband_stretch[1] = parseFloat(this.value);}
+    );
+
+    const rgbIds = ['R', 'G', 'B'];
+    const handles = ['lower', 'upper'];
+    for (let i = 0; i < rgbIds.length; i++) {
+        for (let j = 0; j < handles.length; j++) { 
+            let rgbInput = document.querySelector(`.rgb-value-${handles[j]}#${rgbIds[i]}`);
+            rgbInput.addEventListener(
+                'change',
+                function () { STATE.current_rgb_stretch[i][j] = parseFloat(this.value); }
+            );
+        }
+    }
+}
+
+
+/**
+ *  Called in app.html on Layer info toggle
+ * @global
+ */
+function toggleLayerInfo(){
+    const layerContent = document.getElementById('layerInfo__container--content');
+    const layerToggle = document.getElementById('layerInfo__toggle--icon');
+    layerToggle.innerHTML = layerToggle.innerHTML === 'x' ? 'i' : 'x';
+    layerContent.style.display = layerContent.style.display === 'block' ? 'none' : 'block';
+}
+
+/**
+ *  Updates layer after slider interaction
+ */
+function updateSinglebandStretch(reloadLayer = true){
+    const bandStretch = STATE.current_singleband_stretch;
+
+    /**
+     * @type {noUiSlider.SliderElement}
+     */
+    const slider = document.querySelector('.singleband-slider');
+    slider.noUiSlider.set(bandStretch);
+
+    /**
+     * @type {HTMLInputElement}
+     */
+    const lowerLabel = document.querySelector('#singleband-value-lower');
+    lowerLabel.value = bandStretch[0];
+
+    /**
+     * @type {HTMLInputElement}
+     */
+    const upperLabel = document.querySelector('#singleband-value-upper');
+    upperLabel.value = bandStretch[1];
+
+    if (reloadLayer && STATE.activeSinglebandLayer) {
+        const currentKeys = STATE.activeSinglebandLayer.keys;
+        updateSinglebandLayer(currentKeys, false);
+    }
+}
+
+/**
+ *  Updates layer after slider interaction
+ */
+function updateRGBStretch(reloadLayer = true){
+    const rgbIds = ['R', 'G', 'B'];
+    for (let i = 0; i < rgbIds.length; i++) {
+        const id = rgbIds[i];
+        const bandStretch = STATE.current_rgb_stretch[i];
+
+        /**
+         * @type {noUiSlider.SliderElement}
+         */
+        const slider = document.querySelector(`.rgb-slider#${id}`);
+        slider.noUiSlider.set(bandStretch);
+
+        /**
+         * @type {HTMLInputElement}
+         */
+        const lowerLabel = document.querySelector(`.rgb-value-lower#${id}`);
+        lowerLabel.value = String(bandStretch[0]);
+
+        /**
+         * @type {HTMLInputElement}
+         */
+        const upperLabel = document.querySelector(`.rgb-value-upper#${id}`);
+        upperLabel.value = String(bandStretch[1]);
+    }
+
+    if (reloadLayer && STATE.activeRgbLayer) {
+        const currentIndexKeys = STATE.activeRgbLayer.index_keys;
+        const currentRgbKeys = STATE.activeRgbLayer.rgb_keys;
+        updateRGBLayer(currentIndexKeys, currentRgbKeys, false);
+    }
+}
+
+
+/**
+ *  Called after initializeApp. adds event listeners to resize bar
+ */
+function addResizeListeners() {
+    const BORDER_SIZE = 6;
+    const panel = document.getElementById('resizable__buffer');
+    panel.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        if (e.offsetX < BORDER_SIZE) {
+            STATE.m_pos = e.x;
+            document.addEventListener('mousemove', resize, false);
+        }
+    }, false);
+
+    document.addEventListener('mouseup', function () {
+        document.removeEventListener('mousemove', resize, false);
+    }, false);
+}
+
+/**
+ *  Called after InitUI, removes spinner.
+ */
+function removeSpinner() {
+    document.getElementById('loader__container').style.display = 'none';
+}
+
+
+/**
+ *  Resizes map and sidebar, repositions resize bar
+ */
+function resize(e) {
+    const sidebar = document.getElementById('controls');
+    const resizeBuffer = document.getElementById('resizable__buffer');
+    const map = document.getElementById('map');
+    const panel = document.getElementById('resizable__buffer');
+
+    const dx = e.x - STATE.m_pos;
+    STATE.m_pos = e.x;
+
+    let posX = (parseInt(getComputedStyle(panel, '').marginLeft) + dx) + 'px';
+    sidebar.style.width = (parseInt(getComputedStyle(panel, '').marginLeft) + dx - 50) + 'px';
+    resizeBuffer.style.marginLeft = posX;
+    map.style.left = posX;
 }
 
 
@@ -919,6 +1271,11 @@ function toggleRgbLayer(firstKeys, lastKeys, resetView = true) {
  * @global
  */
 function initializeApp(hostname) {
+    // sanitize hostname
+    if (hostname.charAt(hostname.length - 1) === '/') {
+        hostname = hostname.slice(0, hostname.length - 1);
+    }
+
     STATE.remote_host = hostname;
 
     getColormapValues(hostname)
@@ -936,4 +1293,6 @@ function initializeApp(hostname) {
                 layers: [osmBase]
             });
         });
+    addListenersToSliderRanges();
+    addResizeListeners();
 }

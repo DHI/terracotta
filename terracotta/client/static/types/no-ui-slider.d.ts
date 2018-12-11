@@ -8,6 +8,7 @@ export function updateOptions(...any): any;
 export function create(...any): any;
 export function on(...any): any;
 export function get(...any): any;
+export function set(...any): any;
 
 export interface SliderElement extends HTMLElement {
   noUiSlider: {
@@ -15,5 +16,6 @@ export interface SliderElement extends HTMLElement {
     create;
     on;
     get;
+    set;
   }
 }

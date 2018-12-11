@@ -17,72 +17,110 @@
 <body>
 
 <div id='controls'>
-	<h1>Terracotta @ {{ hostname }}</h1>
-
-	<h2>What is this?</h2>
-	<p>
-		This applet lets you explore the data on any running Terracotta server.
-		Just search for a dataset to get started!
-	</p>
-
-	<h2>Available keys</h2>
-	<ul id="key-list">
-	</ul>
-
-	<h2>Search for datasets</h2>
-	<div id="search-fields"></div>
-	<table class="scrolling-list" id="search-results">
-	</table>
-	<div id="search-result-controls">
-		<button id="prev-page" onclick="incrementResultsPage(-1);" disabled>&lt;</button>
-		Page <span id="page-counter">1</span>
-		<button id="next-page" onclick="incrementResultsPage(1);">&gt;</button>
+	<div class="el-wrapper">
+		<h1>Terracotta Preview App</h1>
 	</div>
 
-	<h3>Choose a colormap</h3>
-	<select id="colormap-selector" onchange="updateColormap();">
-	</select>
+	<div class="el-wrapper el-wrapper--hover" onclick="toggleDetails();">
+		<h2 class="info-title hoverable">Details</h2>
+		<img src="{{ url_for('static', filename='images/info-icon.png') }}" class="info-toggle">
+		<p id="details__host--title"><b>host: </b> <span id="details__host--url">{{ hostname }}</span></p>
+		<div id="details__content">
+			<p class="clear" id="info-text">
+				This applet lets you explore the data on any running Terracotta server.
+				Just search for a dataset to get started!
+			</p>
+			<p id="metadata-field"></p>
+		</div>
+	</div>
 
-	<h3>Adjust contrast</h3>
-	<span id="singleband-value-lower"></span>
-	<div class="singleband-slider"></div>
-	<span id="singleband-value-upper"></span>
+	<div class="el-wrapper">
+		<h2>Available keys</h2>
+		<ul id="key-list">
+		</ul>
+	</div>
 
-	<div id="rgb">
-		<h2 class="clickable" onclick="rgbSelectorChanged();">Show RGB image</h2>
+	<div class="el-wrapper">
+		<h2 class="info-title">Search for datasets</h2>
+		<div id="search-fields"></div>
+		<div id="thumbnail-holder"></div>
+			<table class="scrolling-list" id="search-results">
+			</table>
+			<div id="search-result-controls">
+				<button id="prev-page" onclick="incrementResultsPage(-1);" disabled>&lt;</button>
+				Page <span id="page-counter">1</span>
+				<button id="next-page" onclick="incrementResultsPage(1);">&gt;</button>
+		</div>
+	</div>
+
+		<div id="colormap-wrapper">
+			<h3>Choose a colormap</h3>
+			<select id="colormap-selector" onchange="updateColormap();">
+			</select>
+		</div>	
+
+		<div id="contrast-wrapper">
+			<h3>Adjust contrast</h3>
+			<div class="singleband-slider" id="singlebandSlider"></div>
+			<input type="text" id="singleband-value-lower" disabled="true">
+			<input type="text" class="input__text--upper" id="singleband-value-upper" disabled="true">
+		</div>
+
+	<div id="rgb" class="el-wrapper">
+		<h2 class="clickable" onclick="rgbSelectorChanged()"> Show RGB image</h2>
 		<div id="rgb-search-fields">
 		</div>
 		<div id="rgb-selectors">
 			<div class="horizontal-list">
 				<span class="rgb-label">R</span>
-				<select class="rgb-selector" id="R" onchange="rgbSelectorChanged();" disabled></select>
-				<span class="rgb-value-lower" id="R"></span>
+				<select class="rgb-selector" id="R" onchange="rgbSelectorChanged()" disabled></select>
+				<input type="text" class="rgb-value-lower" id="R"  disabled="true">
 				<div class="rgb-slider" id="R"></div>
-				<span class="rgb-value-upper" id="R"></span>
+				<input type="text" class="rgb-value-upper input__text--upper" id="R" disabled="true">
 			</div>
 			<div class="horizontal-list">
 				<span class="rgb-label">G</span>
-				<select class="rgb-selector" id="G" onchange="rgbSelectorChanged();" disabled></select>
-				<span class="rgb-value-lower" id="G"></span>
+				<select class="rgb-selector" id="G" onchange="rgbSelectorChanged()" disabled></select>
+				<input type="text" class="rgb-value-lower" id="G" disabled="true">
 				<div class="rgb-slider" id="G"></div>
-				<span class="rgb-value-upper" id="G"></span>
+				<input type="text" class="rgb-value-upper input__text--upper" id="G" disabled="true">
 			</div>
 			<div class="horizontal-list">
 				<span class="rgb-label">B</span>
-				<select class="rgb-selector" id="B" onchange="rgbSelectorChanged();" disabled></select>
-				<span class="rgb-value-lower" id="B"></span>
+				<select class="rgb-selector" id="B" onchange="rgbSelectorChanged()" disabled></select>
+				<input type="text" class="rgb-value-lower" id="B" disabled="true">
 				<div class="rgb-slider" id="B"></div>
-				<span class="rgb-value-upper" id="B"></span>
+				<input type="text" class="rgb-value-upper input__text--upper" id="B" disabled="true">
 			</div>
 		</div>
 	</div>
+
+	<div id="loader__container">
+		<div id="loader__spinner--control" class="loader__spinner"></div>
+	</div>
+
 </div>
 
-<div id="map"></div>
+<div id="resizable__buffer"></div>
 
+<div id="map">
+</div>
+
+<div id="layerInfo__container">
+	<div id="layerInfo__container--title" onclick="toggleLayerInfo()">
+		<h3 id="layerInfo__toggle--title" class="no-select">Layer info</h3>
+		<p id="layerInfo__toggle--icon"  class="no-select">x</p>
+	</div>
+	<div id="layerInfo__container--content">
+		<p id="layerInfo__URL">current layer: </p>
+		<p id="layerInfo__metadata">
+	</div>
+
+</div>
 <aside class="error-container">
 	<ul id="errors"></ul>
 </aside>
+
 
 
 <script type="text/javascript">
