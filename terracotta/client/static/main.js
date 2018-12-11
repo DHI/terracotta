@@ -300,7 +300,9 @@ function initUI(remote_host, keys) {
     rgbSearchContainer.innerHTML = '';
     for (let i = 0; i < keys.length - 1; i++) {
         const searchField = document.createElement('input');
+        searchField.type = 'text';
         searchField.placeholder = keys[i].key;
+        searchField.name = keys[i].key;
         searchField.addEventListener('change', rgbSearchFieldChanged);
         rgbSearchContainer.appendChild(searchField);
     }
