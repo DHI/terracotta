@@ -1,6 +1,6 @@
 /* General styles */
 
-html, body {
+html, body{
   height: 100%;
   margin: 0;
   position: relative;
@@ -11,24 +11,23 @@ html, body {
 
 h1{
     color: #0B4566;
-    font-weight: bold;
+    font-weight: normal;
     font-size: 32px;
 }
 
-h2, h3{
+h2{
   color: #0B4566;
-  font-weight: bold;
+  font-weight: normal;
   font-size: 18px;
   line-height: 26px;
 }
 
-h5{
-  color: #0B4566;
-  font-size: 12px;
-}
 h3{
-  margin: 10px 0px 10px 0px;
+  color: #0B4566;
+  font-weight: normal;
   font-size: 14px;
+  margin: 10px 0px 10px 0px;
+  line-height: 26px;
 }
 
 li{
@@ -42,8 +41,12 @@ a{
   color: #0B4566;
 }
 
-input[type=text]{
+input{
   border: 1px solid #86A2B3;
+  font-size: 0.8em;
+}
+
+input[type=text]{
   width: 200px;
   max-width: 50%;
   margin: 4px 0px;
@@ -76,6 +79,12 @@ th, td {
 
 /* Specific elements */
 
+img.header {
+  width: 100%;
+  min-width: 250px;
+  margin-bottom: 15px;
+}
+
 #map {
   position: absolute;
   top: 0;
@@ -98,17 +107,17 @@ th, td {
 
 #contrast-wrapper input[type=text] {
   border: 1px solid #ececec;
+  font-size: 0.8em;
   width: 25%;
   min-width: 40px;
   margin: 4px 0px;
-  font-size: 0.8em;
 }
 
 #rgb-selectors input[type=text] {
   border: 1px solid #ececec;
+  font-size: 0.8em;
   width: 40px;
   margin: 4px 12px;
-  font-size: 0.8em;
 }
 
 #rgb-selectors input[type=text].rgb-value-upper {
@@ -134,18 +143,17 @@ th, td {
   height: 20px;
 }
 
-.info-title{
-  float: left;
-}
-
-.hoverable-title:hover{
-  color: #0098DB;
-}
-
 .info-toggle{
-  float:right;
-  margin: 14px 0px;
-  cursor: pointer;
+  border-radius: 50%;
+  width: 16px;
+  height: 8px;
+  padding-bottom: 8px;
+  border: 2px solid #0B4566;
+  color: #0B4566;
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: sans-serif;
 }
 
 .info-toggle:hover{
@@ -175,6 +183,10 @@ th, td {
   margin-right: 10px;
 }
 
+#search-results tr.clickable:hover {
+  background-color: #d0eff2;
+}
+
 #colormap-wrapper{
   float:left;
   height: 100px;
@@ -192,12 +204,15 @@ th, td {
   margin-top: 0px;
 }
 
-#details__host--title{
-  clear:both;
+#details__container{
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
-#details__host--url{
-  font-style: italic;
+#details__host--title{
+  clear: both;
 }
 
 #details__content{
@@ -219,12 +234,15 @@ th, td {
     font-size: 0.8em;
 }
 
-
 #layerInfo__container--title{
     background: #fff;
     height: 40px;
     min-width: 140px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
 }
 
 #layerInfo__container--title:hover{
@@ -232,17 +250,12 @@ th, td {
 }
 
 #layerInfo__toggle--icon{
-    padding: 0px 10px;
-    float: right;
-    font-weight: bold;
     color: #0B4566;
 }
 
 #layerInfo__toggle--title{
-    float: left;
     cursor: pointer;
     width: calc(100% - 60px);
-    padding-left: 10px;
 }
 
 #layerInfo__container--content{
@@ -271,6 +284,7 @@ th, td {
   float:right;
   margin-right: -4px;
 }
+
 .scrolling-list {
   max-height: 400px;
   overflow-y: auto;

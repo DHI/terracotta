@@ -254,7 +254,7 @@ function initUI(remote_host, keys) {
         let keyEntry = document.createElement('li');
         keyEntry.innerHTML = `<b>${keys[i].key}</b>`;
         if (keys[i].description != null) {
-            keyEntry.innerHTML += `:${keys[i].description}`;
+            keyEntry.innerHTML += `: ${keys[i].description}`;
         }
         keyList.appendChild(keyEntry);
     }
@@ -421,7 +421,7 @@ function renderErrors(errors) {
                 ${error.text} <br/>
                 <small>${error.url}</small>
                 <span onclick='dismissError.call(null, ${index})'>
-                    &times;
+                    ×
                 </span>
             </li>
         `
@@ -747,7 +747,7 @@ function updateSinglebandLayer(ds_keys, resetView = true) {
         ];
         const dsBounds = metadata.bounds;
         const screenCover = calcScreenCovered(dsBounds, screenBounds);
-        if (screenCover < 0.2) STATE.map.flyToBounds(L.latLngBounds([dsBounds[1], dsBounds[0]], [dsBounds[3], dsBounds[2]]));
+        if (screenCover < 0.1) STATE.map.flyToBounds(L.latLngBounds([dsBounds[1], dsBounds[0]], [dsBounds[3], dsBounds[2]]));
     }
 }
 
@@ -1004,7 +1004,7 @@ function updateRGBLayer(firstKeys, lastKeys, resetView = true) {
         ];
         const dsBounds = metadata.bounds;
         const screenCover = calcScreenCovered(dsBounds, screenBounds);
-        if (screenCover < 0.2) STATE.map.flyToBounds(L.latLngBounds([dsBounds[1], dsBounds[0]], [dsBounds[3], dsBounds[2]]));
+        if (screenCover < 0.1) STATE.map.flyToBounds(L.latLngBounds([dsBounds[1], dsBounds[0]], [dsBounds[3], dsBounds[2]]));
     }
 }
 
@@ -1149,7 +1149,7 @@ function addListenersToSliderRanges(){
 function toggleLayerInfo(){
     const layerContent = document.getElementById('layerInfo__container--content');
     const layerToggle = document.getElementById('layerInfo__toggle--icon');
-    layerToggle.innerHTML = layerToggle.innerHTML === 'x' ? 'i' : 'x';
+    layerToggle.innerHTML = layerToggle.innerHTML === '×' ? 'i' : '×';
     layerContent.style.display = layerContent.style.display === 'block' ? 'none' : 'block';
 }
 
