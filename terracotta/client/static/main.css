@@ -82,6 +82,7 @@ th, td {
 img.header {
   width: 100%;
   min-width: 250px;
+  max-width: 350px;
   margin-bottom: 15px;
 }
 
