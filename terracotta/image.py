@@ -80,7 +80,9 @@ def array_to_png(img_data: Array,
                     np.zeros(3 * (256 - len(colormap) - 1), dtype='uint8')
                 ))
                 transparency = np.concatenate((
-                    [0], alpha, np.zeros(256 - len(colormap) - 1, dtype='uint8')
+                    np.zeros(1, dtype='uint8'),
+                    alpha,
+                    np.zeros(256 - len(colormap) - 1, dtype='uint8')
                 )).tobytes()
 
             assert palette.shape == (3 * 256,), palette.shape
