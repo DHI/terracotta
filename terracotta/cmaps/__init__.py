@@ -8,7 +8,7 @@ from pkg_resources import resource_listdir, resource_stream, Requirement, Distri
 
 import numpy as np
 
-SUFFIX = '_rgb.npy'
+SUFFIX = '_rgb.dat'
 
 try:
     PACKAGE = Requirement.parse('terracotta')
@@ -36,7 +36,7 @@ def get_cmap(name: str) -> np.ndarray:
         raise ValueError(f'Unknown colormap {name}, must be one of {AVAILABLE_CMAPS}')
 
     with _get_cmap_data(name) as f:
-        cmap_data = np.load(f)
+        cmap_data = np.fromfile(f, dtype=np.uint8).reshape((255, 3))
 
     assert cmap_data.shape == (255, 3)
     assert cmap_data.dtype == np.uint8

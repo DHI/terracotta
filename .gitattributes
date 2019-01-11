@@ -98,3 +98,5 @@ AUTHORS text
 *.woff binary
 *.pyc binary
 *.pdf binary
+*.dat binary
+*.npy binary
