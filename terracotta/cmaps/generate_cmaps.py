@@ -20,7 +20,7 @@ def generate_maps(out_folder: str) -> None:
         cmap_vals = cmap_fun(x)[:, :-1]  # cut off alpha
         cmap_uint8 = (cmap_vals * 255).astype('uint8')
         path = f'{out_folder}/{cmap.lower()}{SUFFIX}'
-        np.save(path, cmap_uint8)
+        np.save(path, cmap_uint8, allow_pickle=False)
 
         # test
         round_tripped = np.load(path)
