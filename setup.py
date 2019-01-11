@@ -76,7 +76,7 @@ setup(
             'pytest>=3.5',
             'pytest-cov',
             'pytest-mypy',
-            'pytest-flake8=1.0.0',
+            'pytest-flake8',
             'pytest-benchmark',
             'attrs>=17.4.0',
             'codecov',
