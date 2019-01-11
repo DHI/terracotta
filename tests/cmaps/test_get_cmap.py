@@ -4,10 +4,11 @@ import numpy as np
 
 
 def test_get_cmap():
-    from terracotta.cmaps import get_cmap
-    cmap = get_cmap('jet')
-    assert cmap.shape == (255, 3)
-    assert cmap.dtype == np.uint8
+    from terracotta.cmaps import get_cmap, AVAILABLE_CMAPS
+    for name in AVAILABLE_CMAPS:
+        cmap = get_cmap(name)
+        assert cmap.shape == (255, 3)
+        assert cmap.dtype == np.uint8
 
 
 def test_get_cmap_filesystem(monkeypatch):
