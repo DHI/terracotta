@@ -77,7 +77,7 @@ setup(
             'pytest-cov',
             'pytest-mypy',
             'pytest-flake8',
-            'pytest-benchmark!=3.1.2',
+            'pytest-benchmark!=3.2.1',
             'attrs>=17.4.0',
             'codecov',
             'colorlog',
