@@ -97,7 +97,7 @@ def cloud_optimize(raster_file, outfile, create_mask=False, remove_nodata=False)
 def raster_file(tmpdir_factory):
     import affine
 
-    raster_data = np.tile(np.arange(-256, 256, 2, dtype='int16').reshape(16, 16), (16, 16))
+    raster_data = np.arange(-128 * 256, 128 * 256, dtype='int16').reshape(256, 256)
 
     profile = {
         'driver': 'GTiff',
