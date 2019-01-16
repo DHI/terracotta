@@ -50,15 +50,27 @@ def test_singleband_explicit_colormap(use_testdb, testdb, raster_file_xyz):
     ds_keys = ['val21', 'x', 'val22']
     nodata = 10000
 
-    colormap = {i: (i, i, i, i) for i in range(1, 150)}
+    settings = terracotta.get_settings()
+    driver = terracotta.get_driver(testdb)
+    with driver.connect():
+        tile_data = get_tile_data(driver, ds_keys, tile_xyz=raster_file_xyz,
+                                  tile_size=settings.DEFAULT_TILE_SIZE)
+
+    # Get some values from the raster to use for colormap
+    classes = np.unique(tile_data)
+    classes = classes[:254]
+
+    colormap = {}
+    for i in range(classes.shape[0]):
+        val = classes[i]
+        color = val % 256
+        colormap[val] = (color, color, color, color)
     colormap[nodata] = (100, 100, 100, 100)
 
     raw_img = singleband.singleband(ds_keys, raster_file_xyz, colormap=colormap)
     img_data = np.asarray(Image.open(raw_img).convert('RGBA'))
 
     # get unstretched data to compare to
-    driver = terracotta.get_driver(testdb)
-
     with driver.connect():
         tile_data = get_tile_data(driver, ds_keys, tile_xyz=raster_file_xyz,
                                   tile_size=img_data.shape[:2])
