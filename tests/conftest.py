@@ -99,6 +99,9 @@ def raster_file(tmpdir_factory):
 
     raster_data = np.arange(-128 * 256, 128 * 256, dtype='int16').reshape(256, 256)
 
+    # Sprinkle in some more nodata
+    raster_data.flat[::5] = 10000
+
     profile = {
         'driver': 'GTiff',
         'dtype': 'int16',
