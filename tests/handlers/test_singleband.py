@@ -54,7 +54,7 @@ def test_singleband_explicit_colormap(use_testdb, testdb, raster_file_xyz):
     driver = terracotta.get_driver(testdb)
     with driver.connect():
         tile_data = get_tile_data(driver, ds_keys, tile_xyz=raster_file_xyz,
-                                  tile_size=settings.DEFAULT_TILE_SIZE)
+                                  preserve_values=True, tile_size=settings.DEFAULT_TILE_SIZE)
 
     # Get some values from the raster to use for colormap
     classes = np.unique(tile_data)
@@ -73,7 +73,7 @@ def test_singleband_explicit_colormap(use_testdb, testdb, raster_file_xyz):
     # get unstretched data to compare to
     with driver.connect():
         tile_data = get_tile_data(driver, ds_keys, tile_xyz=raster_file_xyz,
-                                  tile_size=img_data.shape[:2])
+                                  preserve_values=True, tile_size=img_data.shape[:2])
 
     # check that labels are mapped to colors correctly
     for cmap_label, cmap_color in colormap.items():
