@@ -50,18 +50,30 @@ def test_singleband_explicit_colormap(use_testdb, testdb, raster_file_xyz):
     ds_keys = ['val21', 'x', 'val22']
     nodata = 10000
 
-    colormap = {i: (i, i, i, i) for i in range(1, 150)}
+    settings = terracotta.get_settings()
+    driver = terracotta.get_driver(testdb)
+    with driver.connect():
+        tile_data = get_tile_data(driver, ds_keys, tile_xyz=raster_file_xyz,
+                                  preserve_values=True, tile_size=settings.DEFAULT_TILE_SIZE)
+
+    # Get some values from the raster to use for colormap
+    classes = np.unique(tile_data)
+    classes = classes[:254]
+
+    colormap = {}
+    for i in range(classes.shape[0]):
+        val = classes[i]
+        color = val % 256
+        colormap[val] = (color, color, color, color)
     colormap[nodata] = (100, 100, 100, 100)
 
     raw_img = singleband.singleband(ds_keys, raster_file_xyz, colormap=colormap)
     img_data = np.asarray(Image.open(raw_img).convert('RGBA'))
 
     # get unstretched data to compare to
-    driver = terracotta.get_driver(testdb)
-
     with driver.connect():
         tile_data = get_tile_data(driver, ds_keys, tile_xyz=raster_file_xyz,
-                                  tile_size=img_data.shape[:2])
+                                  preserve_values=True, tile_size=img_data.shape[:2])
 
     # check that labels are mapped to colors correctly
     for cmap_label, cmap_color in colormap.items():
@@ -72,7 +84,8 @@ def test_singleband_explicit_colormap(use_testdb, testdb, raster_file_xyz):
             assert np.all(img_data[tile_data == cmap_label] == np.asarray(cmap_color))
 
     # check that all data outside of labels is transparent
-    assert np.all(img_data[~np.isin(tile_data, colormap.keys()), -1] == 0)
+    keys_arr = np.array(list(colormap.keys()), dtype=np.int16)
+    assert np.all(img_data[~np.isin(tile_data, keys_arr), -1] == 0)
 
 
 def test_singleband_noxyz(use_testdb):

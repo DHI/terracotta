@@ -73,7 +73,7 @@ setup(
     ],
     extras_require={
         'test': [
-            'pytest>=3.5',
+            'pytest==4.0.2',
             'pytest-cov',
             'pytest-mypy',
             'pytest-flake8',
