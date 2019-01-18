@@ -84,7 +84,8 @@ def test_singleband_explicit_colormap(use_testdb, testdb, raster_file_xyz):
             assert np.all(img_data[tile_data == cmap_label] == np.asarray(cmap_color))
 
     # check that all data outside of labels is transparent
-    assert np.all(img_data[~np.isin(tile_data, colormap.keys()), -1] == 0)
+    keys_arr = np.array(list(colormap.keys()), dtype=np.int16)
+    assert np.all(img_data[~np.isin(tile_data, keys_arr), -1] == 0)
 
 
 def test_singleband_noxyz(use_testdb):
