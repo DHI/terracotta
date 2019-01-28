@@ -87,6 +87,7 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
     import terracotta.server.metadata
     import terracotta.server.rgb
     import terracotta.server.singleband
+    import terracotta.server.compute
 
     new_app.register_blueprint(tile_api, url_prefix='')
     new_app.register_blueprint(metadata_api, url_prefix='')
@@ -101,6 +102,8 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
         spec.add_path(view=terracotta.server.rgb.get_rgb_preview)
         spec.add_path(view=terracotta.server.singleband.get_singleband)
         spec.add_path(view=terracotta.server.singleband.get_singleband_preview)
+        spec.add_path(view=terracotta.server.compute.get_compute)
+        spec.add_path(view=terracotta.server.compute.get_compute_preview)
 
     import terracotta.server.spec
     new_app.register_blueprint(spec_api, url_prefix='')
