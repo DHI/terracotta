@@ -73,11 +73,11 @@ setup(
     ],
     extras_require={
         'test': [
-            'pytest',
-            'pytest-cov<2.6',
-            'pytest-mypy',
-            'pytest-flake8',
-            'pytest-benchmark',
+            'pytest==4.0.2',
+            'pytest-cov==2.6.1',
+            'pytest-mypy==0.3.2',
+            'pytest-flake8==1.0.3',
+            'pytest-benchmark==3.2.2',
             'attrs>=17.4.0',
             'codecov',
             'colorlog',
