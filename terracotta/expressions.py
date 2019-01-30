@@ -3,10 +3,10 @@
 Safe execution of user-supplied math expressions
 """
 
-from typing import Mapping, Dict, Tuple, Callable, Union, Optional, Type, Any
+from typing import Mapping, Dict, Tuple, Callable, Type, Any
 import ast
-import timeit
 import operator
+import concurrent.futures
 
 import numpy as np
 
@@ -73,37 +73,10 @@ class ExpressionParser(ast.NodeVisitor):
         ast.GtE: operator.ge,
     }
 
-    def __init__(self,
-                 constants: Mapping[str, Any] = None,
-                 callables: Mapping[str, Tuple[Callable, int]] = None,
-                 timeout: Union[float, int] = None):
-        self.timeout = timeout
-        self._start_time: Optional[float] = None
-
-        if constants is None:
-            constants = {}
-
+    def __init__(self, constants: Mapping[str, Any],
+                 callables: Mapping[str, Tuple[Callable, int]]):
         self.constants = constants
-
-        if callables is None:
-            callables = {}
-
         self.callables = callables
-
-    def execute(self, node: ast.AST) -> Any:
-        self._start_time = timeit.default_timer()
-        return self.visit(node)
-
-    def visit(self, node: ast.AST) -> Any:
-        if self.timeout is not None:
-            if self._start_time is None:
-                raise RuntimeError('visit() cannot be called directly; '
-                                   'use execute() to parse expression')
-
-            if timeit.default_timer() - self._start_time > self.timeout:
-                raise ParseException('timeout during expression execution')
-
-        return super().visit(node)
 
     def generic_visit(self, node: ast.AST) -> None:
         # only visit allowed nodes
@@ -151,23 +124,31 @@ class ExpressionParser(ast.NodeVisitor):
 
 
 def evaluate_expression(expr: str,
-                        operands: Mapping[str, np.ndarray]) -> np.ndarray:
-    eval_constants = dict(**operands, **EXTRA_CONSTANTS)
-
+                        operands: Mapping[str, np.ndarray],
+                        timeout: float = 1.) -> np.ndarray:
     try:
         expr_ast = ast.parse(expr, filename='<expression>', mode='eval')
     except SyntaxError as exc:
         raise ValueError(f'given string {expr} is not a valid expression') from exc
 
-    parser = ExpressionParser(eval_constants, EXTRA_CALLABLES, timeout=1)
+    eval_constants = dict(**operands, **EXTRA_CONSTANTS)
+    parser = ExpressionParser(eval_constants, EXTRA_CALLABLES)
 
-    try:
-        result = parser.execute(expr_ast)
-    except ParseException as exc:
-        raise ValueError(str(exc)) from None
-    except Exception as exc:
-        # pass only exception message to not leak traceback
-        raise ValueError(f'unexpected error while evaluating expression: {exc!s}') from None
+    with concurrent.futures.ThreadPoolExecutor(1) as executor:
+        future = executor.submit(parser.visit, expr_ast)
+
+        try:
+            result = future.result(timeout=timeout)
+
+        except concurrent.futures.TimeoutError:
+            raise RuntimeError('timeout during pattern evaluation')
+
+        except ParseException as exc:
+            raise ValueError(str(exc)) from None
+
+        except Exception as exc:
+            # pass only exception message to not leak traceback
+            raise ValueError(f'unexpected error while evaluating expression: {exc!s}') from None
 
     if not isinstance(result, np.ndarray):
         raise ValueError('expression does not return an array')

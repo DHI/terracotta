@@ -130,8 +130,14 @@ INVALID_EXPR = (
     # attribute access
     ('v1.size', 'not allowed in expressions'),
 
+    # chained comparisons
+    ('where(v1 < v2 == v2, 0, 1)', 'not supported'),
+
     # unknown operand
     ('v100', 'unrecognized name \'v100\''),
+
+    # wrong number of arguments
+    ('maximum(v1, v1, v1, v1, v1)', 'got 5, expected 2'),
 
     # not a valid expression
     ('k = v1', 'is not a valid expression'),
@@ -184,3 +190,12 @@ def test_invalid_expression(case):
         evaluate_expression(expr, OPERANDS)
 
     assert exc_msg in str(raised_exc.value)
+
+
+def test_timeout():
+    from terracotta.expressions import evaluate_expression
+
+    with pytest.raises(RuntimeError) as raised_exc:
+        evaluate_expression('+'.join(['v1'] * 10), {'v1': np.ones((256, 256))}, timeout=0)
+
+    assert 'timeout' in str(raised_exc.value)
