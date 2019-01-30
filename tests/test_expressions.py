@@ -82,6 +82,11 @@ VALID_EXPR = (
     (
         'sin(pi * v1)', np.sin(np.pi * OPERANDS['v1'])
     ),
+
+    # long expression
+    (
+        '+'.join(['v1'] * 1000), sum(OPERANDS['v1'] for _ in range(1000))
+    )
 )
 
 
