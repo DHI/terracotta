@@ -82,7 +82,7 @@ setup(
             'codecov',
             'colorlog',
             'crick',
-            'flake8<3.7'
+            'flake8<3.7',
             'matplotlib',
             'moto',
             'pymysql'
