@@ -57,7 +57,7 @@ def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None
     # catch version incompatibility
     spec_url = f'{terracotta_hostname}/swagger.json'
     with urllib.request.urlopen(spec_url, timeout=5) as response:
-            spec = json.loads(response.read())
+        spec = json.loads(response.read())
 
     def versiontuple(version_string: str) -> Sequence[str]:
         return version_string.split('.')

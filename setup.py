@@ -73,15 +73,16 @@ setup(
     ],
     extras_require={
         'test': [
-            'pytest==4.0.2',
-            'pytest-cov==2.6.1',
-            'pytest-mypy==0.3.2',
-            'pytest-flake8==1.0.3',
-            'pytest-benchmark==3.2.2',
+            'pytest',
+            'pytest-cov',
+            'pytest-mypy',
+            'pytest-flake8',
+            'pytest-benchmark',
             'attrs>=17.4.0',
             'codecov',
             'colorlog',
             'crick',
+            'flake8<3.7'
             'matplotlib',
             'moto',
             'pymysql'
