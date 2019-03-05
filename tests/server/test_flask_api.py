@@ -284,6 +284,37 @@ def test_get_rgb_stretch(client, use_testdb, raster_file_xyz):
         assert np.asarray(img).shape == (*settings.DEFAULT_TILE_SIZE, 3)
 
 
+def test_get_compute(client, use_testdb, raster_file_xyz):
+    import terracotta
+    settings = terracotta.get_settings()
+
+    x, y, z = raster_file_xyz
+    rv = client.get(
+        f'/compute/val21/x/{z}/{x}/{y}.png'
+        '?expression=v1*v2&v1=val22&v2=val23'
+        '&stretch_range=[0,10000]'
+    )
+    assert rv.status_code == 200
+
+    img = Image.open(BytesIO(rv.data))
+    assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
+
+
+def test_get_compute_preview(client, use_testdb):
+    import terracotta
+    settings = terracotta.get_settings()
+
+    rv = client.get(
+        f'/compute/val21/x/preview.png'
+        '?expression=v1*v2&v1=val22&v2=val23'
+        '&stretch_range=[0,10000]'
+    )
+    assert rv.status_code == 200
+
+    img = Image.open(BytesIO(rv.data))
+    assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
+
+
 def test_get_colormap(client):
     rv = client.get('/colormap?stretch_range=[0,1]&num_values=100')
     assert rv.status_code == 200

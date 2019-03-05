@@ -61,7 +61,8 @@ class ExpressionParser(ast.NodeVisitor):
     }
 
     NODE_TO_UNOP: Dict[Type[ast.unaryop], Callable] = {
-        ast.Invert: operator.invert
+        ast.Invert: operator.invert,
+        ast.USub: operator.neg,
     }
 
     NODE_TO_COMPOP: Dict[Type[ast.cmpop], Callable] = {
@@ -74,7 +75,7 @@ class ExpressionParser(ast.NodeVisitor):
     }
 
     def __init__(self, constants: Mapping[str, Any],
-                 callables: Mapping[str, Tuple[Callable, int]]):
+                 callables: Mapping[str, Tuple[Callable, int]]) -> None:
         self.constants = constants
         self.callables = callables
 
@@ -109,17 +110,36 @@ class ExpressionParser(ast.NodeVisitor):
         return node.n
 
     def visit_UnaryOp(self, node: ast.UnaryOp) -> Any:
-        op_callable = ExpressionParser.NODE_TO_UNOP[type(node.op)]
+        op_type = type(node.op)
+        if op_type not in ExpressionParser.NODE_TO_UNOP:
+            raise ParseException(
+                f'unary operator {op_type.__name__} not allowed in expressions'
+            )
+
+        op_callable = ExpressionParser.NODE_TO_UNOP[op_type]
         return op_callable(self.visit(node.operand))
 
     def visit_BinOp(self, node: ast.BinOp) -> Any:
-        op_callable = ExpressionParser.NODE_TO_BINOP[type(node.op)]
+        op_type = type(node.op)
+        if op_type not in ExpressionParser.NODE_TO_BINOP:
+            raise ParseException(
+                f'binary operator {op_type.__name__} not allowed in expressions'
+            )
+
+        op_callable = ExpressionParser.NODE_TO_BINOP[op_type]
         return op_callable(self.visit(node.left), self.visit(node.right))
 
     def visit_Compare(self, node: ast.Compare) -> Any:
         if len(node.ops) > 1:
             raise ParseException('chained comparisons are not supported')
-        op_callable = ExpressionParser.NODE_TO_COMPOP[type(node.ops[0])]
+
+        op_type = type(node.ops[0])
+        if op_type not in ExpressionParser.NODE_TO_COMPOP:
+            raise ParseException(
+                f'comparison operator {op_type.__name__} not allowed in expressions'
+            )
+
+        op_callable = ExpressionParser.NODE_TO_COMPOP[op_type]
         return op_callable(self.visit(node.left), self.visit(node.comparators[0]))
 
 

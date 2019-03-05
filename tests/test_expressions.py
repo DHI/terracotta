@@ -26,6 +26,9 @@ VALID_EXPR = (
         2 * OPERANDS['v1']
     ),
 
+    # negation
+    ('-v1', -OPERANDS['v1']),
+
     # abs
     ('abs(v1)', np.abs(OPERANDS['v1'])),
 
@@ -108,6 +111,12 @@ INVALID_EXPR = (
 
     # inline comparison
     ('v1 if True else 0', 'not allowed in expressions'),
+
+    # unsupported unary operator
+    ('not v1', 'unary operator Not'),
+
+    # unsupported binary operator
+    ('v1 ^ v1', 'binary operator BitXor'),
 
     # and
     ('v1 and v2', 'not allowed in expressions'),
