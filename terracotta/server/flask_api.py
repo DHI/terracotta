@@ -94,16 +94,16 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
 
     # register routes on API spec
     with new_app.test_request_context():
-        spec.add_path(view=terracotta.server.datasets.get_datasets)
-        spec.add_path(view=terracotta.server.keys.get_keys)
-        spec.add_path(view=terracotta.server.colormap.get_colormap)
-        spec.add_path(view=terracotta.server.metadata.get_metadata)
-        spec.add_path(view=terracotta.server.rgb.get_rgb)
-        spec.add_path(view=terracotta.server.rgb.get_rgb_preview)
-        spec.add_path(view=terracotta.server.singleband.get_singleband)
-        spec.add_path(view=terracotta.server.singleband.get_singleband_preview)
-        spec.add_path(view=terracotta.server.compute.get_compute)
-        spec.add_path(view=terracotta.server.compute.get_compute_preview)
+        spec.path(view=terracotta.server.datasets.get_datasets)
+        spec.path(view=terracotta.server.keys.get_keys)
+        spec.path(view=terracotta.server.colormap.get_colormap)
+        spec.path(view=terracotta.server.metadata.get_metadata)
+        spec.path(view=terracotta.server.rgb.get_rgb)
+        spec.path(view=terracotta.server.rgb.get_rgb_preview)
+        spec.path(view=terracotta.server.singleband.get_singleband)
+        spec.path(view=terracotta.server.singleband.get_singleband_preview)
+        spec.path(view=terracotta.server.compute.get_compute)
+        spec.path(view=terracotta.server.compute.get_compute_preview)
 
     import terracotta.server.spec
     new_app.register_blueprint(spec_api, url_prefix='')
