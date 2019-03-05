@@ -57,6 +57,7 @@ setup(
     ],
     install_requires=[
         'apispec>=1.0',
+        'apispec-webframeworks',
         'cachetools',
         'click',
         'flask',
