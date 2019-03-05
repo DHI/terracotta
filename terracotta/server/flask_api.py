@@ -2,8 +2,8 @@ from typing import Callable, Any
 import functools
 
 from apispec import APISpec
-import apispec.ext.flask
-import apispec.ext.marshmallow
+from apispec.ext.marshmallow import MarshmallowPlugin
+from apispec_webframeworks.flask import FlaskPlugin
 
 from flask import Flask, Blueprint, current_app, send_file, jsonify
 from flask_cors import CORS
@@ -29,8 +29,8 @@ spec = APISpec(
         description='A modern XYZ Tile Server in Python'
     ),
     plugins=[
-        apispec.ext.flask.FlaskPlugin(),
-        apispec.ext.marshmallow.MarshmallowPlugin()
+        FlaskPlugin(),
+        MarshmallowPlugin()
     ],
 )
 

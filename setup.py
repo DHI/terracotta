@@ -56,7 +56,7 @@ setup(
         'numpy'
     ],
     install_requires=[
-        'apispec',
+        'apispec>=1.0',
         'cachetools',
         'click',
         'flask',
