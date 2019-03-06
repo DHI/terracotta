@@ -110,6 +110,10 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
 
     if profile:
         from werkzeug.contrib.profiler import ProfilerMiddleware
-        new_app.wsgi_app = ProfilerMiddleware(new_app.wsgi_app, restrictions=[30])
+        setattr(
+            new_app,
+            'wsgi_app',
+            ProfilerMiddleware(new_app.wsgi_app, restrictions=[30]
+        )
 
     return new_app
