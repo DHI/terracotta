@@ -113,7 +113,7 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
         setattr(
             new_app,
             'wsgi_app',
-            ProfilerMiddleware(new_app.wsgi_app, restrictions=[30]
+            ProfilerMiddleware(new_app.wsgi_app, restrictions=[30])
         )
 
     return new_app
