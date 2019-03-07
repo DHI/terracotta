@@ -81,7 +81,7 @@ def get_compute(tile_z: int, tile_y: int, tile_x: int, keys: str = '') -> Any:
     ---
     get:
         summary: /compute (tile)
-        description: 
+        description:
             Combine datasets into a single-band PNG image through a given mathematical expression
         parameters:
             - in: path
