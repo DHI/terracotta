@@ -315,6 +315,64 @@ def test_get_compute_preview(client, use_testdb):
     assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
 
 
+def test_get_compute_invalid(client, use_testdb, raster_file_xyz):
+    x, y, z = raster_file_xyz
+
+    # too few keys
+    rv = client.get(
+        f'/compute/val21/{z}/{x}/{y}.png'
+        '?expression=v1*v2&v1=val22&v2=val23'
+        '&stretch_range=[0,10000]'
+    )
+    assert rv.status_code == 400
+
+    # invalid expression
+    rv = client.get(
+        f'/compute/val21/x/preview.png'
+        '?expression=__builtins__["dir"](v1)&v1=val22'
+        '&stretch_range=[0,10000]'
+    )
+    assert rv.status_code == 400
+
+    # no stretch range
+    rv = client.get(
+        f'/compute/val21/x/{z}/{x}/{y}.png'
+        '?expression=v1*v2&v1=val22&v2=val23'
+    )
+    assert rv.status_code == 400
+
+    # no expression
+    rv = client.get(
+        f'/compute/val21/x/{z}/{x}/{y}.png'
+        '?stretch_range=[0,10000)'
+    )
+    assert rv.status_code == 400
+
+    # missing operand
+    rv = client.get(
+        f'/compute/val21/x/{z}/{x}/{y}.png'
+        '?expression=v1*v2'
+        '&stretch_range=[0,10000)'
+    )
+    assert rv.status_code == 400
+
+    # invalid stretch range (syntax)
+    rv = client.get(
+        f'/compute/val21/x/{z}/{x}/{y}.png'
+        '?expression=v1*v2&v1=val22&v2=val23'
+        '&stretch_range=[0,10000)'
+    )
+    assert rv.status_code == 400
+
+    # invalid stretch range (value)
+    rv = client.get(
+        f'/compute/val21/x/{z}/{x}/{y}.png'
+        '?expression=v1*v2&v1=val22&v2=val23'
+        '&stretch_range=[10000,0]'
+    )
+    assert rv.status_code == 400
+
+
 def test_get_colormap(client):
     rv = client.get('/colormap?stretch_range=[0,1]&num_values=100')
     assert rv.status_code == 200

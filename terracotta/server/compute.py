@@ -148,9 +148,7 @@ def _get_compute_image(keys: str, tile_xyz: Tuple[int, int, int] = None) -> Any:
         if field_name not in options:
             continue
 
-        operand_key = options.pop(field_name)
-        if operand_key:
-            operand_keys[field_name] = operand_key
+        operand_keys[field_name] = options.pop(field_name)
 
     expression = options.pop('expression')
 
