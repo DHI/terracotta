@@ -10,6 +10,7 @@ exclude = [
     "*.rar",
     "boto3*",
     "botocore*",
+    "s3transfer*",
     "awscli*",
     ".mypy_cache",
     ".pytest_cache",
