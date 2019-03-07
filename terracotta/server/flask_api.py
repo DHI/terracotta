@@ -110,6 +110,7 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
 
     if profile:
         from werkzeug.contrib.profiler import ProfilerMiddleware
+        # use setattr to work around mypy false-positive (python/mypy#2427)
         setattr(
             new_app,
             'wsgi_app',

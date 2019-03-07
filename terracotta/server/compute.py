@@ -77,11 +77,12 @@ class ComputeOptionSchema(Schema):
                 methods=['GET'])
 @convert_exceptions
 def get_compute(tile_z: int, tile_y: int, tile_x: int, keys: str = '') -> Any:
-    """Return single-band PNG image of requested tile
+    """Combine datasets into a single-band PNG image through a given mathematical expression
     ---
     get:
         summary: /compute (tile)
-        description: Return single-band PNG image of requested XYZ tile
+        description: 
+            Combine datasets into a single-band PNG image through a given mathematical expression
         parameters:
             - in: path
               schema: ComputeQuerySchema
@@ -90,7 +91,7 @@ def get_compute(tile_z: int, tile_y: int, tile_x: int, keys: str = '') -> Any:
         responses:
             200:
                 description:
-                    PNG image of requested tile
+                    PNG image of requested data
             400:
                 description:
                     Invalid query parameters
@@ -110,11 +111,12 @@ class ComputePreviewSchema(Schema):
 @tile_api.route('/compute/<path:keys>/preview.png', methods=['GET'])
 @convert_exceptions
 def get_compute_preview(keys: str = '') -> Any:
-    """Return single-band PNG preview image of requested dataset
+    """Combine datasets into a single-band PNG image through a given mathematical expression
     ---
     get:
         summary: /compute (preview)
-        description: Return single-band PNG preview image of requested dataset
+        description:
+            Combine datasets into a single-band PNG image through a given mathematical expression
         parameters:
             - in: path
               schema: ComputePreviewSchema
@@ -123,7 +125,7 @@ def get_compute_preview(keys: str = '') -> Any:
         responses:
             200:
                 description:
-                    PNG image of requested tile
+                    PNG image of requested data
             400:
                 description:
                     Invalid query parameters

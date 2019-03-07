@@ -288,6 +288,7 @@ def test_get_compute(client, use_testdb, raster_file_xyz):
     import terracotta
     settings = terracotta.get_settings()
 
+    # default tile size
     x, y, z = raster_file_xyz
     rv = client.get(
         f'/compute/val21/x/{z}/{x}/{y}.png'
@@ -298,6 +299,18 @@ def test_get_compute(client, use_testdb, raster_file_xyz):
 
     img = Image.open(BytesIO(rv.data))
     assert np.asarray(img).shape == settings.DEFAULT_TILE_SIZE
+
+    # custom tile size
+    rv = client.get(
+        f'/compute/val21/x/{z}/{x}/{y}.png'
+        '?expression=v1*v2&v1=val22&v2=val23'
+        '&stretch_range=[0,10000]'
+        '&tile_size=[128,128]'
+    )
+    assert rv.status_code == 200
+
+    img = Image.open(BytesIO(rv.data))
+    assert np.asarray(img).shape == (128, 128)
 
 
 def test_get_compute_preview(client, use_testdb):
