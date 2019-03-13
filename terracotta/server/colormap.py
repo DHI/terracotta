@@ -9,7 +9,7 @@ import json
 from flask import jsonify, request
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 
-from terracotta.server.flask_api import convert_exceptions, metadata_api, spec
+from terracotta.server.flask_api import convert_exceptions, metadata_api
 from terracotta.cmaps import AVAILABLE_CMAPS
 
 
@@ -80,7 +80,3 @@ def get_colormap() -> str:
 
     schema = ColormapSchema()
     return jsonify(schema.load(payload))
-
-
-spec.definition('ColormapEntry', schema=ColormapEntrySchema)
-spec.definition('Colormap', schema=ColormapSchema)

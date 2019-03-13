@@ -9,7 +9,7 @@ import json
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 from flask import request, send_file
 
-from terracotta.server.flask_api import convert_exceptions, tile_api, spec
+from terracotta.server.flask_api import convert_exceptions, tile_api
 
 
 class RGBQuerySchema(Schema):
@@ -83,9 +83,6 @@ def get_rgb(tile_z: int, tile_y: int, tile_x: int, keys: str = '') -> Any:
     """
     tile_xyz = (tile_x, tile_y, tile_z)
     return _get_rgb_image(keys, tile_xyz=tile_xyz)
-
-
-spec.definition('RGBOptions', schema=RGBOptionSchema)
 
 
 class RGBPreviewQuerySchema(Schema):

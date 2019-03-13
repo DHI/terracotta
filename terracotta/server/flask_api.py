@@ -2,8 +2,8 @@ from typing import Callable, Any
 import functools
 
 from apispec import APISpec
-import apispec.ext.flask
-import apispec.ext.marshmallow
+from apispec.ext.marshmallow import MarshmallowPlugin
+from apispec_webframeworks.flask import FlaskPlugin
 
 from flask import Flask, Blueprint, current_app, send_file, jsonify
 from flask_cors import CORS
@@ -29,8 +29,8 @@ spec = APISpec(
         description='A modern XYZ Tile Server in Python'
     ),
     plugins=[
-        apispec.ext.flask.FlaskPlugin(),
-        apispec.ext.marshmallow.MarshmallowPlugin()
+        FlaskPlugin(),
+        MarshmallowPlugin()
     ],
 )
 
@@ -87,26 +87,34 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
     import terracotta.server.metadata
     import terracotta.server.rgb
     import terracotta.server.singleband
+    import terracotta.server.compute
 
     new_app.register_blueprint(tile_api, url_prefix='')
     new_app.register_blueprint(metadata_api, url_prefix='')
 
     # register routes on API spec
     with new_app.test_request_context():
-        spec.add_path(view=terracotta.server.datasets.get_datasets)
-        spec.add_path(view=terracotta.server.keys.get_keys)
-        spec.add_path(view=terracotta.server.colormap.get_colormap)
-        spec.add_path(view=terracotta.server.metadata.get_metadata)
-        spec.add_path(view=terracotta.server.rgb.get_rgb)
-        spec.add_path(view=terracotta.server.rgb.get_rgb_preview)
-        spec.add_path(view=terracotta.server.singleband.get_singleband)
-        spec.add_path(view=terracotta.server.singleband.get_singleband_preview)
+        spec.path(view=terracotta.server.datasets.get_datasets)
+        spec.path(view=terracotta.server.keys.get_keys)
+        spec.path(view=terracotta.server.colormap.get_colormap)
+        spec.path(view=terracotta.server.metadata.get_metadata)
+        spec.path(view=terracotta.server.rgb.get_rgb)
+        spec.path(view=terracotta.server.rgb.get_rgb_preview)
+        spec.path(view=terracotta.server.singleband.get_singleband)
+        spec.path(view=terracotta.server.singleband.get_singleband_preview)
+        spec.path(view=terracotta.server.compute.get_compute)
+        spec.path(view=terracotta.server.compute.get_compute_preview)
 
     import terracotta.server.spec
     new_app.register_blueprint(spec_api, url_prefix='')
 
     if profile:
         from werkzeug.contrib.profiler import ProfilerMiddleware
-        new_app.wsgi_app = ProfilerMiddleware(new_app.wsgi_app, restrictions=[30])
+        # use setattr to work around mypy false-positive (python/mypy#2427)
+        setattr(
+            new_app,
+            'wsgi_app',
+            ProfilerMiddleware(new_app.wsgi_app, restrictions=[30])
+        )
 
     return new_app

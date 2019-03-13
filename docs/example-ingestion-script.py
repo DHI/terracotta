@@ -52,7 +52,7 @@ for raster_path in pbar:
 
     # skip already processed data
     if keys in available_datasets:
-            continue
+        continue
 
     with driver.connect():
         # since the rasters will be served from S3, we need to pass the correct remote path

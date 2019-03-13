@@ -56,7 +56,8 @@ setup(
         'numpy'
     ],
     install_requires=[
-        'apispec',
+        'apispec>=1.0',
+        'apispec-webframeworks',
         'cachetools',
         'click',
         'flask',
@@ -73,7 +74,7 @@ setup(
     ],
     extras_require={
         'test': [
-            'pytest==4.0.2',
+            'pytest',
             'pytest-cov',
             'pytest-mypy',
             'pytest-flake8',
@@ -82,6 +83,7 @@ setup(
             'codecov',
             'colorlog',
             'crick',
+            'flake8<3.7',
             'matplotlib',
             'moto',
             'pymysql'

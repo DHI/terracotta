@@ -6,7 +6,7 @@ Flask route to handle /keys calls.
 from flask import jsonify
 from marshmallow import Schema, fields
 
-from terracotta.server.flask_api import convert_exceptions, metadata_api, spec
+from terracotta.server.flask_api import convert_exceptions, metadata_api
 
 
 class KeyItemSchema(Schema):
@@ -38,7 +38,3 @@ def get_keys() -> str:
     schema = KeySchema()
     payload = {'keys': keys()}
     return jsonify(schema.load(payload))
-
-
-spec.definition('Keys', schema=KeySchema)
-spec.definition('KeyItem', schema=KeyItemSchema)
