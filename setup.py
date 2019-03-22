@@ -66,6 +66,7 @@ setup(
         'mercantile',
         'numpy>=1.15',
         'pillow',
+        'pyyaml>=3.10',  # downstream dependency of apispec
         'shapely',
         'rasterio>=1.0',
         'shapely',
