@@ -34,6 +34,9 @@ class TerracottaSettings(NamedTuple):
     #: Size of raster file in-memory cache in bytes
     RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490 MB
 
+    #: Level of tile compression in-memory cache
+    COMPRESSION_LEVEL: int = 9
+
     #: Tile size to return if not given in parameters
     DEFAULT_TILE_SIZE: Tuple[int, int] = (256, 256)
 
@@ -80,6 +83,7 @@ class SettingSchema(Schema):
     )
 
     RASTER_CACHE_SIZE = fields.Integer()
+    COMPRESSION_LEVEL = fields.Integer()
 
     DEFAULT_TILE_SIZE = fields.List(fields.Integer(), validate=validate.Length(equal=2))
     LAZY_LOADING_MAX_SHAPE = fields.List(fields.Integer(), validate=validate.Length(equal=2))

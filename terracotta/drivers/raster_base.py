@@ -4,7 +4,7 @@ Base class for drivers operating on physical raster files.
 """
 
 from typing import (Any, Union, Mapping, Sequence, Dict, List, Tuple,
-                    TypeVar, Optional, cast, TYPE_CHECKING)
+                    TypeVar, Optional, cast, TYPE_CHECKING, Callable)
 from abc import abstractmethod
 import concurrent.futures
 import contextlib
@@ -35,6 +35,7 @@ from terracotta.profile import trace
 
 Number = TypeVar('Number', int, float)
 CompressionTuple = Tuple[bytes, bytes, str, Tuple[int, int]]
+SizeFunction = Callable[[CompressionTuple], int]
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,9 @@ logger = logging.getLogger(__name__)
 class LFUCacheWithCompression(LFUCache):
     """ Least-frequently-used Cache with data compression
     """
+    def __init__(self, maxsize: int, getsizeof: SizeFunction, compression_level: int):
+        super().__init__(maxsize, getsizeof)
+        self.compression_level = compression_level
 
     def __getitem__(self, key: Any) -> np.ma.MaskedArray:
         compressed_item = super().__getitem__(key)
@@ -54,7 +58,7 @@ class LFUCacheWithCompression(LFUCache):
                      arr: np.ma.MaskedArray) -> CompressionTuple:
         compressed_data = zlib.compress(arr.data)
         mask_to_int = np.packbits(arr.mask.astype(np.uint8))
-        compressed_mask = zlib.compress(mask_to_int, 9)
+        compressed_mask = zlib.compress(mask_to_int, self.compression_level)
         return (compressed_data,
                 compressed_mask,
                 arr.dtype.name,
@@ -90,7 +94,8 @@ class RasterDriver(Driver):
         settings = get_settings()
         self._raster_cache = LFUCacheWithCompression(
             settings.RASTER_CACHE_SIZE,
-            getsizeof=_get_size_of
+            getsizeof=_get_size_of,
+            compression_level=settings.COMPRESSION_LEVEL
         )
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
         super().__init__(*args, **kwargs)
