@@ -34,6 +34,7 @@ from terracotta.drivers.base import requires_connection, Driver
 from terracotta.profile import trace
 
 Number = TypeVar('Number', int, float)
+CompressionTuple = Tuple[bytes, bytes, str, Tuple[int, int]]
 
 logger = logging.getLogger(__name__)
 
@@ -50,10 +51,7 @@ class LFUCacheWithCompression(LFUCache):
         super().__setitem__(key, self._compress_ma(value))
 
     def _compress_ma(self,
-                     arr: np.ma.MaskedArray) -> Tuple[bytes,
-                                                      bytes,
-                                                      str,
-                                                      Tuple[int, int]]:
+                     arr: np.ma.MaskedArray) -> CompressionTuple:
         compressed_data = zlib.compress(arr.data)
         mask_to_int = np.packbits(arr.mask.astype(np.uint8))
         compressed_mask = zlib.compress(mask_to_int, 9)
@@ -64,10 +62,7 @@ class LFUCacheWithCompression(LFUCache):
                 )
 
     def _decompress_tuple(self,
-                          compressed_data: Tuple[bytes,
-                                                 bytes,
-                                                 str,
-                                                 Tuple[int, int]]) -> np.ma.MaskedArray:
+                          compressed_data: CompressionTuple) -> np.ma.MaskedArray:
         data_b, mask_b, dt, ds = compressed_data
         data = np.frombuffer(zlib.decompress(data_b), dtype=dt).reshape(ds)
         mask = np.frombuffer(zlib.decompress(mask_b), dtype=np.uint8)
