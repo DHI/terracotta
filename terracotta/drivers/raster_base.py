@@ -56,7 +56,7 @@ class LFUCacheWithCompression(LFUCache):
 
     def _compress_ma(self,
                      arr: np.ma.MaskedArray) -> CompressionTuple:
-        compressed_data = zlib.compress(arr.data)
+        compressed_data = zlib.compress(arr.data, self.compression_level)
         mask_to_int = np.packbits(arr.mask.astype(np.uint8))
         compressed_mask = zlib.compress(mask_to_int, self.compression_level)
         return (compressed_data,
