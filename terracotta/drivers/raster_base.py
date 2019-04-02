@@ -44,29 +44,36 @@ class LFUCacheWithCompression(LFUCache):
 
     def __getitem__(self, key: Any) -> np.ma.MaskedArray:
         compressed_item = super().__getitem__(key)
-        return self._decompress_masked_array(compressed_item)
+        return self._decompress_tuple(compressed_item)
 
     def __setitem__(self, key: Any, value: np.ma.MaskedArray) -> None:
-        super().__setitem__(key, self._compress_masked_array(value))
+        super().__setitem__(key, self._compress_ma(value))
 
-    def _compress_masked_array(self, array: np.ma.MaskedArray) -> Tuple:
-        compressed_data = zlib.compress(array.data)
-        mask_to_int = np.packbits(array.mask.astype(np.uint8))
-        compressed_mask = zlib.compress(mask_to_int)
+    def _compress_ma(self,
+                     arr: np.ma.MaskedArray) -> Tuple[bytes,
+                                                      bytes,
+                                                      str,
+                                                      Tuple[int, int]]:
+        compressed_data = zlib.compress(arr.data)
+        mask_to_int = np.packbits(arr.mask.astype(np.uint8))
+        compressed_mask = zlib.compress(mask_to_int, 9)
         return (compressed_data,
                 compressed_mask,
-                array.dtype.name,
-                array.shape
+                arr.dtype.name,
+                arr.shape
                 )
 
-    def _decompress_masked_array(self, data: Tuple) -> np.ma.MaskedArray:
-        dt = np.dtype(data[2])
-        shape = data[3]
-        decompressed_data = np.frombuffer(zlib.decompress(data[0]), dtype=dt).reshape(shape)
-        decompressed_mask_packed = np.frombuffer(zlib.decompress(data[1]), dtype=np.uint8)
-        decompressed_mask_unpacked = np.unpackbits(decompressed_mask_packed)[:np.prod(shape)]
-        decompressed_mask = decompressed_mask_unpacked.reshape(shape)
-        return np.ma.masked_array(decompressed_data, mask=decompressed_mask)
+    def _decompress_tuple(self,
+                          compressed_data: Tuple[bytes,
+                                                 bytes,
+                                                 str,
+                                                 Tuple[int, int]]) -> np.ma.MaskedArray:
+        data_b, mask_b, dt, ds = compressed_data
+        data = np.frombuffer(zlib.decompress(data_b), dtype=dt).reshape(ds)
+        mask = np.frombuffer(zlib.decompress(mask_b), dtype=np.uint8)
+        mask = np.unpackbits(mask)[:np.prod(ds)]
+        mask = mask.reshape(ds)
+        return np.ma.masked_array(data, mask=mask)
 
 
 def _get_size_of(x: Tuple) -> int:

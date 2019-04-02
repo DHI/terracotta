@@ -4,6 +4,7 @@ import rasterio
 import rasterio.features
 from shapely.geometry import shape, MultiPolygon
 import numpy as np
+import zlib
 
 DRIVERS = ['sqlite', 'mysql']
 METADATA_KEYS = ('bounds', 'range', 'mean', 'stdev', 'percentiles', 'metadata')
@@ -562,3 +563,13 @@ def test_compute_metadata_unoptimized(unoptimized_raster_file):
     )
 
     assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-8
+
+
+def test_sizeof():
+    from terracotta.drivers.raster_base import _get_size_of
+    tile_shape = (256, 256)
+    data = zlib.compress(np.ones(tile_shape), 9)
+    mask = zlib.compress(np.zeros(tile_shape), 9)
+    size = _get_size_of((data, mask, 'float64', tile_shape))
+    assert size < 1550
+    assert size > 1450
