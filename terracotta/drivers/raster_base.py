@@ -95,7 +95,7 @@ class RasterDriver(Driver):
         self._raster_cache = LFUCacheWithCompression(
             settings.RASTER_CACHE_SIZE,
             getsizeof=_get_size_of,
-            compression_level=settings.COMPRESSION_LEVEL
+            compression_level=settings.RASTER_CACHE_COMPRESS_LEVEL
         )
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
         super().__init__(*args, **kwargs)
