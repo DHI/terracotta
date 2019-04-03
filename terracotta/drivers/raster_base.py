@@ -4,7 +4,7 @@ Base class for drivers operating on physical raster files.
 """
 
 from typing import (Any, Union, Mapping, Sequence, Dict, List, Tuple,
-                    TypeVar, Optional, cast, TYPE_CHECKING, Callable)
+                    TypeVar, Optional, cast, TYPE_CHECKING)
 from abc import abstractmethod
 import concurrent.futures
 import contextlib
@@ -13,11 +13,9 @@ import operator
 import logging
 import math
 import warnings
-import zlib
-import sys
 
 import numpy as np
-from cachetools import cachedmethod, LFUCache
+from cachetools import cachedmethod
 from affine import Affine
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -30,54 +28,13 @@ except ImportError:  # pragma: no cover
     has_crick = False
 
 from terracotta import get_settings, exceptions
+from terracotta.cache import CompressedLFUCache
 from terracotta.drivers.base import requires_connection, Driver
 from terracotta.profile import trace
 
 Number = TypeVar('Number', int, float)
-CompressionTuple = Tuple[bytes, bytes, str, Tuple[int, int]]
-SizeFunction = Callable[[CompressionTuple], int]
 
 logger = logging.getLogger(__name__)
-
-
-class LFUCacheWithCompression(LFUCache):
-    """ Least-frequently-used Cache with data compression
-    """
-    def __init__(self, maxsize: int, getsizeof: SizeFunction, compression_level: int):
-        super().__init__(maxsize, getsizeof)
-        self.compression_level = compression_level
-
-    def __getitem__(self, key: Any) -> np.ma.MaskedArray:
-        compressed_item = super().__getitem__(key)
-        return self._decompress_tuple(compressed_item)
-
-    def __setitem__(self, key: Any, value: np.ma.MaskedArray) -> None:
-        super().__setitem__(key, self._compress_ma(value))
-
-    def _compress_ma(self,
-                     arr: np.ma.MaskedArray) -> CompressionTuple:
-        compressed_data = zlib.compress(arr.data, self.compression_level)
-        mask_to_int = np.packbits(arr.mask.astype(np.uint8))
-        compressed_mask = zlib.compress(mask_to_int, self.compression_level)
-        return (compressed_data,
-                compressed_mask,
-                arr.dtype.name,
-                arr.shape
-                )
-
-    def _decompress_tuple(self,
-                          compressed_data: CompressionTuple) -> np.ma.MaskedArray:
-        data_b, mask_b, dt, ds = compressed_data
-        data = np.frombuffer(zlib.decompress(data_b), dtype=dt).reshape(ds)
-        mask = np.frombuffer(zlib.decompress(mask_b), dtype=np.uint8)
-        mask = np.unpackbits(mask)[:np.prod(ds)]
-        mask = mask.reshape(ds)
-        return np.ma.masked_array(data, mask=mask)
-
-
-def _get_size_of(x: Tuple) -> int:
-    sizes = map(sys.getsizeof, x)
-    return sum(sizes)
 
 
 class RasterDriver(Driver):
@@ -92,9 +49,8 @@ class RasterDriver(Driver):
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         settings = get_settings()
-        self._raster_cache = LFUCacheWithCompression(
+        self._raster_cache = CompressedLFUCache(
             settings.RASTER_CACHE_SIZE,
-            getsizeof=_get_size_of,
             compression_level=settings.RASTER_CACHE_COMPRESS_LEVEL
         )
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
