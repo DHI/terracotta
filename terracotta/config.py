@@ -43,7 +43,7 @@ class TerracottaSettings(NamedTuple):
     #: Maximum size to use when lazy loading metadata (less is faster but less accurate)
     LAZY_LOADING_MAX_SHAPE: Tuple[int, int] = (1024, 1024)
 
-    #: Compression level of output PNGs, from 0-10
+    #: Compression level of output PNGs, from 0-9
     PNG_COMPRESS_LEVEL: int = 1
 
     #: Timeout in seconds for database connections
@@ -82,17 +82,21 @@ class SettingSchema(Schema):
         validate=validate.OneOf(['debug', 'info', 'warning', 'error', 'critical'])
     )
 
-    RASTER_CACHE_SIZE = fields.Integer()
-    RASTER_CACHE_COMPRESS_LEVEL = fields.Integer()
+    RASTER_CACHE_SIZE = fields.Integer(validate=validate.Range(min=0))
+    RASTER_CACHE_COMPRESS_LEVEL = fields.Integer(validate=validate.Range(min=0, max=9))
 
     DEFAULT_TILE_SIZE = fields.List(fields.Integer(), validate=validate.Length(equal=2))
-    LAZY_LOADING_MAX_SHAPE = fields.List(fields.Integer(), validate=validate.Length(equal=2))
+
+    LAZY_LOADING_MAX_SHAPE = fields.List(
+        fields.Integer(validate=validate.Range(min=0)),
+        validate=validate.Length(equal=2)
+    )
 
     PNG_COMPRESS_LEVEL = fields.Integer(validate=validate.Range(min=0, max=9))
 
-    DB_CONNECTION_TIMEOUT = fields.Integer()
+    DB_CONNECTION_TIMEOUT = fields.Integer(validate=validate.Range(min=0))
     REMOTE_DB_CACHE_DIR = fields.String(validate=_is_writable)
-    REMOTE_DB_CACHE_TTL = fields.Integer()
+    REMOTE_DB_CACHE_TTL = fields.Integer(validate=validate.Range(min=0))
 
     UPSAMPLING_METHOD = fields.String(
         validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
