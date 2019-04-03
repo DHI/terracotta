@@ -58,7 +58,7 @@ setup(
     install_requires=[
         'apispec>=1.0',
         'apispec-webframeworks',
-        'cachetools',
+        'cachetools>=3.1.0',
         'click',
         'flask',
         'flask_cors',
