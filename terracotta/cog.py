@@ -10,6 +10,8 @@ import os
 import rasterio
 from rasterio.env import GDALVersion
 
+ValidationInfo = Tuple[List[str], List[str], Dict[str, Any]]
+
 
 def validate(src_path: str, strict: bool = True) -> bool:
     """Validate given cloud-optimized GeoTIFF"""
@@ -20,7 +22,7 @@ def validate(src_path: str, strict: bool = True) -> bool:
         return not errors
 
 
-def check_raster_file(src_path: str) -> Tuple[List[str], List[str], Dict[str, Any]]:
+def check_raster_file(src_path: str) -> ValidationInfo:  # pragma: no cover
     """
     Implementation from
     https://github.com/cogeotiff/rio-cogeo/blob/0f00a6ee1eff602014fbc88178a069bd9f4a10da/rio_cogeo/cogeo.py
