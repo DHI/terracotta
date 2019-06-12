@@ -40,7 +40,7 @@ extends = "development"
 # WARNING: using a cache cluster incurs additional costs (not covered by AWS free tier)
 cache_cluster_enabled = true
 cache_cluster_size = 0.5
-cache_cluster_ttl = 3600.0
+cache_cluster_ttl = 3600
 
 debug = false
 log_level = "WARNING"
