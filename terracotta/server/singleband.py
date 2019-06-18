@@ -52,7 +52,7 @@ class SinglebandOptionSchema(Schema):
     )
 
     @validates_schema
-    def validate_cmap(self, data: Mapping[str, Any]) -> None:
+    def validate_cmap(self, data: Mapping[str, Any], **kwargs: Any) -> None:
         if data.get('colormap', '') == 'explicit' and not data.get('explicit_color_map'):
             raise ValidationError('explicit_color_map argument must be given for colormap=explicit',
                                   'colormap')
@@ -62,7 +62,7 @@ class SinglebandOptionSchema(Schema):
                                   'explicit_color_map')
 
     @pre_load
-    def decode_json(self, data: Mapping[str, Any]) -> Dict[str, Any]:
+    def decode_json(self, data: Mapping[str, Any], **kwargs: Any) -> Dict[str, Any]:
         data = dict(data.items())
         for var in ('stretch_range', 'tile_size', 'explicit_color_map'):
             val = data.get(var)

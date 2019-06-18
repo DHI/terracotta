@@ -106,7 +106,7 @@ class SettingSchema(Schema):
     )
 
     @pre_load
-    def decode_lists(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def decode_lists(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         for var in ('DEFAULT_TILE_SIZE',):
             val = data.get(var)
             if val and isinstance(val, str):
@@ -117,7 +117,7 @@ class SettingSchema(Schema):
         return data
 
     @post_load
-    def make_settings(self, data: Dict[str, Any]) -> TerracottaSettings:
+    def make_settings(self, data: Dict[str, Any], **kwargs: Any) -> TerracottaSettings:
         # encode tuples
         for var in ('DEFAULT_TILE_SIZE',):
             val = data.get(var)
