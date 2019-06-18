@@ -58,7 +58,7 @@ class ComputeOptionSchema(Schema):
     v5 = _operator_field(5)
 
     @pre_load
-    def decode_json(self, data: Mapping[str, Any]) -> Dict[str, Any]:
+    def decode_json(self, data: Mapping[str, Any], **kwargs: Any) -> Dict[str, Any]:
         data = dict(data.items())
         for var in ('stretch_range', 'tile_size'):
             val = data.get(var)

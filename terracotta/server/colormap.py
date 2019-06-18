@@ -39,7 +39,7 @@ class ColormapOptionSchema(Schema):
     num_values = fields.Int(description='Number of values to return', missing=255)
 
     @pre_load
-    def process_ranges(self, data: Mapping[str, Any]) -> Dict[str, Any]:
+    def process_ranges(self, data: Mapping[str, Any], **kwargs: Any) -> Dict[str, Any]:
         data = dict(data.items())
         var = 'stretch_range'
         val = data.get(var)

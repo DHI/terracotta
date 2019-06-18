@@ -44,7 +44,7 @@ class RGBOptionSchema(Schema):
     )
 
     @pre_load
-    def process_ranges(self, data: Mapping[str, Any]) -> Dict[str, Any]:
+    def process_ranges(self, data: Mapping[str, Any], **kwargs: Any) -> Dict[str, Any]:
         data = dict(data.items())
         for var in ('r_range', 'g_range', 'b_range', 'tile_size'):
             val = data.get(var)
