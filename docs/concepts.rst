@@ -40,7 +40,11 @@ that this pattern of keys covers all raster files:
       data is about making compromises).
 
 Keys can have any names and (string) values, and they do have a fixed
-order. In Terracotta, the keys identifying a dataset immediately lead
+order. Keys are matched by alphanumeric values, and other characters
+(``-``, ``_`` or anything other than a letter or number) are treated as
+value separators.
+
+In Terracotta, the keys identifying a dataset immediately lead
 to an API representation. You can start a server for the example above
 via :doc:`terracotta serve <cli-commands/serve>`:
 
@@ -73,7 +77,7 @@ returns a JSON array of all known NDVI datasets.
 .. note::
 
    While keys in Terracotta are certainly inspired by file naming
-   conventions, they do not need to conincide with actual file names. You
+   conventions, they do not need to coincide with actual file names. You
    are free to ingest a file called ``myraster.tif`` with the keys
    ``('S2', '20180601', 'B04')`` should you wish to do so.
 
@@ -89,7 +93,7 @@ metadata it requires to serve a dataset. Most drivers use a database to
 store metadata and rely on a file system to store raster data, but
 neither of those assumptions are enforced by the API.
 
-Already implemented drivers include:
+Currently implemented drivers include:
 
    **SQLite + GeoTiff**
 

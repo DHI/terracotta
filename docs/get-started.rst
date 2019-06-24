@@ -52,7 +52,7 @@ you can use Terracotta to serve them up.
 
 .. note::
 
-   Terracotta profits heavily from the
+   Terracotta benefits greatly from the
    `cloud-optimized GeoTiff format <https://www.cogeo.org/>`__.
    If your raster files are not cloud-optimized or you are unsure,
    you can preprocess them with
@@ -115,6 +115,17 @@ For available options, see
 .. code-block:: bash
 
    $ terracotta ingest --help
+
+**Note:** The CLI ``ingest`` command relies on naming conventions
+to match files against the specified key patterns. The value that matches
+is restricted to alphanumerics (i.e. letters and numbers). Other characters
+(e.g. the ``_`` in the example above, but also ``-``, ``+``, etc) are considered
+separators between keys. So if your filename looks like ``sar_2019-06-24.tif``
+then ``{sensor}_{date}.tif`` will not match.
+
+Alternatives include renaming the files (e.g. to ``sar_20190624.tif``), using
+an alternative pattern (e.g. ``{sensor}_{year}-{month}-{day}.tif``) or using
+the Python API instead of the CLI to perform the ingest.
 
 2. Using the Python API
 +++++++++++++++++++++++
