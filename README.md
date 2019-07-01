@@ -57,7 +57,7 @@ Optimizing rasters: 100%|██████████████████�
 ### 2. Create a database from file name pattern
 
 ```bash
-$ terracotta ingest optmized/S2A_{date}_{}_{tile}_{band}.tif -o greenland.sqlite
+$ terracotta ingest optimized/S2A_{date}_{}_{tile}_{band}.tif -o greenland.sqlite
 Ingesting raster files: 100%|███████████████████████████████████████████| 6/6 [00:49<00:00,  8.54s/it]
 ```
 
