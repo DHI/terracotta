@@ -98,7 +98,7 @@ $ terracotta connect localhost:5000
  * Running on http://127.0.0.1:5100/ (Press CTRL+C to quit)
 ```
 
-Then open the client page (http://172.0.0.1:5100/ in this case) in your browser.
+Then open the client page (http://127.0.0.1:5100/ in this case) in your browser.
 
 ![preview](docs/_figures/workflow-preview.png)
 
