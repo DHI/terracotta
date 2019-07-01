@@ -24,7 +24,7 @@ and [Rasterio](https://github.com/mapbox/rasterio).
 - It is trivial to get going. Got a folder full of
   [cloud-optimized GeoTiffs](https://www.cogeo.org/) in different
   projections you want to have a look at in your browser?
-  `terracotta serve -p {name}.tif` and
+  `terracotta serve -r {name}.tif` and
   `terracotta connect localhost:5000` get you there.
 - We make minimal assumptions about your data, so *you stay in charge*.
   Keep using the tools you know and love to create and organize your
@@ -57,7 +57,7 @@ Optimizing rasters: 100%|██████████████████�
 ### 2. Create a database from file name pattern
 
 ```bash
-$ terracotta ingest S2A_{date}_{}_{tile}_{band}.tif -o greenland.sqlite
+$ terracotta ingest optimized/S2A_{date}_{}_{tile}_{band}.tif -o greenland.sqlite
 Ingesting raster files: 100%|███████████████████████████████████████████| 6/6 [00:49<00:00,  8.54s/it]
 ```
 
@@ -77,13 +77,17 @@ $ terracotta serve -d greenland.sqlite
 
 #### Manually
 
+You can use any HTTP-capable client, such as `curl`.
 ```bash
 $ curl localhost:5000/datasets?tile=25XEL
 {"page":0,"limit":100,"datasets":[{"date":"20170831","tile":"25XEL","band":"B02"},{"date":"20170831","tile":"25XEL","band":"B03"},{"date":"20170831","tile":"25XEL","band":"B04"}]}
 ```
 
+Modern browsers (e.g. Chrome or Firefox) will render the JSON as a tree.
+
 #### Interactively
 
+Terracotta also includes a web client. You can start the client (assuming the server is running at http://localhost:5000) using
 ```bash
 $ terracotta connect localhost:5000
  * Serving Flask app "terracotta.client" (lazy loading)
@@ -93,6 +97,8 @@ $ terracotta connect localhost:5000
  * Debug mode: off
  * Running on http://127.0.0.1:5100/ (Press CTRL+C to quit)
 ```
+
+Then open the client page (http://127.0.0.1:5100/ in this case) in your browser.
 
 ![preview](docs/_figures/workflow-preview.png)
 

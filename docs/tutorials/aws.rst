@@ -1,5 +1,5 @@
 A serverless Terracotta deployment on AWS Lambda
-===========================================
+================================================
 
 .. warning::
 
@@ -132,7 +132,7 @@ The recommended way to ingest your optimized raster files into the database
 is through :doc:`the Terracotta Python API <../api>`. To initialize your
 database, just run something like
 
-.. code-block:: ipython
+.. code-block:: python
 
    >>> import terracotta as tc
 
@@ -147,7 +147,7 @@ database, just run something like
 
 You can then ingest your raster files into the database:
 
-.. code-block:: ipython
+.. code-block:: python
 
    >>> rasters = {
    ...     ('index', '20180101, 'ndvi'): 'S2_20180101_NDVI.tif',
@@ -159,7 +159,7 @@ You can then ingest your raster files into the database:
 
 Verify that everything went well by executing
 
-.. code-block:: ipython
+.. code-block:: python
 
    >>> driver.get_datasets()
    {
