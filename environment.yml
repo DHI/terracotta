@@ -8,5 +8,6 @@ dependencies:
   - rasterio>=1.0
   - shapely
   - crick
+  - pip
   - pip:
     - -e .[recommended]
