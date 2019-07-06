@@ -56,7 +56,7 @@ def get_driver(url_or_path: URLOrPathType, provider: str = None) -> Driver:
 
     Arguments:
 
-        url_or_path: A path indentifying the database to connect to.
+        url_or_path: A path identifying the database to connect to.
             The expected format depends on the driver provider.
         provider: Driver provider to use (one of sqlite, sqlite-remote, mysql;
             default: auto-detect).
@@ -77,7 +77,7 @@ def get_driver(url_or_path: URLOrPathType, provider: str = None) -> Driver:
         provider = auto_detect_provider(url_or_path)
 
     if isinstance(url_or_path, Path) or provider == 'sqlite':
-        url_or_path = Path(url_or_path).resolve()
+        url_or_path = str(Path(url_or_path).resolve())
 
     cache_key = (url_or_path, provider)
     if cache_key not in _DRIVER_CACHE:
