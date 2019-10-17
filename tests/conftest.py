@@ -1,3 +1,7 @@
+# shapely has to be imported before rasterio to work around
+# https://github.com/Toblerity/Shapely/issues/553
+import shapely.geometry  # noqa: F401
+
 import os
 import multiprocessing
 import time

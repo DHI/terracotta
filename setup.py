@@ -11,7 +11,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 # resolve relative links to figures
 long_description = re.sub(
     r'!\[(.*?)\]\((docs/_figures/.*?)\)',
-    r'![\1](https://github.com/DHI-GRAS/terracotta/tree/master/\2?raw=true)',
+    r'![\1](https://github.com/DHI-GRAS/terracotta/raw/master/\2)',
     long_description
 )
 
@@ -53,7 +53,7 @@ setup(
     setup_requires=[
         'setuptools_scm',
         'setuptools_scm_git_archive',
-        'numpy'
+        'numpy>=1.15'
     ],
     install_requires=[
         'apispec>=1.0',
@@ -84,7 +84,7 @@ setup(
             'codecov',
             'colorlog',
             'crick',
-            'flake8<3.7',
+            'flake8',
             'matplotlib',
             'moto',
             'pymysql'
