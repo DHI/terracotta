@@ -275,7 +275,7 @@ class RasterDriver(Driver):
 
     @classmethod
     @trace('compute_metadata')
-    def compute_metadata(cls, raster_path: str, *,
+    def compute_metadata(cls, raster_path: str, *,  # type: ignore[override]
                          extra_metadata: Any = None,
                          use_chunks: bool = None,
                          max_shape: Sequence[int] = None) -> Dict[str, Any]:

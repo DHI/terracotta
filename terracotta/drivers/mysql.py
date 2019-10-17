@@ -107,6 +107,8 @@ class MySQLDriver(RasterDriver):
         if not con_params.hostname:
             con_params = urlparse.urlparse(f'mysql://{mysql_path}')
 
+        assert con_params.hostname is not None
+
         if con_params.scheme != 'mysql':
             raise ValueError(f'unsupported URL scheme "{con_params.scheme}"')
 
@@ -200,7 +202,7 @@ class MySQLDriver(RasterDriver):
                         write_timeout=self.DB_CONNECTION_TIMEOUT,
                         binary_prefix=True, charset='utf8mb4'
                     )
-                self._cursor = self._connection.cursor(DictCursor)
+                self._cursor = cast(DictCursor, self._connection.cursor(DictCursor))
                 self._connected = close = True
 
                 if check:
@@ -293,13 +295,15 @@ class MySQLDriver(RasterDriver):
     @requires_connection
     @convert_exceptions('Could not retrieve keys from database')
     def _get_keys(self) -> OrderedDict:
+        out: OrderedDict = OrderedDict()
+
         cursor = self._cursor
         cursor.execute('SELECT * FROM key_names')
-        key_rows = cursor.fetchall() or []
+        key_rows = cursor.fetchall() or ()
 
-        out: OrderedDict = OrderedDict()
         for row in key_rows:
             out[row['key_name']] = row['description']
+
         return out
 
     @trace('get_datasets')

@@ -12,18 +12,18 @@ from terracotta import get_settings, get_driver, image, xyz
 from terracotta.profile import trace
 
 Number = TypeVar('Number', int, float)
-RGB = Tuple[Number, Number, Number]
+RGBA = Tuple[Number, Number, Number, Number]
 
 
 @trace('singleband_handler')
 def singleband(keys: Union[Sequence[str], Mapping[str, str]],
                tile_xyz: Tuple[int, int, int] = None, *,
-               colormap: Union[str, Mapping[Number, RGB], None] = None,
+               colormap: Union[str, Mapping[Number, RGBA], None] = None,
                stretch_range: Tuple[Number, Number] = None,
                tile_size: Tuple[int, int] = None) -> BinaryIO:
     """Return singleband image as PNG"""
 
-    cmap_or_palette: Union[str, Sequence[RGB], None]
+    cmap_or_palette: Union[str, Sequence[RGBA], None]
 
     if stretch_range is None:
         stretch_min, stretch_max = None, None
