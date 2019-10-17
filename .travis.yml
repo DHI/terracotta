@@ -1,6 +1,6 @@
 language: python
 
-dist: xenial
+dist: bionic
 
 python:
   - "3.8"
