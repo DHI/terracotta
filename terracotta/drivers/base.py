@@ -36,8 +36,8 @@ class Driver(ABC):
         self.path = url_or_path
 
     @abstractmethod
-    def create(self, keys: Sequence[str], *args: Any,
-               key_descriptions: Mapping[str, str] = None, **kwargs: Any) -> None:
+    def create(self, keys: Sequence[str], *,
+               key_descriptions: Mapping[str, str] = None) -> None:
         # Create a new, empty database (driver dependent)
         pass
 

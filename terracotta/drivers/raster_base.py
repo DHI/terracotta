@@ -44,7 +44,7 @@ class RasterDriver(Driver):
     """
     _TARGET_CRS: str = 'epsg:3857'
     _LARGE_RASTER_THRESHOLD: int = 10980 * 10980
-    _RIO_ENV_KEYS = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', GDAL_TIFF_INTERNAL_MASK=True)
+    _RIO_ENV_KEYS = dict(GDAL_TIFF_INTERNAL_MASK=True)
 
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -275,7 +275,7 @@ class RasterDriver(Driver):
 
     @classmethod
     @trace('compute_metadata')
-    def compute_metadata(cls, raster_path: str, *,
+    def compute_metadata(cls, raster_path: str, *,  # type: ignore[override]  # noqa: F821
                          extra_metadata: Any = None,
                          use_chunks: bool = None,
                          max_shape: Sequence[int] = None) -> Dict[str, Any]:

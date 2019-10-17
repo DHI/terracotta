@@ -11,9 +11,11 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 # resolve relative links to figures
 long_description = re.sub(
     r'!\[(.*?)\]\((docs/_figures/.*?)\)',
-    r'![\1](https://github.com/DHI-GRAS/terracotta/tree/master/\2?raw=true)',
+    r'![\1](https://github.com/DHI-GRAS/terracotta/raw/master/\2)',
     long_description
 )
+
+numpy_version = '>=1.15,!=1.17.0'
 
 setup(
     # metadata
@@ -53,7 +55,7 @@ setup(
     setup_requires=[
         'setuptools_scm',
         'setuptools_scm_git_archive',
-        'numpy'
+        'numpy' + numpy_version
     ],
     install_requires=[
         'apispec>=1.0',
@@ -64,7 +66,7 @@ setup(
         'flask_cors',
         'marshmallow>=3.0.0b12',
         'mercantile',
-        'numpy>=1.15',
+        'numpy' + numpy_version,
         'pillow',
         'pyyaml>=3.10',  # downstream dependency of apispec
         'shapely',
@@ -84,7 +86,7 @@ setup(
             'codecov',
             'colorlog',
             'crick',
-            'flake8<3.7',
+            'flake8',
             'matplotlib',
             'moto',
             'pymysql'

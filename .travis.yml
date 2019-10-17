@@ -1,8 +1,9 @@
 language: python
 
-dist: xenial
+dist: bionic
 
 python:
+  - "3.8"
   - "3.7"
   - "3.6"
 
@@ -31,6 +32,9 @@ before_install:
 
 install:
   - pip install -e .[test]
+
+before_script:
+  - pip freeze
 
 script:
   - python -m pytest --color=yes --cov=terracotta --mysql-server="root@127.0.0.1"
