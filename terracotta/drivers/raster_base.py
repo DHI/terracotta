@@ -44,7 +44,7 @@ class RasterDriver(Driver):
     """
     _TARGET_CRS: str = 'epsg:3857'
     _LARGE_RASTER_THRESHOLD: int = 10980 * 10980
-    _RIO_ENV_KEYS = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', GDAL_TIFF_INTERNAL_MASK=True)
+    _RIO_ENV_KEYS = dict(GDAL_TIFF_INTERNAL_MASK=True)
 
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
