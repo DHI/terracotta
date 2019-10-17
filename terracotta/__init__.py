@@ -46,7 +46,7 @@ def update_settings(**new_config: Any) -> None:
     _overwritten_settings |= set(new_config.keys())
 
 
-def get_settings() -> TerracottaSettings:
+def get_settings() -> TerracottaSettings:  # noqa: F821
     """Returns the current set of global runtime settings.
 
     Example:
