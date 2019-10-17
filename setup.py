@@ -15,6 +15,8 @@ long_description = re.sub(
     long_description
 )
 
+numpy_version = '>=1.15,!=1.17.0'
+
 setup(
     # metadata
     name='terracotta',
@@ -53,7 +55,7 @@ setup(
     setup_requires=[
         'setuptools_scm',
         'setuptools_scm_git_archive',
-        'numpy>=1.15'
+        'numpy' + numpy_version
     ],
     install_requires=[
         'apispec>=1.0',
@@ -64,7 +66,7 @@ setup(
         'flask_cors',
         'marshmallow>=3.0.0b12',
         'mercantile',
-        'numpy>=1.15',
+        'numpy' + numpy_version,
         'pillow',
         'pyyaml>=3.10',  # downstream dependency of apispec
         'shapely',
