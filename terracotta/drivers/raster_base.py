@@ -571,9 +571,11 @@ class RasterDriver(Driver):
 
         cache_key = cachetools.keys.hashkey(**kwargs)
 
-        if cache_key in self._raster_cache:
+        try:
             result = self._raster_cache[cache_key]
-
+        except KeyError:
+            pass
+        else:
             if asynchronous:
                 # wrap result in a future
                 future = Future()
@@ -587,13 +589,20 @@ class RasterDriver(Driver):
         if asynchronous:
             future = executor.submit(retrieve_tile)
 
-            def add_to_cache(future: Future) -> None:
+            def cache_callback(future: Future) -> None:
+                # insert result into global cache if execution was successful
                 if not future.exception():
-                    self._raster_cache[cache_key] = future.result()
+                    self._add_to_cache(cache_key, future.result())
 
-            future.add_done_callback(add_to_cache)
+            future.add_done_callback(cache_callback)
             return future
         else:
             result = retrieve_tile()
-            self._raster_cache[cache_key] = result
+            self._add_to_cache(cache_key, result)
             return result
+
+    def _add_to_cache(self, key: Any, value: Any) -> None:
+        try:
+            self._raster_cache[key] = value
+        except ValueError:  # value too large
+            pass
