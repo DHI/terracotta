@@ -6,16 +6,17 @@ Base class for drivers operating on physical raster files.
 from typing import (Any, Union, Mapping, Sequence, Dict, List, Tuple,
                     TypeVar, Optional, cast, TYPE_CHECKING)
 from abc import abstractmethod
-import concurrent.futures
+from concurrent.futures import Future, Executor, ProcessPoolExecutor, ThreadPoolExecutor
+
 import contextlib
 import functools
-import operator
 import logging
 import math
 import warnings
+import threading
 
 import numpy as np
-from cachetools import cachedmethod
+import cachetools
 from affine import Affine
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -36,6 +37,15 @@ Number = TypeVar('Number', int, float)
 
 logger = logging.getLogger(__name__)
 
+executor: Executor
+
+try:
+    # this fails on architectures without /dev/shm
+    executor = ProcessPoolExecutor(max_workers=3)
+except OSError:
+    # fall back to serial evaluation
+    executor = ThreadPoolExecutor(max_workers=1)
+
 
 class RasterDriver(Driver):
     """Mixin that implements methods to load raster data from disk.
@@ -44,7 +54,10 @@ class RasterDriver(Driver):
     """
     _TARGET_CRS: str = 'epsg:3857'
     _LARGE_RASTER_THRESHOLD: int = 10980 * 10980
-    _RIO_ENV_KEYS = dict(GDAL_TIFF_INTERNAL_MASK=True)
+    _RIO_ENV_KEYS = dict(
+        GDAL_TIFF_INTERNAL_MASK=True,
+        GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR'
+    )
 
     @abstractmethod
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -53,7 +66,7 @@ class RasterDriver(Driver):
             settings.RASTER_CACHE_SIZE,
             compression_level=settings.RASTER_CACHE_COMPRESS_LEVEL
         )
-        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=3)
+        self._cache_lock = threading.RLock()
         super().__init__(*args, **kwargs)
 
     # specify signature and docstring for insert
@@ -433,9 +446,9 @@ class RasterDriver(Driver):
         from rasterio.enums import MaskFlags
         return any([MaskFlags.per_dataset in flags for flags in src.mask_flag_enums])
 
-    @cachedmethod(operator.attrgetter('_raster_cache'))
+    @classmethod
     @trace('get_raster_tile')
-    def _get_raster_tile(self, path: str, *,
+    def _get_raster_tile(cls, path: str, *,
                          upsampling_method: str,
                          downsampling_method: str,
                          bounds: Tuple[float, float, float, float] = None,
@@ -453,13 +466,13 @@ class RasterDriver(Driver):
         dst_bounds: Tuple[float, float, float, float]
 
         if preserve_values:
-            upsampling_enum = downsampling_enum = self._get_resampling_enum('nearest')
+            upsampling_enum = downsampling_enum = cls._get_resampling_enum('nearest')
         else:
-            upsampling_enum = self._get_resampling_enum(upsampling_method)
-            downsampling_enum = self._get_resampling_enum(downsampling_method)
+            upsampling_enum = cls._get_resampling_enum(upsampling_method)
+            downsampling_enum = cls._get_resampling_enum(downsampling_method)
 
         with contextlib.ExitStack() as es:
-            es.enter_context(rasterio.Env(**self._RIO_ENV_KEYS))
+            es.enter_context(rasterio.Env(**cls._RIO_ENV_KEYS))
             try:
                 with trace('open_dataset'):
                     src = es.enter_context(rasterio.open(path))
@@ -467,11 +480,11 @@ class RasterDriver(Driver):
                 raise IOError('error while reading file {}'.format(path))
 
             # compute suggested resolution and bounds in target CRS
-            dst_transform, _, _ = self._calculate_default_transform(
-                src.crs, self._TARGET_CRS, src.width, src.height, *src.bounds
+            dst_transform, _, _ = cls._calculate_default_transform(
+                src.crs, cls._TARGET_CRS, src.width, src.height, *src.bounds
             )
             dst_res = (abs(dst_transform.a), abs(dst_transform.e))
-            dst_bounds = warp.transform_bounds(src.crs, self._TARGET_CRS, *src.bounds)
+            dst_bounds = warp.transform_bounds(src.crs, cls._TARGET_CRS, *src.bounds)
 
             if bounds is None:
                 bounds = dst_bounds
@@ -496,7 +509,7 @@ class RasterDriver(Driver):
             # construct VRT
             vrt = es.enter_context(
                 WarpedVRT(
-                    src, crs=self._TARGET_CRS, resampling=upsampling_enum, add_alpha=True,
+                    src, crs=cls._TARGET_CRS, resampling=upsampling_enum, add_alpha=True,
                     transform=vrt_transform, width=vrt_width, height=vrt_height
                 )
             )
@@ -540,6 +553,12 @@ class RasterDriver(Driver):
                         tile_size: Sequence[int] = None,
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
+        # This wrapper handles cache interaction and asynchronous tile retrieval.
+        # The real work is done in _get_raster_tile.
+
+        future: Future[np.ma.MaskedArray]
+        result: np.ma.MaskedArray
+
         settings = get_settings()
         key_tuple = tuple(self._key_dict_to_sequence(keys))
         datasets = self.get_datasets(dict(zip(self.key_names, key_tuple)))
@@ -550,9 +569,8 @@ class RasterDriver(Driver):
             tile_size = settings.DEFAULT_TILE_SIZE
 
         # make sure all arguments are hashable
-        task = functools.partial(
-            self._get_raster_tile,
-            path,
+        kwargs = dict(
+            path=path,
             bounds=tuple(bounds) if bounds else None,
             tile_size=tuple(tile_size),
             preserve_values=preserve_values,
@@ -560,7 +578,42 @@ class RasterDriver(Driver):
             downsampling_method=settings.DOWNSAMPLING_METHOD
         )
 
-        if asynchronous:
-            return self._executor.submit(task)
+        cache_key = cachetools.keys.hashkey(**kwargs)
+
+        try:
+            with self._cache_lock:
+                result = self._raster_cache[cache_key]
+        except KeyError:
+            pass
         else:
-            return task()
+            if asynchronous:
+                # wrap result in a future
+                future = Future()
+                future.set_result(result)
+                return future
+            else:
+                return result
+
+        retrieve_tile = functools.partial(self._get_raster_tile, **kwargs)
+
+        future = executor.submit(retrieve_tile)
+
+        def cache_callback(future: Future) -> None:
+            # insert result into global cache if execution was successful
+            if future.exception() is None:
+                self._add_to_cache(cache_key, future.result())
+
+        if asynchronous:
+            future.add_done_callback(cache_callback)
+            return future
+        else:
+            result = future.result()
+            cache_callback(future)
+            return result
+
+    def _add_to_cache(self, key: Any, value: Any) -> None:
+        try:
+            with self._cache_lock:
+                self._raster_cache[key] = value
+        except ValueError:  # value too large
+            pass

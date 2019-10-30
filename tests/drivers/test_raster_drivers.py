@@ -1,5 +1,7 @@
 import pytest
 
+import time
+
 import rasterio
 import rasterio.features
 from shapely.geometry import shape, MultiPolygon
@@ -286,6 +288,87 @@ def test_raster_retrieval(driver_path, provider, raster_file):
     assert data2.shape == (256, 256)
 
     np.testing.assert_array_equal(data1, data2)
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('asynchronous', [True, False])
+def test_raster_cache(driver_path, provider, raster_file, asynchronous):
+    from terracotta import drivers
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('some', 'keynames')
+
+    db.create(keys)
+    db.insert(['some', 'value'], str(raster_file))
+    db.insert(['some', 'other_value'], str(raster_file))
+
+    assert len(db._raster_cache) == 0
+
+    data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
+
+    if asynchronous:
+        data1 = data1.result()
+        time.sleep(1)  # allow callback to finish
+
+    assert len(db._raster_cache) == 1
+
+    data2 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
+
+    if asynchronous:
+        data2 = data2.result()
+
+    np.testing.assert_array_equal(data1, data2)
+    assert len(db._raster_cache) == 1
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('asynchronous', [True, False])
+def test_raster_cache_fail(driver_path, provider, raster_file, asynchronous):
+    """Retrieve a tile that is larger than the total cache size"""
+    from terracotta import drivers, update_settings
+    update_settings(RASTER_CACHE_SIZE=1)
+
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('some', 'keynames')
+
+    db.create(keys)
+    db.insert(['some', 'value'], str(raster_file))
+
+    assert len(db._raster_cache) == 0
+
+    data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
+
+    if asynchronous:
+        data1 = data1.result()
+        time.sleep(1)  # allow callback to finish
+
+    assert len(db._raster_cache) == 0
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_multiprocessing_fallback(driver_path, provider, raster_file, monkeypatch):
+    import concurrent.futures
+
+    def dummy(*args, **kwargs):
+        raise OSError('monkeypatched')
+
+    with monkeypatch.context() as m:
+        m.setattr(concurrent.futures, 'ProcessPoolExecutor', dummy)
+
+        from terracotta import drivers
+        db = drivers.get_driver(driver_path, provider=provider)
+        keys = ('some', 'keynames')
+
+        db.create(keys)
+        db.insert(['some', 'value'], str(raster_file))
+        db.insert(['some', 'other_value'], str(raster_file))
+
+        data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256))
+        assert data1.shape == (256, 256)
+
+        data2 = db.get_raster_tile(['some', 'other_value'], tile_size=(256, 256))
+        assert data2.shape == (256, 256)
+
+        np.testing.assert_array_equal(data1, data2)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
