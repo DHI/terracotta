@@ -6,7 +6,7 @@ Base class for drivers operating on physical raster files.
 from typing import (Any, Union, Mapping, Sequence, Dict, List, Tuple,
                     TypeVar, Optional, cast, TYPE_CHECKING)
 from abc import abstractmethod
-from concurrent.futures import Future
+from concurrent.futures import Future, ProcessPoolExecutor
 
 import contextlib
 import functools
@@ -32,12 +32,11 @@ from terracotta import get_settings, exceptions
 from terracotta.cache import CompressedLFUCache
 from terracotta.drivers.base import requires_connection, Driver
 from terracotta.profile import trace
-from terracotta.concurrency import LazyProcessPoolExecutor
 
 Number = TypeVar('Number', int, float)
 
 logger = logging.getLogger(__name__)
-executor = LazyProcessPoolExecutor(max_workers=3)
+executor = ProcessPoolExecutor(max_workers=3)
 
 
 class RasterDriver(Driver):
