@@ -603,12 +603,13 @@ class RasterDriver(Driver):
             if future.exception() is None:
                 self._add_to_cache(cache_key, future.result())
 
-        future.add_done_callback(cache_callback)
-
         if asynchronous:
+            future.add_done_callback(cache_callback)
             return future
         else:
-            return future.result()
+            result = future.result()
+            cache_callback(future)
+            return result
 
     def _add_to_cache(self, key: Any, value: Any) -> None:
         try:
