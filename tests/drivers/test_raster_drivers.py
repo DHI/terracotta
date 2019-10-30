@@ -321,6 +321,31 @@ def test_raster_cache(driver_path, provider, raster_file, asynchronous):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('asynchronous', [True, False])
+def test_raster_cache_fail(driver_path, provider, raster_file, asynchronous):
+    """Retrieve a tile that is larger than the total cache size"""
+    from terracotta import drivers, update_settings
+    update_settings(RASTER_CACHE_SIZE=1)
+
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('some', 'keynames')
+
+    db.create(keys)
+    db.insert(['some', 'value'], str(raster_file))
+    db.insert(['some', 'other_value'], str(raster_file))
+
+    assert len(db._raster_cache) == 0
+
+    data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
+
+    if asynchronous:
+        data1 = data1.result()
+        time.sleep(1)  # allow callback to finish
+
+    assert len(db._raster_cache) == 0
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_raster_duplicate(driver_path, provider, raster_file):
     from terracotta import drivers
     db = drivers.get_driver(driver_path, provider=provider)
