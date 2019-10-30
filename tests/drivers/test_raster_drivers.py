@@ -347,6 +347,8 @@ def test_raster_cache_fail(driver_path, provider, raster_file, asynchronous):
 @pytest.mark.parametrize('provider', DRIVERS)
 def test_multiprocessing_fallback(driver_path, provider, raster_file, monkeypatch):
     import concurrent.futures
+    from importlib import reload
+    from terracotta import drivers
 
     def dummy(*args, **kwargs):
         raise OSError('monkeypatched')
@@ -354,7 +356,8 @@ def test_multiprocessing_fallback(driver_path, provider, raster_file, monkeypatc
     with monkeypatch.context() as m:
         m.setattr(concurrent.futures, 'ProcessPoolExecutor', dummy)
 
-        from terracotta import drivers
+        import terracotta.drivers.raster_base
+        reload(terracotta.drivers.raster_base)
         db = drivers.get_driver(driver_path, provider=provider)
         keys = ('some', 'keynames')
 
