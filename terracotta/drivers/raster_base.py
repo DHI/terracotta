@@ -6,7 +6,7 @@ Base class for drivers operating on physical raster files.
 from typing import (Any, Union, Mapping, Sequence, Dict, List, Tuple,
                     TypeVar, Optional, cast, TYPE_CHECKING)
 from abc import abstractmethod
-from concurrent.futures import Future, ProcessPoolExecutor
+from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor
 
 import contextlib
 import functools
@@ -36,7 +36,13 @@ from terracotta.profile import trace
 Number = TypeVar('Number', int, float)
 
 logger = logging.getLogger(__name__)
-executor = ProcessPoolExecutor(max_workers=3)
+
+try:
+    # this fails on architectures without /dev/shm
+    executor = ProcessPoolExecutor(max_workers=3)
+except OSError:
+    # fall back to serial evaluation
+    executor = ThreadPoolExecutor(max_workers=1)
 
 
 class RasterDriver(Driver):
