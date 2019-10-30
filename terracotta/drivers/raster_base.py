@@ -6,7 +6,7 @@ Base class for drivers operating on physical raster files.
 from typing import (Any, Union, Mapping, Sequence, Dict, List, Tuple,
                     TypeVar, Optional, cast, TYPE_CHECKING)
 from abc import abstractmethod
-from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import Future, Executor, ProcessPoolExecutor, ThreadPoolExecutor
 
 import contextlib
 import functools
@@ -36,6 +36,8 @@ from terracotta.profile import trace
 Number = TypeVar('Number', int, float)
 
 logger = logging.getLogger(__name__)
+
+executor: Executor
 
 try:
     # this fails on architectures without /dev/shm
@@ -594,20 +596,19 @@ class RasterDriver(Driver):
 
         retrieve_tile = functools.partial(self._get_raster_tile, **kwargs)
 
+        future = executor.submit(retrieve_tile)
+
+        def cache_callback(future: Future) -> None:
+            # insert result into global cache if execution was successful
+            if future.exception() is None:
+                self._add_to_cache(cache_key, future.result())
+
+        future.add_done_callback(cache_callback)
+
         if asynchronous:
-            future = executor.submit(retrieve_tile)
-
-            def cache_callback(future: Future) -> None:
-                # insert result into global cache if execution was successful
-                if future.exception() is None:
-                    self._add_to_cache(cache_key, future.result())
-
-            future.add_done_callback(cache_callback)
             return future
         else:
-            result = retrieve_tile()
-            self._add_to_cache(cache_key, result)
-            return result
+            return future.result()
 
     def _add_to_cache(self, key: Any, value: Any) -> None:
         try:
