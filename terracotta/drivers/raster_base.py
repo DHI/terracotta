@@ -13,6 +13,7 @@ import functools
 import logging
 import math
 import warnings
+import threading
 
 import numpy as np
 import cachetools
@@ -58,6 +59,7 @@ class RasterDriver(Driver):
             settings.RASTER_CACHE_SIZE,
             compression_level=settings.RASTER_CACHE_COMPRESS_LEVEL
         )
+        self._cache_lock = threading.RLock()
         super().__init__(*args, **kwargs)
 
     # specify signature and docstring for insert
@@ -572,7 +574,8 @@ class RasterDriver(Driver):
         cache_key = cachetools.keys.hashkey(**kwargs)
 
         try:
-            result = self._raster_cache[cache_key]
+            with self._cache_lock:
+                result = self._raster_cache[cache_key]
         except KeyError:
             pass
         else:
@@ -591,7 +594,7 @@ class RasterDriver(Driver):
 
             def cache_callback(future: Future) -> None:
                 # insert result into global cache if execution was successful
-                if not future.exception():
+                if future.exception() is None:
                     self._add_to_cache(cache_key, future.result())
 
             future.add_done_callback(cache_callback)
@@ -603,6 +606,7 @@ class RasterDriver(Driver):
 
     def _add_to_cache(self, key: Any, value: Any) -> None:
         try:
-            self._raster_cache[key] = value
+            with self._cache_lock:
+                self._raster_cache[key] = value
         except ValueError:  # value too large
             pass
