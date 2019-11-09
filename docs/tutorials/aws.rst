@@ -150,8 +150,8 @@ You can then ingest your raster files into the database:
 .. code-block:: python
 
    >>> rasters = {
-   ...     ('index', '20180101, 'ndvi'): 'S2_20180101_NDVI.tif',
-   ...     ('reflectance', '20180101, 'B04'): 'S2_20180101_B04.tif',
+   ...     ('index', '20180101', 'ndvi'): 'S2_20180101_NDVI.tif',
+   ...     ('reflectance', '20180101', 'B04'): 'S2_20180101_B04.tif',
    ... }
    >>> for keys, raster_file in rasters.items():
    ...     driver.insert(keys, raster_file,
@@ -163,8 +163,8 @@ Verify that everything went well by executing
 
    >>> driver.get_datasets()
    {
-       ('index', '20180101, 'ndvi'): 's3://tc-data/rasters/S2_20180101_NDVI.tif',
-       ('reflectance', '20180101, 'B04'): 's3://tc-data/rasters/S2_20180101_B04.tif',
+       ('index', '20180101', 'ndvi'): 's3://tc-data/rasters/S2_20180101_NDVI.tif',
+       ('reflectance', '20180101', 'B04'): 's3://tc-data/rasters/S2_20180101_B04.tif',
    }
 
 Finally, just make sure that your raster files end up in the place where
