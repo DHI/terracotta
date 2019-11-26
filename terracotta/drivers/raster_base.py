@@ -47,56 +47,6 @@ except OSError:
     executor = ThreadPoolExecutor(max_workers=1)
 
 
-def get_overview_level(
-    src_dst, bounds, tile_size=(256, 256), dst_crs=None
-):
-    """
-    Return the overview level corresponding to the tile resolution.
-    Freely adapted from https://github.com/OSGeo/gdal/blob/41993f127e6e1669fbd9e944744b7c9b2bd6c400/gdal/apps/gdalwarp_lib.cpp#L2293-L2362
-    Attributes
-    ----------
-    src_dst : rasterio.io.DatasetReader
-        Rasterio io.DatasetReader object
-    bounds : list
-        Bounds (left, bottom, right, top) in target crs ("dst_crs").
-    tilesize : int
-        Output tile size (default: 256)
-    dst_crs: CRS or str, optional
-        Target coordinate reference system (default "epsg:3857").
-    Returns
-    -------
-    ovr_idx: Int or None
-        Overview level
-    """
-    from rasterio import transform
-
-    if dst_crs is None:
-        dst_crs = {'init': 'epsg:3857'}
-
-    dst_transform, _, _ = RasterDriver._calculate_default_transform(
-        src_dst.crs, dst_crs, src_dst.width, src_dst.height, *src_dst.bounds
-    )
-    src_res = dst_transform.a
-
-    # Compute what the "natural" output resolution (in pixels) would be for this input dataset
-    w, s, e, n = bounds
-    vrt_transform = transform.from_bounds(w, s, e, n, *tile_size)
-    target_res = vrt_transform.a
-
-    ovr_idx = -1
-    if target_res > src_res:
-        res = [src_res * decim for decim in src_dst.overviews(1)]
-        for ovr_idx in range(ovr_idx, len(res) - 1):
-            ovrRes = src_res if ovr_idx < 0 else res[ovr_idx]
-            nextRes = res[ovr_idx + 1]
-            if (ovrRes < target_res) and (nextRes > target_res):
-                break
-            if abs(ovrRes - target_res) < 1e-1:
-                break
-
-    return ovr_idx
-
-
 class RasterDriver(Driver):
     """Mixin that implements methods to load raster data from disk.
 
