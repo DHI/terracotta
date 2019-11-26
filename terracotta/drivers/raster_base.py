@@ -47,6 +47,56 @@ except OSError:
     executor = ThreadPoolExecutor(max_workers=1)
 
 
+def get_overview_level(
+    src_dst, bounds, tile_size=(256, 256), dst_crs=None
+):
+    """
+    Return the overview level corresponding to the tile resolution.
+    Freely adapted from https://github.com/OSGeo/gdal/blob/41993f127e6e1669fbd9e944744b7c9b2bd6c400/gdal/apps/gdalwarp_lib.cpp#L2293-L2362
+    Attributes
+    ----------
+    src_dst : rasterio.io.DatasetReader
+        Rasterio io.DatasetReader object
+    bounds : list
+        Bounds (left, bottom, right, top) in target crs ("dst_crs").
+    tilesize : int
+        Output tile size (default: 256)
+    dst_crs: CRS or str, optional
+        Target coordinate reference system (default "epsg:3857").
+    Returns
+    -------
+    ovr_idx: Int or None
+        Overview level
+    """
+    from rasterio import transform
+
+    if dst_crs is None:
+        dst_crs = {'init': 'epsg:3857'}
+
+    dst_transform, _, _ = RasterDriver._calculate_default_transform(
+        src_dst.crs, dst_crs, src_dst.width, src_dst.height, *src_dst.bounds
+    )
+    src_res = dst_transform.a
+
+    # Compute what the "natural" output resolution (in pixels) would be for this input dataset
+    w, s, e, n = bounds
+    vrt_transform = transform.from_bounds(w, s, e, n, *tile_size)
+    target_res = vrt_transform.a
+
+    ovr_idx = -1
+    if target_res > src_res:
+        res = [src_res * decim for decim in src_dst.overviews(1)]
+        for ovr_idx in range(ovr_idx, len(res) - 1):
+            ovrRes = src_res if ovr_idx < 0 else res[ovr_idx]
+            nextRes = res[ovr_idx + 1]
+            if (ovrRes < target_res) and (nextRes > target_res):
+                break
+            if abs(ovrRes - target_res) < 1e-1:
+                break
+
+    return ovr_idx
+
+
 class RasterDriver(Driver):
     """Mixin that implements methods to load raster data from disk.
 
@@ -489,6 +539,34 @@ class RasterDriver(Driver):
             if bounds is None:
                 bounds = dst_bounds
 
+            overview_level = -1
+            src_res = abs(dst_transform.a)
+            target_res = abs(transform.from_bounds(*bounds, *tile_size).a)
+            print((bounds[2] - bounds[0]) / tile_size[0])
+            if target_res > src_res:
+                res = [src_res * decim for decim in src.overviews(1)]
+                print(res)
+                for overview_level in range(overview_level, len(res) - 1):
+                    ovrRes = src_res if overview_level < 0 else res[overview_level]
+                    nextRes = res[overview_level + 1]
+                    if (ovrRes < target_res) and (nextRes > target_res):
+                        break
+                    if abs(ovrRes - target_res) < 1e-1:
+                        break
+                else:
+                    overview_level = len(res) - 1
+
+            options = {"overview_level": overview_level} if overview_level >= 0 else {}
+            src_ovr = es.enter_context(rasterio.open(path, **options))
+            print(abs(src.transform.a), abs(src_ovr.transform.a))
+            print((src_res, target_res, overview_level))
+            # assert False
+
+            dst_transform, _, _ = cls._calculate_default_transform(
+                src_ovr.crs, cls._TARGET_CRS, src_ovr.width, src_ovr.height, *src_ovr.bounds
+            )
+            dst_res = (abs(dst_transform.a), abs(dst_transform.e))
+
             # pad tile bounds to prevent interpolation artefacts
             num_pad_pixels = 2
 
@@ -509,7 +587,7 @@ class RasterDriver(Driver):
             # construct VRT
             vrt = es.enter_context(
                 WarpedVRT(
-                    src, crs=cls._TARGET_CRS, resampling=upsampling_enum, add_alpha=True,
+                    src_ovr, crs=cls._TARGET_CRS, resampling=upsampling_enum, add_alpha=True,
                     transform=vrt_transform, width=vrt_width, height=vrt_height
                 )
             )
