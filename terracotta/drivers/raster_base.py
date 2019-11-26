@@ -539,13 +539,12 @@ class RasterDriver(Driver):
             if bounds is None:
                 bounds = dst_bounds
 
+            # determine optimal overview level
             overview_level = -1
             src_res = abs(dst_transform.a)
             target_res = abs(transform.from_bounds(*bounds, *tile_size).a)
-            print((bounds[2] - bounds[0]) / tile_size[0])
             if target_res > src_res:
                 res = [src_res * decim for decim in src.overviews(1)]
-                print(res)
                 for overview_level in range(overview_level, len(res) - 1):
                     ovrRes = src_res if overview_level < 0 else res[overview_level]
                     nextRes = res[overview_level + 1]
@@ -556,16 +555,12 @@ class RasterDriver(Driver):
                 else:
                     overview_level = len(res) - 1
 
-            options = {"overview_level": overview_level} if overview_level >= 0 else {}
-            src_ovr = es.enter_context(rasterio.open(path, **options))
-            print(abs(src.transform.a), abs(src_ovr.transform.a))
-            print((src_res, target_res, overview_level))
-            # assert False
-
-            dst_transform, _, _ = cls._calculate_default_transform(
-                src_ovr.crs, cls._TARGET_CRS, src_ovr.width, src_ovr.height, *src_ovr.bounds
-            )
-            dst_res = (abs(dst_transform.a), abs(dst_transform.e))
+            if overview_level >= 0:
+                src_ovr = es.enter_context(rasterio.open(path, overview_level=overview_level))
+                decim = src.overviews(1)[overview_level]
+                dst_res = (dst_res[0] * decim, dst_res[1] * decim)
+            else:
+                src_ovr = src
 
             # pad tile bounds to prevent interpolation artefacts
             num_pad_pixels = 2
