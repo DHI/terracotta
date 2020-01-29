@@ -56,12 +56,18 @@ def array_to_png(img_data: Array,
                 except ValueError as exc:
                     raise exceptions.InvalidArgumentsError(
                         f'Encountered invalid color map {colormap}') from exc
-
-                palette = np.concatenate((
-                    np.zeros(3, dtype='uint8'),
-                    cmap_vals.flatten()
-                ))
-                transparency = 0
+                if cmap_vals.shape[1] == 4:
+                    palette = np.concatenate((
+                        np.zeros(3, dtype='uint8'),
+                        cmap_vals[:, 0:3].flatten()
+                    ))
+                    transparency = cmap_vals[:, 3].tobytes()
+                else:
+                    palette = np.concatenate((
+                        np.zeros(3, dtype='uint8'),
+                        cmap_vals.flatten()
+                    ))
+                    transparency = 0
             else:
                 # explicit mapping
                 if len(colormap) > 255:
