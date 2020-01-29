@@ -7,7 +7,7 @@ def test_get_cmap():
     from terracotta.cmaps import get_cmap, AVAILABLE_CMAPS
     for name in AVAILABLE_CMAPS:
         cmap = get_cmap(name)
-        assert cmap.shape == (255, 3)
+        assert cmap.shape == (255, 3) or cmap.shape == (255, 4)
         assert cmap.dtype == np.uint8
 
 
