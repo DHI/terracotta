@@ -9,7 +9,7 @@ def test_colormap_handler():
     cmap = colormap.colormap(colormap='jet', stretch_range=[0., 1.], num_values=50)
     assert cmap
     assert len(cmap) == 50
-    assert len(cmap[0]['rgb']) == 3
+    assert len(cmap[0]['rgba']) == 4
     assert cmap[0]['value'] == 0. and cmap[-1]['value'] == 1.
 
 
@@ -50,10 +50,10 @@ def test_colormap_consistency(use_testdb, testdb, raster_file_xyz,
 
     # test clipping
     below_mask = tile_data < stretch_range[0]
-    assert np.all(img_data[below_mask & ~nodata_mask, :-1] == cmap[stretch_range[0]])
+    assert np.all(img_data[below_mask & ~nodata_mask, :-1] == cmap[stretch_range[0]][:-1])
 
     above_mask = tile_data > stretch_range[1]
-    assert np.all(img_data[above_mask & ~nodata_mask, :-1] == cmap[stretch_range[1]])
+    assert np.all(img_data[above_mask & ~nodata_mask, :-1] == cmap[stretch_range[1]][:-1])
 
     # test values inside stretch_range
     values_to_test = np.unique(tile_data.compressed())
@@ -61,5 +61,5 @@ def test_colormap_consistency(use_testdb, testdb, raster_file_xyz,
                                     & (values_to_test <= stretch_range[1])]
 
     for val in values_to_test:
-        rgb = cmap[val]
-        assert np.all(img_data[tile_data == val, :-1] == rgb)
+        rgba = cmap[val]
+        assert np.all(img_data[tile_data == val] == rgba)
