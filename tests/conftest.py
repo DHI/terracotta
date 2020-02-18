@@ -84,7 +84,7 @@ def cloud_optimize(raster_file, outfile, create_mask=False, remove_nodata=False)
         dst.write(src.read())
 
         if create_mask:
-            dst.write_mask(src.dataset_mask())
+            dst.write_mask(src.dataset_mask().astype('uint8'))
 
         max_overview_level = math.ceil(math.log2(max(
             dst.height // profile['blockysize'],
