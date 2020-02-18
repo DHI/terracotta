@@ -242,7 +242,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 for _, w in tqdm.tqdm(windows, desc='Reading', **sub_pbar_args):
                     block_data = vrt.read(window=w, indexes=[1])
                     dst.write(block_data, window=w)
-                    block_mask = vrt.dataset_mask(window=w)
+                    block_mask = vrt.dataset_mask(window=w).astype('uint8')
                     dst.write_mask(block_mask, window=w)
 
                 # add overviews
