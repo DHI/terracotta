@@ -17,7 +17,7 @@ def generate_maps(out_folder: str) -> None:
     for cmap in ALL_MAPS:
         print(cmap)
         cmap_fun = cm.get_cmap(cmap)
-        cmap_vals = cmap_fun(x)[:, :-1]  # cut off alpha
+        cmap_vals = cmap_fun(x)
         cmap_uint8 = (cmap_vals * 255).astype('uint8')
         np.save(f'{out_folder}/{cmap.lower()}{SUFFIX}', cmap_uint8)
 

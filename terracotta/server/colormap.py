@@ -15,7 +15,7 @@ from terracotta.cmaps import AVAILABLE_CMAPS
 
 class ColormapEntrySchema(Schema):
     value = fields.Number(required=True)
-    rgb = fields.List(fields.Number(), required=True, validate=validate.Length(equal=3))
+    rgba = fields.List(fields.Number(), required=True, validate=validate.Length(equal=4))
 
 
 class ColormapSchema(Schema):

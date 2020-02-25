@@ -8,7 +8,7 @@ from pkg_resources import resource_listdir, resource_stream, Requirement, Distri
 
 import numpy as np
 
-SUFFIX = '_rgb.npy'
+SUFFIX = '_rgba.npy'
 
 try:
     PACKAGE = Requirement.parse('terracotta')
@@ -29,7 +29,9 @@ AVAILABLE_CMAPS = sorted(set(f[:-len(SUFFIX)] for f in CMAP_FILES if f.endswith(
 
 
 def get_cmap(name: str) -> np.ndarray:
-    """Retrieve the given colormap and return RGB values as a uint8 NumPy array of shape (255, 3)"""
+    """Retrieve the given colormap and return RGBA values as a uint8 NumPy array of
+    shape (255, 4)
+    """
     name = name.lower()
 
     if name not in AVAILABLE_CMAPS:
@@ -38,6 +40,6 @@ def get_cmap(name: str) -> np.ndarray:
     with _get_cmap_data(name) as f:
         cmap_data = np.load(f)
 
-    assert cmap_data.shape == (255, 3)
+    assert cmap_data.shape == (255, 4)
     assert cmap_data.dtype == np.uint8
     return cmap_data
