@@ -18,8 +18,6 @@ tile_api = Blueprint('tile_api', 'terracotta.server')
 metadata_api = Blueprint('metadata_api', 'terracotta.server')
 spec_api = Blueprint('spec_api', 'terracotta.server')
 
-CORS(metadata_api)  # allow access to metadata from all sources
-
 # create an APISpec
 spec = APISpec(
     title='Terracotta',
@@ -73,14 +71,7 @@ def convert_exceptions(fun: Callable) -> Callable:
 
 def create_app(debug: bool = False, profile: bool = False) -> Flask:
     """Returns a Flask app"""
-
-    new_app = Flask('terracotta.server')
-    new_app.debug = debug
-
-    # suppress implicit sort of JSON responses
-    new_app.config['JSON_SORT_KEYS'] = False
-
-    # import submodules to populate blueprints
+    from terracotta import get_settings
     import terracotta.server.datasets
     import terracotta.server.keys
     import terracotta.server.colormap
@@ -88,6 +79,19 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
     import terracotta.server.rgb
     import terracotta.server.singleband
     import terracotta.server.compute
+
+    new_app = Flask('terracotta.server')
+    new_app.debug = debug
+
+    # suppress implicit sort of JSON responses
+    new_app.config['JSON_SORT_KEYS'] = False
+
+    # CORS
+    settings = get_settings()
+    if settings.ALLOWED_ORIGINS_METADATA:
+        CORS(metadata_api, origins=settings.ALLOWED_ORIGINS_METADATA)
+    if settings.ALLOWED_ORIGINS_TILES:
+        CORS(tile_api, origins=settings.ALLOWED_ORIGINS_TILES)
 
     new_app.register_blueprint(tile_api, url_prefix='')
     new_app.register_blueprint(metadata_api, url_prefix='')

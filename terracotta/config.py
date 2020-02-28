@@ -61,6 +61,12 @@ class TerracottaSettings(NamedTuple):
     #: Resampling method to use when downsampling data (low zoom levels)
     DOWNSAMPLING_METHOD: str = 'nearest'
 
+    #: CORS allowed origins for metadata endpoint
+    ALLOWED_ORIGINS_METADATA: str = '*'
+
+    #: CORS allowed origins for tiles endpoints
+    ALLOWED_ORIGINS_TILES: str = ''
+
 
 AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._fields)
 
@@ -104,6 +110,9 @@ class SettingSchema(Schema):
     DOWNSAMPLING_METHOD = fields.String(
         validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
     )
+
+    ALLOWED_ORIGINS_METADATA = fields.String()
+    ALLOWED_ORIGINS_TILES = fields.String()
 
     @pre_load
     def decode_lists(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
