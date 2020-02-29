@@ -88,7 +88,7 @@ VALID_EXPR = (
 
     # long expression
     (
-        '+'.join(['v1'] * 800), sum(OPERANDS['v1'] for _ in range(800))
+        '+'.join(['v1'] * 10), sum(OPERANDS['v1'] for _ in range(10))
     )
 )
 
