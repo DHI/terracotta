@@ -82,6 +82,7 @@ setup(
             'pytest-mypy',
             'pytest-flake8',
             'pytest-benchmark',
+            'pytest-xdist',
             'attrs>=17.4.0',
             'codecov',
             'colorlog',
