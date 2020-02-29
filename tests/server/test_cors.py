@@ -5,8 +5,10 @@ import pytest
 def client_all_disallowed():
     from terracotta.server import create_app
     import terracotta
-    terracotta.update_settings(ALLOWED_ORIGINS_METADATA='',
-                               ALLOWED_ORIGINS_TILES='')
+    terracotta.update_settings(
+        ALLOWED_ORIGINS_METADATA='',
+        ALLOWED_ORIGINS_TILES=''
+    )
     flask_app = create_app()
     with flask_app.test_client() as client:
         yield client
@@ -16,8 +18,10 @@ def client_all_disallowed():
 def client_all_allowed():
     from terracotta.server import create_app
     import terracotta
-    terracotta.update_settings(ALLOWED_ORIGINS_METADATA='*',
-                               ALLOWED_ORIGINS_TILES='*')
+    terracotta.update_settings(
+        ALLOWED_ORIGINS_METADATA='*',
+        ALLOWED_ORIGINS_TILES='*'
+    )
     flask_app = create_app()
     with flask_app.test_client() as client:
         yield client
