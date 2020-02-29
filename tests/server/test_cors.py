@@ -1,7 +1,5 @@
 import pytest
 
-HEADERS_STRANGE_ORIGIN = {'Origin': 'https://example.com'}
-
 
 @pytest.fixture(scope='module')
 def client_defaults():
@@ -50,12 +48,11 @@ def valid_singleband_path(raster_file_xyz):
 def test_cors_defaults(
     client_defaults, use_testdb, valid_metadata_path, valid_singleband_path
 ):
-    rv = client_defaults.get(valid_metadata_path, headers=HEADERS_STRANGE_ORIGIN)
-    print(rv.headers)
+    rv = client_defaults.get(valid_metadata_path)
     assert rv.status_code == 200
     assert 'Access-Control-Allow-Origin' in rv.headers
 
-    rv = client_defaults.get(valid_singleband_path, headers=HEADERS_STRANGE_ORIGIN)
+    rv = client_defaults.get(valid_singleband_path)
     assert rv.status_code == 200
     assert 'Access-Control-Allow-Origin' not in rv.headers
 
@@ -63,16 +60,16 @@ def test_cors_defaults(
 def test_cors_all_allowed(
         client_all_allowed, use_testdb, valid_metadata_path, valid_singleband_path
 ):
-    rv = client_all_allowed.get(valid_metadata_path, headers=HEADERS_STRANGE_ORIGIN)
+    rv = client_all_allowed.get(valid_metadata_path)
     assert rv.status_code == 200
     assert 'Access-Control-Allow-Origin' in rv.headers
 
-    rv = client_all_allowed.get(valid_singleband_path, headers=HEADERS_STRANGE_ORIGIN)
+    rv = client_all_allowed.get(valid_singleband_path)
     assert rv.status_code == 200
     assert 'Access-Control-Allow-Origin' in rv.headers
 
 
 def test_cors_metadata_disallowed(client_metadata_disallowed, use_testdb, valid_metadata_path):
-    rv = client_metadata_disallowed.get(valid_metadata_path, headers=HEADERS_STRANGE_ORIGIN)
+    rv = client_metadata_disallowed.get(valid_metadata_path)
     assert rv.status_code == 200
     assert 'Access-Control-Allow-Origin' not in rv.headers
