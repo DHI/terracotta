@@ -99,7 +99,7 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
     new_app.register_blueprint(new_tile_api, url_prefix='')
     new_app.register_blueprint(new_metadata_api, url_prefix='')
 
-    # register routes on API SPEC
+    # register routes on API spec
     with new_app.test_request_context():
         SPEC.path(view=terracotta.server.datasets.get_datasets)
         SPEC.path(view=terracotta.server.keys.get_keys)
