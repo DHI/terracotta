@@ -31,20 +31,26 @@ def valid_singleband_path(raster_file_xyz):
 def test_cors(use_testdb, valid_metadata_path, valid_singleband_path,
               metadata_origins, tile_origins):
     with get_client(metadata_origins, tile_origins) as client:
+        # metadata
         rv = client.get(valid_metadata_path)
         assert rv.status_code == 200
 
         if metadata_origins == '':
             assert 'Access-Control-Allow-Origin' not in rv.headers
         elif metadata_origins is None:
+            # default for metadata is allow all
             assert rv.headers['Access-Control-Allow-Origin'] == '*'
         else:
             assert rv.headers['Access-Control-Allow-Origin'] == metadata_origins
 
+        # tiles
         rv = client.get(valid_singleband_path)
         assert rv.status_code == 200
 
-        if not tile_origins:
+        if tile_origins == '':
+            assert 'Access-Control-Allow-Origin' not in rv.headers
+        elif tile_origins is None:
+            # default for tiles is disallow all
             assert 'Access-Control-Allow-Origin' not in rv.headers
         else:
             assert rv.headers['Access-Control-Allow-Origin'] == tile_origins

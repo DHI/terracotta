@@ -6,7 +6,7 @@ Flask route to handle /keys calls.
 from flask import jsonify
 from marshmallow import Schema, fields
 
-from terracotta.server.flask_api import convert_exceptions, metadata_api
+from terracotta.server.flask_api import convert_exceptions, METADATA_API
 
 
 class KeyItemSchema(Schema):
@@ -21,7 +21,7 @@ class KeySchema(Schema):
     keys = fields.Nested(KeyItemSchema, many=True, required=True)
 
 
-@metadata_api.route('/keys', methods=['GET'])
+@METADATA_API.route('/keys', methods=['GET'])
 @convert_exceptions
 def get_keys() -> str:
     """Get all key names

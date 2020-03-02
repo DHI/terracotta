@@ -15,12 +15,12 @@ from terracotta import exceptions, __version__
 
 
 # define blueprints, will be populated by submodules
-tile_api = Blueprint('tile_api', 'terracotta.server')
-metadata_api = Blueprint('metadata_api', 'terracotta.server')
-spec_api = Blueprint('spec_api', 'terracotta.server')
+TILE_API = Blueprint('tile_api', 'terracotta.server')
+METADATA_API = Blueprint('metadata_api', 'terracotta.server')
+SPEC_API = Blueprint('spec_api', 'terracotta.server')
 
 # create an APISpec
-spec = APISpec(
+SPEC = APISpec(
     title='Terracotta',
     version=__version__,
     openapi_version='2.0',
@@ -84,8 +84,9 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
     new_app = Flask('terracotta.server')
     new_app.debug = debug
 
-    new_tile_api = copy.deepcopy(tile_api)
-    new_metadata_api = copy.deepcopy(metadata_api)
+    # extensions might modify the global blueprints, so copy before use
+    new_tile_api = copy.deepcopy(TILE_API)
+    new_metadata_api = copy.deepcopy(METADATA_API)
 
     # suppress implicit sort of JSON responses
     new_app.config['JSON_SORT_KEYS'] = False
@@ -98,21 +99,21 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
     new_app.register_blueprint(new_tile_api, url_prefix='')
     new_app.register_blueprint(new_metadata_api, url_prefix='')
 
-    # register routes on API spec
+    # register routes on API SPEC
     with new_app.test_request_context():
-        spec.path(view=terracotta.server.datasets.get_datasets)
-        spec.path(view=terracotta.server.keys.get_keys)
-        spec.path(view=terracotta.server.colormap.get_colormap)
-        spec.path(view=terracotta.server.metadata.get_metadata)
-        spec.path(view=terracotta.server.rgb.get_rgb)
-        spec.path(view=terracotta.server.rgb.get_rgb_preview)
-        spec.path(view=terracotta.server.singleband.get_singleband)
-        spec.path(view=terracotta.server.singleband.get_singleband_preview)
-        spec.path(view=terracotta.server.compute.get_compute)
-        spec.path(view=terracotta.server.compute.get_compute_preview)
+        SPEC.path(view=terracotta.server.datasets.get_datasets)
+        SPEC.path(view=terracotta.server.keys.get_keys)
+        SPEC.path(view=terracotta.server.colormap.get_colormap)
+        SPEC.path(view=terracotta.server.metadata.get_metadata)
+        SPEC.path(view=terracotta.server.rgb.get_rgb)
+        SPEC.path(view=terracotta.server.rgb.get_rgb_preview)
+        SPEC.path(view=terracotta.server.singleband.get_singleband)
+        SPEC.path(view=terracotta.server.singleband.get_singleband_preview)
+        SPEC.path(view=terracotta.server.compute.get_compute)
+        SPEC.path(view=terracotta.server.compute.get_compute_preview)
 
     import terracotta.server.spec
-    new_app.register_blueprint(spec_api, url_prefix='')
+    new_app.register_blueprint(SPEC_API, url_prefix='')
 
     if profile:
         from werkzeug.contrib.profiler import ProfilerMiddleware

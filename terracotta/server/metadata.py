@@ -6,7 +6,7 @@ Flask route to handle /metadata calls.
 from marshmallow import Schema, fields, validate
 from flask import jsonify
 
-from terracotta.server.flask_api import convert_exceptions, metadata_api
+from terracotta.server.flask_api import convert_exceptions, METADATA_API
 
 
 class MetadataSchema(Schema):
@@ -29,7 +29,7 @@ class MetadataSchema(Schema):
     metadata = fields.Raw(description='Any additional (manually added) metadata', required=True)
 
 
-@metadata_api.route('/metadata/<path:keys>', methods=['GET'])
+@METADATA_API.route('/metadata/<path:keys>', methods=['GET'])
 @convert_exceptions
 def get_metadata(keys: str) -> str:
     """Get metadata for given dataset
