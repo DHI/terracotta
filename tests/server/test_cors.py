@@ -1,30 +1,18 @@
 import pytest
 
 
-@pytest.fixture(scope='function')
-def client_all_disallowed():
+def get_client(metadata_origins=None, tile_origins=None):
     from terracotta.server import create_app
     import terracotta
-    terracotta.update_settings(
-        ALLOWED_ORIGINS_METADATA='',
-        ALLOWED_ORIGINS_TILES=''
-    )
-    flask_app = create_app()
-    with flask_app.test_client() as client:
-        yield client
 
+    if metadata_origins is not None:
+        terracotta.update_settings(ALLOWED_ORIGINS_METADATA=metadata_origins)
 
-@pytest.fixture(scope='function')
-def client_all_allowed():
-    from terracotta.server import create_app
-    import terracotta
-    terracotta.update_settings(
-        ALLOWED_ORIGINS_METADATA='*',
-        ALLOWED_ORIGINS_TILES='*'
-    )
+    if tile_origins is not None:
+        terracotta.update_settings(ALLOWED_ORIGINS_TILES=tile_origins)
+
     flask_app = create_app()
-    with flask_app.test_client() as client:
-        yield client
+    return flask_app.test_client()
 
 
 @pytest.fixture
@@ -38,23 +26,25 @@ def valid_singleband_path(raster_file_xyz):
     return f'/singleband/val11/x/val12/{z}/{x}/{y}.png'
 
 
-def test_cors_all_disallowed(client_all_disallowed, use_testdb,
-                             valid_metadata_path, valid_singleband_path):
-    rv = client_all_disallowed.get(valid_metadata_path)
-    assert rv.status_code == 200
-    assert 'Access-Control-Allow-Origin' not in rv.headers
+@pytest.mark.parametrize('tile_origins', (None, '*', '', 'example.org'))
+@pytest.mark.parametrize('metadata_origins', (None, '*', '', 'example.org'))
+def test_cors(use_testdb, valid_metadata_path, valid_singleband_path,
+              metadata_origins, tile_origins):
+    with get_client(metadata_origins, tile_origins) as client:
+        rv = client.get(valid_metadata_path)
+        assert rv.status_code == 200
 
-    rv = client_all_disallowed.get(valid_singleband_path)
-    assert rv.status_code == 200
-    assert 'Access-Control-Allow-Origin' not in rv.headers
+        if metadata_origins == '':
+            assert 'Access-Control-Allow-Origin' not in rv.headers
+        elif metadata_origins is None:
+            assert rv.headers['Access-Control-Allow-Origin'] == '*'
+        else:
+            assert rv.headers['Access-Control-Allow-Origin'] == metadata_origins
 
+        rv = client.get(valid_singleband_path)
+        assert rv.status_code == 200
 
-def test_cors_all_allowed(client_all_allowed, use_testdb,
-                          valid_metadata_path, valid_singleband_path):
-    rv = client_all_allowed.get(valid_metadata_path)
-    assert rv.status_code == 200
-    assert 'Access-Control-Allow-Origin' in rv.headers
-
-    rv = client_all_allowed.get(valid_singleband_path)
-    assert rv.status_code == 200
-    assert 'Access-Control-Allow-Origin' in rv.headers
+        if not tile_origins:
+            assert 'Access-Control-Allow-Origin' not in rv.headers
+        else:
+            assert rv.headers['Access-Control-Allow-Origin'] == tile_origins

@@ -1,5 +1,6 @@
 from typing import Callable, Any
 import functools
+import copy
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
@@ -83,18 +84,19 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
     new_app = Flask('terracotta.server')
     new_app.debug = debug
 
+    new_tile_api = copy.deepcopy(tile_api)
+    new_metadata_api = copy.deepcopy(metadata_api)
+
     # suppress implicit sort of JSON responses
     new_app.config['JSON_SORT_KEYS'] = False
 
     # CORS
     settings = get_settings()
-    if settings.ALLOWED_ORIGINS_METADATA:
-        CORS(metadata_api, origins=settings.ALLOWED_ORIGINS_METADATA)
-    if settings.ALLOWED_ORIGINS_TILES:
-        CORS(tile_api, origins=settings.ALLOWED_ORIGINS_TILES)
+    CORS(new_tile_api, origins=settings.ALLOWED_ORIGINS_TILES)
+    CORS(new_metadata_api, origins=settings.ALLOWED_ORIGINS_METADATA)
 
-    new_app.register_blueprint(tile_api, url_prefix='')
-    new_app.register_blueprint(metadata_api, url_prefix='')
+    new_app.register_blueprint(new_tile_api, url_prefix='')
+    new_app.register_blueprint(new_metadata_api, url_prefix='')
 
     # register routes on API spec
     with new_app.test_request_context():
