@@ -24,8 +24,8 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/DHI-GRAS/terracotta',
-    author='Philip Graae',
-    author_email='phgr@dhigroup.com',
+    author='Jonas Sølvsteen',
+    author_email='josl@dhigroup.com',
     keywords='xyz tileserver rasterio cloud-optimized-geotiff serverless',
     classifiers=[
         'Development Status :: 4 - Beta',
