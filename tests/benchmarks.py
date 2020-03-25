@@ -59,8 +59,8 @@ def test_bench_rgb(benchmark, zoom, resampling, big_raster_file_nodata, benchmar
 
     update_settings(
         DRIVER_PATH=str(benchmark_database),
-        UPSAMPLING_METHOD=resampling,
-        DOWNSAMPLING_METHOD=resampling
+        RESAMPLING_METHOD=resampling,
+        REPROJECTION_METHOD=resampling
     )
 
     zoom_level = ZOOM_XYZ[zoom]
@@ -99,8 +99,8 @@ def test_bench_singleband(benchmark, zoom, resampling, big_raster_file_nodata, b
 
     update_settings(
         DRIVER_PATH=str(benchmark_database),
-        UPSAMPLING_METHOD=resampling,
-        DOWNSAMPLING_METHOD=resampling
+        RESAMPLING_METHOD=resampling,
+        REPROJECTION_METHOD=resampling
     )
 
     zoom_level = ZOOM_XYZ[zoom]

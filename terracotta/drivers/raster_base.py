@@ -11,13 +11,11 @@ from concurrent.futures import Future, Executor, ProcessPoolExecutor, ThreadPool
 import contextlib
 import functools
 import logging
-import math
 import warnings
 import threading
 
 import numpy as np
 import cachetools
-from affine import Affine
 
 if TYPE_CHECKING:  # pragma: no cover
     from rasterio.io import DatasetReader  # noqa: F401
@@ -394,54 +392,6 @@ class RasterDriver(Driver):
         raise ValueError(f'unknown resampling method {method}')
 
     @staticmethod
-    @trace('calculate_default_transform')
-    def _calculate_default_transform(src_crs: Union[Dict[str, str], str],
-                                     _TARGET_CRS: Union[Dict[str, str], str],
-                                     width: int,
-                                     height: int,
-                                     *bounds: Number) -> Tuple[Affine, int, int]:
-        """A more stable version of GDAL's default transform.
-
-        Ensures that the number of pixels along the image's shortest diagonal remains
-        the same in both CRS, without enforcing square pixels.
-
-        Bounds are in order (west, south, east, north).
-        """
-        from rasterio import warp, transform
-
-        if len(bounds) != 4:
-            raise ValueError('Bounds must contain 4 values')
-
-        # transform image corners to target CRS
-        dst_corner_sw, dst_corner_nw, dst_corner_se, dst_corner_ne = (
-            list(zip(*warp.transform(
-                src_crs, _TARGET_CRS,
-                [bounds[0], bounds[0], bounds[2], bounds[2]],
-                [bounds[1], bounds[3], bounds[1], bounds[3]]
-            )))
-        )
-
-        # determine inner bounding box of corners in target CRS
-        dst_corner_bounds = [
-            max(dst_corner_sw[0], dst_corner_nw[0]),
-            max(dst_corner_sw[1], dst_corner_se[1]),
-            min(dst_corner_se[0], dst_corner_ne[0]),
-            min(dst_corner_nw[1], dst_corner_ne[1])
-        ]
-
-        # compute target resolution
-        dst_corner_transform = transform.from_bounds(*dst_corner_bounds, width=width, height=height)
-        target_res = (dst_corner_transform.a, dst_corner_transform.e)
-
-        # get transform spanning whole bounds (not just projected corners)
-        dst_bounds = warp.transform_bounds(src_crs, _TARGET_CRS, *bounds)
-        dst_width = math.ceil((dst_bounds[2] - dst_bounds[0]) / target_res[0])
-        dst_height = math.ceil((dst_bounds[1] - dst_bounds[3]) / target_res[1])
-        dst_transform = transform.from_bounds(*dst_bounds, width=dst_width, height=dst_height)
-
-        return dst_transform, dst_width, dst_height
-
-    @staticmethod
     def _has_alpha_band(src: 'DatasetReader') -> bool:
         from rasterio.enums import MaskFlags
         return any([MaskFlags.per_dataset in flags for flags in src.mask_flag_enums])
@@ -449,9 +399,9 @@ class RasterDriver(Driver):
     @classmethod
     @trace('get_raster_tile')
     def _get_raster_tile(cls, path: str, *,
-                         upsampling_method: str,
-                         downsampling_method: str,
-                         bounds: Tuple[float, float, float, float] = None,
+                         reprojection_method: str,
+                         resampling_method: str,
+                         tile_bounds: Tuple[float, float, float, float] = None,
                          tile_size: Tuple[int, int] = (256, 256),
                          preserve_values: bool = False) -> np.ma.MaskedArray:
         """Load a raster dataset from a file through rasterio.
@@ -466,10 +416,10 @@ class RasterDriver(Driver):
         dst_bounds: Tuple[float, float, float, float]
 
         if preserve_values:
-            upsampling_enum = downsampling_enum = cls._get_resampling_enum('nearest')
+            reproject_enum = resampling_enum = cls._get_resampling_enum('nearest')
         else:
-            upsampling_enum = cls._get_resampling_enum(upsampling_method)
-            downsampling_enum = cls._get_resampling_enum(downsampling_method)
+            reproject_enum = cls._get_resampling_enum(reprojection_method)
+            resampling_enum = cls._get_resampling_enum(resampling_method)
 
         with contextlib.ExitStack() as es:
             es.enter_context(rasterio.Env(**cls._RIO_ENV_KEYS))
@@ -479,24 +429,43 @@ class RasterDriver(Driver):
             except OSError:
                 raise IOError('error while reading file {}'.format(path))
 
-            # compute suggested resolution and bounds in target CRS
-            dst_transform, _, _ = cls._calculate_default_transform(
+            # compute buonds in target CRS
+            dst_bounds = warp.transform_bounds(src.crs, cls._TARGET_CRS, *src.bounds)
+
+            if tile_bounds is None:
+                tile_bounds = dst_bounds
+
+            # prevent loads of very sparse data
+            cover_ratio = (
+                (dst_bounds[2] - dst_bounds[0]) / (tile_bounds[2] - tile_bounds[0])
+                * (dst_bounds[3] - dst_bounds[1]) / (tile_bounds[3] - tile_bounds[1])
+            )
+
+            if cover_ratio < 0.01:
+                raise exceptions.TileOutOfBoundsError('dataset covers less than 1% of tile')
+
+            # compute suggested resolution in target CRS
+            dst_transform, _, _ = warp.calculate_default_transform(
                 src.crs, cls._TARGET_CRS, src.width, src.height, *src.bounds
             )
             dst_res = (abs(dst_transform.a), abs(dst_transform.e))
-            dst_bounds = warp.transform_bounds(src.crs, cls._TARGET_CRS, *src.bounds)
 
-            if bounds is None:
-                bounds = dst_bounds
+            # make sure VRT resolves the entire tile
+            tile_transform = transform.from_bounds(*tile_bounds, *tile_size)
+            tile_res = (abs(tile_transform.a), abs(tile_transform.e))
+
+            if tile_res[0] < dst_res[0] or tile_res[1] < dst_res[0]:
+                dst_res = tile_res
+                resampling_enum = cls._get_resampling_enum('nearest')
 
             # pad tile bounds to prevent interpolation artefacts
             num_pad_pixels = 2
 
             # compute tile VRT shape and transform
-            dst_width = max(1, round((bounds[2] - bounds[0]) / dst_res[0]))
-            dst_height = max(1, round((bounds[3] - bounds[1]) / dst_res[1]))
+            dst_width = max(1, round((tile_bounds[2] - tile_bounds[0]) / dst_res[0]))
+            dst_height = max(1, round((tile_bounds[3] - tile_bounds[1]) / dst_res[1]))
             vrt_transform = (
-                transform.from_bounds(*bounds, width=dst_width, height=dst_height)
+                transform.from_bounds(*tile_bounds, width=dst_width, height=dst_height)
                 * Affine.translation(-num_pad_pixels, -num_pad_pixels)
             )
             vrt_height, vrt_width = dst_height + 2 * num_pad_pixels, dst_width + 2 * num_pad_pixels
@@ -509,27 +478,10 @@ class RasterDriver(Driver):
             # construct VRT
             vrt = es.enter_context(
                 WarpedVRT(
-                    src, crs=cls._TARGET_CRS, resampling=upsampling_enum, add_alpha=True,
+                    src, crs=cls._TARGET_CRS, resampling=reproject_enum, add_alpha=True,
                     transform=vrt_transform, width=vrt_width, height=vrt_height
                 )
             )
-
-            # prevent loads of very sparse data
-            out_window_bounds = windows.bounds(out_window, vrt_transform)
-            cover_ratio = (
-                (dst_bounds[2] - dst_bounds[0]) / (out_window_bounds[2] - out_window_bounds[0])
-                * (dst_bounds[3] - dst_bounds[1]) / (out_window_bounds[3] - out_window_bounds[1])
-            )
-
-            if cover_ratio < 0.01:
-                raise exceptions.TileOutOfBoundsError('dataset covers less than 1% of tile')
-
-            # determine whether we are upsampling or downsampling
-            pixel_ratio = min(out_window.width / tile_size[1], out_window.height / tile_size[0])
-            if pixel_ratio < 1:
-                resampling_enum = upsampling_enum
-            else:
-                resampling_enum = downsampling_enum
 
             # read data
             with warnings.catch_warnings(), trace('read_from_vrt'):
@@ -549,7 +501,7 @@ class RasterDriver(Driver):
     @requires_connection
     def get_raster_tile(self,
                         keys: Union[Sequence[str], Mapping[str, str]], *,
-                        bounds: Sequence[float] = None,
+                        tile_bounds: Sequence[float] = None,
                         tile_size: Sequence[int] = None,
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
@@ -571,11 +523,11 @@ class RasterDriver(Driver):
         # make sure all arguments are hashable
         kwargs = dict(
             path=path,
-            bounds=tuple(bounds) if bounds else None,
+            tile_bounds=tuple(tile_bounds) if tile_bounds else None,
             tile_size=tuple(tile_size),
             preserve_values=preserve_values,
-            upsampling_method=settings.UPSAMPLING_METHOD,
-            downsampling_method=settings.DOWNSAMPLING_METHOD
+            reprojection_method=settings.REPROJECTION_METHOD,
+            resampling_method=settings.RESAMPLING_METHOD
         )
 
         cache_key = cachetools.keys.hashkey(**kwargs)
