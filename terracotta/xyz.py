@@ -42,7 +42,7 @@ def get_tile_data(driver: Driver,
     target_bounds = mercantile.xy_bounds(mercator_tile)
 
     return driver.get_raster_tile(
-        keys, bounds=target_bounds, tile_size=tile_size,
+        keys, tile_bounds=target_bounds, tile_size=tile_size,
         preserve_values=preserve_values, asynchronous=asynchronous
     )
 

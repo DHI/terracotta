@@ -111,7 +111,7 @@ class Driver(ABC):
     @abstractmethod
     # TODO: add accurate signature if mypy ever supports conditional return types
     def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
-                        bounds: Sequence[float] = None,
+                        tile_bounds: Sequence[float] = None,
                         tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
@@ -121,7 +121,7 @@ class Driver(ABC):
 
             keys: Keys of the requested dataset. Can either be given as a sequence of key values,
                 or as a mapping ``{key_name: key_value}``.
-            bounds: Physical bounds of the tile to read, in Web Mercator projection (EPSG3857).
+            tile_bounds: Physical bounds of the tile to read, in Web Mercator projection (EPSG3857).
                 Reads the whole dataset if not given.
             tile_size: Shape of the output array to return. Must be two-dimensional.
                 Defaults to :attr:`~terracotta.config.TerracottaSettings.DEFAULT_TILE_SIZE`.
