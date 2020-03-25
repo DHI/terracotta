@@ -454,7 +454,7 @@ class RasterDriver(Driver):
             tile_transform = transform.from_bounds(*tile_bounds, *tile_size)
             tile_res = (abs(tile_transform.a), abs(tile_transform.e))
 
-            if any(tile_res < dst_res):
+            if tile_res[0] < dst_res[0] or tile_res[1] < dst_res[1]:
                 dst_res = tile_res
                 resampling_enum = cls._get_resampling_enum('nearest')
 
