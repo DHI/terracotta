@@ -11,7 +11,7 @@ import logging
 import click
 import tqdm
 
-from terracotta.scripts.click_types import GlobbityGlob, RasterPattern, RasterPatternType
+from terracotta.scripts.click_types import RasterPattern, RasterPatternType
 from terracotta.scripts.http_utils import find_open_port
 
 logger = logging.getLogger(__name__)
@@ -21,8 +21,6 @@ logger = logging.getLogger(__name__)
 @click.option('-d', '--database', required=False, default=None, help='Database to serve from.')
 @click.option('-r', '--raster-pattern', type=RasterPattern(), required=False, default=None,
               help='A format pattern defining paths and keys of the raster files to serve.')
-@click.option('-f', '--filenames', type=GlobbityGlob(), required=False, default=None,
-              help='A list of files to be served by filename.')
 @click.option('--rgb-key', default=None,
               help='Key to use for RGB compositing [default: last key in pattern]. '
                    'Has no effect if -r/--raster-pattern is not given.')
@@ -36,7 +34,6 @@ logger = logging.getLogger(__name__)
               help='Port to use [default: first free port between 5000 and 5099].')
 def serve(database: str = None,
           raster_pattern: RasterPatternType = None,
-          filenames: Sequence[str] = None,
           debug: bool = False,
           profile: bool = False,
           database_provider: str = None,
@@ -45,18 +42,13 @@ def serve(database: str = None,
           rgb_key: str = None) -> None:
     """Serve rasters through a local Flask development server.
 
-    Either -d/--database, -r/--raster-pattern, or -f/--filenames must be given.
+    Either -d/--database or -r/--raster-pattern must be given.
 
-    Examples:
-
-        $ terracotta serve -d /path/to/terracotta.sqlite
+    Example:
 
         $ terracotta serve -r /path/to/rasters/{name}/{date}_{band}_{}.tif
 
-        $ terracotta serve -f /path/to/rasters/*.tif
-
-    The empty group {} in raster patterns is replaced by a wildcard matching anything (similar
-    to * in glob patterns).
+    The empty group {} is replaced by a wildcard matching anything (similar to * in glob patterns).
 
     This command is a data exploration tool and not meant for production use. Deploy Terracotta as
     a WSGI or serverless app instead.
@@ -64,19 +56,14 @@ def serve(database: str = None,
     from terracotta import get_driver, update_settings
     from terracotta.server import create_app
 
-    if sum(k is not None for k in (database, raster_pattern, filenames)) != 1:
-        raise click.UsageError(
-            'Exactly one of --database, --raster-pattern, --filenames must be given'
-        )
+    if (database is None) == (raster_pattern is None):
+        raise click.UsageError('Either --database or --raster-pattern must be given')
 
-    if database is None:
+    if raster_pattern is not None:
         dbfile = tempfile.NamedTemporaryFile(suffix='.sqlite', delete=False)
         dbfile.close()
 
-        if raster_pattern is not None:
-            keys, raster_files = raster_pattern
-        else:
-            keys, raster_files = ['filename'], filenames
+        keys, raster_files = raster_pattern
 
         if rgb_key is not None:
             if rgb_key not in keys:
