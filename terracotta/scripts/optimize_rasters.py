@@ -21,6 +21,7 @@ from rasterio.io import DatasetReader, MemoryFile
 from rasterio.vrt import WarpedVRT
 from rasterio.enums import Resampling
 from rasterio.env import GDALVersion
+from rasterio.warp import calculate_default_transform
 
 from terracotta.scripts.click_types import GlobbityGlob, PathlibPath
 
@@ -79,7 +80,7 @@ def _prefered_compression_method() -> str:
 def _get_vrt(src: DatasetReader, rs_method: int) -> WarpedVRT:
     from terracotta.drivers.raster_base import RasterDriver
     target_crs = RasterDriver._TARGET_CRS
-    vrt_transform, vrt_width, vrt_height = RasterDriver._calculate_default_transform(
+    vrt_transform, vrt_width, vrt_height = calculate_default_transform(
         src.crs, target_crs, src.width, src.height, *src.bounds
     )
     vrt = WarpedVRT(
@@ -242,7 +243,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 for _, w in tqdm.tqdm(windows, desc='Reading', **sub_pbar_args):
                     block_data = vrt.read(window=w, indexes=[1])
                     dst.write(block_data, window=w)
-                    block_mask = vrt.dataset_mask(window=w)
+                    block_mask = vrt.dataset_mask(window=w).astype('uint8')
                     dst.write_mask(block_mask, window=w)
 
                 # add overviews

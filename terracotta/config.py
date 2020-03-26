@@ -55,11 +55,11 @@ class TerracottaSettings(NamedTuple):
     #: Time-to-live of remote database cache in seconds
     REMOTE_DB_CACHE_TTL: int = 10 * 60  # 10 min
 
-    #: Resampling method to use when upsampling data (high zoom levels)
-    UPSAMPLING_METHOD: str = 'cubic'
+    #: Resampling method to use when reading reprojected data
+    RESAMPLING_METHOD: str = 'average'
 
-    #: Resampling method to use when downsampling data (low zoom levels)
-    DOWNSAMPLING_METHOD: str = 'nearest'
+    #: Resampling method to use when reprojecting data to Web Mercator
+    REPROJECTION_METHOD: str = 'linear'
 
     #: CORS allowed origins for metadata endpoint
     ALLOWED_ORIGINS_METADATA: str = '*'
@@ -104,10 +104,10 @@ class SettingSchema(Schema):
     REMOTE_DB_CACHE_DIR = fields.String(validate=_is_writable)
     REMOTE_DB_CACHE_TTL = fields.Integer(validate=validate.Range(min=0))
 
-    UPSAMPLING_METHOD = fields.String(
+    RESAMPLING_METHOD = fields.String(
         validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
     )
-    DOWNSAMPLING_METHOD = fields.String(
+    REPROJECTION_METHOD = fields.String(
         validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
     )
 

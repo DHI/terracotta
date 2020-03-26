@@ -13,9 +13,9 @@ settings in several different ways:
 
   .. code-block:: bash
 
-     $ export TC_UPSAMPLING_METHOD=cubic
+     $ export TC_RESAMPLING_METHOD=cubic
 
-  will set the corresponding setting ``UPSAMPLING_METHOD`` to ``cubic`` in all Terracotta
+  will set the corresponding setting ``RESAMPLING_METHOD`` to ``cubic`` in all Terracotta
   instances. This is particularly useful for serverless deployments. You can set list
   values in JSON array notation:
 
@@ -55,7 +55,7 @@ Available runtime settings
 All runtime settings are contained in the following :class:`~typing.NamedTuple`.
 
 .. seealso::
-    
+
     To see the types and default values of the settings,
     `have a look at the TerracottaSettings source code <_modules/terracotta/config.html#TerracottaSettings>`__.
 

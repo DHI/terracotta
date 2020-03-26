@@ -19,14 +19,6 @@ branches:
   only:
     - master
 
-addons:
-  apt:
-    update: true
-    packages:
-      - build-essential
-      - gdal-bin
-      - libgdal-dev
-
 before_install:
   - pip install cython
 
