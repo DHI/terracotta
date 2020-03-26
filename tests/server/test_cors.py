@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 
@@ -26,8 +28,8 @@ def valid_singleband_path(raster_file_xyz):
     return f'/singleband/val11/x/val12/{z}/{x}/{y}.png'
 
 
-@pytest.mark.parametrize('tile_origins', (None, '*', '', 'example.org'))
-@pytest.mark.parametrize('metadata_origins', (None, '*', '', 'example.org'))
+@pytest.mark.parametrize('tile_origins', (None, '["*"]', '[]', '["example.org"]'))
+@pytest.mark.parametrize('metadata_origins', (None, '["*"]', '[]', '["example.org"]'))
 def test_cors(use_testdb, valid_metadata_path, valid_singleband_path,
               metadata_origins, tile_origins):
     with get_client(metadata_origins, tile_origins) as client:
@@ -35,22 +37,28 @@ def test_cors(use_testdb, valid_metadata_path, valid_singleband_path,
         rv = client.get(valid_metadata_path)
         assert rv.status_code == 200
 
-        if metadata_origins == '':
+        if metadata_origins == '[]':
             assert 'Access-Control-Allow-Origin' not in rv.headers
         elif metadata_origins is None:
             # default for metadata is allow all
             assert rv.headers['Access-Control-Allow-Origin'] == '*'
         else:
-            assert rv.headers['Access-Control-Allow-Origin'] == metadata_origins
+            expected = json.loads(metadata_origins)
+            if len(expected) == 1:
+                expected = expected[0]
+            assert rv.headers['Access-Control-Allow-Origin'] == expected
 
         # tiles
         rv = client.get(valid_singleband_path)
         assert rv.status_code == 200
 
-        if tile_origins == '':
+        if tile_origins == '[]':
             assert 'Access-Control-Allow-Origin' not in rv.headers
         elif tile_origins is None:
             # default for tiles is disallow all
             assert 'Access-Control-Allow-Origin' not in rv.headers
         else:
-            assert rv.headers['Access-Control-Allow-Origin'] == tile_origins
+            expected = json.loads(tile_origins)
+            if len(expected) == 1:
+                expected = expected[0]
+            assert rv.headers['Access-Control-Allow-Origin'] == expected
