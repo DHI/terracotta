@@ -37,3 +37,9 @@ after_success:
 
 notifications:
   email: false
+
+deploy:
+  provider: pypi
+  user: "__token__"
+  password:
+    secure: "TVbidnBsWm3hl3TvbMm+8WecSOUwi1iOkjRKZvgj/nsIu2ManXS42p67CVABBODuf497bZQpo6JlcR58/UEUbfHcPhvb9xC1n2HI8FCZbHwTdO8net/33gR5TqNAoUnGeRWiD7tylQi8ds/uNdXMWFfd5IT/G96VVUkHZ1TW4VRfnj8v4gCme8e8EZkgmgFeK5sr97cIXwudduNIYGvLBJMsmlRbToYAnniYMK5MulJSEjU/aBwgXnRJzw5TNU8j4z1wvH2o37QJJads/WW88Q4XDi7l/RibSEonQGmS7qNJsBl+w/WXCIyZUsgAkJEFSuCCVh3Xj6xsrMtDmZ9YuUiRyo8GVGoexUr8TMlO8rjiZBwKYF5LHrdyzelDocc6UmSdeM9kHsH4dn12kkWp+CTnSFCdIKA31cLx9bp1d+hqbA2x1gDZh/1Wc6/ZgWvtgEf0ee1sbKuLrovCnzNqKKqVJ2VwGQJFJb9HKnoiAh5ih5BWs0C7K+L+y1yxz/b+nkzJLMiz1FMMknMGtQrENWdntOI4OI9u2VbnLKpRAVOrBJyWjdNmdioQ8S+VmqNxu/GqsQ0T4Bek/JDJh1Kp/Osks6NjQQ/DRQuMTX51vcMcBfR/GsRAfygn9i2SDXtlnqtaiIjmF+KReB5ywd6SI9/PL4pLZjr+TsguXbJJAKM="
