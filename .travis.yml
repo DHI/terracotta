@@ -18,6 +18,8 @@ services:
 branches:
   only:
     - master
+    # build release tags
+    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 
 before_install:
   - pip install cython
