@@ -33,8 +33,8 @@ settings in several different ways:
 
   .. code-block:: none
 
-     DRIVER_PATH = root:password@myserver.com/terracotta
-     DRIVER_PROVIDER = mysql
+     TC_DRIVER_PATH = root:password@myserver.com/terracotta
+     TC_DRIVER_PROVIDER = mysql
 
 - If you are using the :doc:`Terracotta Python API <api>`, you can call
   :func:`~terracotta.update_settings` directly.
@@ -62,3 +62,22 @@ All runtime settings are contained in the following :class:`~typing.NamedTuple`.
 .. autoclass:: terracotta.config.TerracottaSettings
    :members:
    :member-order: bysource
+
+
+Cross-origin resource sharing (CORS)
+------------------------------------
+
+Your application might need Terracotta to allow Cross-origin resource sharing for selected
+client hostnames or all hostnames. For example, Mapbox GL calls the map tiles endpoint
+programmatically.
+
+You can control the CORS settings for the metadata (`/metadata`) and tiles (`/rgb` and `/singleband`)
+endpoints individually with the optional environment variables
+
+    .. code-block:: none
+
+    TC_ALLOWED_ORIGINS_METADATA = '["*"]'
+    TC_ALLOWED_ORIGINS_TILES = '[]'
+
+where the values are JSON lists, either empty (no CORS) or a list of hostnames or wildcards.
+The above settings are the defaults when you omit these settings.
