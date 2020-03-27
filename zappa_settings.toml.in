@@ -28,8 +28,8 @@ memory_size = 500
     TC_DRIVER_PATH = "s3://tc-testdata/terracotta.sqlite"
     TC_DRIVER_PROVIDER = "sqlite-remote"
     TC_UPSAMPLING_METHOD = "cubic"
-    TC_ALLOWED_ORIGINS_METADATA = "*"
-    TC_ALLOWED_ORIGINS_TILES = ""
+    TC_ALLOWED_ORIGINS_METADATA = '["*"]'
+    TC_ALLOWED_ORIGINS_TILES = '[]'
     TC_XRAY_PROFILE = "true"
 
     [development.callbacks]
