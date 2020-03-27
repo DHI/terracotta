@@ -10,7 +10,7 @@ from marshmallow import (Schema, fields, validate,
                          pre_load, ValidationError, EXCLUDE)
 from flask import request, send_file
 
-from terracotta.server.flask_api import convert_exceptions, tile_api
+from terracotta.server.flask_api import convert_exceptions, TILE_API
 from terracotta.cmaps import AVAILABLE_CMAPS
 
 
@@ -72,8 +72,8 @@ class ComputeOptionSchema(Schema):
         return data
 
 
-@tile_api.route('/compute/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
-@tile_api.route('/compute/<path:keys>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
+@TILE_API.route('/compute/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
+@TILE_API.route('/compute/<path:keys>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
                 methods=['GET'])
 @convert_exceptions
 def get_compute(tile_z: int, tile_y: int, tile_x: int, keys: str = '') -> Any:
@@ -107,8 +107,8 @@ class ComputePreviewSchema(Schema):
     keys = fields.String(required=True, description='Keys identifying dataset, in order')
 
 
-@tile_api.route('/compute/preview.png', methods=['GET'])
-@tile_api.route('/compute/<path:keys>/preview.png', methods=['GET'])
+@TILE_API.route('/compute/preview.png', methods=['GET'])
+@TILE_API.route('/compute/<path:keys>/preview.png', methods=['GET'])
 @convert_exceptions
 def get_compute_preview(keys: str = '') -> Any:
     """Combine datasets into a single-band PNG image through a given mathematical expression

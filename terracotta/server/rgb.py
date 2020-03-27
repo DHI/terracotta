@@ -9,7 +9,7 @@ import json
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 from flask import request, send_file
 
-from terracotta.server.flask_api import convert_exceptions, tile_api
+from terracotta.server.flask_api import convert_exceptions, TILE_API
 
 
 class RGBQuerySchema(Schema):
@@ -56,8 +56,8 @@ class RGBOptionSchema(Schema):
         return data
 
 
-@tile_api.route('/rgb/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
-@tile_api.route('/rgb/<path:keys>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
+@TILE_API.route('/rgb/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
+@TILE_API.route('/rgb/<path:keys>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
 @convert_exceptions
 def get_rgb(tile_z: int, tile_y: int, tile_x: int, keys: str = '') -> Any:
     """Return the requested RGB tile as a PNG image.
@@ -89,8 +89,8 @@ class RGBPreviewQuerySchema(Schema):
     keys = fields.String(required=True, description='Keys identifying dataset, in order')
 
 
-@tile_api.route('/rgb/preview.png', methods=['GET'])
-@tile_api.route('/rgb/<path:keys>/preview.png', methods=['GET'])
+@TILE_API.route('/rgb/preview.png', methods=['GET'])
+@TILE_API.route('/rgb/<path:keys>/preview.png', methods=['GET'])
 @convert_exceptions
 def get_rgb_preview(keys: str = '') -> Any:
     """Return the requested RGB dataset preview as a PNG image.

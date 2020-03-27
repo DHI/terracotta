@@ -15,8 +15,7 @@ settings in several different ways:
 
      $ export TC_RESAMPLING_METHOD=cubic
 
-  will set the corresponding setting ``RESAMPLING_METHOD`` to ``cubic`` in all Terracotta
-  instances. This is particularly useful for serverless deployments. You can set list
+  will set the corresponding setting :attr:`~terracotta.config.TerracottaSettings.RESAMPLING_METHOD` to ``cubic`` in all Terracotta instances. This is particularly useful for serverless deployments. You can set list
   values in JSON array notation:
 
   .. code-block:: bash
@@ -62,3 +61,19 @@ All runtime settings are contained in the following :class:`~typing.NamedTuple`.
 .. autoclass:: terracotta.config.TerracottaSettings
    :members:
    :member-order: bysource
+
+
+Cross-origin resource sharing (CORS)
+------------------------------------
+
+Your application might need Terracotta to allow CORS for some or all hostnames. For example, this is required when using Mapbox GL to serve tiles (but generally depends on how the frontend requests resources from Terracotta).
+
+You can control the CORS settings for the metadata (``/metadata``) and tiles (``/rgb`` and ``/singleband``)
+endpoints individually with the settings :attr:`~terracotta.config.TerracottaSettings.ALLOWED_ORIGINS_METADATA` and :attr:`~terracotta.config.TerracottaSettings.ALLOWED_ORIGINS_TILES`:
+
+.. code-block:: bash
+
+   $ export TC_ALLOWED_ORIGINS_METADATA="['*']"
+   $ export TC_ALLOWED_ORIGINS_TILES="[]"
+
+The above settings are the defaults when you omit these settings (allow all origins for metadata, and no origins for tiles).

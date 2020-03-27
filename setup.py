@@ -30,12 +30,10 @@ setup(
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: End Users/Desktop',
-        'Intended Audience :: Science/Research',
-        'Intended Audience :: System Administrators',
-        'Topic :: Software Development :: Build Tools',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Framework :: Flask',
         'Operating System :: Microsoft :: Windows :: Windows 10',
         'Operating System :: MacOS :: MacOS X',
@@ -55,7 +53,7 @@ setup(
     setup_requires=[
         'setuptools_scm',
         'setuptools_scm_git_archive',
-        'numpy' + numpy_version
+        'numpy%s' % numpy_version
     ],
     install_requires=[
         'apispec>=1.0',
@@ -64,9 +62,9 @@ setup(
         'click',
         'flask',
         'flask_cors',
-        'marshmallow>=3.0.0b12',
+        'marshmallow>=3.0.0',
         'mercantile',
-        'numpy' + numpy_version,
+        'numpy%s' % numpy_version,
         'pillow',
         'pyyaml>=3.10',  # downstream dependency of apispec
         'shapely',

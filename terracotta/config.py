@@ -3,7 +3,7 @@
 Terracotta settings parsing.
 """
 
-from typing import Mapping, Any, Tuple, NamedTuple, Dict, Optional
+from typing import Mapping, Any, Tuple, NamedTuple, Dict, List, Optional
 import os
 import json
 import tempfile
@@ -61,6 +61,12 @@ class TerracottaSettings(NamedTuple):
     #: Resampling method to use when reprojecting data to Web Mercator
     REPROJECTION_METHOD: str = 'linear'
 
+    #: CORS allowed origins for metadata endpoint
+    ALLOWED_ORIGINS_METADATA: List[str] = ['*']
+
+    #: CORS allowed origins for tiles endpoints
+    ALLOWED_ORIGINS_TILES: List[str] = []
+
 
 AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._fields)
 
@@ -105,21 +111,28 @@ class SettingSchema(Schema):
         validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
     )
 
+    ALLOWED_ORIGINS_METADATA = fields.List(fields.String())
+    ALLOWED_ORIGINS_TILES = fields.List(fields.String())
+
     @pre_load
     def decode_lists(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
-        for var in ('DEFAULT_TILE_SIZE',):
+        for var in ('DEFAULT_TILE_SIZE', 'LAZY_LOADING_MAX_SHAPE',
+                    'ALLOWED_ORIGINS_METADATA', 'ALLOWED_ORIGINS_TILES'):
             val = data.get(var)
             if val and isinstance(val, str):
                 try:
                     data[var] = json.loads(val)
                 except json.decoder.JSONDecodeError as exc:
-                    raise ValidationError(f'Could not parse value for key {var} as JSON') from exc
+                    raise ValidationError(
+                        f'Could not parse value for key {var} as JSON: "{val}"'
+                    ) from exc
         return data
 
     @post_load
     def make_settings(self, data: Dict[str, Any], **kwargs: Any) -> TerracottaSettings:
         # encode tuples
-        for var in ('DEFAULT_TILE_SIZE',):
+        for var in ('DEFAULT_TILE_SIZE', 'LAZY_LOADING_MAX_SHAPE',
+                    'ALLOWED_ORIGINS_METADATA', 'ALLOWED_ORIGINS_TILES'):
             val = data.get(var)
             if val:
                 data[var] = tuple(val)

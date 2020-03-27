@@ -10,7 +10,7 @@ from marshmallow import (Schema, fields, validate, validates_schema,
                          pre_load, ValidationError, EXCLUDE)
 from flask import request, send_file
 
-from terracotta.server.flask_api import convert_exceptions, tile_api
+from terracotta.server.flask_api import convert_exceptions, TILE_API
 from terracotta.cmaps import AVAILABLE_CMAPS
 
 
@@ -92,7 +92,7 @@ class SinglebandOptionSchema(Schema):
         return data
 
 
-@tile_api.route('/singleband/<path:keys>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
+@TILE_API.route('/singleband/<path:keys>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png',
                 methods=['GET'])
 @convert_exceptions
 def get_singleband(tile_z: int, tile_y: int, tile_x: int, keys: str) -> Any:
@@ -125,7 +125,7 @@ class SinglebandPreviewSchema(Schema):
     keys = fields.String(required=True, description='Keys identifying dataset, in order')
 
 
-@tile_api.route('/singleband/<path:keys>/preview.png', methods=['GET'])
+@TILE_API.route('/singleband/<path:keys>/preview.png', methods=['GET'])
 @convert_exceptions
 def get_singleband_preview(keys: str) -> Any:
     """Return single-band PNG preview image of requested dataset

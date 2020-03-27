@@ -1,5 +1,6 @@
 import pytest
 
+import sys
 from textwrap import dedent
 
 import numpy as np
@@ -180,6 +181,8 @@ INVALID_EXPR = (
 @pytest.mark.parametrize('case', VALID_EXPR)
 def test_valid_expression(case):
     from terracotta.expressions import evaluate_expression
+    # make sure we have enough recursion depth for long expression
+    sys.setrecursionlimit(10_000)
 
     expr, result = case
 
