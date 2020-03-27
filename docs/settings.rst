@@ -15,8 +15,7 @@ settings in several different ways:
 
      $ export TC_RESAMPLING_METHOD=cubic
 
-  will set the corresponding setting ``RESAMPLING_METHOD`` to ``cubic`` in all Terracotta
-  instances. This is particularly useful for serverless deployments. You can set list
+  will set the corresponding setting :attr:`~terracotta.config.TerracottaSettings.RESAMPLING_METHOD` to ``cubic`` in all Terracotta instances. This is particularly useful for serverless deployments. You can set list
   values in JSON array notation:
 
   .. code-block:: bash
@@ -33,8 +32,8 @@ settings in several different ways:
 
   .. code-block:: none
 
-     TC_DRIVER_PATH = root:password@myserver.com/terracotta
-     TC_DRIVER_PROVIDER = mysql
+     DRIVER_PATH = root:password@myserver.com/terracotta
+     DRIVER_PROVIDER = mysql
 
 - If you are using the :doc:`Terracotta Python API <api>`, you can call
   :func:`~terracotta.update_settings` directly.
@@ -67,17 +66,14 @@ All runtime settings are contained in the following :class:`~typing.NamedTuple`.
 Cross-origin resource sharing (CORS)
 ------------------------------------
 
-Your application might need Terracotta to allow Cross-origin resource sharing for selected
-client hostnames or all hostnames. For example, Mapbox GL calls the map tiles endpoint
-programmatically.
+Your application might need Terracotta to allow CORS for some or all hostnames. For example, this is required when using Mapbox GL to serve tiles (but generally depends on how the frontend requests resources from Terracotta).
 
 You can control the CORS settings for the metadata (``/metadata``) and tiles (``/rgb`` and ``/singleband``)
-endpoints individually with the optional environment variables
+endpoints individually with the settings :attr:`~terracotta.config.TerracottaSettings.ALLOWED_ORIGINS_METADATA` and :attr:`~terracotta.config.TerracottaSettings.ALLOWED_ORIGINS_TILES`:
 
-.. code-block:: none
+.. code-block:: bash
 
-   TC_ALLOWED_ORIGINS_METADATA = '["*"]'
-   TC_ALLOWED_ORIGINS_TILES = '[]'
+   $ export TC_ALLOWED_ORIGINS_METADATA="['*']"
+   $ export TC_ALLOWED_ORIGINS_TILES="[]"
 
-where the values are JSON lists, either empty (no CORS) or a list of hostnames or wildcards.
-The above settings are the defaults when you omit these settings.
+The above settings are the defaults when you omit these settings (allow all origins for metadata, and no origins for tiles).
