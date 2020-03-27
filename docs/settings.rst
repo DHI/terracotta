@@ -71,13 +71,13 @@ Your application might need Terracotta to allow Cross-origin resource sharing fo
 client hostnames or all hostnames. For example, Mapbox GL calls the map tiles endpoint
 programmatically.
 
-You can control the CORS settings for the metadata (`/metadata`) and tiles (`/rgb` and `/singleband`)
+You can control the CORS settings for the metadata (``/metadata``) and tiles (``/rgb`` and ``/singleband``)
 endpoints individually with the optional environment variables
 
-    .. code-block:: none
+.. code-block:: none
 
-    TC_ALLOWED_ORIGINS_METADATA = '["*"]'
-    TC_ALLOWED_ORIGINS_TILES = '[]'
+   TC_ALLOWED_ORIGINS_METADATA = '["*"]'
+   TC_ALLOWED_ORIGINS_TILES = '[]'
 
 where the values are JSON lists, either empty (no CORS) or a list of hostnames or wildcards.
 The above settings are the defaults when you omit these settings.
