@@ -71,7 +71,7 @@ def test_bench_rgb(benchmark, zoom, resampling, big_raster_file_nodata, benchmar
             x, y, z = get_xyz(big_raster_file_nodata, zoom_level)
             rv = benchmark(client.get, f'/rgb/nodata/{z}/{x}/{y}.png?r=1&g=2&b=3')
         else:
-            rv = benchmark(client.get, f'/rgb/nodata/preview.png?r=1&g=2&b=3')
+            rv = benchmark(client.get, '/rgb/nodata/preview.png?r=1&g=2&b=3')
 
     assert rv.status_code == 200
 
@@ -111,7 +111,7 @@ def test_bench_singleband(benchmark, zoom, resampling, big_raster_file_nodata, b
             x, y, z = get_xyz(big_raster_file_nodata, zoom_level)
             rv = benchmark(client.get, f'/singleband/nodata/1/{z}/{x}/{y}.png')
         else:
-            rv = benchmark(client.get, f'/singleband/nodata/1/preview.png')
+            rv = benchmark(client.get, '/singleband/nodata/1/preview.png')
 
     assert rv.status_code == 200
     assert not len(get_driver(str(benchmark_database))._raster_cache)

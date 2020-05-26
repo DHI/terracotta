@@ -144,7 +144,7 @@ def test_get_singleband_preview(client, use_testdb):
     import terracotta
     settings = terracotta.get_settings()
 
-    rv = client.get(f'/singleband/val11/x/val12/preview.png?colormap=jet')
+    rv = client.get('/singleband/val11/x/val12/preview.png?colormap=jet')
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
@@ -250,7 +250,7 @@ def test_get_rgb_preview(client, use_testdb):
     import terracotta
     settings = terracotta.get_settings()
 
-    rv = client.get(f'/rgb/val21/x/preview.png?r=val22&g=val23&b=val24')
+    rv = client.get('/rgb/val21/x/preview.png?r=val22&g=val23&b=val24')
     assert rv.status_code == 200
 
     img = Image.open(BytesIO(rv.data))
@@ -318,7 +318,7 @@ def test_get_compute_preview(client, use_testdb):
     settings = terracotta.get_settings()
 
     rv = client.get(
-        f'/compute/val21/x/preview.png'
+        '/compute/val21/x/preview.png'
         '?expression=v1*v2&v1=val22&v2=val23'
         '&stretch_range=[0,10000]'
     )
@@ -341,7 +341,7 @@ def test_get_compute_invalid(client, use_testdb, raster_file_xyz):
 
     # invalid expression
     rv = client.get(
-        f'/compute/val21/x/preview.png'
+        '/compute/val21/x/preview.png'
         '?expression=__builtins__["dir"](v1)&v1=val22'
         '&stretch_range=[0,10000]'
     )
