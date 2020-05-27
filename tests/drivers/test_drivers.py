@@ -94,6 +94,33 @@ def test_connect_before_create(driver_path, provider):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
+def test_broken_connection(driver_path, provider):
+    """Test whether driver can recover from a broken connection"""
+
+    class Evanescence:
+        def break_me_up_inside(self, *args, **kwargs):
+            raise RuntimeError('bring me to life')
+
+        def __getattribute__(self, key):
+            return object.__getattribute__(self, 'break_me_up_inside')
+
+    from terracotta import drivers
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('some', 'keynames')
+    db.create(keys)
+
+    with pytest.raises(RuntimeError):
+        with db.connect():
+            db._connection = Evanescence()
+            db.get_keys()
+
+    assert not db._connected
+
+    with db.connect():
+        db.get_keys()
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_repr(driver_path, provider):
     from terracotta import drivers
     db = drivers.get_driver(driver_path, provider=provider)
