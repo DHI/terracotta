@@ -131,9 +131,9 @@ class SQLiteDriver(RasterDriver):
 
         finally:
             if close:
+                self._connected = False
                 self._connection.commit()
                 self._connection.close()
-                self._connected = False
 
     @requires_connection
     @convert_exceptions(_ERROR_ON_CONNECT)
