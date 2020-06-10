@@ -337,7 +337,12 @@ class MySQLDriver(RasterDriver):
         def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
 
-        return {keytuple(row): row['filepath'] for row in cursor}
+        datasets = {}
+        for row in cursor:
+            row = cast(row, Dict[str, Any])
+            datasets[keytuple(row)] = row['filepath']
+
+        return datasets
 
     @staticmethod
     def _encode_data(decoded: Mapping[str, Any]) -> Dict[str, Any]:
