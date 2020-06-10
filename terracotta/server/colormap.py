@@ -33,7 +33,7 @@ class ColormapOptionSchema(Schema):
     )
     colormap = fields.String(
         description='Name of color map to use (for a preview see '
-                    'https://matplotlib.org/examples/color/colormaps_reference.html)',
+                    'https://terracotta-python.readthedocs.io/en/latest/reference/colormaps.html)',
         missing=None, validate=validate.OneOf(AVAILABLE_CMAPS)
     )
     num_values = fields.Int(description='Number of values to return', missing=255)
