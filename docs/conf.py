@@ -22,7 +22,7 @@ import re
 from terracotta import __version__
 
 project = 'Terracotta'
-copyright = '2018, the Terracotta contributors'
+copyright = '2018-2020, the Terracotta contributors'
 author = 'Dion Häfner, Philip Graae'
 
 # The short X.Y version
@@ -46,7 +46,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx_autodoc_typehints',
-    'sphinx_click.ext'
+    'sphinx_click.ext',
 ]
 
 # The suffix(es) of source filenames.
@@ -141,10 +141,6 @@ html_theme_options = {
 html_favicon = '_static/favicon.ico'
 
 
-def setup(app):
-    app.add_stylesheet('https://fonts.googleapis.com/css?family=Lato|Roboto+Mono')
-
-
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
 #
@@ -232,3 +228,55 @@ epub_exclude_files = ['search.html']
 
 
 # -- Extension configuration -------------------------------------------------
+
+# -- Custom exec directive ---------------------------------------------------
+
+import sys
+from os.path import basename
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
+from docutils import nodes, statemachine
+from docutils.parsers.rst import Directive
+
+
+class ExecDirective(Directive):
+    """Execute the specified python code and insert the output into the document"""
+    has_content = True
+
+    def run(self):
+        old_stdout, sys.stdout = sys.stdout, StringIO()
+
+        tab_width = self.options.get('tab-width', self.state.document.settings.tab_width)
+        source = self.state_machine.input_lines.source(
+            self.lineno - self.state_machine.input_offset - 1)
+
+        try:
+            exec('\n'.join(self.content))
+            text = sys.stdout.getvalue()
+            lines = statemachine.string2lines(text, tab_width, convert_whitespace=True)
+            self.state_machine.insert_input(lines, source)
+            return []
+        except Exception:
+            warn_text = f'Unable to execute python code at {basename(source)}:{self.lineno}'
+            warning = self.state_machine.reporter.warning(warn_text)
+            return [
+                warning,
+                nodes.error(
+                    None,
+                    nodes.paragraph(text=warn_text),
+                    nodes.paragraph(text=str(sys.exc_info()[1]))
+                )
+            ]
+        finally:
+            sys.stdout = old_stdout
+
+
+# -- Setup function ----------------------------------------------------------
+
+def setup(app):
+    app.add_stylesheet('https://fonts.googleapis.com/css?family=Lato|Roboto+Mono')
+    app.add_directive('exec', ExecDirective)

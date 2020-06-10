@@ -150,11 +150,11 @@ local directory. It extracts the appropriate keys from the file name,
 ingests them into a database, and pushes the rasters and the resulting
 database into an S3 bucket.
 
-.. literalinclude:: example-ingestion-script.py
+.. literalinclude:: _static/example-ingestion-script.py
    :language: python
    :caption: example-ingestion-script.py
 
-:download:`Download the script <example-ingestion-script.py>`
+:download:`Download the script <_static/example-ingestion-script.py>`
 
 .. note::
 

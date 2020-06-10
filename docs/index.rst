@@ -71,5 +71,6 @@ Contents
    cli
    api
    tutorial
+   reference
    issues
    preview-app
