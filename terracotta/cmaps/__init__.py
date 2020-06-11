@@ -3,6 +3,7 @@
 Define an interface to retrieve stored color maps.
 """
 
+from typing import Dict
 import os
 from pkg_resources import resource_filename, Requirement, DistributionNotFound
 
@@ -21,7 +22,7 @@ except DistributionNotFound:
     PACKAGE_DIR = os.path.dirname(__file__)
 
 
-def _get_cmap_files():
+def _get_cmap_files() -> Dict[str, str]:
     cmap_files = {}
     for f in os.listdir(PACKAGE_DIR):
         if not f.endswith(SUFFIX):
