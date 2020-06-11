@@ -25,4 +25,5 @@ def generate_maps(out_folder: str) -> None:
 if __name__ == '__main__':
     import os
     here = os.path.dirname(os.path.realpath(__file__))
-    generate_maps(out_folder=here)
+    out_folder = os.path.join(here, 'data')
+    generate_maps(out_folder=out_folder)
