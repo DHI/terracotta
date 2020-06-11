@@ -1,0 +1,2 @@
+Registering custom colormaps
+============================

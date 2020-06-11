@@ -6,7 +6,7 @@ A script to generate color map dumps from matplotlib.
 import numpy as np
 import matplotlib.cm as cm
 
-from terracotta.cmaps import SUFFIX
+from terracotta.cmaps.get_cmaps import SUFFIX
 
 ALL_MAPS = cm.cmap_d
 NUM_VALS = 255
