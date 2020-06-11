@@ -3,6 +3,16 @@ import pytest
 import numpy as np
 
 
+@pytest.fixture(autouse=True)
+def reload_cmap():
+    import importlib
+    import terracotta.cmaps
+    try:
+        yield
+    finally:
+        importlib.reload(terracotta.cmaps)
+
+
 def test_get_cmap():
     from terracotta.cmaps import get_cmap, AVAILABLE_CMAPS
     for name in AVAILABLE_CMAPS:
@@ -31,3 +41,79 @@ def test_get_cmap_filesystem(monkeypatch):
         cmap = terracotta.cmaps.get_cmap('jet')
         assert cmap.shape == (255, 4)
         assert cmap.dtype == np.uint8
+
+
+def test_extra_cmap(monkeypatch, tmpdir):
+    import importlib
+
+    import terracotta.cmaps
+
+    custom_cmap_data = np.tile(
+        np.arange(255, dtype='uint8'),
+        (4, 1)
+    ).T
+    np.save(str(tmpdir / f'foo{terracotta.cmaps.SUFFIX}'), custom_cmap_data)
+
+    with monkeypatch.context() as m:
+        m.setenv('TC_EXTRA_CMAP_FOLDER', str(tmpdir))
+        importlib.reload(terracotta.cmaps)
+
+        assert 'foo' in terracotta.cmaps.AVAILABLE_CMAPS
+
+        np.testing.assert_equal(
+            custom_cmap_data,
+            terracotta.cmaps.get_cmap('foo')
+        )
+
+
+def test_extra_cmap_invalid_shape(monkeypatch, tmpdir):
+    import importlib
+    import terracotta.cmaps
+
+    broken_cmap_data = np.tile(
+        np.arange(666, dtype='uint8'),
+        (4, 1)
+    ).T
+    np.save(str(tmpdir / f'foo{terracotta.cmaps.SUFFIX}'), broken_cmap_data)
+
+    with monkeypatch.context() as m:
+        m.setenv('TC_EXTRA_CMAP_FOLDER', str(tmpdir))
+
+        with pytest.raises(ValueError) as raised_exc:
+            importlib.reload(terracotta.cmaps)
+
+        assert 'foo' in str(raised_exc.value)
+        assert '666' in str(raised_exc.value)
+
+
+def test_extra_cmap_invalid_folder(monkeypatch):
+    import importlib
+    import terracotta.cmaps
+
+    with monkeypatch.context() as m:
+        m.setenv('TC_EXTRA_CMAP_FOLDER', 'bar')
+
+        with pytest.raises(IOError) as raised_exc:
+            importlib.reload(terracotta.cmaps)
+
+        assert 'bar' in str(raised_exc.value)
+
+
+def test_extra_cmap_invalid_dtype(monkeypatch, tmpdir):
+    import importlib
+    import terracotta.cmaps
+
+    broken_cmap_data = np.tile(
+        np.arange(255, dtype='float'),
+        (4, 1)
+    ).T
+    np.save(str(tmpdir / f'foo{terracotta.cmaps.SUFFIX}'), broken_cmap_data)
+
+    with monkeypatch.context() as m:
+        m.setenv('TC_EXTRA_CMAP_FOLDER', str(tmpdir))
+
+        with pytest.raises(ValueError) as raised_exc:
+            importlib.reload(terracotta.cmaps)
+
+        assert 'foo' in str(raised_exc.value)
+        assert 'float' in str(raised_exc.value)
