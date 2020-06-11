@@ -93,7 +93,6 @@ setup(
             'sphinx',
             'sphinx_autodoc_typehints',
             'sphinx-click',
-            'matplotlib',
             'pymysql'
         ],
         'recommended': [
