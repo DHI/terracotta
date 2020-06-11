@@ -204,6 +204,21 @@ def test_invalid_expression(case):
     assert exc_msg in str(raised_exc.value)
 
 
+def test_invalid_compop(monkeypatch):
+    from terracotta.expressions import evaluate_expression, ExpressionParser
+
+    expr = 'v0 < v1'
+    exc_msg = 'comparison operator'
+
+    with monkeypatch.context() as m:
+        m.setattr(ExpressionParser, 'NODE_TO_COMPOP', {})
+
+        with pytest.raises(ValueError) as raised_exc:
+            evaluate_expression(expr, OPERANDS)
+
+        assert exc_msg in str(raised_exc.value)
+
+
 def test_timeout():
     from terracotta.expressions import evaluate_expression
 

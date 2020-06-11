@@ -5,3 +5,14 @@ div.body p, div.body dd, div.body li {
 div.sphinxsidebar a {
     border-bottom: none;
 }
+
+div.cmap-gallery {
+    padding: 15px 5px;
+    width: 150px;
+}
+
+div.cmap-gallery-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+}
