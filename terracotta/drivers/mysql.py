@@ -339,7 +339,7 @@ class MySQLDriver(RasterDriver):
 
         datasets = {}
         for row in cursor:
-            row = cast(row, Dict[str, Any])
+            row = cast(Dict[str, Any], row)
             datasets[keytuple(row)] = row['filepath']
 
         return datasets
