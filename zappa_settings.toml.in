@@ -27,7 +27,8 @@ memory_size = 500
     [development.aws_environment_variables]
     TC_DRIVER_PATH = "s3://tc-testdata/terracotta.sqlite"
     TC_DRIVER_PROVIDER = "sqlite-remote"
-    TC_UPSAMPLING_METHOD = "cubic"
+    TC_REPROJECTION_METHOD = "linear"
+    TC_RESAMPLING_METHOD = "average"
     TC_XRAY_PROFILE = "true"
 
     [development.callbacks]

@@ -216,10 +216,10 @@ class MySQLDriver(RasterDriver):
 
         finally:
             if close:
+                self._connected = False
                 self._cursor.close()
                 self._connection.commit()
                 self._connection.close()
-                self._connected = False
 
     @convert_exceptions('Could not create database')
     def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> None:

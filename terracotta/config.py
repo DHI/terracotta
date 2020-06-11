@@ -3,7 +3,7 @@
 Terracotta settings parsing.
 """
 
-from typing import Mapping, Any, Tuple, NamedTuple, Dict, Optional
+from typing import Mapping, Any, Tuple, NamedTuple, Dict, List, Optional
 import os
 import json
 import tempfile
@@ -55,11 +55,17 @@ class TerracottaSettings(NamedTuple):
     #: Time-to-live of remote database cache in seconds
     REMOTE_DB_CACHE_TTL: int = 10 * 60  # 10 min
 
-    #: Resampling method to use when upsampling data (high zoom levels)
-    UPSAMPLING_METHOD: str = 'cubic'
+    #: Resampling method to use when reading reprojected data
+    RESAMPLING_METHOD: str = 'average'
 
-    #: Resampling method to use when downsampling data (low zoom levels)
-    DOWNSAMPLING_METHOD: str = 'nearest'
+    #: Resampling method to use when reprojecting data to Web Mercator
+    REPROJECTION_METHOD: str = 'linear'
+
+    #: CORS allowed origins for metadata endpoint
+    ALLOWED_ORIGINS_METADATA: List[str] = ['*']
+
+    #: CORS allowed origins for tiles endpoints
+    ALLOWED_ORIGINS_TILES: List[str] = []
 
 
 AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._fields)
@@ -98,28 +104,35 @@ class SettingSchema(Schema):
     REMOTE_DB_CACHE_DIR = fields.String(validate=_is_writable)
     REMOTE_DB_CACHE_TTL = fields.Integer(validate=validate.Range(min=0))
 
-    UPSAMPLING_METHOD = fields.String(
+    RESAMPLING_METHOD = fields.String(
         validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
     )
-    DOWNSAMPLING_METHOD = fields.String(
+    REPROJECTION_METHOD = fields.String(
         validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
     )
 
+    ALLOWED_ORIGINS_METADATA = fields.List(fields.String())
+    ALLOWED_ORIGINS_TILES = fields.List(fields.String())
+
     @pre_load
     def decode_lists(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
-        for var in ('DEFAULT_TILE_SIZE',):
+        for var in ('DEFAULT_TILE_SIZE', 'LAZY_LOADING_MAX_SHAPE',
+                    'ALLOWED_ORIGINS_METADATA', 'ALLOWED_ORIGINS_TILES'):
             val = data.get(var)
             if val and isinstance(val, str):
                 try:
                     data[var] = json.loads(val)
                 except json.decoder.JSONDecodeError as exc:
-                    raise ValidationError(f'Could not parse value for key {var} as JSON') from exc
+                    raise ValidationError(
+                        f'Could not parse value for key {var} as JSON: "{val}"'
+                    ) from exc
         return data
 
     @post_load
     def make_settings(self, data: Dict[str, Any], **kwargs: Any) -> TerracottaSettings:
         # encode tuples
-        for var in ('DEFAULT_TILE_SIZE',):
+        for var in ('DEFAULT_TILE_SIZE', 'LAZY_LOADING_MAX_SHAPE',
+                    'ALLOWED_ORIGINS_METADATA', 'ALLOWED_ORIGINS_TILES'):
             val = data.get(var)
             if val:
                 data[var] = tuple(val)

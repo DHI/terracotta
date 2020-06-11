@@ -91,7 +91,7 @@ For that we create a file ``/etc/systemd/system/terracotta.service``:
    Environment="PATH=/home/ubuntu/anaconda3/envs/gunicorn/bin"
    Environment="TC_DRIVER_PATH=/mnt/data/terracotta.sqlite"
    ExecStart=/home/ubuntu/anaconda3/envs/gunicorn/bin/gunicorn \
-                --workers 3 --bind unix:terracotta.sock -m 007 terracotta.app:app
+                --workers 3 --bind unix:terracotta.sock -m 007 terracotta.server.app:app
 
    [Install]
    WantedBy=multi-user.target

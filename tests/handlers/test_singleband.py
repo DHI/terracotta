@@ -4,11 +4,11 @@ import numpy as np
 import pytest
 
 
-@pytest.mark.parametrize('upsampling_method', ['nearest', 'linear', 'cubic', 'average'])
+@pytest.mark.parametrize('resampling_method', ['nearest', 'linear', 'cubic', 'average'])
 def test_singleband_handler(use_testdb, raster_file_xyz,
-                            upsampling_method):
+                            resampling_method):
     import terracotta
-    terracotta.update_settings(UPSAMPLING_METHOD=upsampling_method)
+    terracotta.update_settings(RESAMPLING_METHOD=resampling_method)
 
     from terracotta.handlers import datasets, singleband
     settings = terracotta.get_settings()
