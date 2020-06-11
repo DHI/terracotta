@@ -53,12 +53,14 @@ def test_extra_cmap(monkeypatch, tmpdir):
         (4, 1)
     ).T
     np.save(str(tmpdir / f'foo{terracotta.cmaps.SUFFIX}'), custom_cmap_data)
+    np.save(str(tmpdir / f'bar.npy'), custom_cmap_data)
 
     with monkeypatch.context() as m:
         m.setenv('TC_EXTRA_CMAP_FOLDER', str(tmpdir))
         importlib.reload(terracotta.cmaps)
 
         assert 'foo' in terracotta.cmaps.AVAILABLE_CMAPS
+        assert 'bar' not in terracotta.cmaps.AVAILABLE_CMAPS
 
         np.testing.assert_equal(
             custom_cmap_data,
