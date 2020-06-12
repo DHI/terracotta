@@ -10,7 +10,7 @@ Colormaps are shipped in ``.npy`` binary format and consist of a single array wi
    ...     np.arange(0, 255, dtype='uint8'),
    ...     np.arange(0, 255, dtype='uint8'),
    ...     np.arange(0, 255, dtype='uint8'),
-   ...     np.full(255, 255)
+   ...     np.full(255, 255, dtype='uint8')
    ... ), axis=1)
    >>> np.save('mycmap_rgba.npy', cmap_data)
 
