@@ -73,7 +73,7 @@ const STATE = {
     current_colormap: '',
     current_singleband_stretch: singlebandStretchProxy([0, 1]),
     current_rgb_stretch: [
-        rgbStretchProxy([0, 1]), 
+        rgbStretchProxy([0, 1]),
         rgbStretchProxy([0, 1]),
         rgbStretchProxy([0, 1])
     ],
@@ -182,7 +182,7 @@ function assembleRgbUrl(remote_host, first_keys, rgb_keys, options, preview) {
     if (first_keys.length > 0) {
         request_url += `${first_keys.join('/')}/`;
     }
-   
+
     if (preview) {
         request_url += `preview.png?tile_size=${JSON.stringify(THUMBNAIL_SIZE)}`;
     } else {
@@ -232,7 +232,7 @@ function getColormapValues(remote_host, num_values = 100) {
                 STATE.colormap_values[cmapId] = [];
 
                 for (let j = 0; j < num_values; j++) {
-                    STATE.colormap_values[cmapId][j] = response.colormap[j].rgb;
+                    STATE.colormap_values[cmapId][j] = response.colormap[j].rgba;
                 }
             }
         });
@@ -362,9 +362,9 @@ function serializeKeys(keys) {
 
 /**
  * Compares whether two arrays are equal element-wise
- * 
- * @param {Array} arr1 
- * @param {Array} arr2 
+ *
+ * @param {Array} arr1
+ * @param {Array} arr2
  */
 function compareArray(arr1, arr2){
   if (arr1 == null || arr2 == null) return false;
@@ -589,8 +589,8 @@ function updateColormap() {
     }
 
     let gradient = 'linear-gradient(to right';
-    for (let i = 0; i < colorbar.length; i++) { 
-        gradient += `, rgb(${colorbar[i].join(',')})`;
+    for (let i = 0; i < colorbar.length; i++) {
+        gradient += `, rgba(${colorbar[i].join(',')})`;
     }
     gradient += ')';
     slider.style.backgroundImage = gradient;
@@ -605,8 +605,8 @@ function updateColormap() {
 
 /**
  * Updates thumbnail preview
- * @param {HTMLImageElement} img 
- * @param {boolean} show 
+ * @param {HTMLImageElement} img
+ * @param {boolean} show
  */
 function showCurrentThumnbnail(img, show) {
     const thumbnail = document.getElementById('thumbnail-holder');
@@ -645,7 +645,7 @@ function toggleDatasetMouseover(datasetTable) {
 
     const layer_id = serializeKeys(keys);
     const metadata = STATE.dataset_metadata[layer_id];
- 
+
     if (!metadata) return;
 
     STATE.overlayLayer = L.geoJSON(metadata.convex_hull, {
@@ -660,7 +660,7 @@ function toggleDatasetMouseover(datasetTable) {
 
 /**
  * Toggle active singleband layer.
- * 
+ *
  * @global
  * @param {Array<string>} ds_keys
  * @param {boolean} resetView
@@ -704,7 +704,7 @@ function toggleSinglebandMapLayer(ds_keys, resetView = true) {
 
 /**
  * Switch current active layer to the given singleband dataset.
- * 
+ *
  * @param {Array<string>} ds_keys Keys of new layer
  * @param {boolean} resetView Fly to new dataset if not already on screen
  */
@@ -757,7 +757,7 @@ function updateSinglebandLayer(ds_keys, resetView = true) {
  * @param {Array[number]} screenBounds bouding box of user's screen [w, s, e, n]
  *
  * @return {number} ratio of screen covered by dataset in range (0, 1)
- */ 
+ */
 function calcScreenCovered(dsBounds, screenBounds){
     const x_overlap = Math.max(0, Math.min(dsBounds[2], screenBounds[2]) - Math.max(dsBounds[0], screenBounds[0]));
     const y_overlap = Math.max(0, Math.min(dsBounds[3], screenBounds[3]) - Math.max(dsBounds[1], screenBounds[1]));
@@ -781,8 +781,8 @@ function searchFieldChanged() {
 
 /**
  * Reset RGB band selectors
- * 
- * @param {boolean} enabled 
+ *
+ * @param {boolean} enabled
  */
 function resetRgbSelectors(enabled) {
     /**
@@ -829,10 +829,10 @@ function rgbSearchFieldChanged() {
 
 /**
  * Populate RGB band pickers after all search fields are filled in
- * 
- * @param {string} remote_host 
- * @param {Array<Terracotta.IDataset>} rgbDatasets 
- * @param {Array<Terracotta.IKey>} keys 
+ *
+ * @param {string} remote_host
+ * @param {Array<Terracotta.IDataset>} rgbDatasets
+ * @param {Array<Terracotta.IKey>} keys
  */
 function populateRgbPickers(remote_host, rgbDatasets, keys) {
     const lastKey = keys[keys.length - 1].key;
@@ -939,7 +939,7 @@ function rgbSelectorChanged() {
 }
 
 
-/** 
+/**
  * Reset all layer state
  * (remove layers from map, deactivate navigation section, clear info box)
  */
@@ -984,7 +984,7 @@ function updateRGBLayer(firstKeys, lastKeys, resetView = true) {
     const layer_url = assembleRgbUrl(STATE.remote_host, firstKeys, lastKeys, layerOptions, false);
 
     updateComputedUrl(layer_url, null);
-    
+
     STATE.activeRgbLayer = {
         index_keys: firstKeys,
         rgb_keys: lastKeys,
@@ -1012,7 +1012,7 @@ function updateRGBLayer(firstKeys, lastKeys, resetView = true) {
  * Toggles 'disabled' and styling on  element when switching between RGB and Singleband
  * @param {boolean} rgbActive
  * @param {boolean} singlebandActive
- */ 
+ */
 function activateRGBorSingleBand(rgbActive, singlebandActive){
     /**
      * @type {NodeListOf<noUiSlider.SliderElement>}
@@ -1066,10 +1066,10 @@ function activateRGBorSingleBand(rgbActive, singlebandActive){
 }
 
 /**
- * Updates Layer info container with current URL and metadata 
+ * Updates Layer info container with current URL and metadata
  * @param {string} url
  * @param {Array<string>} keys Dataset keys i.e. [<type>, <date>, <id>, <band>].
- */ 
+ */
 function updateComputedUrl(url, keys = null){
     const computedUrl = document.getElementById('layerInfo__URL');
     const layerInfoParent = document.getElementById('layerInfo__container');
@@ -1088,7 +1088,7 @@ function updateComputedUrl(url, keys = null){
 /**
  * Updates Layer info container with metadata text
  * @param {Terracotta.IMetadata} metadata Dataset metadata
- */ 
+ */
 function updateMetadataText(metadata){
     const metadataField = document.getElementById('layerInfo__metadata');
     if(!metadata){
@@ -1131,7 +1131,7 @@ function addListenersToSliderRanges(){
     const rgbIds = ['R', 'G', 'B'];
     const handles = ['lower', 'upper'];
     for (let i = 0; i < rgbIds.length; i++) {
-        for (let j = 0; j < handles.length; j++) { 
+        for (let j = 0; j < handles.length; j++) {
             let rgbInput = document.querySelector(`.rgb-value-${handles[j]}#${rgbIds[i]}`);
             rgbInput.addEventListener(
                 'change',
