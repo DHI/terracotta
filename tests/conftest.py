@@ -132,6 +132,28 @@ def raster_file(tmpdir_factory):
 
 
 @pytest.fixture(scope='session')
+def raster_file_float(raster_file, tmpdir_factory):
+    with rasterio.open(str(raster_file)) as src:
+        raster_data = src.read().astype('float32')
+
+        # Add some NaNs
+        raster_data[:, :100, :100] = np.nan
+
+        profile = src.profile.copy()
+        profile.update(dtype='float32')
+
+    outpath = tmpdir_factory.mktemp('raster-float')
+    unoptimized_raster = outpath.join('img-raw.tif')
+    with rasterio.open(str(unoptimized_raster), 'w', **profile) as dst:
+        dst.write(raster_data,)
+
+    optimized_raster = outpath.join('img.tif')
+    cloud_optimize(unoptimized_raster, optimized_raster)
+
+    return optimized_raster
+
+
+@pytest.fixture(scope='session')
 def big_raster_file_nodata(tmpdir_factory):
     import affine
 

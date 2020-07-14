@@ -190,6 +190,9 @@ class RasterDriver(Driver):
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
                 block_data = dataset.read(1, window=w, masked=True)
 
+            # handle NaNs for float rasters
+            block_data = np.ma.masked_invalid(block_data, copy=False)
+
             total_count += int(block_data.size)
             valid_data = block_data.compressed()
 
@@ -251,7 +254,10 @@ class RasterDriver(Driver):
 
         if dataset.nodata is not None:
             # nodata values might slip into output array if out_shape < dataset.shape
-            raster_data[raster_data == dataset.nodata] = np.ma.masked
+            raster_data = np.ma.masked_equal(raster_data, dataset.nodata, copy=False)
+
+        # handle NaNs for float rasters
+        raster_data = np.ma.masked_invalid(raster_data, copy=False)
 
         valid_data = raster_data.compressed()
 
