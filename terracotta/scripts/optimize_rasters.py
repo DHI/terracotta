@@ -18,6 +18,7 @@ import tqdm
 import rasterio
 from rasterio.shutil import copy
 from rasterio.io import DatasetReader, MemoryFile
+from rasterio.errors import NotGeoreferencedWarning
 from rasterio.vrt import WarpedVRT
 from rasterio.enums import Resampling
 from rasterio.env import GDALVersion
@@ -66,8 +67,12 @@ def _prefered_compression_method() -> str:
     # check if we can use ZSTD (fails silently for GDAL < 2.3)
     dummy_profile = dict(driver='GTiff', height=1, width=1, count=1, dtype='uint8')
     try:
-        with MemoryFile() as memfile, memfile.open(compress='ZSTD', **dummy_profile):
-            pass
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', NotGeoreferencedWarning)
+
+            with MemoryFile() as memfile, memfile.open(compress='ZSTD', **dummy_profile):
+                pass
+
     except Exception as exc:
         if 'missing codec' not in str(exc):
             raise
@@ -254,14 +259,16 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
                 max_overview_level = math.ceil(math.log2(max(
                     dst.height // profile['blockysize'],
-                    dst.width // profile['blockxsize']
+                    dst.width // profile['blockxsize'],
+                    1
                 )))
 
-                overviews = [2 ** j for j in range(1, max_overview_level + 1)]
-                with tqdm.tqdm(desc='Creating overviews', total=1, **sub_pbar_args):
-                    dst.build_overviews(overviews, rs_method)
+                if max_overview_level > 0:
+                    overviews = [2 ** j for j in range(1, max_overview_level + 1)]
+                    with tqdm.tqdm(desc='Creating overviews', total=1, **sub_pbar_args):
+                        dst.build_overviews(overviews, rs_method)
 
-                dst.update_tags(ns='rio_overview', resampling=rs_method.value)
+                    dst.update_tags(ns='rio_overview', resampling=rs_method.value)
 
                 # copy to destination (this is necessary to push overviews to start of file)
                 with tqdm.tqdm(desc='Compressing', total=1, **sub_pbar_args):
