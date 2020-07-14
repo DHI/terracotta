@@ -442,40 +442,53 @@ def test_nodata_consistency(driver_path, provider, big_raster_file_mask, big_ras
     np.testing.assert_array_equal(data_mask.mask, data_nodata.mask)
 
 
-#
-# Static methods
-#
-
 def geometry_mismatch(shape1, shape2):
     """Compute relative mismatch of two shapes"""
     return shape1.symmetric_difference(shape2).area / shape1.union(shape2).area
 
 
+def convex_hull_exact(src):
+    kwargs = dict(bidx=1, band=False, as_mask=True, geographic=True)
+
+    data = src.read()
+    if np.any(np.isnan(data)) and src.nodata is not None:
+        # hack: replace NaNs with nodata to make sure they are excluded
+        with rasterio.MemoryFile() as memfile, memfile.open(**src.profile) as tmpsrc:
+            data[np.isnan(data)] = src.nodata
+            tmpsrc.write(data)
+            dataset_shape = list(rasterio.features.dataset_features(tmpsrc, **kwargs))
+    else:
+        dataset_shape = list(rasterio.features.dataset_features(src, **kwargs))
+
+    convex_hull = MultiPolygon([shape(s['geometry']) for s in dataset_shape]).convex_hull
+    return convex_hull
+
+
 @pytest.mark.parametrize('use_chunks', [True, False])
-@pytest.mark.parametrize('nodata_type', ['nodata', 'nomask'])
+@pytest.mark.parametrize('nodata_type', ['nodata', 'masked', 'none', 'nan'])
 def test_compute_metadata(big_raster_file_nodata, big_raster_file_nomask,
-                          nodata_type, use_chunks):
+                          big_raster_file_mask, raster_file_float, nodata_type, use_chunks):
     from terracotta.drivers.raster_base import RasterDriver
 
     if nodata_type == 'nodata':
         raster_file = big_raster_file_nodata
-    elif nodata_type == 'nomask':
+    elif nodata_type == 'masked':
+        raster_file = big_raster_file_mask
+    elif nodata_type == 'none':
         raster_file = big_raster_file_nomask
+    elif nodata_type == 'nan':
+        raster_file = raster_file_float
 
     if use_chunks:
         pytest.importorskip('crick')
 
     with rasterio.open(str(raster_file)) as src:
         data = src.read(1, masked=True)
-        valid_data = data.compressed()
-        dataset_shape = list(rasterio.features.dataset_features(
-            src, bidx=1, band=False, as_mask=True, geographic=True
-        ))
-
-    convex_hull = MultiPolygon([shape(s['geometry']) for s in dataset_shape]).convex_hull
+        valid_data = np.ma.masked_invalid(data).compressed()
+        convex_hull = convex_hull_exact(src)
 
     # compare
-    if nodata_type == 'nomask':
+    if nodata_type == 'none':
         with pytest.warns(UserWarning) as record:
             mtd = RasterDriver.compute_metadata(str(raster_file), use_chunks=use_chunks)
             assert 'does not have a valid nodata value' in str(record[0].message)
@@ -494,29 +507,35 @@ def test_compute_metadata(big_raster_file_nodata, big_raster_file_nomask,
         rtol=2e-2, atol=valid_data.max() / 100
     )
 
-    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-8
+    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-6
 
 
-@pytest.mark.parametrize('nodata_type', ['nodata', 'masked'])
-def test_compute_metadata_approximate(nodata_type, big_raster_file_nodata, big_raster_file_mask):
+@pytest.mark.parametrize('nodata_type', ['nodata', 'masked', 'none', 'nan'])
+def test_compute_metadata_approximate(nodata_type, big_raster_file_nodata, big_raster_file_mask,
+                                      big_raster_file_nomask, raster_file_float):
     from terracotta.drivers.raster_base import RasterDriver
 
     if nodata_type == 'nodata':
         raster_file = big_raster_file_nodata
     elif nodata_type == 'masked':
         raster_file = big_raster_file_mask
+    elif nodata_type == 'none':
+        raster_file = big_raster_file_nomask
+    elif nodata_type == 'nan':
+        raster_file = raster_file_float
 
     with rasterio.open(str(raster_file)) as src:
         data = src.read(1, masked=True)
-        valid_data = data.compressed()
-        dataset_shape = list(rasterio.features.dataset_features(
-            src, bidx=1, band=False, as_mask=True, geographic=True
-        ))
-
-    convex_hull = MultiPolygon([shape(s['geometry']) for s in dataset_shape]).convex_hull
+        valid_data = np.ma.masked_invalid(data).compressed()
+        convex_hull = convex_hull_exact(src)
 
     # compare
-    mtd = RasterDriver.compute_metadata(str(raster_file), max_shape=(512, 512))
+    if nodata_type == 'none':
+        with pytest.warns(UserWarning) as record:
+            mtd = RasterDriver.compute_metadata(str(raster_file), max_shape=(512, 512))
+            assert 'does not have a valid nodata value' in str(record[0].message)
+    else:
+        mtd = RasterDriver.compute_metadata(str(raster_file), max_shape=(512, 512))
 
     np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size, atol=1)
     np.testing.assert_allclose(
@@ -560,12 +579,8 @@ def test_compute_metadata_invalid_raster(invalid_raster_file, use_chunks):
 def test_compute_metadata_nocrick(big_raster_file_nodata, monkeypatch):
     with rasterio.open(str(big_raster_file_nodata)) as src:
         data = src.read(1, masked=True)
-        valid_data = data.compressed()
-        dataset_shape = list(rasterio.features.dataset_features(
-            src, bidx=1, band=False, as_mask=True, geographic=True
-        ))
-
-    convex_hull = MultiPolygon([shape(s['geometry']) for s in dataset_shape]).convex_hull
+        valid_data = np.ma.masked_invalid(data).compressed()
+        convex_hull = convex_hull_exact(src)
 
     from terracotta import exceptions
     import terracotta.drivers.raster_base
@@ -591,7 +606,7 @@ def test_compute_metadata_nocrick(big_raster_file_nodata, monkeypatch):
         rtol=2e-2
     )
 
-    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-8
+    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-6
 
 
 def test_compute_metadata_unoptimized(unoptimized_raster_file):
@@ -600,12 +615,8 @@ def test_compute_metadata_unoptimized(unoptimized_raster_file):
 
     with rasterio.open(str(unoptimized_raster_file)) as src:
         data = src.read(1, masked=True)
-        valid_data = data.compressed()
-        dataset_shape = list(rasterio.features.dataset_features(
-            src, bidx=1, band=False, as_mask=True, geographic=True
-        ))
-
-    convex_hull = MultiPolygon([shape(s['geometry']) for s in dataset_shape]).convex_hull
+        valid_data = np.ma.masked_invalid(data).compressed()
+        convex_hull = convex_hull_exact(src)
 
     # compare
     with pytest.warns(exceptions.PerformanceWarning):
@@ -623,4 +634,4 @@ def test_compute_metadata_unoptimized(unoptimized_raster_file):
         rtol=2e-2
     )
 
-    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-8
+    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-6
