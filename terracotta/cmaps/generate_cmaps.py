@@ -8,7 +8,7 @@ import matplotlib.cm as cm
 
 from terracotta.cmaps.get_cmaps import SUFFIX
 
-ALL_MAPS = cm.cmap_d
+ALL_MAPS = list(cm.cmaps_listed) + list(cm.datad)
 NUM_VALS = 255
 
 
