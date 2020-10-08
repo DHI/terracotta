@@ -14,6 +14,7 @@ import contextlib
 import urllib.parse as urlparse
 
 from cachetools import cachedmethod, TTLCache
+from url_normalize import url_normalize
 
 from terracotta import get_settings, exceptions
 from terracotta.drivers.sqlite import SQLiteDriver
@@ -106,6 +107,10 @@ class RemoteSQLiteDriver(SQLiteDriver):
         self._checkdb_cache = TTLCache(maxsize=1, ttl=settings.REMOTE_DB_CACHE_TTL)
 
         super().__init__(local_db_file.name)
+
+    @classmethod
+    def _normalize_path(cls, path: str) -> str:
+        return url_normalize(path)
 
     @cachedmethod(operator.attrgetter('_checkdb_cache'))
     @convert_exceptions('Could not retrieve database from S3')

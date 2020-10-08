@@ -105,6 +105,10 @@ class SQLiteDriver(RasterDriver):
 
         super().__init__(os.path.realpath(path))
 
+    @classmethod
+    def _normalize_path(cls, path: str) -> str:
+        return os.path.normpath(path)
+
     def connect(self) -> AbstractContextManager:
         return self._connect(check=True)
 

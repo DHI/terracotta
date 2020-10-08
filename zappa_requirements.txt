@@ -8,6 +8,7 @@ numpy
 pillow
 shapely
 rasterio[s3]>=1.0
+url_normalize
 
 aws_xray_sdk
 boto3
