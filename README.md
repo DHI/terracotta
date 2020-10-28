@@ -14,7 +14,6 @@ modern Python 3.6 stack, powered by awesome open-source software such as
 [Flask](http://flask.pocoo.org), [Zappa](https://github.com/Miserlou/Zappa),
 and [Rasterio](https://github.com/mapbox/rasterio).
 
-[Try the demo](https://terracotta-python.readthedocs.io/en/latest/preview-app.html) |
 [Read the docs](https://terracotta-python.readthedocs.io/en/latest) |
 [Explore the API](https://2truhxo59g.execute-api.eu-central-1.amazonaws.com/production/apidoc) |
 [Satlas, powered by Terracotta](http://satlas.dk)
