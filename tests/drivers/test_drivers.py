@@ -1,18 +1,68 @@
+import os
 import pytest
 
-DRIVERS = ['sqlite', 'mysql']
+TESTABLE_DRIVERS = ['sqlite', 'mysql']
 DRIVER_CLASSES = {
     'sqlite': 'SQLiteDriver',
+    'sqlite-remote': 'SQLiteRemoteDriver',
     'mysql': 'MySQLDriver'
 }
 
 
-@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
 def test_auto_detect(driver_path, provider):
     from terracotta import drivers
     db = drivers.get_driver(driver_path)
     assert db.__class__.__name__ == DRIVER_CLASSES[provider]
     assert drivers.get_driver(driver_path, provider=provider) is db
+
+
+def test_normalize_base(tmpdir):
+    from terracotta.drivers import Driver
+    # base class normalize is noop
+    assert Driver._normalize_path(str(tmpdir)) == str(tmpdir)
+
+
+@pytest.mark.parametrize('provider', ['sqlite'])
+def test_normalize_filepath(provider, tmpdir):
+    from terracotta.drivers import load_driver
+
+    tmpdir = str(tmpdir)
+
+    equivalent_paths = (
+        f'{tmpdir}/foo.tc',
+        f'{tmpdir}//foo.tc',
+        os.path.relpath(f'{tmpdir}/foo.tc', '.'),
+        f'{tmpdir}/bar/../foo.tc',
+    )
+
+    driver = load_driver(provider)
+    first_path = driver._normalize_path(equivalent_paths[0])
+
+    for p in equivalent_paths[1:]:
+        assert driver._normalize_path(p) == first_path
+
+
+@pytest.mark.parametrize('provider', ['mysql', 'sqlite-remote'])
+def test_normalize_url(provider):
+    from terracotta.drivers import load_driver
+
+    scheme = 'mysql' if provider == 'mysql' else 'https'
+
+    equivalent_urls = (
+        'test.example.com/foo',
+        'user@test.example.com/foo',
+        'test.example.com/foo/',
+        f'{scheme}://test.example.com/foo',
+        f'{scheme}://user:password@test.example.com/foo',
+
+    )
+
+    driver = load_driver(provider)
+    first_path = driver._normalize_path(equivalent_urls[0])
+
+    for p in equivalent_urls[1:]:
+        assert driver._normalize_path(p) == first_path
 
 
 def test_get_driver_invalid():
@@ -22,7 +72,7 @@ def test_get_driver_invalid():
     assert 'Unknown database provider' in str(exc.value)
 
 
-@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
 def test_creation(driver_path, provider):
     from terracotta import drivers
     db = drivers.get_driver(driver_path, provider=provider)
@@ -33,7 +83,7 @@ def test_creation(driver_path, provider):
     assert db.get_datasets() == {}
 
 
-@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
 def test_creation_descriptions(driver_path, provider):
     from terracotta import drivers
     db = drivers.get_driver(driver_path, provider=provider)
@@ -45,7 +95,7 @@ def test_creation_descriptions(driver_path, provider):
     assert db.get_keys()['some'] == key_desc['some']
 
 
-@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
 def test_creation_invalid(driver_path, provider):
     from terracotta import drivers, exceptions
     db = drivers.get_driver(driver_path, provider=provider)
@@ -57,7 +107,7 @@ def test_creation_invalid(driver_path, provider):
     assert 'must be alphanumeric' in str(exc.value)
 
 
-@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
 def test_creation_invalid_description(driver_path, provider):
     from terracotta import drivers, exceptions
     db = drivers.get_driver(driver_path, provider=provider)
@@ -69,7 +119,7 @@ def test_creation_invalid_description(driver_path, provider):
     assert 'contains unknown keys' in str(exc.value)
 
 
-@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
 def test_creation_reserved_names(driver_path, provider):
     from terracotta import drivers, exceptions
     db = drivers.get_driver(driver_path, provider=provider)
@@ -81,7 +131,7 @@ def test_creation_reserved_names(driver_path, provider):
     assert 'key names cannot be one of' in str(exc.value)
 
 
-@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
 def test_connect_before_create(driver_path, provider):
     from terracotta import drivers, exceptions
     db = drivers.get_driver(driver_path, provider=provider)
@@ -93,7 +143,7 @@ def test_connect_before_create(driver_path, provider):
     assert 'ran driver.create()' in str(exc.value)
 
 
-@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
 def test_broken_connection(driver_path, provider):
     """Test whether driver can recover from a broken connection"""
 
@@ -120,14 +170,14 @@ def test_broken_connection(driver_path, provider):
         db.get_keys()
 
 
-@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
 def test_repr(driver_path, provider):
     from terracotta import drivers
     db = drivers.get_driver(driver_path, provider=provider)
     assert repr(db).startswith(DRIVER_CLASSES[provider])
 
 
-@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
 def test_version_match(driver_path, provider):
     from terracotta import drivers, __version__
 
@@ -139,7 +189,7 @@ def test_version_match(driver_path, provider):
     assert __version__ == db.db_version
 
 
-@pytest.mark.parametrize('provider', DRIVERS)
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
 def test_version_conflict(driver_path, provider, raster_file, monkeypatch):
     from terracotta import drivers, exceptions
 

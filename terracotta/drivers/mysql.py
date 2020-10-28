@@ -18,7 +18,6 @@ import numpy as np
 import pymysql
 from pymysql.connections import Connection
 from pymysql.cursors import DictCursor
-from url_normalize import url_normalize
 
 from terracotta import get_settings, __version__
 from terracotta.drivers.raster_base import RasterDriver
@@ -33,6 +32,8 @@ _ERROR_ON_CONNECT = (
     'Could not connect to database. Make sure that the given path points '
     'to a valid Terracotta database, and that you ran driver.create().'
 )
+
+DEFAULT_PORT = 3306
 
 
 @contextlib.contextmanager
@@ -132,7 +133,7 @@ class MySQLDriver(RasterDriver):
             host=con_params.hostname,
             user=con_params.username,
             password=con_params.password,
-            port=con_params.port or 3306,
+            port=con_params.port or DEFAULT_PORT,
             db=self._parse_db_name(con_params)
         )
 
@@ -150,13 +151,13 @@ class MySQLDriver(RasterDriver):
     @classmethod
     def _normalize_path(cls, path: str) -> str:
         parts = urlparse.urlparse(path)
-        path = urlparse.urlunparse([
-            parts.scheme or 'mysql',
-            # using hostname instead of netloc drops username and password
-            parts.hostname,
-            *parts[2:]
-        ])
-        return url_normalize(path)
+
+        if not parts.hostname:
+            parts = urlparse.urlparse(f'mysql://{path}')
+
+        path = f'{parts.scheme}://{parts.hostname}:{parts.port or DEFAULT_PORT}{parts.path}'
+        path = path.rstrip('/')
+        return path
 
     @staticmethod
     def _parse_db_name(con_params: ParseResult) -> str:

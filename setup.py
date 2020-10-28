@@ -69,7 +69,6 @@ setup(
         'pyyaml>=3.10',  # downstream dependency of apispec
         'shapely',
         'rasterio>=1.0',
-        'url_normalize',
         'shapely',
         'toml',
         'tqdm'

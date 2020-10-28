@@ -14,7 +14,6 @@ import contextlib
 import urllib.parse as urlparse
 
 from cachetools import cachedmethod, TTLCache
-from url_normalize import url_normalize
 
 from terracotta import get_settings, exceptions
 from terracotta.drivers.sqlite import SQLiteDriver
@@ -110,7 +109,18 @@ class RemoteSQLiteDriver(SQLiteDriver):
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:
-        return url_normalize(path)
+        parts = urlparse.urlparse(path)
+
+        if not parts.hostname:
+            parts = urlparse.urlparse(f'https://{path}')
+
+        port = parts.port
+        if port is None:
+            port = 443 if parts.scheme == 'https' else 80
+
+        path = f'{parts.scheme}://{parts.hostname}:{port}{parts.path}'
+        path = path.rstrip('/')
+        return path
 
     @cachedmethod(operator.attrgetter('_checkdb_cache'))
     @convert_exceptions('Could not retrieve database from S3')
