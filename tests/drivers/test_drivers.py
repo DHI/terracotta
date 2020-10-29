@@ -48,6 +48,7 @@ def test_normalize_url(provider):
     from terracotta.drivers import load_driver
 
     scheme = 'mysql' if provider == 'mysql' else 'https'
+    port = 3306 if provider == 'mysql' else 443
 
     equivalent_urls = (
         'test.example.com/foo',
@@ -55,6 +56,7 @@ def test_normalize_url(provider):
         'test.example.com/foo/',
         f'{scheme}://test.example.com/foo',
         f'{scheme}://user:password@test.example.com/foo',
+        f'test.example.com:{port}/foo',
 
     )
 
