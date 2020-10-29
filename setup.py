@@ -87,18 +87,18 @@ setup(
             'flake8',
             'matplotlib',
             'moto',
-            'pymysql'
+            'pymysql<0.10'
         ],
         'docs': [
             'sphinx',
             'sphinx_autodoc_typehints',
             'sphinx-click',
-            'pymysql'
+            'pymysql<0.10'
         ],
         'recommended': [
             'colorlog',
             'crick',
-            'pymysql'
+            'pymysql<0.10'
         ]
     },
     # CLI

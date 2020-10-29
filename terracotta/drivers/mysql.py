@@ -5,7 +5,7 @@ to be present on disk.
 """
 
 from typing import (Tuple, Dict, Iterator, Sequence, Union,
-                    Mapping, Any, Optional, cast, TypeVar, NamedTuple)
+                    Mapping, Any, Optional, cast, TypeVar)
 from collections import OrderedDict
 import contextlib
 from contextlib import AbstractContextManager
@@ -33,6 +33,8 @@ _ERROR_ON_CONNECT = (
     'to a valid Terracotta database, and that you ran driver.create().'
 )
 
+DEFAULT_PORT = 3306
+
 
 @contextlib.contextmanager
 def convert_exceptions(msg: str) -> Iterator:
@@ -44,12 +46,28 @@ def convert_exceptions(msg: str) -> Iterator:
         raise exceptions.InvalidDatabaseError(msg) from exc
 
 
-class MySQLCredentials(NamedTuple):
-    host: str
-    port: int
-    db: str
-    user: Optional[str] = None
-    password: Optional[str] = None
+class MySQLCredentials:
+    __slots__ = ('host', 'port', 'db', '_user', '_password')
+
+    def __init__(self,
+                 host: str,
+                 port: int,
+                 db: str,
+                 user: Optional[str] = None,
+                 password: Optional[str] = None):
+        self.host = host
+        self.port = port
+        self.db = db
+        self._user = user
+        self._password = password
+
+    @property
+    def user(self) -> Optional[str]:
+        return self._user or get_settings().MYSQL_USER
+
+    @property
+    def password(self) -> Optional[str]:
+        return self._password or get_settings().MYSQL_PASSWORD
 
 
 class MySQLDriver(RasterDriver):
@@ -97,7 +115,6 @@ class MySQLDriver(RasterDriver):
                 ``mysql://username:password@hostname/database``
 
         """
-
         settings = get_settings()
 
         self.DB_CONNECTION_TIMEOUT: int = settings.DB_CONNECTION_TIMEOUT
@@ -116,7 +133,7 @@ class MySQLDriver(RasterDriver):
             host=con_params.hostname,
             user=con_params.username,
             password=con_params.password,
-            port=con_params.port or 3306,
+            port=con_params.port or DEFAULT_PORT,
             db=self._parse_db_name(con_params)
         )
 
@@ -127,20 +144,20 @@ class MySQLDriver(RasterDriver):
         self._version_checked: bool = False
         self._db_keys: Optional[OrderedDict] = None
 
-        qualified_path = self._build_qualified_path(self._db_args)
+        # use normalized path to make sure username and password don't leak into __repr__
+        qualified_path = self._normalize_path(mysql_path)
         super().__init__(qualified_path)
 
-    @staticmethod
-    def _build_qualified_path(db_args: MySQLCredentials) -> str:
-        """Convert path to mysql://({USER}(:[REDACTED])@){HOST}:{PORT}/{DB}"""
-        qualified_path = ['mysql://']
-        if db_args.user:
-            qualified_path.append(f'{db_args.user}')
-            if db_args.password:
-                qualified_path.append(':[REDACTED]')
-            qualified_path.append('@')
-        qualified_path.append(f'{db_args.host}:{db_args.port}/{db_args.db}')
-        return ''.join(qualified_path)
+    @classmethod
+    def _normalize_path(cls, path: str) -> str:
+        parts = urlparse.urlparse(path)
+
+        if not parts.hostname:
+            parts = urlparse.urlparse(f'mysql://{path}')
+
+        path = f'{parts.scheme}://{parts.hostname}:{parts.port or DEFAULT_PORT}{parts.path}'
+        path = path.rstrip('/')
+        return path
 
     @staticmethod
     def _parse_db_name(con_params: ParseResult) -> str:
@@ -148,7 +165,7 @@ class MySQLDriver(RasterDriver):
             raise ValueError('database must be specified in MySQL path')
 
         path = con_params.path.strip('/')
-        if len(path.split('/')) != 1:
+        if '/' in path:
             raise ValueError('invalid database path')
 
         return path

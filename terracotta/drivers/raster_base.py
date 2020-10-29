@@ -16,6 +16,7 @@ import threading
 
 import numpy as np
 import cachetools
+import cachetools.keys
 
 if TYPE_CHECKING:  # pragma: no cover
     from rasterio.io import DatasetReader  # noqa: F401

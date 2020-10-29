@@ -79,9 +79,11 @@ def get_driver(url_or_path: URLOrPathType, provider: str = None) -> Driver:
     if isinstance(url_or_path, Path) or provider == 'sqlite':
         url_or_path = str(Path(url_or_path).resolve())
 
-    cache_key = (url_or_path, provider)
+    DriverClass = load_driver(provider)
+    normalized_path = DriverClass._normalize_path(url_or_path)
+    cache_key = (normalized_path, provider)
+
     if cache_key not in _DRIVER_CACHE:
-        DriverClass = load_driver(provider)
         _DRIVER_CACHE[cache_key] = DriverClass(url_or_path)
 
     return _DRIVER_CACHE[cache_key]

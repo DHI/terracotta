@@ -28,6 +28,8 @@ INVALID_TEST_CASES = [
 @pytest.mark.parametrize('case', TEST_CASES.keys())
 def test_path_parsing(case):
     from terracotta import drivers
+    # empty cache
+    drivers._DRIVER_CACHE = {}
 
     db = drivers.get_driver(case, provider='mysql')
     db_args = db._db_args

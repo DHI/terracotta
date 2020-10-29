@@ -8,13 +8,14 @@ import matplotlib.cm as cm
 
 from terracotta.cmaps.get_cmaps import SUFFIX
 
-ALL_MAPS = cm.cmap_d
+ALL_CMAPS = list(cm.cmaps_listed) + list(cm.datad)
+ALL_CMAPS.extend([f'{cmap}_r' for cmap in ALL_CMAPS])
 NUM_VALS = 255
 
 
 def generate_maps(out_folder: str) -> None:
     x = np.linspace(0, 1, NUM_VALS)
-    for cmap in ALL_MAPS:
+    for cmap in ALL_CMAPS:
         print(cmap)
         cmap_fun = cm.get_cmap(cmap)
         cmap_vals = cmap_fun(x)

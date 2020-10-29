@@ -4,13 +4,12 @@ Tests that apply to all drivers go to test_drivers.py.
 """
 
 import os
+import time
 import uuid
 import tempfile
 from pathlib import Path
 
 import pytest
-
-from cachetools import TTLCache
 
 boto3 = pytest.importorskip('boto3')
 moto = pytest.importorskip('moto')
@@ -104,37 +103,32 @@ def test_remote_database_cache(s3_db_factory, raster_file, monkeypatch):
     from terracotta import get_driver
 
     driver = get_driver(dbpath)
-    with monkeypatch.context() as m:
-        # replace TTL cache timer by manual timer
-        m.setattr(driver, '_checkdb_cache', TTLCache(maxsize=1, ttl=1, timer=Timer()))
-        assert len(driver._checkdb_cache) == 0
+    driver._last_updated = -float('inf')
 
-        with driver.connect():
-            assert driver.key_names == keys
-            assert driver.get_datasets() == {}
-            modification_date = os.path.getmtime(driver.path)
+    with driver.connect():
+        assert driver.key_names == keys
+        assert driver.get_datasets() == {}
+        modification_date = os.path.getmtime(driver.path)
 
-            s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
+        s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
 
-            # no change yet
-            assert driver.get_datasets() == {}
-            assert os.path.getmtime(driver.path) == modification_date
+        # no change yet
+        assert driver.get_datasets() == {}
+        assert os.path.getmtime(driver.path) == modification_date
 
-        # check if remote db is cached after one tick
-        driver._checkdb_cache.timer.tick()
-        assert len(driver._checkdb_cache) == 1
+    # check if remote db is cached correctly
+    driver._last_updated = time.time()
 
-        with driver.connect():  # db connection is cached; so still no change
-            assert driver.get_datasets() == {}
-            assert os.path.getmtime(driver.path) == modification_date
+    with driver.connect():  # db connection is cached; so still no change
+        assert driver.get_datasets() == {}
+        assert os.path.getmtime(driver.path) == modification_date
 
-        # TTL cache is invalidated after second tick
-        driver._checkdb_cache.timer.tick()
-        assert len(driver._checkdb_cache) == 0
+    # invalidate cache
+    driver._last_updated = -float('inf')
 
-        with driver.connect():  # now db is updated on reconnect
-            assert list(driver.get_datasets().keys()) == [('some', 'value')]
-            assert os.path.getmtime(driver.path) != modification_date
+    with driver.connect():  # now db is updated on reconnect
+        assert list(driver.get_datasets().keys()) == [('some', 'value')]
+        assert os.path.getmtime(driver.path) != modification_date
 
 
 @moto.mock_s3

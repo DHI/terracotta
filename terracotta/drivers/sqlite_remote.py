@@ -6,14 +6,12 @@ to be present on disk.
 
 from typing import Any, Iterator
 import os
+import time
 import tempfile
 import shutil
-import operator
 import logging
 import contextlib
 import urllib.parse as urlparse
-
-from cachetools import cachedmethod, TTLCache
 
 from terracotta import get_settings, exceptions
 from terracotta.drivers.sqlite import SQLiteDriver
@@ -76,7 +74,6 @@ class RemoteSQLiteDriver(SQLiteDriver):
         will throw a NotImplementedError.
 
     """
-    path: str
 
     def __init__(self, remote_path: str) -> None:
         """Initialize the RemoteSQLiteDriver.
@@ -102,17 +99,35 @@ class RemoteSQLiteDriver(SQLiteDriver):
         )
         local_db_file.close()
 
-        self._remote_path: str = str(remote_path)
-        self._checkdb_cache = TTLCache(maxsize=1, ttl=settings.REMOTE_DB_CACHE_TTL)
+        self._remote_path = str(remote_path)
+        self._last_updated = -float('inf')
 
         super().__init__(local_db_file.name)
 
-    @cachedmethod(operator.attrgetter('_checkdb_cache'))
+    @classmethod
+    def _normalize_path(cls, path: str) -> str:
+        parts = urlparse.urlparse(path)
+
+        if not parts.hostname:
+            parts = urlparse.urlparse(f'https://{path}')
+
+        port = parts.port
+        if port is None:
+            port = 443 if parts.scheme == 'https' else 80
+
+        path = f'{parts.scheme}://{parts.hostname}:{port}{parts.path}'
+        path = path.rstrip('/')
+        return path
+
     @convert_exceptions('Could not retrieve database from S3')
     @trace('download_db_from_s3')
     def _update_db(self, remote_path: str, local_path: str) -> None:
-        logger.debug('Remote database cache expired, re-downloading')
-        _update_from_s3(remote_path, local_path)
+        settings = get_settings()
+
+        if self._last_updated < time.time() - settings.REMOTE_DB_CACHE_TTL:
+            logger.debug('Remote database cache expired, re-downloading')
+            _update_from_s3(remote_path, local_path)
+            self._last_updated = time.time()
 
     def _connection_callback(self) -> None:
         self._update_db(self._remote_path, self.path)

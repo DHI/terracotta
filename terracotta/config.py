@@ -67,6 +67,12 @@ class TerracottaSettings(NamedTuple):
     #: CORS allowed origins for tiles endpoints
     ALLOWED_ORIGINS_TILES: List[str] = []
 
+    #: MySQL database username (if not given in driver path)
+    MYSQL_USER: Optional[str] = None
+
+    #: MySQL database password (if not given in driver path)
+    MYSQL_PASSWORD: Optional[str] = None
+
 
 AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._fields)
 
@@ -113,6 +119,9 @@ class SettingSchema(Schema):
 
     ALLOWED_ORIGINS_METADATA = fields.List(fields.String())
     ALLOWED_ORIGINS_TILES = fields.List(fields.String())
+
+    MYSQL_USER = fields.String()
+    MYSQL_PASSWORD = fields.String()
 
     @pre_load
     def decode_lists(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:

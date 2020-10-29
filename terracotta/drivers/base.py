@@ -35,6 +35,11 @@ class Driver(ABC):
     def __init__(self, url_or_path: str) -> None:
         self.path = url_or_path
 
+    @classmethod
+    def _normalize_path(cls, path: str) -> str:
+        """Convert given path to normalized version (that can be used for caching)"""
+        return path
+
     @abstractmethod
     def create(self, keys: Sequence[str], *,
                key_descriptions: Mapping[str, str] = None) -> None:
