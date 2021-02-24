@@ -58,7 +58,7 @@ TEST_CASES = (
         'input_pattern': '{bärbel}.tif',
         'expected_keys': ['bärbel'],
         'expected_datasets': [('günther',)]
-    }
+    },
 )
 
 INVALID_TEST_CASES = (
@@ -150,6 +150,33 @@ def test_ingest_append(raster_file, tmpworkdir):
     driver = get_driver(str(outfile), provider='sqlite')
     assert driver.key_names == ('name',)
     assert all((ds,) in driver.get_datasets() for ds in ('img1', 'img2'))
+
+
+@pytest.mark.parametrize('addflags', [('--skip-existing', ), ()])
+def test_ingest_append_overwrite(addflags, raster_file, tmpworkdir):
+    from terracotta.scripts import cli
+
+    same_name = 'myimage'
+    for infile in (f'dir1/{same_name}.tif', f'dir2/{same_name}.tif'):
+        temp_infile = tmpworkdir / infile
+        os.makedirs(temp_infile.dirpath(), exist_ok=True)
+        shutil.copy(raster_file, temp_infile)
+
+    outfile = tmpworkdir / 'out.sqlite'
+
+    runner = CliRunner()
+    result = runner.invoke(cli.cli, ['ingest', 'dir1/{name}.tif', '-o', str(outfile)] + addflags)
+    assert result.exit_code == 0
+    assert outfile.check()
+
+    result = runner.invoke(cli.cli, ['ingest', 'dir2/{name}.tif', '-o', str(outfile)] + addflags)
+    assert result.exit_code == 0
+    assert outfile.check()
+
+    from terracotta import get_driver
+    driver = get_driver(str(outfile), provider='sqlite')
+    assert driver.key_names == ('name',)
+    assert tuple(driver.get_datasets()) == (same_name, )
 
 
 def test_ingest_append_invalid(raster_file, tmpworkdir):
