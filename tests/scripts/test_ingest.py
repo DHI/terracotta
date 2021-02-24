@@ -169,6 +169,11 @@ def test_ingest_append_overwrite(addflags, raster_file, tmpworkdir):
     assert result.exit_code == 0
     assert outfile.check()
 
+    runner = CliRunner()
+    result = runner.invoke(cli.cli, ['ingest', 'dir1/{name}.tif', '-o', str(outfile)] + addflags)
+    assert result.exit_code == 0
+    assert outfile.check()
+
     result = runner.invoke(cli.cli, ['ingest', 'dir2/{name}.tif', '-o', str(outfile)] + addflags)
     assert result.exit_code == 0
     assert outfile.check()
@@ -176,7 +181,9 @@ def test_ingest_append_overwrite(addflags, raster_file, tmpworkdir):
     from terracotta import get_driver
     driver = get_driver(str(outfile), provider='sqlite')
     assert driver.key_names == ('name',)
-    assert tuple(driver.get_datasets()) == (same_name, )
+    keys = tuple(driver.get_datasets())
+    assert len(keys) == 1
+    assert keys == (same_name, )
 
 
 def test_ingest_append_invalid(raster_file, tmpworkdir):
