@@ -87,6 +87,7 @@ setup(
             'flake8',
             'matplotlib',
             'moto',
+            'aws-xray-sdk',
             'pymysql<0.10'
         ],
         'docs': [
