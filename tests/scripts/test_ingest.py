@@ -152,7 +152,7 @@ def test_ingest_append(raster_file, tmpworkdir):
     assert all((ds,) in driver.get_datasets() for ds in ('img1', 'img2'))
 
 
-@pytest.mark.parametrize('addflags', [('--skip-existing', ), ()])
+@pytest.mark.parametrize('addflags', [['--skip-existing', ], []])
 def test_ingest_append_overwrite(addflags, raster_file, tmpworkdir):
     from terracotta.scripts import cli
 
