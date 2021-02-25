@@ -278,8 +278,9 @@ class MySQLDriver(RasterDriver):
                              password=self._db_args.password, port=self._db_args.port,
                              read_timeout=self.DB_CONNECTION_TIMEOUT,
                              write_timeout=self.DB_CONNECTION_TIMEOUT,
-                             binary_prefix=True, charset='utf8mb4') as con:
-            con.execute(f'CREATE DATABASE {self._db_args.db}')
+                             binary_prefix=True, charset='utf8mb4') as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(f'CREATE DATABASE {self._db_args.db}')
 
         with self._connect(check=False):
             cursor = self._cursor
