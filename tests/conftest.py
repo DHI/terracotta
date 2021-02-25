@@ -407,7 +407,7 @@ def driver_path(provider, tmpdir, mysql_server):
 
         import pymysql
         try:
-            with pymysql.connect(con_info.hostname, user=con_info.username,
+            with pymysql.connect(host=con_info.hostname, user=con_info.username,
                                  password=con_info.password) as con:
                 pass
         except pymysql.OperationalError as exc:
@@ -417,7 +417,7 @@ def driver_path(provider, tmpdir, mysql_server):
             yield f'{mysql_server}/{dbpath}'
 
         finally:  # cleanup
-            with pymysql.connect(con_info.hostname, user=con_info.username,
+            with pymysql.connect(host=con_info.hostname, user=con_info.username,
                                  password=con_info.password) as con:
                 try:
                     con.execute(f'DROP DATABASE IF EXISTS {dbpath}')
