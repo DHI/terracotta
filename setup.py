@@ -88,7 +88,7 @@ setup(
             'matplotlib',
             'moto',
             'aws-xray-sdk',
-            'pymysql<0.10'
+            'pymysql>=1.0.0'
         ],
         'docs': [
             'sphinx',
