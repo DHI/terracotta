@@ -16,8 +16,9 @@ moto = pytest.importorskip('moto')
 
 
 @pytest.fixture(autouse=True)
-def override_aws_credentials(monkeypatch):
+def mock_aws_env(monkeypatch):
     with monkeypatch.context() as m:
+        m.setenv('AWS_DEFAULT_REGION', 'us-east-1')
         m.setenv('AWS_ACCESS_KEY_ID', 'FakeKey')
         m.setenv('AWS_SECRET_ACCESS_KEY', 'FakeSecretKey')
         m.setenv('AWS_SESSION_TOKEN', 'FakeSessionToken')
@@ -87,6 +88,7 @@ def test_invalid_url():
             pass
 
 
+@moto.mock_s3
 def test_nonexisting_url():
     from terracotta import get_driver, exceptions
     driver = get_driver('s3://foo/db.sqlite')
