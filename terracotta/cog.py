@@ -16,8 +16,6 @@ ValidationInfo = Tuple[List[str], List[str], Dict[str, Any]]
 def validate(src_path: str, strict: bool = True) -> bool:
     """Validate given cloud-optimized GeoTIFF"""
     errors, warnings, details = check_raster_file(src_path)
-    print(errors)
-    print(warnings)
     if strict:
         return not errors and not warnings
     else:
