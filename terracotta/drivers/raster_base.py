@@ -150,7 +150,7 @@ class RasterDriver(Driver):
         can contribute to the convex hull of a dataset.
         """
         assert mask.ndim == 2
-        assert mask.dtype == np.bool
+        assert mask.dtype == np.bool_
 
         nx, ny = mask.shape
         out = np.zeros_like(mask)
