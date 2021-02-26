@@ -5,6 +5,7 @@ import time
 from moto import mock_xray_client, XRaySegment
 
 
+@pytest.mark.filterwarnings('ignore:pytest.PytestUnraisableExceptionWarning')
 @mock_xray_client
 def test_xray_tracing(caplog):
     from terracotta import update_settings
@@ -31,6 +32,7 @@ def test_xray_tracing(caplog):
     assert any('cannot find the current segment' in rec.message for rec in caplog.records)
 
 
+@pytest.mark.filterwarnings('ignore:pytest.PytestUnraisableExceptionWarning')
 @mock_xray_client
 def test_xray_exception(caplog):
     from terracotta import update_settings
