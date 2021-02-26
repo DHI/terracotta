@@ -158,9 +158,11 @@ def test_reingest(skip_existing, raster_file, tmpworkdir):
     from terracotta import get_driver
 
     same_name = 'myimage'
-    infiles = [f'dir1/{same_name}.tif', f'dir2/{same_name}.tif', f'dir3/{same_name}.tif']
-    for infile in infiles:
-        temp_infile = tmpworkdir / infile
+    infiles = [
+        tmpworkdir / p
+        for p in [f'dir1/{same_name}.tif', f'dir2/{same_name}.tif', f'dir3/{same_name}.tif']
+    ]
+    for temp_infile in infiles:
         os.makedirs(temp_infile.dirpath(), exist_ok=True)
         shutil.copy(raster_file, temp_infile)
 
