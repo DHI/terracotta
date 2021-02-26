@@ -181,9 +181,10 @@ def test_ingest_append_overwrite(addflags, raster_file, tmpworkdir):
     from terracotta import get_driver
     driver = get_driver(str(outfile), provider='sqlite')
     assert driver.key_names == ('name',)
-    keys = tuple(driver.get_datasets())
+    keys = list(driver.get_datasets())
     assert len(keys) == 1
-    assert keys == (same_name, )
+    assert len(keys[0]) == 1
+    assert keys[0] == (same_name, )
 
 
 def test_ingest_append_invalid(raster_file, tmpworkdir):
