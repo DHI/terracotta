@@ -1,5 +1,6 @@
 import pytest
 
+import gc
 import time
 
 
@@ -34,6 +35,8 @@ def test_xray_tracing(caplog):
         assert any('cannot find the current segment' in rec.message for rec in caplog.records)
 
     run_test()
+    del mock_xray_client, XRaySegment
+    gc.collect()
 
 
 @pytest.mark.filterwarnings('ignore:pytest.PytestUnraisableExceptionWarning')
@@ -57,3 +60,5 @@ def test_xray_exception(caplog):
         assert subsegment.cause['exceptions'][0].message == 'foo'
 
     run_test()
+    del mock_xray_client, XRaySegment
+    gc.collect()
