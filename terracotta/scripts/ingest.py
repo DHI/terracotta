@@ -71,7 +71,8 @@ def ingest(raster_pattern: RasterPatternType,
 
     if not output_file.is_file():
         driver.create(keys)
-    elif skip_existing:
+
+    if skip_existing:
         existing = driver.get_datasets()
         raster_files = {key: path for key, path in raster_files.items() if key not in existing}
 

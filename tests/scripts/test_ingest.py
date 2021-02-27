@@ -181,7 +181,6 @@ def test_reingest(skip_existing, raster_file, tmpworkdir):
     assert result.exit_code == 0
     _assert_datasets_equal({(same_name,): str(infiles[0])})
 
-    runner = CliRunner()
     args = ['ingest', 'dir2/{name}.tif', '-o', str(outfile)]
     if skip_existing:
         args.append("--skip-existing")
