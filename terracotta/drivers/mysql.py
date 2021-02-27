@@ -274,12 +274,16 @@ class MySQLDriver(RasterDriver):
         key_size = self._MAX_PRIMARY_KEY_LENGTH // len(keys)
         key_type = f'VARCHAR({key_size})'
 
-        with pymysql.connect(host=self._db_args.host, user=self._db_args.user,
-                             password=self._db_args.password, port=self._db_args.port,
-                             read_timeout=self.DB_CONNECTION_TIMEOUT,
-                             write_timeout=self.DB_CONNECTION_TIMEOUT,
-                             binary_prefix=True, charset='utf8mb4') as con:
-            con.execute(f'CREATE DATABASE {self._db_args.db}')
+        connection = pymysql.connect(
+            host=self._db_args.host, user=self._db_args.user,
+            password=self._db_args.password, port=self._db_args.port,
+            read_timeout=self.DB_CONNECTION_TIMEOUT,
+            write_timeout=self.DB_CONNECTION_TIMEOUT,
+            binary_prefix=True, charset='utf8mb4'
+        )
+
+        with connection, connection.cursor() as cursor:  # type: ignore
+            cursor.execute(f'CREATE DATABASE {self._db_args.db}')
 
         with self._connect(check=False):
             cursor = self._cursor

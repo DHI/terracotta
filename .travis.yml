@@ -17,7 +17,7 @@ services:
 
 branches:
   only:
-    - master
+    - main
     # build release tags
     - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 

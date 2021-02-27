@@ -17,7 +17,7 @@ from terracotta import exceptions, get_settings
 Number = TypeVar('Number', int, float)
 RGBA = Tuple[Number, Number, Number, Number]
 Palette = Sequence[RGBA]
-Array = TypeVar('Array', np.ndarray, np.ma.MaskedArray)
+Array = Union[np.ndarray, np.ma.MaskedArray]
 
 
 @trace('array_to_png')
@@ -141,7 +141,7 @@ def contrast_stretch(data: Array,
     out_data += lower_bound_out
 
     if clip:
-        np.clip(out_data, *out_range, out=out_data)
+        np.clip(out_data, lower_bound_out, upper_bound_out, out=out_data)
 
     return out_data
 

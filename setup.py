@@ -68,7 +68,7 @@ setup(
         'pillow',
         'pyyaml>=3.10',  # downstream dependency of apispec
         'shapely',
-        'rasterio>=1.0',
+        'rasterio>=1.0,<=1.1.8',  # TODO: unpin when performance issues with GDAL3 are fixed
         'shapely',
         'toml',
         'tqdm'
@@ -87,7 +87,8 @@ setup(
             'flake8',
             'matplotlib',
             'moto',
-            'pymysql<0.10'
+            'aws-xray-sdk',
+            'pymysql>=1.0.0'
         ],
         'docs': [
             'sphinx',

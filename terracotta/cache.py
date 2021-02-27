@@ -51,7 +51,7 @@ class CompressedLFUCache(LFUCache):
         data_b, mask_b, dt, ds = compressed_data
         data = np.frombuffer(zlib.decompress(data_b), dtype=dt).reshape(ds)
         mask = np.frombuffer(zlib.decompress(mask_b), dtype=np.uint8)
-        mask = np.unpackbits(mask)[:np.prod(ds)]
+        mask = np.unpackbits(mask)[:int(np.prod(ds))]
         mask = mask.reshape(ds)
         return np.ma.masked_array(data, mask=mask)
 
