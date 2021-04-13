@@ -126,3 +126,7 @@ ENV/
 
 # Client
 node_modules
+
+# Client build
+
+terracotta/client/templates/**
