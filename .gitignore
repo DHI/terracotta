@@ -129,4 +129,5 @@ node_modules
 
 # Client build
 
-terracotta/client/templates/**
+terracotta/client/flask-server/templates/**
+terracotta/client/flask-server/static/**
