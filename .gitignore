@@ -123,3 +123,6 @@ ENV/
 
 # VS Code
 .vscode/
+
+# Client
+node_modules
