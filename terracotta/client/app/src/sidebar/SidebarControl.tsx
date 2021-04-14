@@ -52,11 +52,6 @@ const useStyles = makeStyles(theme => ({
 	},
 }))
 
-
-interface Icon {
-	component: FC,
-	tooltip: string,
-}
 interface Props {
 	toggleSidebarOpen: (event: MouseEvent<HTMLElement>) => void,
 	isSidebarOpen: boolean,

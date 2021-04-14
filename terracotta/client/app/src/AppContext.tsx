@@ -1,8 +1,8 @@
 import { createContext } from 'react'
-
+import { Viewport } from "./map/types"
 interface AppContextValues {
 	state: {
-        viewport: any,
+        viewport: Viewport,
         isOpticalBasemap: boolean
 	},
 	actions: {

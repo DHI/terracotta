@@ -2,11 +2,6 @@ import React, { CSSProperties, ReactNode, FC } from 'react'
 import { Box, Typography } from '@material-ui/core'
 import HeaderImage from "./../common/images/header.svg"
 
-const mainTitleStyle = {
-	fontSize: 20,
-	fontWeight: 500,
-}
-
 interface Props {
 	title: string,
 	titleColor?: string,
@@ -17,10 +12,7 @@ interface Props {
 	style?: CSSProperties,
 }
 const SidebarTitle: FC<Props> = ({
-	title = 'Current title',
 	subTitle = [ '' ],
-	images,
-	titleColor = '#0b4566',
 	subTitleColor = '#86a2b3',
 	style,
 }) =>

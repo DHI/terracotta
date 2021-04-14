@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-
+/* eslint-disable */
 const getWindowDimensions = () => {
 
 	const { clientWidth: width, clientHeight: height } = document.body

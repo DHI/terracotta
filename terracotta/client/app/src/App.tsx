@@ -1,4 +1,4 @@
-import React, { FC, useState, createContext, useEffect } from 'react';
+import React, { FC, useState, useEffect } from 'react';
 import { Box } from "@material-ui/core"
 import { makeStyles } from "@material-ui/core/styles"
 import SidebarControl from "./sidebar/SidebarControl"
@@ -9,10 +9,11 @@ import Map from "./map/Map"
 import { FlyToInterpolator } from 'react-map-gl'
 import { easeCubicInOut } from 'd3-ease'
 import AppContext from "./AppContext"
+import { Viewport } from "./map/types"
 const useStyles = makeStyles(() => ({
   root: {
     width: '100%',
-		height: window.innerHeight,
+		height: "100vh",
 		margin: 0,
 		padding: 0,
   }
@@ -30,9 +31,9 @@ const defaultViewport = {
 }
 
 const App: FC = () => {
-  const [ isSidebarOpen, setIsSidebarOpen ] = useState(true)
-  const [ viewport, setViewport] = useState(defaultViewport)
-  const [ isOpticalBasemap, setIsOpticalBasemap] = useState(false)
+  const [ isSidebarOpen, setIsSidebarOpen ] = useState<boolean>(true)
+  const [ viewport, setViewport] = useState<Viewport>(defaultViewport)
+  const [ isOpticalBasemap, setIsOpticalBasemap] = useState<boolean>(false)
   const classes = useStyles(); 
 
 	const toggleSidebarOpen = () => setIsSidebarOpen(!isSidebarOpen)
