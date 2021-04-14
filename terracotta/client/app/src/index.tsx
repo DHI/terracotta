@@ -5,9 +5,9 @@ import { ThemeProvider } from "@material-ui/core"
 import GRASTheme from "./theme/theme"
 ReactDOM.render(
 	<React.StrictMode>
-    <ThemeProvider theme={GRASTheme}>
-	  	<App />
-    </ThemeProvider>
+		<ThemeProvider theme={GRASTheme}>
+			<App />
+		</ThemeProvider>
 	</React.StrictMode>,
 	document.getElementById('root')
 )

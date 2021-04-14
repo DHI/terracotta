@@ -1,4 +1,4 @@
-import React, { FC, useState, createContext } from 'react';
+import React, { FC, useState, createContext, useEffect } from 'react';
 import { Box } from "@material-ui/core"
 import { makeStyles } from "@material-ui/core/styles"
 import SidebarControl from "./sidebar/SidebarControl"
@@ -36,6 +36,37 @@ const App: FC = () => {
   const classes = useStyles(); 
 
 	const toggleSidebarOpen = () => setIsSidebarOpen(!isSidebarOpen)
+
+  function initializeApp(hostname: string) {
+    // sanitize hostname
+    if (hostname.charAt(hostname.length - 1) === '/') {
+        hostname = hostname.slice(0, hostname.length - 1);
+    }
+
+    // STATE.remote_host = hostname;
+
+    // getColormapValues(hostname)
+    //     .then(() => getKeys(hostname))
+    //     .then((keys) => {
+    //         STATE.keys = keys;
+    //         initUI(hostname, keys);
+    //         updateSearchResults();
+    //         let osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    //         let osmAttrib = 'Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
+    //         let osmBase = L.tileLayer(osmUrl, { attribution: osmAttrib });
+    //         STATE.map = L.map('map', {
+    //             center: [0, 0],
+    //             zoom: 2,
+    //             layers: [osmBase]
+    //         });
+    //     });
+    // addListenersToSliderRanges();
+    // addResizeListeners();
+}
+
+  useEffect(() => {
+    window.onload = initializeApp.bind(null, '{{ hostname }}');
+  }, [])
 
   return (
     <div className={classes.root}>
