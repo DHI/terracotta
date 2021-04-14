@@ -4,11 +4,13 @@ import { makeStyles } from "@material-ui/core/styles"
 import SidebarControl from "./sidebar/SidebarControl"
 import SidebarContent from "./sidebar/SidebarContent"
 import SidebarTitle from "./sidebar/SidebarTitle"
+import SidebarKeysItem from "./sidebar/SidebarKeysItem"
 import Map from "./map/Map"
 import { FlyToInterpolator } from 'react-map-gl'
 import { easeCubicInOut } from 'd3-ease'
 import AppContext from "./AppContext"
 import { Viewport } from "./map/types"
+
 const useStyles = makeStyles(() => ({
   root: {
     width: '100%',
@@ -17,7 +19,9 @@ const useStyles = makeStyles(() => ({
 		padding: 0,
   }
 }))
+
 const details = 'This applet lets you explore the data on any running Terracotta server. Just search for a dataset to get started!'
+
 const defaultViewport = {
   latitude: 10.394947325803054,
 	longitude: 8.5887344355014,
@@ -95,25 +99,12 @@ const App: FC = () => {
                 host={hostname}
                 details={details}
               />
-                <>
-                  {/* <EtControl
-                    regions={regions}
-                    activeRegion={activeRegion}
-                    setActiveRegion={(val: number) => setActiveRegion(val)}
-                    models={models}
-                    activeModel={activeModel}
-                    setActiveModel={(val: string) => setActiveModel(val)}
-                    ress={ress}
-                    activeRes={activeRes}
-                    setActiveRes={(val: string) => setActiveRes(val)}
-                    products={products}
-                    activeProduct={activeProduct}
-                    setActiveProduct={(val: string) => setActiveProduct(val)}
-                    dates={startingDates}
-                    activeDate={activeDate}
-                    setActiveDate={(val: string) => setActiveDate(val)}
-                  /> */}
-                </>
+              {
+                hostname && (
+                  <SidebarKeysItem host={hostname} />
+                )
+              }
+              
             </SidebarContent>
             )}
             <SidebarControl

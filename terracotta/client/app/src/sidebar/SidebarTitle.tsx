@@ -7,6 +7,11 @@ import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { makeStyles } from "@material-ui/core/styles"
 
 const useStyles = makeStyles(() => ({
+	wrapper: {
+		margin: 16,
+		backgroundColor: '#FFFFFF',
+		borderBottom: '1px solid #86A2B3'
+	},
 	icon: {
 		width: 20,
 		height: 22,
@@ -18,8 +23,8 @@ const useStyles = makeStyles(() => ({
 		marginLeft: 4
 	},
 	detailsBox: {
-		padding: 8,
 		marginTop: 8,
+		marginBottom: 8,
 		"&:hover":{
 			cursor: 'pointer'
 		}
@@ -49,11 +54,8 @@ const SidebarTitle: FC<Props> = ({
 
 	return (
 		<Box
-			style={{
-				padding: 16,
-				backgroundColor: '#FFFFFF',
-				...style,
-			}}
+			style={{ ...style }}
+			className={classes.wrapper}
 		>
 			<Box display={'flex'} flexWrap={'nowrap'} justifyContent={'space-between'} alignItems={'center'}>
 				<img src={HeaderImage} alt={'Teracotta preview app'} />
@@ -61,7 +63,6 @@ const SidebarTitle: FC<Props> = ({
 			<Paper
 				className={classes.detailsBox}
 				onClick={() => setShowDetails(!showDetails)}
-				elevation={showDetails ? 2 : 0}
 			>
 				<Box 
 					display={'flex'}
@@ -87,7 +88,7 @@ const SidebarTitle: FC<Props> = ({
 			</Paper>
 			{
 				host && (
-					<Box p={1}>
+					<Box my={1}>
 						<Typography variant={'body1'} className={classes.hostText}>
 							<b>Host: </b>
 							<span>
