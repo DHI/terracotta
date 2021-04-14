@@ -4,7 +4,6 @@ import { makeStyles } from "@material-ui/core/styles"
 import SidebarControl from "./sidebar/SidebarControl"
 import SidebarContent from "./sidebar/SidebarContent"
 import SidebarTitle from "./sidebar/SidebarTitle"
-import LogoBlue from "./common/images/DHI_Logo_Blue.png"
 import Map from "./map/Map"
 import { FlyToInterpolator } from 'react-map-gl'
 import { easeCubicInOut } from 'd3-ease'
@@ -18,7 +17,7 @@ const useStyles = makeStyles(() => ({
 		padding: 0,
   }
 }))
-
+const details = 'This applet lets you explore the data on any running Terracotta server. Just search for a dataset to get started!'
 const defaultViewport = {
   latitude: 10.394947325803054,
 	longitude: 8.5887344355014,
@@ -32,8 +31,9 @@ const defaultViewport = {
 
 const App: FC = () => {
   const [ isSidebarOpen, setIsSidebarOpen ] = useState<boolean>(true)
-  const [ viewport, setViewport] = useState<Viewport>(defaultViewport)
-  const [ isOpticalBasemap, setIsOpticalBasemap] = useState<boolean>(false)
+  const [ viewport, setViewport ] = useState<Viewport>(defaultViewport)
+  const [ isOpticalBasemap, setIsOpticalBasemap ] = useState<boolean>(false)
+  const [ hostname, setHostname ] = useState<string | undefined>(undefined)
   const classes = useStyles(); 
 
 	const toggleSidebarOpen = () => setIsSidebarOpen(!isSidebarOpen)
@@ -43,7 +43,7 @@ const App: FC = () => {
     if (hostname.charAt(hostname.length - 1) === '/') {
         hostname = hostname.slice(0, hostname.length - 1);
     }
-
+    setHostname(hostname)
     // STATE.remote_host = hostname;
 
     // getColormapValues(hostname)
@@ -66,7 +66,8 @@ const App: FC = () => {
 }
 
   useEffect(() => {
-    window.onload = initializeApp.bind(null, '{{ hostname }}');
+    // window.onload = initializeApp.bind(null, '{{ hostname }}');
+    window.onload = initializeApp.bind(null, 'https://4opg6b5hc3.execute-api.eu-central-1.amazonaws.com/development/');
   }, [])
 
   return (
@@ -74,11 +75,12 @@ const App: FC = () => {
       <AppContext.Provider value={{
         state: {
           isOpticalBasemap,
-          viewport
+          viewport,
+          hostname
         },
         actions: {
           setIsOpticalBasemap,
-          setViewport
+          setViewport,
         }
       }}>
         <Box
@@ -90,10 +92,8 @@ const App: FC = () => {
           {isSidebarOpen && (
             <SidebarContent>
               <SidebarTitle
-                title={'ET4FAO'}
-                images={[
-                  <img key={'dhi-logo'} src={LogoBlue} alt={'DHI Logo'} style={{ width: 38 }} />,
-                ]}
+                host={hostname}
+                details={details}
               />
                 <>
                   {/* <EtControl

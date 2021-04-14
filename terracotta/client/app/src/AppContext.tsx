@@ -3,11 +3,12 @@ import { Viewport } from "./map/types"
 interface AppContextValues {
 	state: {
         viewport: Viewport,
-        isOpticalBasemap: boolean
+        isOpticalBasemap: boolean,
+		hostname: string | undefined
 	},
 	actions: {
 		setIsOpticalBasemap: Function,
-        setViewport: Function
+        setViewport: Function,
 	},
 }
 
