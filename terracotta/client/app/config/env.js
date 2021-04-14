@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const paths = require('./paths');
-
+require('dotenv').config()
 // Make sure that including paths.js after env.js will read .env variables.
 delete require.cache[require.resolve('./paths')];
 
@@ -13,7 +13,7 @@ if (!NODE_ENV) {
     'The NODE_ENV environment variable is required but was not specified.'
   );
 }
-
+console.log(NODE_ENV)
 // https://github.com/bkeepers/dotenv#what-other-env-files-can-i-use
 const dotenvFiles = [
   `${paths.dotenv}.${NODE_ENV}.local`,

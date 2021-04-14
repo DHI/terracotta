@@ -1,5 +1,5 @@
 'use strict';
-
+require('dotenv').config()
 const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
@@ -407,7 +407,7 @@ module.exports = function (webpackEnv) {
                     },
                   ],
                 ],
-                
+                ignore: [ './../node_modules/mapbox-gl/dist/mapbox-gl.js' ],
                 plugins: [
                   [
                     require.resolve('babel-plugin-named-asset-import'),
@@ -449,6 +449,7 @@ module.exports = function (webpackEnv) {
                     { helpers: true },
                   ],
                 ],
+                ignore: [ './node_modules/mapbox-gl/dist/mapbox-gl.js' ],
                 cacheDirectory: true,
                 // See #6846 for context on why cacheCompression is disabled
                 cacheCompression: false,
@@ -564,7 +565,7 @@ module.exports = function (webpackEnv) {
           {
             inject: true,
             template: paths.appHtml,
-            // filename: "../../templates/index.html", //added line
+            filename: isEnvDevelopment ? "index.html" : "../../templates/index.html", //added line
           },
           isEnvProduction
             ? {
