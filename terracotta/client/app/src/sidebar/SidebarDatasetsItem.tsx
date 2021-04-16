@@ -8,14 +8,16 @@ import {
     TableRow as MuiTableRow, 
     Typography,
     Box,
+    Grid,
+    Collapse
 } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
-
 import getData, { ResponseDatasets, DatasetItem } from "./../common/data/getData"
 import SidebarItemWrapper from "./SidebarItemWrapper"
 import TablePagination from "./TablePagination"
 import TableRow from "./TableRow"
 import DatasetsForm from "./DatasetsForm"
+import DatasetPreview from "./DatasetPreview"
 
 const useStyles = makeStyles(() => ({
     wrapper: {
@@ -29,7 +31,7 @@ const useStyles = makeStyles(() => ({
         width: "100%",
         overflowX: 'auto',
         overflowY: 'auto',
-        maxHeight: 500
+        maxHeight: 515
     },
     tableHeadTypography: {
         fontWeight: 'bold',
@@ -37,15 +39,11 @@ const useStyles = makeStyles(() => ({
     tableCell: {
         padding: 6
     },
+
 }))
 
 interface Props {
     host: string
-}
-
-interface TableRowCompProps {
-    dataset: DatasetItem,
-    keyVal: string
 }
 
 const limitOptions = [ 15, 25, 50, 100 ]
@@ -80,8 +78,8 @@ const SidebarDatasetsItem: FC<Props> = ({
 
     const onHandleRow = (index: number) => {
 
-        const actualIndex = page + (page !== 0 ? limit : 0) + index;
-        setActiveDataset(actualIndex)
+        const actualIndex = page * limit + index;
+        setActiveDataset((i) => i === actualIndex ? undefined : actualIndex)
 
     }
 
@@ -130,12 +128,28 @@ const SidebarDatasetsItem: FC<Props> = ({
                         <TableBody>
                             {
                                 datasets && datasets.map((dataset: DatasetItem, i: number) => (
-                                    <TableRow 
-                                        dataset={dataset} 
-                                        keyVal={`dataset-${i}`} key={`dataset-${i}`}
-                                        checked={page + (page !== 0 ? limit : 0) + i === activeDataset}
-                                        onClick={() => onHandleRow(i)}
-                                    />
+                                    <>
+                                        <TableRow 
+                                            dataset={dataset} 
+                                            keyVal={`dataset-${i}`} key={`dataset-${i}`}
+                                            checked={page * limit + i === activeDataset}
+                                            onClick={() => onHandleRow(i)}
+                                        />
+                                        {
+                                            activeDataset !== undefined && keys && (
+                                                <DatasetPreview 
+                                                    activeDataset={activeDataset}
+                                                    dataset={dataset}
+                                                    host={host}
+                                                    i={i}
+                                                    keys={keys}
+                                                    limit={limit}
+                                                    page={page}
+                                                />
+                                            )
+                                        }
+                                        
+                                    </>
                                 ))
                             }
                             

@@ -7,7 +7,8 @@ import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 
 const useStyles = makeStyles(() => ({
     tableCell: {
-        padding: 6
+        padding: 6,
+        borderBottom: 'none'
     },
     tableRow: {
         cursor: 'pointer'
@@ -28,14 +29,20 @@ interface Props {
     dataset: DatasetItem,
     keyVal: string,
     checked: boolean,
-    onClick?: () => void
+    onClick?: () => void,
+    onHiver?: () => void
 }
 
 const TableRow: FC<Props> = ({ dataset, keyVal, checked, onClick }) => {
 
     const classes = useStyles()
+    
     return (
-        <MuiTableRow hover onClick={onClick} className={classes.tableRow}>
+        <MuiTableRow 
+            hover 
+            onClick={onClick} 
+            className={classes.tableRow}
+        >
             <TableCell className={classes.tableCell} >
                 <Box display={'flex'} alignItems={'center'}>
                     {
