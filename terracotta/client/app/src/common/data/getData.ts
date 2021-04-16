@@ -1,10 +1,21 @@
 
-type ResponseKeys = {
-    keys: {
-        key: string
-    }
+export type KeyItem = {
+    key: string
 }
-const getData = async (url: string): Promise< ResponseKeys | undefined> => {
+
+export type ResponseKeys = {
+    keys: KeyItem[]
+}
+
+export type DatasetItem = Record<string, string>
+
+export type ResponseDatasets = {
+    page: number,
+    limit: number,
+    datasets: DatasetItem[]
+}
+
+const getData = async (url: string): Promise< ResponseKeys | ResponseDatasets | undefined> => {
 
     try{
 

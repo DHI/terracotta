@@ -5,6 +5,7 @@ import SidebarControl from "./sidebar/SidebarControl"
 import SidebarContent from "./sidebar/SidebarContent"
 import SidebarTitle from "./sidebar/SidebarTitle"
 import SidebarKeysItem from "./sidebar/SidebarKeysItem"
+import SidebarDatasetsItem from "./sidebar/SidebarDatasetsItem"
 import Map from "./map/Map"
 import { FlyToInterpolator } from 'react-map-gl'
 import { easeCubicInOut } from 'd3-ease'
@@ -48,25 +49,7 @@ const App: FC = () => {
         hostname = hostname.slice(0, hostname.length - 1);
     }
     setHostname(hostname)
-    // STATE.remote_host = hostname;
-
-    // getColormapValues(hostname)
-    //     .then(() => getKeys(hostname))
-    //     .then((keys) => {
-    //         STATE.keys = keys;
-    //         initUI(hostname, keys);
-    //         updateSearchResults();
-    //         let osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-    //         let osmAttrib = 'Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
-    //         let osmBase = L.tileLayer(osmUrl, { attribution: osmAttrib });
-    //         STATE.map = L.map('map', {
-    //             center: [0, 0],
-    //             zoom: 2,
-    //             layers: [osmBase]
-    //         });
-    //     });
-    // addListenersToSliderRanges();
-    // addResizeListeners();
+    
 }
 
   useEffect(() => {
@@ -101,7 +84,10 @@ const App: FC = () => {
               />
               {
                 hostname && (
-                  <SidebarKeysItem host={hostname} />
+                  <>
+                    <SidebarKeysItem host={hostname} />
+                    <SidebarDatasetsItem host={hostname} />
+                  </>
                 )
               }
               
