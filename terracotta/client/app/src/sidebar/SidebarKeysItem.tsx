@@ -1,17 +1,9 @@
-import React, { FC, useState, useEffect } from 'react'
+import React, { FC, useState, useEffect, useContext } from 'react'
 import { Typography, Grid } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import getData, { KeyItem, ResponseKeys } from "./../common/data/getData"
 import SidebarItemWrapper from "./SidebarItemWrapper"
-const useStyles = makeStyles(() => ({
-    wrapper: {
-		margin: 16,
-        paddingBottom: 16,
-		backgroundColor: '#FFFFFF',
-		borderBottom: '1px solid #86A2B3'
-	},
-
-}))
+import AppContext from "./../AppContext"
 
 interface Props {
     host: string
@@ -20,31 +12,16 @@ interface Props {
 const SidebarKeysItem: FC<Props> = ({
     host
 }) => {
-
-    const [ keys, setKeys ] = useState<undefined | string[]>(undefined)
-    const [ isLoading, setIsLoading ] = useState<boolean>(true)
-    const getKeys = async (host: string) => {
-        const response = await getData(`${host}/keys`)
-        const keysReponse = response as ResponseKeys | undefined
-        if(keysReponse && keysReponse.hasOwnProperty('keys') && Array.isArray(keysReponse.keys)){
-                
-            const keysArray = keysReponse.keys.reduce((acc: string[], item: KeyItem) => {
-            
-                acc = [...acc, item.key]
-                return acc
-
-            }, [])
-            
-            setKeys(keysArray)
+    const {
+        state: { keys },
+        actions: {
+            setKeys
         }
-        setIsLoading(false)
-    }
+    } = useContext(AppContext)
 
-    useEffect(() => {
+    const [ isLoading, setIsLoading ] = useState<boolean>(true)
 
-        void getKeys(host)
 
-    }, [host])
 
     return (
         <SidebarItemWrapper isLoading={isLoading} title={'Available keys'}>

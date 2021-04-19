@@ -2,7 +2,6 @@ import React, { FC, ChangeEvent } from 'react'
 import { 
     Box,
     FormControl,
-    InputLabel,
     MenuItem,
     Select,
     IconButton,

@@ -8,12 +8,18 @@ import {
     TableRow as MuiTableRow, 
     Typography,
     Box,
-    Grid,
-    Collapse
 } from '@material-ui/core'
 import AppContext from "./../AppContext"
 import { makeStyles } from '@material-ui/core/styles'
-import getData, { ResponseDatasets, DatasetItem } from "./../common/data/getData"
+import 
+    getData, 
+    { 
+        ResponseDatasets, 
+        DatasetItem, 
+        ResponseMetadata200, 
+        ResponseKeys,
+        KeyItem
+} from "./../common/data/getData"
 import SidebarItemWrapper from "./SidebarItemWrapper"
 import TablePagination from "./TablePagination"
 import TableRow from "./TableRow"
@@ -54,27 +60,51 @@ const SidebarDatasetsItem: FC<Props> = ({
 }) => {
     const classes = useStyles()
     const {
-        state: { keys },
-        actions: { setKeys }
+        state: { 
+            keys, 
+            datasets, 
+            activeDataset, 
+            limit, 
+            page 
+        },
+        actions: { 
+            setKeys, 
+            setHoveredDataset, 
+            setDatasets, 
+            setActiveDataset, 
+            setSelectedDatasetRasterUrl,
+            setLimit,
+            setPage 
+        }
     } = useContext(AppContext)
 
-    const [ datasets, setDatasets ] = useState<undefined | DatasetItem[]>(undefined)
-    const [ page, setPage ] = useState<number>(0)
-    const [ limit, setLimit ] = useState<number>(15)
+    // const [ datasets, setDatasets ] = useState<undefined | ResponseMetadata200[]>(undefined)
+    // const [ page, setPage ] = useState<number>(0)
+    // const [ limit, setLimit ] = useState<number>(15)
     const [ queryFields, setQueryFields ] = useState<string | undefined>(undefined)
     const [ isLoading, setIsLoading ] = useState<boolean>(true)
     // const [ keys, setKeys] = useState<string[] | undefined>(undefined)
-    const [ activeDataset, setActiveDataset ] = useState<number | undefined>(undefined)
+    // const [ activeDataset, setActiveDataset ] = useState<number | undefined>(undefined)
 
     const getDatasets = async (host: string, pageRef: number, limitRef: number, queryString: string = '') => {
         const response = await getData(`${host}/datasets?limit=${limitRef}&page=${pageRef}${queryString}`)
         const datasetsResponse = response as ResponseDatasets | undefined
         if(datasetsResponse && datasetsResponse.hasOwnProperty('datasets') && Array.isArray(datasetsResponse.datasets)){
            
-            setDatasets(datasetsResponse.datasets)
             if(datasetsResponse.datasets[0]){
-                const keysCapitalized = Object.keys(datasetsResponse.datasets[0]).map((item: string) => item[0].toUpperCase() + item.substring(1))
-                setKeys(keysCapitalized)
+                
+                const metadataResponsesPreFetch: unknown = datasetsResponse.datasets.map(
+                    async (dataset: DatasetItem) => {
+                        const buildMetadataUrl = Object.keys(dataset).map((keyItem: string) => `/${dataset[keyItem]}`).join('')
+                        const preFetchData = await fetch(`${host}/metadata${buildMetadataUrl}`)
+                        return preFetchData.json()
+                    })
+
+                    const metadataResponses = await Promise.all(metadataResponsesPreFetch as Iterable<unknown>)
+                    const typedMetadataResponses = metadataResponses as ResponseMetadata200[]
+                    setDatasets(typedMetadataResponses)
+            }else{
+                setDatasets(datasetsResponse.datasets)
             }
 
         }
@@ -82,11 +112,51 @@ const SidebarDatasetsItem: FC<Props> = ({
         setIsLoading(false)
     }
 
+    const getKeys = async (host: string) => {
+        const response = await getData(`${host}/keys`)
+        const keysReponse = response as ResponseKeys | undefined
+        if(keysReponse && keysReponse.hasOwnProperty('keys') && Array.isArray(keysReponse.keys)){
+                
+            const keysArray = keysReponse.keys.reduce((acc: string[], item: KeyItem) => {
+            
+                acc = [...acc, item.key]
+                return acc
+
+            }, [])
+            setKeys(keysArray)
+        }
+        setIsLoading(false)
+    }
+
+    useEffect(() => {
+
+        void getKeys(host)
+
+    }, [host]) // eslint-disable-line react-hooks/exhaustive-deps
+
     const onHandleRow = (index: number) => {
 
         const actualIndex = page * limit + index;
-        setActiveDataset((i) => i === actualIndex ? undefined : actualIndex)
+        if(activeDataset === actualIndex){
+            setActiveDataset(undefined)
+            setSelectedDatasetRasterUrl(undefined)
+        }else{
+            const dataset = datasets?.[index]
+            setActiveDataset(actualIndex)
+            if(dataset){
+                const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('') + '/{z}/{x}/{y}.png'
+                const buildRasterUrl = `${host}/singleband${keysRasterUrl}`
+                setSelectedDatasetRasterUrl(buildRasterUrl)
+            }
+        }
 
+    }
+
+    const onSubmitFields = (queryString: string) => {
+        setQueryFields(queryString)
+        setPage(0)
+        setActiveDataset(undefined)
+        setSelectedDatasetRasterUrl(undefined)
     }
 
     useEffect(() => {
@@ -94,24 +164,22 @@ const SidebarDatasetsItem: FC<Props> = ({
         setIsLoading(true)
         void getDatasets(host, page, limit, queryFields)
 
-    }, [host, page, limit, queryFields])
+    }, [host, page, limit, queryFields]) // eslint-disable-line react-hooks/exhaustive-deps
 
 
     return (
         <SidebarItemWrapper isLoading={isLoading} title={'Search for datasets'}>
             <Box>
-                {keys && 
-                    <DatasetsForm 
-                        keys={keys} 
-                        onSubmitFields={(queryString: string) => {
-                            setQueryFields(queryString)
-                            setPage(0)
-                        }}
-                        
-                    />}
+                {
+                    keys && 
+                        <DatasetsForm 
+                            keys={keys} 
+                            onSubmitFields={onSubmitFields}
+                        />
+                }
             </Box>
             <Box className={classes.table}>
-                <TableContainer>
+                <TableContainer onMouseLeave={() => setHoveredDataset(undefined)}>
                     <Table
                         aria-labelledby="tableTitle"
                         size={"small"} // medium
@@ -133,26 +201,24 @@ const SidebarDatasetsItem: FC<Props> = ({
                         </TableHead>
                         <TableBody>
                             {
-                                datasets && datasets.map((dataset: DatasetItem, i: number) => (
+                                datasets && datasets.map((dataset: ResponseMetadata200, i: number) => (
                                     <>
                                         <TableRow 
-                                            dataset={dataset} 
+                                            dataset={dataset.keys} 
                                             keyVal={`dataset-${i}`} key={`dataset-${i}`}
                                             checked={page * limit + i === activeDataset}
                                             onClick={() => onHandleRow(i)}
+                                            onMouseEnter={() => setHoveredDataset(dataset.convex_hull)}
                                         />
-                                        {
-                                            <DatasetPreview 
-                                                activeDataset={activeDataset}
-                                                dataset={dataset}
-                                                host={host}
-                                                i={i}
-                                                keys={keys}
-                                                limit={limit}
-                                                page={page}
-                                            />
-                                        }
-                                        
+                                        <DatasetPreview 
+                                            activeDataset={activeDataset}
+                                            dataset={dataset.keys}
+                                            host={host}
+                                            i={i}
+                                            keys={keys}
+                                            limit={limit}
+                                            page={page}
+                                        />
                                     </>
                                 ))
                             }

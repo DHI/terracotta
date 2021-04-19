@@ -4,13 +4,14 @@ import { makeStyles } from "@material-ui/core/styles"
 import SidebarControl from "./sidebar/SidebarControl"
 import SidebarContent from "./sidebar/SidebarContent"
 import SidebarTitle from "./sidebar/SidebarTitle"
-import SidebarKeysItem from "./sidebar/SidebarKeysItem"
 import SidebarDatasetsItem from "./sidebar/SidebarDatasetsItem"
 import Map from "./map/Map"
 import { FlyToInterpolator } from 'react-map-gl'
 import { easeCubicInOut } from 'd3-ease'
 import AppContext from "./AppContext"
 import { Viewport } from "./map/types"
+import { FeatureDataset } from "./map/types"
+import { ResponseMetadata200 } from './common/data/getData';
 
 const useStyles = makeStyles(() => ({
   root: {
@@ -38,9 +39,15 @@ const App: FC = () => {
   const [ isSidebarOpen, setIsSidebarOpen ] = useState<boolean>(true)
   const [ viewport, setViewport ] = useState<Viewport>(defaultViewport)
   const [ isOpticalBasemap, setIsOpticalBasemap ] = useState<boolean>(false)
+
+  const [ page, setPage ] = useState<number>(0)
+  const [ limit, setLimit ] = useState<number>(15)
   const [ hostname, setHostname ] = useState<string | undefined>(undefined)
   const [ keys, setKeys ] = useState<string[] | undefined>(undefined)
-
+  const [ datasets, setDatasets ] = useState<ResponseMetadata200[] | undefined>(undefined)
+  const [ activeDataset, setActiveDataset ] = useState<number | undefined>(undefined)
+  const [ hoveredDataset,  setHoveredDataset ] = useState<FeatureDataset | undefined>(undefined)
+  const [ selectedDatasetRasterUrl, setSelectedDatasetRasterUrl ] = useState<string | undefined>(undefined)
   const classes = useStyles(); 
 
 	const toggleSidebarOpen = () => setIsSidebarOpen(!isSidebarOpen)
@@ -66,12 +73,24 @@ const App: FC = () => {
           isOpticalBasemap,
           viewport,
           hostname,
-          keys
+          keys,
+          hoveredDataset,
+          datasets,
+          activeDataset,
+          selectedDatasetRasterUrl,
+          page,
+          limit
         },
         actions: {
           setIsOpticalBasemap,
           setViewport,
-          setKeys
+          setKeys,
+          setHoveredDataset,
+          setDatasets,
+          setActiveDataset,
+          setSelectedDatasetRasterUrl,
+          setPage,
+          setLimit
         }
       }}>
         <Box
@@ -79,7 +98,7 @@ const App: FC = () => {
           height={1}
           width={1}
         >
-          <Map />
+          <Map host={hostname}/>
           {isSidebarOpen && (
             <SidebarContent>
               <SidebarTitle
