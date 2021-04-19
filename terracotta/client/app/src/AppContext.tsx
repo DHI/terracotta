@@ -4,11 +4,13 @@ interface AppContextValues {
 	state: {
         viewport: Viewport,
         isOpticalBasemap: boolean,
-		hostname: string | undefined
+		hostname: string | undefined,
+		keys: string[] | undefined
 	},
 	actions: {
 		setIsOpticalBasemap: Function,
         setViewport: Function,
+		setKeys: Function
 	},
 }
 

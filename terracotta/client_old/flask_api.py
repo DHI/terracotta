@@ -4,7 +4,6 @@ from flask import Flask, render_template, current_app, Blueprint
 
 client_api = Blueprint('client_api', 'terracotta.client')
 
-
 @client_api.route('/', methods=['GET'])
 def get_map() -> Any:
     return render_template(

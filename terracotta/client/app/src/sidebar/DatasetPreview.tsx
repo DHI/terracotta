@@ -15,9 +15,9 @@ interface Props {
     page: number,
     limit: number,
     i: number,
-    activeDataset: number,
+    activeDataset?: number,
     dataset: DatasetItem,
-    keys: string[]
+    keys?: string[]
 }
 const DatasetPreview: FC<Props> = ({
     host,

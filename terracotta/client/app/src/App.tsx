@@ -39,6 +39,8 @@ const App: FC = () => {
   const [ viewport, setViewport ] = useState<Viewport>(defaultViewport)
   const [ isOpticalBasemap, setIsOpticalBasemap ] = useState<boolean>(false)
   const [ hostname, setHostname ] = useState<string | undefined>(undefined)
+  const [ keys, setKeys ] = useState<string[] | undefined>(undefined)
+
   const classes = useStyles(); 
 
 	const toggleSidebarOpen = () => setIsSidebarOpen(!isSidebarOpen)
@@ -63,11 +65,13 @@ const App: FC = () => {
         state: {
           isOpticalBasemap,
           viewport,
-          hostname
+          hostname,
+          keys
         },
         actions: {
           setIsOpticalBasemap,
           setViewport,
+          setKeys
         }
       }}>
         <Box
@@ -81,11 +85,11 @@ const App: FC = () => {
               <SidebarTitle
                 host={hostname}
                 details={details}
+                keys={keys}
               />
               {
                 hostname && (
                   <>
-                    <SidebarKeysItem host={hostname} />
                     <SidebarDatasetsItem host={hostname} />
                   </>
                 )

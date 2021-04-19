@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect } from 'react'
+import React, { FC, useState, useEffect, useContext } from 'react'
 import { 
     Table, 
     TableBody, 
@@ -11,6 +11,7 @@ import {
     Grid,
     Collapse
 } from '@material-ui/core'
+import AppContext from "./../AppContext"
 import { makeStyles } from '@material-ui/core/styles'
 import getData, { ResponseDatasets, DatasetItem } from "./../common/data/getData"
 import SidebarItemWrapper from "./SidebarItemWrapper"
@@ -52,12 +53,17 @@ const SidebarDatasetsItem: FC<Props> = ({
     host
 }) => {
     const classes = useStyles()
+    const {
+        state: { keys },
+        actions: { setKeys }
+    } = useContext(AppContext)
+
     const [ datasets, setDatasets ] = useState<undefined | DatasetItem[]>(undefined)
     const [ page, setPage ] = useState<number>(0)
     const [ limit, setLimit ] = useState<number>(15)
     const [ queryFields, setQueryFields ] = useState<string | undefined>(undefined)
     const [ isLoading, setIsLoading ] = useState<boolean>(true)
-    const [ keys, setKeys] = useState<string[] | undefined>(undefined)
+    // const [ keys, setKeys] = useState<string[] | undefined>(undefined)
     const [ activeDataset, setActiveDataset ] = useState<number | undefined>(undefined)
 
     const getDatasets = async (host: string, pageRef: number, limitRef: number, queryString: string = '') => {
@@ -136,17 +142,15 @@ const SidebarDatasetsItem: FC<Props> = ({
                                             onClick={() => onHandleRow(i)}
                                         />
                                         {
-                                            activeDataset !== undefined && keys && (
-                                                <DatasetPreview 
-                                                    activeDataset={activeDataset}
-                                                    dataset={dataset}
-                                                    host={host}
-                                                    i={i}
-                                                    keys={keys}
-                                                    limit={limit}
-                                                    page={page}
-                                                />
-                                            )
+                                            <DatasetPreview 
+                                                activeDataset={activeDataset}
+                                                dataset={dataset}
+                                                host={host}
+                                                i={i}
+                                                keys={keys}
+                                                limit={limit}
+                                                page={page}
+                                            />
                                         }
                                         
                                     </>

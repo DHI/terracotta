@@ -1,5 +1,5 @@
 import React, { CSSProperties, useState, FC } from 'react'
-import { Box, Typography, Paper } from '@material-ui/core'
+import { Box, Typography, Paper, Link } from '@material-ui/core'
 import HeaderImage from "./../common/images/header.svg"
 import ExpandMoreOutlinedIcon from '@material-ui/icons/ExpandMoreOutlined';
 import ExpandLessOutlinedIcon from '@material-ui/icons/ExpandLessOutlined';
@@ -41,12 +41,14 @@ const useStyles = makeStyles(() => ({
 interface Props {
 	host?: string,
 	style?: CSSProperties,
-	details?: string
+	details?: string,
+	keys?: string[]
 }
 const SidebarTitle: FC<Props> = ({
 	style,
 	host,
-	details
+	details,
+	keys
 }) => {
 
 	const [ showDetails, setShowDetails ] = useState<boolean>(false)
@@ -87,12 +89,27 @@ const SidebarTitle: FC<Props> = ({
 				)}
 			</Paper>
 			{
-				host && (
+				host && keys && (
 					<Box my={1}>
 						<Typography variant={'body1'} className={classes.hostText}>
 							<b>Host: </b>
 							<span>
 								{host}	
+							</span>
+						</Typography>
+						<Typography variant={'body1'} className={classes.hostText}>
+							<b>Docs: </b>
+							<Link href={`${host}/apidoc`} target={'_blank'}>
+								<span>
+									{`${host}`}
+									<b>{'/apidoc'}</b>
+								</span>
+							</Link>
+						</Typography>
+						<Typography variant={'body1'} className={classes.hostText}>
+							<b>{'Keys: '}</b>
+							<span>
+								{`${keys.map((keyItem: string) => `/{${keyItem.toLowerCase()}}`).join('')}`}	
 							</span>
 						</Typography>
 					</Box>
