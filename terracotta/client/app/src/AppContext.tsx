@@ -4,6 +4,18 @@ import { FeatureDataset } from "./map/types"
 import { ResponseMetadata200 } from "./common/data/getData"
 import { Colormap } from "./colormap/colormaps"
 
+export type RGBValue = {
+	range: number[],
+	band: string
+}
+
+export type activeRGBSelectorRange = {
+	R: RGBValue,
+	G: RGBValue,
+	B: RGBValue,
+	[key: string]: RGBValue
+}
+
 interface AppContextValues {
 	state: {
         viewport: Viewport,
@@ -17,7 +29,10 @@ interface AppContextValues {
 		page: number,
 		limit: number,
 		colormap: Colormap,
-		activeRange: [ number, number ] | undefined
+		activeSinglebandRange: [ number, number ] | undefined,
+		activeRGB: activeRGBSelectorRange | undefined,
+		activeEndpoint: string,
+		datasetBands: string[] | undefined
 	},
 	actions: {
 		setIsOpticalBasemap: Function,
@@ -30,7 +45,10 @@ interface AppContextValues {
 		setPage: Function,
 		setLimit: Function,
 		setColormap: Function,
-		setActiveRange: Function
+		setActiveSinglebandRange: Function,
+		setActiveEndpoint: Function,
+		setActiveRGB: Function,
+		setDatasetBands: Function
 	},
 }
 

@@ -25,6 +25,7 @@ import TablePagination from "./TablePagination"
 import TableRow from "./TableRow"
 import DatasetsForm from "./DatasetsForm"
 import DatasetPreview from "./DatasetPreview"
+import DatasetsColormap from "./../colormap/DatasetsColormap"
 
 const useStyles = makeStyles(() => ({
     wrapper: {
@@ -66,8 +67,11 @@ const SidebarDatasetsItem: FC<Props> = ({
             activeDataset, 
             limit, 
             page,
-            activeRange,
-            colormap
+            activeSinglebandRange,
+            colormap,
+            activeEndpoint,
+            activeRGB,
+            datasetBands
         },
         actions: { 
             setKeys, 
@@ -77,17 +81,14 @@ const SidebarDatasetsItem: FC<Props> = ({
             setSelectedDatasetRasterUrl,
             setLimit,
             setPage,
-            setActiveRange
+            setActiveSinglebandRange,
+            setActiveRGB,
+            setDatasetBands
         }
     } = useContext(AppContext)
 
-    // const [ datasets, setDatasets ] = useState<undefined | ResponseMetadata200[]>(undefined)
-    // const [ page, setPage ] = useState<number>(0)
-    // const [ limit, setLimit ] = useState<number>(15)
     const [ queryFields, setQueryFields ] = useState<string | undefined>(undefined)
     const [ isLoading, setIsLoading ] = useState<boolean>(true)
-    // const [ keys, setKeys] = useState<string[] | undefined>(undefined)
-    // const [ activeDataset, setActiveDataset ] = useState<number | undefined>(undefined)
 
     const getDatasets = async (host: string, pageRef: number, limitRef: number, queryString: string = '') => {
         const response = await getData(`${host}/datasets?limit=${limitRef}&page=${pageRef}${queryString}`)
@@ -144,15 +145,15 @@ const SidebarDatasetsItem: FC<Props> = ({
         if(activeDataset === actualIndex){
             setActiveDataset(undefined)
             setSelectedDatasetRasterUrl(undefined)
-            setActiveRange(undefined)
+            setActiveSinglebandRange(undefined)
         }else{
             const dataset = datasets?.[index]
             setActiveDataset(actualIndex)
             if(dataset){
                 const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('') + '/{z}/{x}/{y}.png'
-                const buildRasterUrl = `${host}/singleband${keysRasterUrl}?colormap=${colormap.id}&range=${activeRange}`
+                const buildRasterUrl = `${host}/${activeEndpoint}${keysRasterUrl}?colormap=${colormap.id}&range=${activeSinglebandRange}`
                 setSelectedDatasetRasterUrl(buildRasterUrl)
-                setActiveRange(dataset.range)
+                setActiveSinglebandRange(dataset.range)
             }
         }
 
@@ -172,17 +173,42 @@ const SidebarDatasetsItem: FC<Props> = ({
 
     }, [host, page, limit, queryFields]) // eslint-disable-line react-hooks/exhaustive-deps
 
+    const onSetRGBRaster = async (dataset: ResponseMetadata200, keys: string) => {
+        const noBandKeysURL = `${host}/datasets?` + Object.keys(dataset.keys).map((item: string) => item !== 'band' ? `${item}=${dataset.keys[item]}&` : '' ).join('')
+        const response = await getData(noBandKeysURL) as ResponseDatasets
+        if(response?.datasets && activeRGB){
+
+            const { datasets } = response
+            const activeRGBCopy = activeRGB
+            const bands = datasets.map((dataset: DatasetItem) => dataset.band)
+            const findRed = bands.find((item: string) => item.includes('red'))
+            const findGreen = bands.find((item: string) => item.includes('green'))
+            const findBlue = bands.find((item: string) => item.includes('blue'))
+
+            
+            console.log(findRed, findGreen, findBlue)
+        }
+    }
+
 
     useEffect(() => {
 
-        if(activeDataset !== undefined && datasets && activeRange){
+        if(activeDataset !== undefined && datasets && activeSinglebandRange){
             const dataset = datasets[activeDataset - page * limit]
             const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('') + '/{z}/{x}/{y}.png'
-            const buildRasterUrl = `${host}/singleband${keysRasterUrl}?colormap=${colormap.id}&stretch_range=[${activeRange}]`
-            setSelectedDatasetRasterUrl(buildRasterUrl)
+            if(activeEndpoint === 'singleband'){
+
+                const buildRasterUrl = `${host}/${activeEndpoint}${keysRasterUrl}?colormap=${colormap.id}&stretch_range=[${activeSinglebandRange}]`
+                setSelectedDatasetRasterUrl(buildRasterUrl)
+
+            }
+
+            if(activeEndpoint === 'rgb'){
+               void onSetRGBRaster(dataset, keysRasterUrl)
+            }
         }
 
-    }, [activeRange, colormap, activeDataset])
+    }, [activeSinglebandRange, colormap, activeDataset, activeEndpoint])
 
     return (
         <SidebarItemWrapper isLoading={isLoading} title={'Search for datasets'}>
@@ -195,6 +221,7 @@ const SidebarDatasetsItem: FC<Props> = ({
                         />
                 }
             </Box>
+            <DatasetsColormap />
             <Box className={classes.table}>
                 <TableContainer onMouseLeave={() => setHoveredDataset(undefined)}>
                     <Table

@@ -9,7 +9,7 @@ import DatasetsColormap from "./colormap/DatasetsColormap"
 import Map from "./map/Map"
 import { FlyToInterpolator } from 'react-map-gl'
 import { easeCubicInOut } from 'd3-ease'
-import AppContext from "./AppContext"
+import AppContext, { activeRGBSelectorRange } from "./AppContext"
 import { Viewport } from "./map/types"
 import { FeatureDataset } from "./map/types"
 import { ResponseMetadata200 } from './common/data/getData';
@@ -53,7 +53,10 @@ const App: FC = () => {
   const [ hoveredDataset,  setHoveredDataset ] = useState<FeatureDataset | undefined>(undefined)
   const [ selectedDatasetRasterUrl, setSelectedDatasetRasterUrl ] = useState<string | undefined>(undefined)
   const [ colormap, setColormap ] = useState<Colormap>(defaultColormap)
-  const [ activeRange, setActiveRange ] = useState<[number, number] | undefined>(undefined)
+  const [ activeSinglebandRange, setActiveSinglebandRange ] = useState<[number, number] | undefined>(undefined)
+  const [ activeEndpoint, setActiveEndpoint ] = useState<string>('singleband')
+  const [ activeRGB, setActiveRGB ] = useState<activeRGBSelectorRange | undefined>(undefined)
+  const [ datasetBands, setDatasetBands ] = useState<string[] | undefined>(undefined)
 
   const classes = useStyles(); 
 
@@ -70,7 +73,7 @@ const App: FC = () => {
 
   useEffect(() => {
     // window.onload = initializeApp.bind(null, '{{ hostname }}');
-    window.onload = initializeApp.bind(null, 'https://4opg6b5hc3.execute-api.eu-central-1.amazonaws.com/development/');
+    window.onload = initializeApp.bind(null, 'https://oupqp5gj9b.execute-api.eu-central-1.amazonaws.com/development');
   }, [])
 
   return (
@@ -88,7 +91,10 @@ const App: FC = () => {
           page,
           limit,
           colormap,
-          activeRange
+          activeSinglebandRange,
+          activeEndpoint,
+          activeRGB,
+          datasetBands
         },
         actions: {
           setIsOpticalBasemap,
@@ -101,7 +107,10 @@ const App: FC = () => {
           setPage,
           setLimit,
           setColormap,
-          setActiveRange
+          setActiveSinglebandRange,
+          setActiveEndpoint,
+          setActiveRGB,
+          setDatasetBands
         }
       }}>
         <Box
@@ -119,14 +128,7 @@ const App: FC = () => {
               />
               {
                 hostname && (
-                  <>
                     <SidebarDatasetsItem host={hostname} />
-                    <DatasetsColormap 
-                      host={hostname}
-                      limit={limit}
-                      page={page}
-                    />
-                  </>
                 )
               }
               

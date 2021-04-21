@@ -34,15 +34,15 @@ const SinglebandSelector: FC<Props> = () => {
             page,
             limit,
             datasets,
-            activeRange
+            activeSinglebandRange
         },
         actions: {
             setColormap,
-            setActiveRange
+            setActiveSinglebandRange
         }
     } = useContext(AppContext)
 
-    const [ localRange, setLocalRange ] = useState(activeRange)
+    const [ localRange, setLocalRange ] = useState(activeSinglebandRange)
     const onSetColormap = (colorId: string) => {
 
         const colormapObj = COLORMAPS.find((item: Colormap) => item.id === colorId)
@@ -51,14 +51,14 @@ const SinglebandSelector: FC<Props> = () => {
     }
 
     const onSetRangeValue = (range: number[]) => {
-        setActiveRange(range)
+        setActiveSinglebandRange(range)
     }
 
     useEffect(() => {
 
-        activeRange && setLocalRange(activeRange)
+        activeSinglebandRange && setLocalRange(activeSinglebandRange)
 
-    }, [activeRange])
+    }, [activeSinglebandRange])
 
     return (
         <Grid container alignItems={'center'}>
@@ -84,15 +84,15 @@ const SinglebandSelector: FC<Props> = () => {
             <Grid item xs={8}>
                 <Box mx={4}>
                     {
-                        datasets && activeDataset !== undefined && activeRange !== undefined && (
+                        datasets && activeSinglebandRange !== undefined &&(
                         <>
                             <Slider 
                                 noNumbers 
                                 getValueCommitted={value => Array.isArray(value) && onSetRangeValue(value)} 
                                 getValue={(value: any) => setLocalRange(value)}
-                                defaultValue={activeRange} 
-                                min={datasets[activeDataset - page * limit].range[0]} 
-                                max={datasets[activeDataset - page * limit].range[1]} 
+                                defaultValue={activeSinglebandRange} 
+                                min={datasets[(activeDataset || 0) - page * limit].range[0]} 
+                                max={datasets[(activeDataset || 0) - page * limit].range[1]} 
                                 step={0.01} 
                                 title={'Contrast '}
                             />

@@ -1,9 +1,13 @@
-import React, { FC, useState, ChangeEvent } from 'react'
-import { Box, Typography } from '@material-ui/core'
+import React, { FC, useState, ChangeEvent, useContext } from 'react'
+import { Box, Typography, Collapse, FormControl, InputLabel, Select, MenuItem } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import SidebarItemWrapper from "../sidebar/SidebarItemWrapper"
 import Switch from "../common/components/Switch"
 import SinglebandSelector from "./SinglebandSelector"
+import RGBSelector from "./RGBSelector"
+import AppContext from "./../AppContext"
+import endpoints, { Endpoint } from "./endpoints"
+
 const useStyles = makeStyles(() => ({
     wrapper: {
 		margin: 16,
@@ -17,45 +21,58 @@ const useStyles = makeStyles(() => ({
     }
 }))
 
+const DatasetsColormap: FC = () => {
 
-interface Props {
-    host: string,
-    page: number,
-    limit: number
-}
+    const {
+        state: { 
+            activeDataset,
+            activeEndpoint
+        },
+        actions: {
+            setActiveEndpoint
+        }
+    } = useContext(AppContext)
 
-const DatasetsColormap: FC<Props> = ({
-    host,
-    page,
-    limit
-}) => {
-    const [ isRGB, setIsRGB ] = useState<boolean>(false)
+    // const [ isRGB, setIsRGB ] = useState<boolean>(false)
     const classes = useStyles()
 
     return (
-        <Box className={classes.wrapper}>
-            <Box 
-                display={'flex'} 
-                alignItems={'center'} 
-                mb={1}
-                justifyContent={'space-between'}
-            >
-                <Typography variant={'body1'}>
-                    {'Customize layer'}
-                </Typography>
-                <Box display={'flex'} alignItems={'center'}>
-                    <Typography variant={'body1'} className={classes.rgbText}>
-                        Show RGB
-                    </Typography>
-                    <Switch onChange={(e: ChangeEvent<HTMLInputElement>) => setIsRGB(e.target.checked)}/>
+            <Collapse in={activeDataset !== undefined} timeout="auto" unmountOnExit>
+                <Box className={classes.wrapper}>
+                    <Box 
+                        display={'flex'} 
+                        alignItems={'center'} 
+                        mb={1}
+                        justifyContent={'space-between'}
+                    >
+                        <Typography variant={'body1'}>
+                            {'Customize layer'}
+                        </Typography>
+                        <Box display={'flex'} alignItems={'center'} style={{ minWidth: 100 }}>
+                            <FormControl fullWidth>
+                                <Select
+                                    id="demo-simple-select-outlined"
+                                    value={activeEndpoint}
+                                    onChange={(e) => setActiveEndpoint(String(e.target.value))}
+                                    fullWidth
+                                >
+                                    {
+                                        endpoints.map((option: Endpoint) => (
+                                            <MenuItem key={`endpoint-${option.id}`} value={option.id}>{option.id}</MenuItem>
+                                        ))
+                                    }
+                                </Select>
+                            </FormControl>
+                        </Box>
+                    </Box>
+                        {
+                            activeEndpoint === 'singleband' &&  <SinglebandSelector />
+                        }
+                        {
+                            activeEndpoint === 'rgb' &&  <RGBSelector />
+                        }
                 </Box>
-            </Box>
-            {
-                isRGB ? 
-                '' : 
-                <SinglebandSelector />
-            }
-        </Box>
+            </Collapse>
     )
 
 }
