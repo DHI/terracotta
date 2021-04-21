@@ -17,7 +17,7 @@ const useStyles = makeStyles(() => ({
 }))
 
 interface Props {
-    isLoading: boolean,
+    isLoading?: boolean,
     title: string,
     children: ReactNode
 }

@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, ChangeEvent } from 'react'
+import React, { FC, useState, useEffect, ChangeEvent, FormEvent } from 'react'
 import { Box, TextField, Button  } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 
@@ -35,8 +35,8 @@ const DatasetsForm: FC<Props> = ({
         }
     }
 
-    const onSubmitForm = () => {
-        console.log(formValues)
+    const onSubmitForm = (e: FormEvent<HTMLFormElement> | undefined) => {
+        if(e) e.preventDefault()
         if(formValues){
 
             const queryString = Object.keys(formValues).map(
@@ -62,7 +62,7 @@ const DatasetsForm: FC<Props> = ({
     }, [keys])
 
     return (
-        <Box>
+        <form onSubmit={e => onSubmitForm(e)}>
             {
                 keys.map((keyItem: string, i: number) => {
                     const isLastUneven = keys.length % 2 === 1 && i === keys.length - 1 ? true : false
@@ -78,11 +78,11 @@ const DatasetsForm: FC<Props> = ({
                 )})
             }
             <Box mt={2} width={1} display={'flex'} justifyContent={'flex-end'}>
-                <Button fullWidth type={'button'} color={'secondary'} variant={'contained'} onClick={onSubmitForm}>
+                <Button fullWidth type={'submit'} color={'secondary'} variant={'contained'} onClick={() => onSubmitForm(undefined)}>
                     {'Search'}
                 </Button>
             </Box>
-        </Box>
+        </form>
     )
 
 }

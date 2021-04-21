@@ -2,6 +2,7 @@ import { createContext } from 'react'
 import { Viewport } from "./map/types"
 import { FeatureDataset } from "./map/types"
 import { ResponseMetadata200 } from "./common/data/getData"
+import { Colormap } from "./colormap/colormaps"
 
 interface AppContextValues {
 	state: {
@@ -14,7 +15,9 @@ interface AppContextValues {
 		activeDataset: undefined | number,
 		selectedDatasetRasterUrl: string | undefined,
 		page: number,
-		limit: number
+		limit: number,
+		colormap: Colormap,
+		activeRange: [ number, number ] | undefined
 	},
 	actions: {
 		setIsOpticalBasemap: Function,
@@ -25,7 +28,9 @@ interface AppContextValues {
 		setActiveDataset: Function,
 		setSelectedDatasetRasterUrl: Function,
 		setPage: Function,
-		setLimit: Function
+		setLimit: Function,
+		setColormap: Function,
+		setActiveRange: Function
 	},
 }
 

@@ -30,6 +30,10 @@ const DHITheme = createMuiTheme({
 			backgroundColor: '#F2F5F7',
 			padding: '8px 16px',
 		},
+		h5: {
+			fontSize: 12,
+			color: '#0B4566',
+		},
 		p: {
 			fontSize: 12,
 		},

@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useContext } from 'react'
+import React, { FC, useState, useEffect, useContext, Fragment } from 'react'
 import { 
     Table, 
     TableBody, 
@@ -20,7 +20,7 @@ import
         ResponseKeys,
         KeyItem
 } from "./../common/data/getData"
-import SidebarItemWrapper from "./SidebarItemWrapper"
+import SidebarItemWrapper from "./../sidebar/SidebarItemWrapper"
 import TablePagination from "./TablePagination"
 import TableRow from "./TableRow"
 import DatasetsForm from "./DatasetsForm"
@@ -65,7 +65,9 @@ const SidebarDatasetsItem: FC<Props> = ({
             datasets, 
             activeDataset, 
             limit, 
-            page 
+            page,
+            activeRange,
+            colormap
         },
         actions: { 
             setKeys, 
@@ -74,7 +76,8 @@ const SidebarDatasetsItem: FC<Props> = ({
             setActiveDataset, 
             setSelectedDatasetRasterUrl,
             setLimit,
-            setPage 
+            setPage,
+            setActiveRange
         }
     } = useContext(AppContext)
 
@@ -137,16 +140,19 @@ const SidebarDatasetsItem: FC<Props> = ({
     const onHandleRow = (index: number) => {
 
         const actualIndex = page * limit + index;
+
         if(activeDataset === actualIndex){
             setActiveDataset(undefined)
             setSelectedDatasetRasterUrl(undefined)
+            setActiveRange(undefined)
         }else{
             const dataset = datasets?.[index]
             setActiveDataset(actualIndex)
             if(dataset){
                 const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('') + '/{z}/{x}/{y}.png'
-                const buildRasterUrl = `${host}/singleband${keysRasterUrl}`
+                const buildRasterUrl = `${host}/singleband${keysRasterUrl}?colormap=${colormap.id}&range=${activeRange}`
                 setSelectedDatasetRasterUrl(buildRasterUrl)
+                setActiveRange(dataset.range)
             }
         }
 
@@ -166,6 +172,17 @@ const SidebarDatasetsItem: FC<Props> = ({
 
     }, [host, page, limit, queryFields]) // eslint-disable-line react-hooks/exhaustive-deps
 
+
+    useEffect(() => {
+
+        if(activeDataset !== undefined && datasets && activeRange){
+            const dataset = datasets[activeDataset - page * limit]
+            const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('') + '/{z}/{x}/{y}.png'
+            const buildRasterUrl = `${host}/singleband${keysRasterUrl}?colormap=${colormap.id}&stretch_range=[${activeRange}]`
+            setSelectedDatasetRasterUrl(buildRasterUrl)
+        }
+
+    }, [activeRange, colormap, activeDataset])
 
     return (
         <SidebarItemWrapper isLoading={isLoading} title={'Search for datasets'}>
@@ -202,24 +219,24 @@ const SidebarDatasetsItem: FC<Props> = ({
                         <TableBody>
                             {
                                 datasets && datasets.map((dataset: ResponseMetadata200, i: number) => (
-                                    <>
+                                    <Fragment key={`dataset-${i}`}>
                                         <TableRow 
                                             dataset={dataset.keys} 
-                                            keyVal={`dataset-${i}`} key={`dataset-${i}`}
+                                            keyVal={`dataset-${i}`} 
                                             checked={page * limit + i === activeDataset}
                                             onClick={() => onHandleRow(i)}
                                             onMouseEnter={() => setHoveredDataset(dataset.convex_hull)}
                                         />
                                         <DatasetPreview 
                                             activeDataset={activeDataset}
-                                            dataset={dataset.keys}
+                                            dataset={dataset}
                                             host={host}
                                             i={i}
                                             keys={keys}
                                             limit={limit}
                                             page={page}
                                         />
-                                    </>
+                                    </Fragment>
                                 ))
                             }
                             

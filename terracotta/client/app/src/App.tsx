@@ -4,7 +4,8 @@ import { makeStyles } from "@material-ui/core/styles"
 import SidebarControl from "./sidebar/SidebarControl"
 import SidebarContent from "./sidebar/SidebarContent"
 import SidebarTitle from "./sidebar/SidebarTitle"
-import SidebarDatasetsItem from "./sidebar/SidebarDatasetsItem"
+import SidebarDatasetsItem from "./sidebar-datasets/SidebarDatasetsItem"
+import DatasetsColormap from "./colormap/DatasetsColormap"
 import Map from "./map/Map"
 import { FlyToInterpolator } from 'react-map-gl'
 import { easeCubicInOut } from 'd3-ease'
@@ -12,6 +13,7 @@ import AppContext from "./AppContext"
 import { Viewport } from "./map/types"
 import { FeatureDataset } from "./map/types"
 import { ResponseMetadata200 } from './common/data/getData';
+import COLORMAPS, { Colormap } from "./colormap/colormaps"
 
 const useStyles = makeStyles(() => ({
   root: {
@@ -23,6 +25,8 @@ const useStyles = makeStyles(() => ({
 }))
 
 const details = 'This applet lets you explore the data on any running Terracotta server. Just search for a dataset to get started!'
+
+const defaultColormap = COLORMAPS[0]
 
 const defaultViewport = {
   latitude: 10.394947325803054,
@@ -48,6 +52,9 @@ const App: FC = () => {
   const [ activeDataset, setActiveDataset ] = useState<number | undefined>(undefined)
   const [ hoveredDataset,  setHoveredDataset ] = useState<FeatureDataset | undefined>(undefined)
   const [ selectedDatasetRasterUrl, setSelectedDatasetRasterUrl ] = useState<string | undefined>(undefined)
+  const [ colormap, setColormap ] = useState<Colormap>(defaultColormap)
+  const [ activeRange, setActiveRange ] = useState<[number, number] | undefined>(undefined)
+
   const classes = useStyles(); 
 
 	const toggleSidebarOpen = () => setIsSidebarOpen(!isSidebarOpen)
@@ -79,7 +86,9 @@ const App: FC = () => {
           activeDataset,
           selectedDatasetRasterUrl,
           page,
-          limit
+          limit,
+          colormap,
+          activeRange
         },
         actions: {
           setIsOpticalBasemap,
@@ -90,7 +99,9 @@ const App: FC = () => {
           setActiveDataset,
           setSelectedDatasetRasterUrl,
           setPage,
-          setLimit
+          setLimit,
+          setColormap,
+          setActiveRange
         }
       }}>
         <Box
@@ -110,6 +121,11 @@ const App: FC = () => {
                 hostname && (
                   <>
                     <SidebarDatasetsItem host={hostname} />
+                    <DatasetsColormap 
+                      host={hostname}
+                      limit={limit}
+                      page={page}
+                    />
                   </>
                 )
               }
