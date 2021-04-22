@@ -6,7 +6,7 @@ import { Colormap } from "./colormap/colormaps"
 
 export type RGBValue = {
 	range: number[],
-	band: string
+	band: string | undefined
 }
 
 export type activeRGBSelectorRange = {
@@ -29,7 +29,7 @@ interface AppContextValues {
 		page: number,
 		limit: number,
 		colormap: Colormap,
-		activeSinglebandRange: [ number, number ] | undefined,
+		activeSinglebandRange: number[] | undefined,
 		activeRGB: activeRGBSelectorRange | undefined,
 		activeEndpoint: string,
 		datasetBands: string[] | undefined

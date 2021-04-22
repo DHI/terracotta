@@ -20,14 +20,15 @@ export type ResponseDatasets = {
 
 export type ResponseMetadata200 = {
     keys: Record<string, string>,
-    bounds: [number, number, number, number],
+    bounds: number[],
     convex_hull: FeatureDataset,
     valid_percentage: number,
-    range: [ number, number ],
+    range: number[],
     mean: number,
     stdev: number,
     percentiles: number[],
-    metadata: Record<string, string>
+    metadata: Record<string, string>,
+    [key: string]: Record<string, string> | number | number[] | FeatureDataset
 }
 
 export type ResponseMetadata404 = {
@@ -42,6 +43,7 @@ const getData = async (url: string): Promise< ResponseKeys | ResponseDatasets | 
 
         const data = await fetch(url);
         const json = await data.json();
+        
         return json
 
     }catch(err){

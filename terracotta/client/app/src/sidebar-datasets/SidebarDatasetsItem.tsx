@@ -26,6 +26,8 @@ import TableRow from "./TableRow"
 import DatasetsForm from "./DatasetsForm"
 import DatasetPreview from "./DatasetPreview"
 import DatasetsColormap from "./../colormap/DatasetsColormap"
+import { defaultRGB } from "./../App"
+
 
 const useStyles = makeStyles(() => ({
     wrapper: {
@@ -71,7 +73,6 @@ const SidebarDatasetsItem: FC<Props> = ({
             colormap,
             activeEndpoint,
             activeRGB,
-            datasetBands
         },
         actions: { 
             setKeys, 
@@ -91,6 +92,7 @@ const SidebarDatasetsItem: FC<Props> = ({
     const [ isLoading, setIsLoading ] = useState<boolean>(true)
 
     const getDatasets = async (host: string, pageRef: number, limitRef: number, queryString: string = '') => {
+
         const response = await getData(`${host}/datasets?limit=${limitRef}&page=${pageRef}${queryString}`)
         const datasetsResponse = response as ResponseDatasets | undefined
         if(datasetsResponse && datasetsResponse.hasOwnProperty('datasets') && Array.isArray(datasetsResponse.datasets)){
@@ -107,8 +109,11 @@ const SidebarDatasetsItem: FC<Props> = ({
                     const metadataResponses = await Promise.all(metadataResponsesPreFetch as Iterable<unknown>)
                     const typedMetadataResponses = metadataResponses as ResponseMetadata200[]
                     setDatasets(typedMetadataResponses)
+
             }else{
+
                 setDatasets(datasetsResponse.datasets)
+
             }
 
         }
@@ -117,19 +122,25 @@ const SidebarDatasetsItem: FC<Props> = ({
     }
 
     const getKeys = async (host: string) => {
+
         const response = await getData(`${host}/keys`)
         const keysReponse = response as ResponseKeys | undefined
+
         if(keysReponse && keysReponse.hasOwnProperty('keys') && Array.isArray(keysReponse.keys)){
-                
+
             const keysArray = keysReponse.keys.reduce((acc: string[], item: KeyItem) => {
             
                 acc = [...acc, item.key]
                 return acc
 
             }, [])
+            
             setKeys(keysArray)
+
         }
+
         setIsLoading(false)
+    
     }
 
     useEffect(() => {
@@ -150,9 +161,6 @@ const SidebarDatasetsItem: FC<Props> = ({
             const dataset = datasets?.[index]
             setActiveDataset(actualIndex)
             if(dataset){
-                const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('') + '/{z}/{x}/{y}.png'
-                const buildRasterUrl = `${host}/${activeEndpoint}${keysRasterUrl}?colormap=${colormap.id}&range=${activeSinglebandRange}`
-                setSelectedDatasetRasterUrl(buildRasterUrl)
                 setActiveSinglebandRange(dataset.range)
             }
         }
@@ -173,20 +181,15 @@ const SidebarDatasetsItem: FC<Props> = ({
 
     }, [host, page, limit, queryFields]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    const onSetRGBRaster = async (dataset: ResponseMetadata200, keys: string) => {
+    const onGetRGBBands = async (dataset: ResponseMetadata200) => {
         const noBandKeysURL = `${host}/datasets?` + Object.keys(dataset.keys).map((item: string) => item !== 'band' ? `${item}=${dataset.keys[item]}&` : '' ).join('')
         const response = await getData(noBandKeysURL) as ResponseDatasets
         if(response?.datasets && activeRGB){
 
             const { datasets } = response
-            const activeRGBCopy = activeRGB
             const bands = datasets.map((dataset: DatasetItem) => dataset.band)
-            const findRed = bands.find((item: string) => item.includes('red'))
-            const findGreen = bands.find((item: string) => item.includes('green'))
-            const findBlue = bands.find((item: string) => item.includes('blue'))
+            setDatasetBands(bands)
 
-            
-            console.log(findRed, findGreen, findBlue)
         }
     }
 
@@ -194,21 +197,45 @@ const SidebarDatasetsItem: FC<Props> = ({
     useEffect(() => {
 
         if(activeDataset !== undefined && datasets && activeSinglebandRange){
+            console.log('here')
+            setSelectedDatasetRasterUrl(undefined)
             const dataset = datasets[activeDataset - page * limit]
             const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('') + '/{z}/{x}/{y}.png'
+            
             if(activeEndpoint === 'singleband'){
 
+                setActiveRGB(defaultRGB)
                 const buildRasterUrl = `${host}/${activeEndpoint}${keysRasterUrl}?colormap=${colormap.id}&stretch_range=[${activeSinglebandRange}]`
                 setSelectedDatasetRasterUrl(buildRasterUrl)
 
             }
 
             if(activeEndpoint === 'rgb'){
-               void onSetRGBRaster(dataset, keysRasterUrl)
+               void onGetRGBBands(dataset)
             }
         }
 
-    }, [activeSinglebandRange, colormap, activeDataset, activeEndpoint])
+    }, [activeSinglebandRange, colormap, activeDataset, activeEndpoint])  // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+
+        if(activeRGB && activeEndpoint === 'rgb' && datasets && activeDataset !== undefined){
+
+            const dataset = datasets[activeDataset - page * limit]
+            const hasValueForBand = Object.keys(activeRGB).every((colorObj) => activeRGB[colorObj].band)
+
+            if(hasValueForBand && dataset !== undefined){
+
+                const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => keyItem !== 'band' ? `/${dataset.keys[keyItem]}` : '').join('') + '/{z}/{x}/{y}.png'
+                const rgbParams = Object.keys(activeRGB).map((keyItem: string) => `${keyItem.toLowerCase()}=${activeRGB[keyItem].band}&${keyItem.toLowerCase()}_range=[${activeRGB[keyItem].range}]&`).join('')
+                const buildRasterUrl = `${host}/${activeEndpoint}${keysRasterUrl}?${rgbParams}`
+                setSelectedDatasetRasterUrl(buildRasterUrl)
+
+            }
+
+        }
+
+    }, [activeRGB, activeEndpoint, activeDataset, datasets])  // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <SidebarItemWrapper isLoading={isLoading} title={'Search for datasets'}>

@@ -5,6 +5,8 @@ import PublicIcon from '@material-ui/icons/Public';
 import { IconButton, Grid, Tooltip } from '@material-ui/core';
 import { makeStyles } from "@material-ui/core/styles"
 import AppContext from '../AppContext';
+import { Viewport } from "./types"
+
 
 const useStyles = makeStyles(() => ({
   iconButton: {
@@ -63,7 +65,7 @@ const ZoomControl: FC = () => {
       </Grid>
       <Grid container>
         <IconButton
-          onClick={() => setViewport((v: any) =>({...v, zoom: v.zoom + 1}))}
+          onClick={() => setViewport((v: Viewport) =>({...v, zoom: Number(v.zoom) + 1}))}
 		  className={classes.iconButton}
         >
           <AddIcon className={classes.icon} />
@@ -71,7 +73,7 @@ const ZoomControl: FC = () => {
       </Grid>
       <Grid container>
         <IconButton
-          onClick={() => setViewport((v: any) =>({...v, zoom: v.zoom - 1}))}
+          onClick={() => setViewport((v: Viewport) =>({...v, zoom: Number(v.zoom) - 1}))}
 		  className={classes.iconButton}
         >
           <RemoveIcon className={classes.icon} />

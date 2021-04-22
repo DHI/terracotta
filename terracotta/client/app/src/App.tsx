@@ -5,7 +5,6 @@ import SidebarControl from "./sidebar/SidebarControl"
 import SidebarContent from "./sidebar/SidebarContent"
 import SidebarTitle from "./sidebar/SidebarTitle"
 import SidebarDatasetsItem from "./sidebar-datasets/SidebarDatasetsItem"
-import DatasetsColormap from "./colormap/DatasetsColormap"
 import Map from "./map/Map"
 import { FlyToInterpolator } from 'react-map-gl'
 import { easeCubicInOut } from 'd3-ease'
@@ -39,6 +38,21 @@ const defaultViewport = {
 	transitionEasing: easeCubicInOut,
 }
 
+export const defaultRGB: activeRGBSelectorRange = {
+  R: {
+    band: undefined,
+    range: [0, 255]
+  },
+  G: {
+    band: undefined,
+    range: [0, 255]
+  },
+  B: {
+    band: undefined,
+    range: [0, 255]
+  },
+}
+
 const App: FC = () => {
   const [ isSidebarOpen, setIsSidebarOpen ] = useState<boolean>(true)
   const [ viewport, setViewport ] = useState<Viewport>(defaultViewport)
@@ -55,7 +69,7 @@ const App: FC = () => {
   const [ colormap, setColormap ] = useState<Colormap>(defaultColormap)
   const [ activeSinglebandRange, setActiveSinglebandRange ] = useState<[number, number] | undefined>(undefined)
   const [ activeEndpoint, setActiveEndpoint ] = useState<string>('singleband')
-  const [ activeRGB, setActiveRGB ] = useState<activeRGBSelectorRange | undefined>(undefined)
+  const [ activeRGB, setActiveRGB ] = useState<activeRGBSelectorRange | undefined>(defaultRGB)
   const [ datasetBands, setDatasetBands ] = useState<string[] | undefined>(undefined)
 
   const classes = useStyles(); 

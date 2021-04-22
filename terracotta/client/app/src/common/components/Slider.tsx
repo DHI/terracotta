@@ -43,9 +43,11 @@ const Slider: React.FC<SliderProps> = ({
 }) => {
   const [value, setValue] = useState(defaultValue);
 
-  const handleChange = (newValue: any) => {
+  const handleChange = (newValue: number | number[]) => {
+
     setValue(newValue);
     getValue && getValue(newValue);
+
   };
 
   useEffect(() => {

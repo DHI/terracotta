@@ -45,10 +45,10 @@ const DatasetPreview: FC<Props> = ({
                                                 const neededKeys = ['mean', 'range', 'stdev', 'valid_percentage'];
                                                 if(neededKeys.includes(keyItem)){
                                                     if(keyItem === 'range'){
-                                                        const buildStr = `  ${keyItem}: [${(dataset as any)[keyItem]}],\n`
+                                                        const buildStr = `  ${keyItem}: [${dataset[keyItem]}],\n`
                                                         acc = [...acc, buildStr]
                                                     }else{
-                                                        const buildStr = `  ${keyItem}: ${(dataset as any)[keyItem]},\n`
+                                                        const buildStr = `  ${keyItem}: ${dataset[keyItem]},\n`
                                                         acc = [...acc, buildStr]
                                                     }
                                                 

@@ -1,15 +1,10 @@
 import React, { FC, useState } from 'react'
-import { Box, Grid, FormControl, Select, MenuItem } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
+import { Box, Grid, FormControl, Select, MenuItem, InputLabel } from '@material-ui/core'
 import Slider from "../common/components/Slider"
 
-const useStyles = makeStyles(theme => ({
-
-}))
-
 interface Props {
-    options: string[],
-    selectValue: string,
+    options?: string[],
+    selectValue?: string,
     onGetSelectValue: (val: string) => void,
     sliderValue: number[],
     onGetSliderValue: (val: number[]) => void,
@@ -29,36 +24,40 @@ const RGBSlider: FC<Props> = ({
     title
 }) => {
     const [ localRange, setLocalRange ] = useState(sliderValue)
-    const classes = useStyles()
 
     return (
-        <Grid container>
-            <Grid item xs={4}>
-                <FormControl fullWidth>
+        <Grid container alignItems={'center'}>
+            <Grid container item xs={2} alignItems={'center'}>
+                <FormControl fullWidth style={{ display: 'flex', alignItems: 'center' }}>
+                    <InputLabel style={{ fontSize: 10 }}>
+                        {'Band'}
+                    </InputLabel>
                     <Select
                         id="demo-simple-select-outlined"
-                        value={selectValue}
+                        value={selectValue || ''}
                         onChange={(e) => onGetSelectValue(String(e.target.value))}
                         fullWidth
                     >
                         {
-                            options.map((option: string) => (
+                            options?.map((option: string) => (
                                 <MenuItem key={`limit-${option}`} value={option}>{option}</MenuItem>
                             ))
                         }
                     </Select>
                 </FormControl>
             </Grid>
-            <Grid item xs={8}>
-                <Slider 
-                    getValueCommitted={value => Array.isArray(value) && onGetSliderValue(value)} 
-                    getValue={(value: any) => setLocalRange(value)}
-                    defaultValue={localRange} 
-                    min={0} 
-                    max={255} 
-                    step={1} 
-                    title={title}
-                />
+            <Grid container item xs={10} alignItems={'center'}>
+                <Box ml={2} mt={2} width={1}>
+                    <Slider 
+                        getValueCommitted={value => Array.isArray(value) && onGetSliderValue(value)} 
+                        getValue={(value: number | number[]) => Array.isArray(value) && setLocalRange(value)}
+                        defaultValue={localRange} 
+                        min={min} 
+                        max={max} 
+                        step={1} 
+                        title={title}
+                    />
+                </Box>
             </Grid>
         </Grid>
     )

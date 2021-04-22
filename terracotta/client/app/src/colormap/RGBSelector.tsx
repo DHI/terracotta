@@ -1,24 +1,18 @@
-import React, { FC, useState, useContext, useEffect } from 'react'
+import React, { FC, useContext, useEffect } from 'react'
 import { 
     Box, 
 } from '@material-ui/core'
-import AppContext from "./../AppContext"
+import AppContext, { activeRGBSelectorRange } from "./../AppContext"
 import RGBSlider from "./RGBSlider"
 
-// reds
-interface Props {
-
-}
-
-const RGBSelector: FC<Props> = () => {
+const RGBSelector: FC = () => {
     const {
         state: { 
             datasetBands,
             activeRGB
         },
         actions: {
-            setColormap,
-            setActiveSinglebandRange
+            setActiveRGB
         }
     } = useContext(AppContext)
 
@@ -26,20 +20,34 @@ const RGBSelector: FC<Props> = () => {
 
     }, [])
 
+    const onGetBandValue = (val: string, bandKey: string) => {
+        setActiveRGB((activeRGB: activeRGBSelectorRange) => activeRGB && {
+            ...activeRGB,
+            [ bandKey ]: { band: val, range: activeRGB[bandKey].range }
+        })
+    }
+
+    const onGetSliderValue = (val: number[], sliderKey: string) => {
+        setActiveRGB((activeRGB: activeRGBSelectorRange) => activeRGB && {
+            ...activeRGB,
+            [ sliderKey ]: { range: val, band: activeRGB[sliderKey].band }
+        })
+    }
+
     return (
         <Box>
             {
-                activeRGB && datasetBands && (
+                datasetBands && activeRGB && (
                     Object.keys(activeRGB).map((color: string) => (
                         <RGBSlider 
                             options={datasetBands}
                             max={255}
                             min={0}
                             sliderValue={activeRGB[color].range}
-                            title={color}
+                            title={color + ':'}
                             selectValue={activeRGB[color].band}
-                            onGetSelectValue={(val) => console.log(val)}
-                            onGetSliderValue={(val) => console.log(val)}
+                            onGetSelectValue={(val) => onGetBandValue(val, color)}
+                            onGetSliderValue={(val) => onGetSliderValue(val, color)}
                         />
                     ))
                 )

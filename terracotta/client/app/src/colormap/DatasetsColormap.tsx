@@ -1,8 +1,6 @@
-import React, { FC, useState, ChangeEvent, useContext } from 'react'
-import { Box, Typography, Collapse, FormControl, InputLabel, Select, MenuItem } from '@material-ui/core'
+import React, { FC, useContext } from 'react'
+import { Box, Typography, Collapse, FormControl, Select, MenuItem } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
-import SidebarItemWrapper from "../sidebar/SidebarItemWrapper"
-import Switch from "../common/components/Switch"
 import SinglebandSelector from "./SinglebandSelector"
 import RGBSelector from "./RGBSelector"
 import AppContext from "./../AppContext"
