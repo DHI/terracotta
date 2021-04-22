@@ -76,7 +76,7 @@ const App: FC = () => {
 
 	const toggleSidebarOpen = () => setIsSidebarOpen(!isSidebarOpen)
 
-  function initializeApp(hostname: string) {
+  const initializeApp = (hostname: string) => {
     // sanitize hostname
     if (hostname.charAt(hostname.length - 1) === '/') {
         hostname = hostname.slice(0, hostname.length - 1);
@@ -86,8 +86,10 @@ const App: FC = () => {
 }
 
   useEffect(() => {
+
     // window.onload = initializeApp.bind(null, '{{ hostname }}');
-    window.onload = initializeApp.bind(null, 'https://4opg6b5hc3.execute-api.eu-central-1.amazonaws.com/development/');
+    initializeApp.bind(null, '{{hostname}}');
+
   }, [])
 
   return (
