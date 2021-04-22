@@ -28,9 +28,9 @@ const details = 'This applet lets you explore the data on any running Terracotta
 const defaultColormap = COLORMAPS[0]
 
 const defaultViewport = {
-  latitude: 10.394947325803054,
-	longitude: 8.5887344355014,
-	zoom: 5.63,
+  latitude: 30.62136584218745,
+	longitude: 13.840430671501323,
+	zoom: 1,
 	bearing: 0,
 	pitch: 0,
 	transitionDuration: 2000,
@@ -87,7 +87,7 @@ const App: FC = () => {
 
   useEffect(() => {
     // window.onload = initializeApp.bind(null, '{{ hostname }}');
-    window.onload = initializeApp.bind(null, 'https://oupqp5gj9b.execute-api.eu-central-1.amazonaws.com/development');
+    window.onload = initializeApp.bind(null, 'https://4opg6b5hc3.execute-api.eu-central-1.amazonaws.com/development/');
   }, [])
 
   return (

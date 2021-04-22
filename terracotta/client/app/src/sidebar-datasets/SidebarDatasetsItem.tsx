@@ -73,6 +73,7 @@ const SidebarDatasetsItem: FC<Props> = ({
             colormap,
             activeEndpoint,
             activeRGB,
+            selectedDatasetRasterUrl
         },
         actions: { 
             setKeys, 
@@ -197,7 +198,7 @@ const SidebarDatasetsItem: FC<Props> = ({
     useEffect(() => {
 
         if(activeDataset !== undefined && datasets && activeSinglebandRange){
-            console.log('here')
+
             setSelectedDatasetRasterUrl(undefined)
             const dataset = datasets[activeDataset - page * limit]
             const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('') + '/{z}/{x}/{y}.png'
@@ -289,6 +290,7 @@ const SidebarDatasetsItem: FC<Props> = ({
                                             keys={keys}
                                             limit={limit}
                                             page={page}
+                                            datasetUrl={selectedDatasetRasterUrl}
                                         />
                                     </Fragment>
                                 ))

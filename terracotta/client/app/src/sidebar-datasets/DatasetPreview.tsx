@@ -1,12 +1,23 @@
 import React, { FC } from 'react'
-import { Box, TableRow, TableCell, Grid, Collapse } from '@material-ui/core'
+import { Box, TableRow, TableCell, Grid, Collapse, Typography } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import { ResponseMetadata200 } from "../common/data/getData"
+import { CopyToClipboard } from "@dhi-gras/react-components"
 
 const useStyles = makeStyles(() => ({
     imagePreview: {
         height: '90%',
         width: 'auto'
+    },
+    codeContainer: {
+        backgroundColor: '#F8F8F8', 
+        overflowX: 'auto', 
+        width: 'fit-content', 
+        maxWidth: '100%'
+    },
+    codeContainerText: {
+        color: '#86A2B3',
+        fontSize: 11
     }
 }))
 
@@ -17,7 +28,8 @@ interface Props {
     i: number,
     activeDataset?: number,
     dataset: ResponseMetadata200,
-    keys?: string[]
+    keys?: string[],
+    datasetUrl?: string
 }
 const DatasetPreview: FC<Props> = ({
     host,
@@ -26,6 +38,7 @@ const DatasetPreview: FC<Props> = ({
     i,
     activeDataset,
     dataset,
+    datasetUrl
 }) => {
 
     const classes = useStyles()
@@ -34,9 +47,34 @@ const DatasetPreview: FC<Props> = ({
         <TableRow>
             <TableCell style={{ padding: 0 }} colSpan={8}>
                 <Collapse in={page * limit + i === activeDataset} timeout="auto" unmountOnExit>
-                    <Grid container spacing={1}>
+                    {
+                        datasetUrl && (
+
+                        <Box p={1} className={classes.codeContainer}>
+                            <Box width={1} display={'flex'} alignItems={'center'} justifyContent={'space-between'}>
+                                <Typography className={classes.codeContainerText}>
+                                    <code>
+                                        {'Raster url\n'}
+                                    </code>
+                                </Typography>
+                                <Box>
+                                    <CopyToClipboard helperText={'Copy to clipboard'} message={datasetUrl}/>
+                                </Box>
+                            </Box>
+                            <code style={{ wordBreak: 'break-all' }}>
+                                {datasetUrl}
+                            </code>
+                        </Box>
+                        )
+                    }
+                    <Grid container>
                         <Grid item xs={6}>
-                            <Box p={1} style={{ backgroundColor: '#F8F8F8', overflowX: 'auto', width: 'fit-content', maxWidth: '100%' }}>
+                            <Box p={1} className={classes.codeContainer}>
+                            <Typography className={classes.codeContainerText}>
+                                <code>
+                                    {'Metadata\n'}
+                                </code>
+                            </Typography>
                                 <code style={{ whiteSpace: 'pre' }}>
                                     {'{\n'}
                                     {Object.keys(dataset).reduce(
@@ -54,7 +92,6 @@ const DatasetPreview: FC<Props> = ({
                                                 
                                                 }
 
-                                            // (`\t${keyItem.toLowerCase()}: ${dataset[keyItem.toLowerCase()]}${j !== keys.length - 1 ? "," : ''}\n`)
                                             return acc
                                            }, []).join('')}
                                     {'}'}
@@ -63,8 +100,8 @@ const DatasetPreview: FC<Props> = ({
                         </Grid>
                         <Grid 
                             item 
-                            container 
                             xs={6} 
+                            container
                             justify={'center'}
                             alignItems={'center'}
                         >
@@ -76,6 +113,7 @@ const DatasetPreview: FC<Props> = ({
                             />
                         </Grid>
                     </Grid>
+                   
                 </Collapse>
             </TableCell>
         </TableRow>

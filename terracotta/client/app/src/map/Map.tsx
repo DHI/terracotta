@@ -61,10 +61,12 @@ const Map: FC<Props> = ({ host }) => {
 	}, [ viewport ])
 
 	useEffect(() => {
+		
 		setLocalRasterUrl(undefined)
 		setTimeout(() => {
 			setLocalRasterUrl(selectedDatasetRasterUrl)
 		}, 200)
+
 	}, [selectedDatasetRasterUrl])
 
 	useEffect(() => {
