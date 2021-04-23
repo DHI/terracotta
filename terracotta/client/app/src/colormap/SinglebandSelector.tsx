@@ -75,7 +75,10 @@ const SinglebandSelector: FC<Props> = () => {
             <Grid item xs={8}>
                 <Box mx={4}>
                     {
-                        datasets && activeSinglebandRange !== undefined && activeDataset !== undefined &&(
+                        datasets && 
+                        activeSinglebandRange !== undefined && 
+                        activeDataset !== undefined &&
+                        (
                         <>
                             <Slider 
                                 noNumbers 
@@ -86,6 +89,7 @@ const SinglebandSelector: FC<Props> = () => {
                                 max={datasets[activeDataset - page * limit]?.range[1] || 0} 
                                 step={0.01} 
                                 title={'Contrast '}
+                                disabled={datasets[activeDataset - page * limit]?.range[0] === datasets[activeDataset - page * limit]?.range[1]}
                             />
                             <Legend 
                                 src={colormap.img_url} 

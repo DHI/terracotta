@@ -27,6 +27,7 @@ type SliderProps = {
    * Append a unit at the end of the values. (%, /10, £, $)
    */
   unit?: string | undefined;
+  disabled?: boolean
 };
 
 const Slider: React.FC<SliderProps> = ({
@@ -40,6 +41,7 @@ const Slider: React.FC<SliderProps> = ({
   sliderMarginLeft = 1,
   noNumbers = false,
   unit = '',
+  disabled
 }) => {
   const [value, setValue] = useState(defaultValue);
 
@@ -55,6 +57,10 @@ const Slider: React.FC<SliderProps> = ({
     setValue(defaultValue)
 
   }, [defaultValue])
+
+  useEffect(() => {
+
+  }, [min, max])
 
   return (
     <Grid
@@ -103,6 +109,7 @@ const Slider: React.FC<SliderProps> = ({
           getValueCommitted && getValueCommitted(val)
         }
         valueLabelDisplay="off"
+        disabled={disabled}
       />
       {!noNumbers && Array.isArray(value) && (
         <Box>
