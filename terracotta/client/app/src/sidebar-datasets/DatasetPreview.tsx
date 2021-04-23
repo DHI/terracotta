@@ -2,7 +2,7 @@ import React, { FC } from 'react'
 import { Box, TableRow, TableCell, Grid, Collapse, Typography } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import { ResponseMetadata200 } from "../common/data/getData"
-import { CopyToClipboard } from "@dhi-gras/react-components"
+import CopyToClipboard from "../common/components/CopyToClipboard"
 
 const useStyles = makeStyles(() => ({
     imagePreview: {
@@ -18,6 +18,9 @@ const useStyles = makeStyles(() => ({
     codeContainerText: {
         color: '#86A2B3',
         fontSize: 11
+    },
+    copyTooltip: {
+        cursor: 'pointer'
     }
 }))
 
@@ -51,14 +54,14 @@ const DatasetPreview: FC<Props> = ({
                         datasetUrl && (
 
                         <Box p={1} className={classes.codeContainer}>
-                            <Box width={1} display={'flex'} alignItems={'center'} justifyContent={'space-between'}>
+                            <Box width={1} display={'flex'} alignItems={'center'}>
                                 <Typography className={classes.codeContainerText}>
                                     <code>
                                         {'Raster url\n'}
                                     </code>
                                 </Typography>
                                 <Box>
-                                    <CopyToClipboard helperText={'Copy to clipboard'} message={datasetUrl}/>
+                                    <CopyToClipboard className={classes.copyTooltip} helperText={'Copy to clipboard'} message={datasetUrl}/>
                                 </Box>
                             </Box>
                             <code style={{ wordBreak: 'break-all' }}>

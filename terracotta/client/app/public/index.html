@@ -31,6 +31,10 @@
     ::-webkit-scrollbar-thumb {
       background: #cfdbe2;
     }
+
+    #hostname-id {
+      display: none;
+    }
   </style>
   <!--
       Notice the use of %PUBLIC_URL% in the tags above.
@@ -47,6 +51,7 @@
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
+  <p id="hostname-id">{{ hostname }}</p>
   <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.

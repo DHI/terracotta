@@ -9,7 +9,7 @@ import {
     Typography,
     Box,
 } from '@material-ui/core'
-import AppContext from "./../AppContext"
+import AppContext from "../AppContext"
 import { makeStyles } from '@material-ui/core/styles'
 import 
     getData, 
@@ -19,14 +19,14 @@ import
         ResponseMetadata200, 
         ResponseKeys,
         KeyItem
-} from "./../common/data/getData"
-import SidebarItemWrapper from "./../sidebar/SidebarItemWrapper"
+} from "../common/data/getData"
+import SidebarItemWrapper from "../sidebar/SidebarItemWrapper"
 import TablePagination from "./TablePagination"
 import TableRow from "./TableRow"
 import DatasetsForm from "./DatasetsForm"
 import DatasetPreview from "./DatasetPreview"
-import DatasetsColormap from "./../colormap/DatasetsColormap"
-import { defaultRGB } from "./../App"
+import DatasetsColormap from "../colormap/DatasetsColormap"
+import { defaultRGB } from "../App"
 
 
 const useStyles = makeStyles(() => ({
@@ -138,17 +138,17 @@ const SidebarDatasetsItem: FC<Props> = ({
             
             setKeys(keysArray)
 
+            
         }
 
-        setIsLoading(false)
     
     }
 
-    useEffect(() => {
+    // useEffect(() => {
 
-        void getKeys(host)
+    //     void getKeys(host)
 
-    }, [host]) // eslint-disable-line react-hooks/exhaustive-deps
+    // }, [host]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const onHandleRow = (index: number) => {
 
@@ -178,6 +178,7 @@ const SidebarDatasetsItem: FC<Props> = ({
     useEffect(() => {
 
         setIsLoading(true)
+        void getKeys(host)
         void getDatasets(host, page, limit, queryFields)
 
     }, [host, page, limit, queryFields]) // eslint-disable-line react-hooks/exhaustive-deps

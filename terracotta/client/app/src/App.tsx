@@ -4,7 +4,7 @@ import { makeStyles } from "@material-ui/core/styles"
 import SidebarControl from "./sidebar/SidebarControl"
 import SidebarContent from "./sidebar/SidebarContent"
 import SidebarTitle from "./sidebar/SidebarTitle"
-import SidebarDatasetsItem from "./sidebar-datasets/SidebarDatasetsItem"
+import SidebarDatasetsItem from "./sidebar-datasets/SidebarDatasets"
 import Map from "./map/Map"
 import { FlyToInterpolator } from 'react-map-gl'
 import { easeCubicInOut } from 'd3-ease'
@@ -53,7 +53,11 @@ export const defaultRGB: activeRGBSelectorRange = {
   },
 }
 
-const App: FC = () => {
+interface Props {
+  hostnameProp: string | undefined
+}
+
+const App: FC<Props> = ({ hostnameProp }) => {
   const [ isSidebarOpen, setIsSidebarOpen ] = useState<boolean>(true)
   const [ viewport, setViewport ] = useState<Viewport>(defaultViewport)
   const [ isOpticalBasemap, setIsOpticalBasemap ] = useState<boolean>(false)
@@ -76,21 +80,26 @@ const App: FC = () => {
 
 	const toggleSidebarOpen = () => setIsSidebarOpen(!isSidebarOpen)
 
-  const initializeApp = (hostname: string) => {
+  const initializeApp = (hostname: string | undefined) => {
     // sanitize hostname
-    if (hostname.charAt(hostname.length - 1) === '/') {
-        hostname = hostname.slice(0, hostname.length - 1);
+    // hostname = 'https://4opg6b5hc3.execute-api.eu-central-1.amazonaws.com/development'
+    if(hostname){
+
+      if (hostname.charAt(hostname.length - 1) === '/') {
+          hostname = hostname.slice(0, hostname.length - 1);
+      }
+
+      setHostname(hostname)
+    
     }
-    setHostname(hostname)
     
 }
 
   useEffect(() => {
 
-    // window.onload = initializeApp.bind(null, '{{ hostname }}');
-    initializeApp.bind(null, '{{hostname}}');
+    window.onload = initializeApp.bind(null, hostnameProp);
 
-  }, [])
+  }, [hostnameProp])
 
   return (
     <div className={classes.root}>
