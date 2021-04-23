@@ -80,9 +80,10 @@ const App: FC<Props> = ({ hostnameProp }) => {
 
 	const toggleSidebarOpen = () => setIsSidebarOpen(!isSidebarOpen)
 
+  // sanitize hostname
   const initializeApp = (hostname: string | undefined) => {
-    // sanitize hostname
-    hostname = 'https://4opg6b5hc3.execute-api.eu-central-1.amazonaws.com/development'
+    
+    // hostname = add a TC url here for developing
     if(hostname){
 
       if (hostname.charAt(hostname.length - 1) === '/') {
