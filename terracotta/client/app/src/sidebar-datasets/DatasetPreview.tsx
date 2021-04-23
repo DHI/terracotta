@@ -46,6 +46,24 @@ const DatasetPreview: FC<Props> = ({
 
     const classes = useStyles()
 
+    const returnJson = (dataset: ResponseMetadata200) => Object.keys(dataset).reduce(
+        (acc: string[], keyItem: string, j: number) => 
+           {
+                const neededKeys = ['mean', 'range', 'stdev', 'valid_percentage'];
+                if(neededKeys.includes(keyItem)){
+                    if(keyItem === 'range'){
+                        const buildStr = `  ${keyItem}: [${dataset[keyItem]}],\n`
+                        acc = [...acc, buildStr]
+                    }else{
+                        const buildStr = `  ${keyItem}: ${dataset[keyItem]},\n`
+                        acc = [...acc, buildStr]
+                    }
+                
+                }
+
+            return acc
+           }, []).join('')
+
     return (
         <TableRow>
             <TableCell style={{ padding: 0 }} colSpan={8}>
@@ -80,23 +98,7 @@ const DatasetPreview: FC<Props> = ({
                             </Typography>
                                 <code style={{ whiteSpace: 'pre' }}>
                                     {'{\n'}
-                                    {Object.keys(dataset).reduce(
-                                        (acc: string[], keyItem: string, j: number) => 
-                                           {
-                                                const neededKeys = ['mean', 'range', 'stdev', 'valid_percentage'];
-                                                if(neededKeys.includes(keyItem)){
-                                                    if(keyItem === 'range'){
-                                                        const buildStr = `  ${keyItem}: [${dataset[keyItem]}],\n`
-                                                        acc = [...acc, buildStr]
-                                                    }else{
-                                                        const buildStr = `  ${keyItem}: ${dataset[keyItem]},\n`
-                                                        acc = [...acc, buildStr]
-                                                    }
-                                                
-                                                }
-
-                                            return acc
-                                           }, []).join('')}
+                                    {returnJson(dataset)}
                                     {'}'}
                                 </code>
                             </Box>

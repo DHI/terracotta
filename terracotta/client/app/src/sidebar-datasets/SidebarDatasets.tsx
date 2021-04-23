@@ -144,12 +144,6 @@ const SidebarDatasetsItem: FC<Props> = ({
     
     }
 
-    // useEffect(() => {
-
-    //     void getKeys(host)
-
-    // }, [host]) // eslint-disable-line react-hooks/exhaustive-deps
-
     const onHandleRow = (index: number) => {
 
         const actualIndex = page * limit + index;

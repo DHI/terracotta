@@ -12,12 +12,7 @@ import Slider from "../common/components/Slider"
 import COLORMAPS, { Colormap } from "./colormaps"
 import { Legend } from '@dhi-gras/react-components'
 
-// reds
-interface Props {
-
-}
-
-const SinglebandSelector: FC<Props> = () => {
+const SinglebandSelector: FC = () => {
     const {
         state: { 
             colormap,
@@ -32,6 +27,9 @@ const SinglebandSelector: FC<Props> = () => {
             setActiveSinglebandRange
         }
     } = useContext(AppContext)
+
+    const minRange = activeDataset !== undefined && datasets?.[activeDataset - page * limit]?.range[0]
+    const maxRange = activeDataset !== undefined && datasets?.[activeDataset - page * limit]?.range[1]
 
     const [ localRange, setLocalRange ] = useState(activeSinglebandRange)
     const onSetColormap = (colorId: string) => {
@@ -85,11 +83,11 @@ const SinglebandSelector: FC<Props> = () => {
                                 getValueCommitted={value => Array.isArray(value) && onSetRangeValue(value)} 
                                 getValue={(value: number | number[]) => Array.isArray(value) && setLocalRange(value)}
                                 defaultValue={activeSinglebandRange} 
-                                min={datasets[activeDataset - page * limit]?.range[0] || 0} 
-                                max={datasets[activeDataset - page * limit]?.range[1] || 0} 
+                                min={minRange || 0} 
+                                max={maxRange || 0} 
                                 step={0.01} 
                                 title={'Contrast '}
-                                disabled={datasets[activeDataset - page * limit]?.range[0] === datasets[activeDataset - page * limit]?.range[1]}
+                                disabled={minRange === maxRange}
                             />
                             <Legend 
                                 src={colormap.img_url} 

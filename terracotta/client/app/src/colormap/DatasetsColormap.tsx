@@ -31,7 +31,6 @@ const DatasetsColormap: FC = () => {
         }
     } = useContext(AppContext)
 
-    // const [ isRGB, setIsRGB ] = useState<boolean>(false)
     const classes = useStyles()
 
     return (
