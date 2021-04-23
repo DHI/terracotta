@@ -112,7 +112,7 @@ setup(
     package_data={
         'terracotta': [
             'cmaps/data/*_rgba.npy',  # colormaps
-            'templates/*.html', 'static/*.js', 'static/*.css', 'static/images/*.png'  # preview app
+            'templates/*.html', 'static/*'  # preview app
         ]
     },
 )

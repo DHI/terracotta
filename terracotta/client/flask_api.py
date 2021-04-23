@@ -8,7 +8,7 @@ client_api = Blueprint('client_api', 'terracotta.client')
 @client_api.route('/', methods=['GET'])
 def get_map() -> Any:
     return render_template(
-        'app.html', hostname=current_app.config['terracotta_hostname']
+        'index.html', hostname=current_app.config['terracotta_hostname']
     )
 
 

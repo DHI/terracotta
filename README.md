@@ -16,7 +16,7 @@ and [Rasterio](https://github.com/mapbox/rasterio).
 
 [Read the docs](https://terracotta-python.readthedocs.io/en/latest) |
 [Explore the API](https://2truhxo59g.execute-api.eu-central-1.amazonaws.com/production/apidoc) |
-[Satlas, powered by Terracotta](http://satlas.dk)
+[Satlas, powered by Terracotta](http://satlas.dk) 
 
 ## Why Terracotta?
 

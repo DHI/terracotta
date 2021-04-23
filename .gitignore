@@ -123,3 +123,11 @@ ENV/
 
 # VS Code
 .vscode/
+
+# Client
+node_modules
+
+# # Client build
+
+# terracotta/client/templates/**
+# terracotta/client/static/**

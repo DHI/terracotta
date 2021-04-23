@@ -16,4 +16,4 @@ def client(client_app, test_server):
 def test_get_app(client, test_server):
     rv = client.get('/')
     assert rv.status_code == 200
-    assert test_server in rv.data.decode('utf-8')
+    assert 'Terracotta Preview' in rv.data.decode('utf-8')
