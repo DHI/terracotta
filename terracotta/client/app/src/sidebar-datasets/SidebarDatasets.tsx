@@ -227,8 +227,8 @@ const SidebarDatasetsItem: FC<Props> = ({
             const hasValueForBand = Object.keys(activeRGB).every((colorObj) => activeRGB[colorObj].band)
 
             if(hasValueForBand && dataset !== undefined){
-
-                const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => keyItem !== 'band' ? `/${dataset.keys[keyItem]}` : '').join('') + '/{z}/{x}/{y}.png'
+                const lastKey = Object.keys(dataset.keys)[Object.keys(dataset.keys).length - 1]
+                const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => keyItem !== lastKey ? `/${dataset.keys[keyItem]}` : '').join('') + '/{z}/{x}/{y}.png'
                 const rgbParams = Object.keys(activeRGB).map((keyItem: string) => `${keyItem.toLowerCase()}=${activeRGB[keyItem].band}&${keyItem.toLowerCase()}_range=[${activeRGB[keyItem].range}]&`).join('')
                 const buildRasterUrl = `${host}/${activeEndpoint}${keysRasterUrl}?${rgbParams}`
                 setSelectedDatasetRasterUrl(buildRasterUrl)
