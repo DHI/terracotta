@@ -70,7 +70,7 @@ const Map: FC<Props> = ({ host }) => {
 	}, [selectedDatasetRasterUrl])
 
 	useEffect(() => {
-		if(activeDataset && datasets){
+		if(activeDataset !== undefined && datasets){
 			
 			const pageIndex = activeDataset - page * limit
 			const currentBounds = datasets[pageIndex].bounds
