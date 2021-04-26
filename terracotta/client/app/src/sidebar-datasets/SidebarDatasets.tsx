@@ -189,14 +189,16 @@ const SidebarDatasetsItem: FC<Props> = ({
 
             const { datasets } = response
             const bands = datasets.map((dataset: DatasetItem) => dataset.band)
+            
             setActiveRGB((activeRGBLocal: activeRGBSelectorRange) => 
                 Object.keys(activeRGBLocal).reduce((acc: any, colorString: string) => {
-                    
+
                     acc[colorString] = { ...activeRGBLocal[colorString], range: dataset.range }
 
                     return acc
 
                 }, {}))
+
             setDatasetBands(bands)
 
         }

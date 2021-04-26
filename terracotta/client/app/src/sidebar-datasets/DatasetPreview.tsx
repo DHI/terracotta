@@ -1,5 +1,5 @@
 import React, { FC } from 'react'
-import { Box, TableRow, TableCell, Grid, Collapse, Typography } from '@material-ui/core'
+import { Box, TableRow, TableCell, Grid, Collapse, Typography, Link } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import { ResponseMetadata200 } from "../common/data/getData"
 import CopyToClipboard from "../common/components/CopyToClipboard"
@@ -64,6 +64,9 @@ const DatasetPreview: FC<Props> = ({
             return acc
            }, []).join('')
 
+           // const buildMetadataUrl = Object.keys(dataset).map((keyItem: string) => `/${dataset[keyItem]}`).join('')
+           // const preFetchData = await fetch(`${host}/metadata${buildMetadataUrl}`)
+
     return (
         <TableRow>
             <TableCell style={{ padding: 0 }} colSpan={8}>
@@ -88,36 +91,45 @@ const DatasetPreview: FC<Props> = ({
                         </Box>
                         )
                     }
-                    <Grid container>
-                        <Grid item xs={6}>
-                            <Box p={1} className={classes.codeContainer}>
-                            <Typography className={classes.codeContainerText}>
-                                <code>
-                                    {'Metadata\n'}
-                                </code>
-                            </Typography>
-                                <code style={{ whiteSpace: 'pre' }}>
-                                    {'{\n'}
-                                    {returnJson(dataset)}
-                                    {'}'}
-                                </code>
-                            </Box>
+                    <Box my={1}>
+                        <Grid container alignItems={'center'}>
+                            <Grid item xs={6}>
+                                <Box p={1} className={classes.codeContainer}>
+                                <Typography className={classes.codeContainerText}>
+                                    <code>
+                                        {'Metadata - '}
+                                        <Link target={'_blank'} href={`${host}/metadata${Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('')}`}>
+                                        {'View full metadata\n'}
+                                    </Link>
+                                    </code>
+                                </Typography>
+                                    <code style={{ whiteSpace: 'pre' }}>
+                                        {'{\n'}
+                                        {returnJson(dataset)}
+                                        {'}'}
+                                    </code>
+                                    
+                                </Box>
+                                
+                            </Grid>
+                            <Grid 
+                                item 
+                                xs={6} 
+                                container
+                                justify={'center'}
+                                alignItems={'center'}
+                            >
+                                <Box p={1}>
+                                    <img
+                                        src={`${host}/singleband/${Object.keys(dataset.keys).map((datasetKey: string) => `${dataset.keys[datasetKey]}/`).join('')}preview.png?tile_size=[128,128]`} 
+                                        alt={'TC-preview'}
+                                        className={classes.imagePreview}
+                                        loading={'eager'}
+                                    />
+                                </Box>
+                            </Grid>
                         </Grid>
-                        <Grid 
-                            item 
-                            xs={6} 
-                            container
-                            justify={'center'}
-                            alignItems={'center'}
-                        >
-                            <img
-                                src={`${host}/singleband/${Object.keys(dataset.keys).map((datasetKey: string) => `${dataset.keys[datasetKey]}/`).join('')}preview.png?tile_size=[128,128]`} 
-                                alt={'TC-preview'}
-                                className={classes.imagePreview}
-                                loading={'eager'}
-                            />
-                        </Grid>
-                    </Grid>
+                    </Box>
                    
                 </Collapse>
             </TableCell>
