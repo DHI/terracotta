@@ -9,7 +9,7 @@ import {
     Typography,
     Box,
 } from '@material-ui/core'
-import AppContext from "../AppContext"
+import AppContext, { activeRGBSelectorRange } from "../AppContext"
 import { makeStyles } from '@material-ui/core/styles'
 import 
     getData, 
@@ -147,7 +147,7 @@ const SidebarDatasetsItem: FC<Props> = ({
     const onHandleRow = (index: number) => {
 
         const actualIndex = page * limit + index;
-
+        setActiveRGB(defaultRGB)
         if(activeDataset === actualIndex){
             setActiveDataset(undefined)
             setSelectedDatasetRasterUrl(undefined)
@@ -184,6 +184,14 @@ const SidebarDatasetsItem: FC<Props> = ({
 
             const { datasets } = response
             const bands = datasets.map((dataset: DatasetItem) => dataset.band)
+            setActiveRGB((activeRGBLocal: activeRGBSelectorRange) => 
+                Object.keys(activeRGBLocal).reduce((acc: any, colorString: string) => {
+
+                    acc[colorString] = {...acc[colorString], range: dataset.range}
+
+                    return acc
+
+                }, {}))
             setDatasetBands(bands)
 
         }
@@ -219,8 +227,10 @@ const SidebarDatasetsItem: FC<Props> = ({
 
             const dataset = datasets[activeDataset - page * limit]
             const hasValueForBand = Object.keys(activeRGB).every((colorObj) => activeRGB[colorObj].band)
+            const hasValueForRange = Object.keys(activeRGB).every((colorObj) => activeRGB[colorObj].range)
 
-            if(hasValueForBand && dataset !== undefined){
+            if(hasValueForBand && hasValueForRange && dataset !== undefined){
+
                 const lastKey = Object.keys(dataset.keys)[Object.keys(dataset.keys).length - 1]
                 const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => keyItem !== lastKey ? `/${dataset.keys[keyItem]}` : '').join('') + '/{z}/{x}/{y}.png'
                 const rgbParams = Object.keys(activeRGB).map((keyItem: string) => `${keyItem.toLowerCase()}=${activeRGB[keyItem].band}&${keyItem.toLowerCase()}_range=[${activeRGB[keyItem].range}]&`).join('')

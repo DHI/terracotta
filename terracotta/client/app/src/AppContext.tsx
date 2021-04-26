@@ -5,7 +5,7 @@ import { ResponseMetadata200 } from "./common/data/getData"
 import { Colormap } from "./colormap/colormaps"
 
 export type RGBValue = {
-	range: number[],
+	range: number[] | undefined,
 	band: string | undefined
 }
 

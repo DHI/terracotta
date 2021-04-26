@@ -92,7 +92,7 @@ const Slider: React.FC<SliderProps> = ({
             justify="center"
             style={{ height: '100%', width: '2rem' }}
           >
-            <Typography variant="body2">{value[0] + unit}</Typography>
+            <Typography variant="body2">{value[0].toFixed(2) + unit}</Typography>
           </Grid>
         </Box>
       )}
@@ -120,7 +120,7 @@ const Slider: React.FC<SliderProps> = ({
             style={{ height: '100%', width: '2rem' }}
           >
             <Typography variant="body2">
-              {`${value[1] || value}${unit}`}
+              {`${value[1].toFixed(2) || (!Array.isArray(value) && (value as number).toFixed(2))}${unit}`}
             </Typography>
           </Grid>
         </Box>

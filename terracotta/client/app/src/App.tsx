@@ -41,15 +41,15 @@ const defaultViewport = {
 export const defaultRGB: activeRGBSelectorRange = {
   R: {
     band: undefined,
-    range: [0, 255]
+    range: undefined
   },
   G: {
     band: undefined,
-    range: [0, 255]
+    range: undefined
   },
   B: {
     band: undefined,
-    range: [0, 255]
+    range: undefined
   },
 }
 
