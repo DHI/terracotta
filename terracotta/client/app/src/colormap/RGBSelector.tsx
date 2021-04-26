@@ -47,6 +47,7 @@ const RGBSelector: FC = () => {
                 datasetBands && activeRGB && (
                     Object.keys(activeRGB).map((color: string) => (
                         <RGBSlider 
+                            key={`rgb-slider-${color}`}
                             options={datasetBands}
                             max={Number(maxRange)}
                             min={Number(minRange)}

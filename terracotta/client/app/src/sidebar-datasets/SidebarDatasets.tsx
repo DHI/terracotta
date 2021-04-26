@@ -145,19 +145,23 @@ const SidebarDatasetsItem: FC<Props> = ({
     }
 
     const onHandleRow = (index: number) => {
-
+        
         const actualIndex = page * limit + index;
         setActiveRGB(defaultRGB)
         if(activeDataset === actualIndex){
+
             setActiveDataset(undefined)
             setSelectedDatasetRasterUrl(undefined)
             setActiveSinglebandRange(undefined)
+
         }else{
+
             const dataset = datasets?.[index]
             setActiveDataset(actualIndex)
             if(dataset){
                 setActiveSinglebandRange(dataset.range)
             }
+
         }
 
     }
@@ -180,14 +184,15 @@ const SidebarDatasetsItem: FC<Props> = ({
     const onGetRGBBands = async (dataset: ResponseMetadata200) => {
         const noBandKeysURL = `${host}/datasets?` + Object.keys(dataset.keys).map((item: string) => item !== 'band' ? `${item}=${dataset.keys[item]}&` : '' ).join('')
         const response = await getData(noBandKeysURL) as ResponseDatasets
+
         if(response?.datasets && activeRGB){
 
             const { datasets } = response
             const bands = datasets.map((dataset: DatasetItem) => dataset.band)
             setActiveRGB((activeRGBLocal: activeRGBSelectorRange) => 
                 Object.keys(activeRGBLocal).reduce((acc: any, colorString: string) => {
-
-                    acc[colorString] = {...acc[colorString], range: dataset.range}
+                    
+                    acc[colorString] = { ...activeRGBLocal[colorString], range: dataset.range }
 
                     return acc
 
@@ -208,7 +213,7 @@ const SidebarDatasetsItem: FC<Props> = ({
             
             if(activeEndpoint === 'singleband'){
 
-                setActiveRGB(defaultRGB)
+                // setActiveRGB(defaultRGB)
                 const buildRasterUrl = `${host}/${activeEndpoint}${keysRasterUrl}?colormap=${colormap.id}&stretch_range=[${activeSinglebandRange}]`
                 setSelectedDatasetRasterUrl(buildRasterUrl)
 
