@@ -70,8 +70,7 @@ const SidebarTitle: FC<Props> = ({
 							<b>Docs: </b>
 							<Link href={`${host}/apidoc`} target={'_blank'}>
 								<span>
-									{`${host}`}
-									<b>{'/apidoc'}</b>
+									{`${host}/apidoc`}
 								</span>
 							</Link>
 						</Typography>
