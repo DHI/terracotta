@@ -2,13 +2,14 @@ import React, { FC, CSSProperties, useContext } from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import RemoveIcon from '@material-ui/icons/Remove';
 import PublicIcon from '@material-ui/icons/Public';
+import StreetviewIcon from '@material-ui/icons/Streetview';
 import { IconButton, Grid, Tooltip } from '@material-ui/core';
 import { makeStyles } from "@material-ui/core/styles"
 import AppContext from '../AppContext';
 import { Viewport } from "./types"
 
 
-const useStyles = makeStyles(() => ({
+const useStyles = makeStyles((theme) => ({
   iconButton: {
   	padding: 0
   },
@@ -19,6 +20,10 @@ const useStyles = makeStyles(() => ({
     fill: '#0B4566',
     padding: 6,
     boxSizing: 'border-box',
+    '&:hover': {
+      backgroundColor: theme.palette.primary.main,
+      fill: '#FFF',
+    }
   },
   activeIcon: {
     backgroundColor: '#0b4566',
@@ -55,11 +60,14 @@ const ZoomControl: FC = () => {
         <Tooltip placement="right" title={'Change base map'}>
           <IconButton
             onClick={() => setIsOpticalBasemap(!isOpticalBasemap)}
-			className={classes.iconButton}
+			      className={classes.iconButton}
           >
-            <PublicIcon
+            {
+              !isOpticalBasemap ? <StreetviewIcon className={classes.icon}/> : <PublicIcon className={classes.icon}/>
+            }
+            {/* <PublicIcon
               className={!isOpticalBasemap ? classes.icon : classes.activeIcon}
-            />
+            /> */}
           </IconButton>
         </Tooltip>
       </Grid>
