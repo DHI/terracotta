@@ -11,7 +11,7 @@ import { easeCubicInOut } from 'd3-ease'
 import AppContext, { activeRGBSelectorRange } from "./AppContext"
 import { Viewport } from "./map/types"
 import { FeatureDataset } from "./map/types"
-import { ResponseMetadata200 } from './common/data/getData';
+import { ResponseMetadata200, KeyItem } from './common/data/getData';
 import COLORMAPS, { Colormap } from "./colormap/colormaps"
 
 const useStyles = makeStyles(() => ({
@@ -65,7 +65,7 @@ const App: FC<Props> = ({ hostnameProp }) => {
   const [ page, setPage ] = useState<number>(0)
   const [ limit, setLimit ] = useState<number>(15)
   const [ hostname, setHostname ] = useState<string | undefined>(undefined)
-  const [ keys, setKeys ] = useState<string[] | undefined>(undefined)
+  const [ keys, setKeys ] = useState<KeyItem[] | undefined>(undefined)
   const [ datasets, setDatasets ] = useState<ResponseMetadata200[] | undefined>(undefined)
   const [ activeDataset, setActiveDataset ] = useState<number | undefined>(undefined)
   const [ hoveredDataset,  setHoveredDataset ] = useState<FeatureDataset | undefined>(undefined)
@@ -82,7 +82,8 @@ const App: FC<Props> = ({ hostnameProp }) => {
 
   const initializeApp = (hostname: string | undefined) => {
     // sanitize hostname
-    hostname = 'https://4opg6b5hc3.execute-api.eu-central-1.amazonaws.com/development'
+    hostname = 'https://ix8zgaqqe1.execute-api.eu-central-1.amazonaws.com/production'
+    // hostname = 'https://4opg6b5hc3.execute-api.eu-central-1.amazonaws.com/development/'
     if(hostname){
 
       if (hostname.charAt(hostname.length - 1) === '/') {

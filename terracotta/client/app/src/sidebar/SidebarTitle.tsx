@@ -1,8 +1,8 @@
 import React, { CSSProperties, FC } from 'react'
-import { Box, Typography, Link } from '@material-ui/core'
+import { Box, Typography, Link, Tooltip } from '@material-ui/core'
 import HeaderImage from "./../common/images/header.svg"
 import { makeStyles } from "@material-ui/core/styles"
-
+import { KeyItem } from "./../common/data/getData"
 const useStyles = makeStyles(() => ({
 	wrapper: {
 		margin: 16,
@@ -32,6 +32,15 @@ const useStyles = makeStyles(() => ({
 	hostText: {
 		fontSize: 12,
 		wordBreak: 'break-all'
+	},
+	hasDescription: {
+		cursor: 'pointer',
+		'&:hover': {
+			textDecoration: 'underline'
+		}
+	},
+	noDescription: {
+		cursor: 'default',
 	}
 }))
 
@@ -39,7 +48,7 @@ interface Props {
 	host?: string,
 	style?: CSSProperties,
 	details?: string,
-	keys?: string[]
+	keys?: KeyItem[]
 }
 const SidebarTitle: FC<Props> = ({
 	style,
@@ -77,7 +86,22 @@ const SidebarTitle: FC<Props> = ({
 						<Typography variant={'body1'} className={classes.hostText}>
 							<b>{'Keys: '}</b>
 							<span>
-								{`${keys.map((keyItem: string) => `/{${keyItem.toLowerCase()}}`).join('')}`}	
+								{keys.map((keyItem: KeyItem) => 
+									keyItem.description ? 
+										<Tooltip 
+											title={keyItem.description || false}
+										>
+											<span>
+												{'/'}
+												<span className={classes.hasDescription}>{`{${keyItem.key.toLowerCase()}}`}</span>
+											</span>
+										</Tooltip>
+									:
+										<span>
+											{'/'}
+											<span className={classes.noDescription}>{`{${keyItem.key.toLowerCase()}}`}</span>
+										</span>
+								)}	
 							</span>
 						</Typography>
 					</Box>

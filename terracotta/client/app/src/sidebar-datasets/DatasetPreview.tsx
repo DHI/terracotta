@@ -31,7 +31,6 @@ interface Props {
     i: number,
     activeDataset?: number,
     dataset: ResponseMetadata200,
-    keys?: string[],
     datasetUrl?: string
 }
 const DatasetPreview: FC<Props> = ({
@@ -63,9 +62,6 @@ const DatasetPreview: FC<Props> = ({
 
             return acc
            }, []).join('')
-
-           // const buildMetadataUrl = Object.keys(dataset).map((keyItem: string) => `/${dataset[keyItem]}`).join('')
-           // const preFetchData = await fetch(`${host}/metadata${buildMetadataUrl}`)
 
     return (
         <TableRow>

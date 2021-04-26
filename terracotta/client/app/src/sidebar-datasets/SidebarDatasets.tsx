@@ -125,19 +125,12 @@ const SidebarDatasetsItem: FC<Props> = ({
     const getKeys = async (host: string) => {
 
         const response = await getData(`${host}/keys`)
-        const keysReponse = response as ResponseKeys | undefined
+        let keysReponse = response as ResponseKeys | undefined
 
         if(keysReponse && keysReponse.hasOwnProperty('keys') && Array.isArray(keysReponse.keys)){
-
-            const keysArray = keysReponse.keys.reduce((acc: string[], item: KeyItem) => {
             
-                acc = [...acc, item.key]
-                return acc
-
-            }, [])
-            
-            setKeys(keysArray)
-
+            keysReponse.keys = keysReponse.keys.map((item: KeyItem) => ({ ...item, key: item.key[0].toUpperCase() + item.key.substring(1, item.key.length ) }))
+            setKeys(keysReponse.keys)
             
         }
 
@@ -273,10 +266,10 @@ const SidebarDatasetsItem: FC<Props> = ({
                             <MuiTableRow>
                                 <TableCell className={classes.tableCell} />
                                 {keys && (
-                                    keys.map((datasetKey: string, i: number) => (
+                                    keys.map((datasetKey: KeyItem, i: number) => (
                                         <TableCell className={classes.tableCell} key={`dataset-key-head-${i}`}>
                                             <Typography color={'primary'} className={classes.tableHeadTypography} variant={'body2'}>
-                                                {datasetKey}
+                                                {datasetKey.key}
                                             </Typography>
                                         </TableCell>
                                     ))
@@ -299,7 +292,6 @@ const SidebarDatasetsItem: FC<Props> = ({
                                             dataset={dataset}
                                             host={host}
                                             i={i}
-                                            keys={keys}
                                             limit={limit}
                                             page={page}
                                             datasetUrl={selectedDatasetRasterUrl}

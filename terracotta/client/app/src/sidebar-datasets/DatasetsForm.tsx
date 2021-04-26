@@ -1,9 +1,11 @@
 import React, { FC, useState, useEffect, ChangeEvent, FormEvent } from 'react'
 import { Box, TextField, Button  } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
+import { KeyItem } from "../common/data/getData"
 
 type FormValues = Record<string, string | number> | undefined
 type OnChangeInput = ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+
 const useStyles = makeStyles(theme => ({
     input: {
         width: '50%'
@@ -16,7 +18,7 @@ const useStyles = makeStyles(theme => ({
 }))
 
 interface Props {
-    keys: string[],
+    keys: KeyItem[],
     onSubmitFields: (queryString: string) => void
 }
 const DatasetsForm: FC<Props> = ({
@@ -26,6 +28,7 @@ const DatasetsForm: FC<Props> = ({
 
     const classes = useStyles()
     const [ formValues, setFormValues ] = useState<FormValues>(undefined)
+
     const onChangeInput = (e: OnChangeInput, inputKey: string) => {
         inputKey = inputKey.toLowerCase()
         if(formValues){
@@ -50,9 +53,9 @@ const DatasetsForm: FC<Props> = ({
 
     useEffect(() => {
 
-        const reduceKeys = keys.reduce((acc:Record<string, string> , keyItem: string) => {
+        const reduceKeys = keys.reduce((acc:Record<string, string> , keyItem: KeyItem) => {
            
-            acc[keyItem.toLowerCase()] = ''
+            acc[keyItem.key.toLowerCase()] = ''
             return acc
 
         }, {})
@@ -64,16 +67,16 @@ const DatasetsForm: FC<Props> = ({
     return (
         <form onSubmit={e => onSubmitForm(e)}>
             {
-                keys.map((keyItem: string, i: number) => {
+                keys.map((keyItem: KeyItem, i: number) => {
                     const isLastUneven = keys.length % 2 === 1 && i === keys.length - 1 ? true : false
                 return(
                     <TextField 
-                        key={`textfield-${keyItem}`} 
-                        id={keyItem.toLocaleLowerCase()} 
-                        label={keyItem}
+                        key={`textfield-${keyItem.key}`} 
+                        id={keyItem.key.toLocaleLowerCase()} 
+                        label={keyItem.key}
                         className={`${isLastUneven ? '' : classes.input} ${classes.inputLabel}`} 
                         fullWidth={isLastUneven}
-                        onChange={(e) => onChangeInput(e, keyItem.toLowerCase())}
+                        onChange={(e) => onChangeInput(e, keyItem.key.toLowerCase())}
                     />
                 )})
             }

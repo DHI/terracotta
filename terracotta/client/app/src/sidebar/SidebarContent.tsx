@@ -13,8 +13,7 @@ const useStyles = makeStyles(({ breakpoints }) => ({
 		// overflowX: 'auto',
 		overflowY: 'auto',
 		height: '100%',
-		width: 'fit-content',
-		maxWidth: '50vw',
+		width: '30vw',
 		minWidth: 360,
 		[ breakpoints.down('xs') ]: {
 			width: '100%',
