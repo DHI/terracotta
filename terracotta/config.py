@@ -73,6 +73,9 @@ class TerracottaSettings(NamedTuple):
     #: MySQL database password (if not given in driver path)
     MYSQL_PASSWORD: Optional[str] = None
 
+    #: Use a process pool for band retrieval in parallel
+    USE_MULTIPROCESSING: bool = True
+
 
 AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._fields)
 
@@ -122,6 +125,8 @@ class SettingSchema(Schema):
 
     MYSQL_USER = fields.String()
     MYSQL_PASSWORD = fields.String()
+
+    USE_MULTIPROCESSING = fields.Boolean()
 
     @pre_load
     def decode_lists(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:

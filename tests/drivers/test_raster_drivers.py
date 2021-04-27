@@ -349,29 +349,32 @@ def test_multiprocessing_fallback(driver_path, provider, raster_file, monkeypatc
     import concurrent.futures
     from importlib import reload
     from terracotta import drivers
+    import terracotta.drivers.raster_base
 
     def dummy(*args, **kwargs):
         raise OSError('monkeypatched')
 
-    with monkeypatch.context() as m:
-        m.setattr(concurrent.futures, 'ProcessPoolExecutor', dummy)
+    try:
+        with monkeypatch.context() as m, pytest.warns(UserWarning):
+            m.setattr(concurrent.futures, 'ProcessPoolExecutor', dummy)
 
-        import terracotta.drivers.raster_base
+            reload(terracotta.drivers.raster_base)
+            db = drivers.get_driver(driver_path, provider=provider)
+            keys = ('some', 'keynames')
+
+            db.create(keys)
+            db.insert(['some', 'value'], str(raster_file))
+            db.insert(['some', 'other_value'], str(raster_file))
+
+            data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256))
+            assert data1.shape == (256, 256)
+
+            data2 = db.get_raster_tile(['some', 'other_value'], tile_size=(256, 256))
+            assert data2.shape == (256, 256)
+
+            np.testing.assert_array_equal(data1, data2)
+    finally:
         reload(terracotta.drivers.raster_base)
-        db = drivers.get_driver(driver_path, provider=provider)
-        keys = ('some', 'keynames')
-
-        db.create(keys)
-        db.insert(['some', 'value'], str(raster_file))
-        db.insert(['some', 'other_value'], str(raster_file))
-
-        data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256))
-        assert data1.shape == (256, 256)
-
-        data2 = db.get_raster_tile(['some', 'other_value'], tile_size=(256, 256))
-        assert data2.shape == (256, 256)
-
-        np.testing.assert_array_equal(data1, data2)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -635,3 +638,42 @@ def test_compute_metadata_unoptimized(unoptimized_raster_file):
     )
 
     assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-6
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_broken_process_pool(driver_path, provider, raster_file):
+    import concurrent.futures
+    from terracotta import drivers
+    from terracotta.drivers.raster_base import context
+
+    class BrokenPool:
+        def submit(self, *args, **kwargs):
+            raise concurrent.futures.process.BrokenProcessPool('monkeypatched')
+
+    context.executor = BrokenPool()
+
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('some', 'keynames')
+
+    db.create(keys)
+    db.insert(['some', 'value'], str(raster_file))
+    db.insert(['some', 'other_value'], str(raster_file))
+
+    data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256))
+    assert data1.shape == (256, 256)
+
+    data2 = db.get_raster_tile(['some', 'other_value'], tile_size=(256, 256))
+    assert data2.shape == (256, 256)
+
+    np.testing.assert_array_equal(data1, data2)
+
+
+def test_no_multiprocessing():
+    import concurrent.futures
+    from terracotta import update_settings
+    from terracotta.drivers.raster_base import create_executor
+
+    update_settings(USE_MULTIPROCESSING=False)
+
+    executor = create_executor()
+    assert isinstance(executor, concurrent.futures.ThreadPoolExecutor)
