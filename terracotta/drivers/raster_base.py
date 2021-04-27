@@ -3,10 +3,11 @@
 Base class for drivers operating on physical raster files.
 """
 
-from typing import (Any, Union, Mapping, Sequence, Dict, List, Tuple,
+from typing import (Any, Callable, Union, Mapping, Sequence, Dict, List, Tuple,
                     TypeVar, Optional, cast, TYPE_CHECKING)
 from abc import abstractmethod
 from concurrent.futures import Future, Executor, ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 
 import contextlib
 import functools
@@ -36,14 +37,45 @@ Number = TypeVar('Number', int, float)
 
 logger = logging.getLogger(__name__)
 
-executor: Executor
+context = threading.local()
+context.executor = None
 
-try:
-    # this fails on architectures without /dev/shm
-    executor = ProcessPoolExecutor(max_workers=3)
-except OSError:
-    # fall back to serial evaluation
-    executor = ThreadPoolExecutor(max_workers=1)
+
+def create_executor() -> Executor:
+    settings = get_settings()
+
+    if not settings.USE_MULTIPROCESSING:
+        return ThreadPoolExecutor(max_workers=1)
+
+    executor: Executor
+
+    try:
+        # this fails on architectures without /dev/shm
+        executor = ProcessPoolExecutor(max_workers=3)
+    except OSError:
+        # fall back to serial evaluation
+        warnings.warn(
+            'Multiprocessing is not available on this system. '
+            'Falling back to serial execution.'
+        )
+        executor = ThreadPoolExecutor(max_workers=1)
+
+    return executor
+
+
+def submit_to_executor(task: Callable[..., Any]) -> Future:
+    if context.executor is None:
+        context.executor = create_executor()
+
+    try:
+        future = context.executor.submit(task)
+    except BrokenProcessPool:
+        # re-create executor and try again
+        logger.warn('Re-creating broken process pool')
+        context.executor = create_executor()
+        future = context.executor.submit(task)
+
+    return future
 
 
 class RasterDriver(Driver):
@@ -561,7 +593,7 @@ class RasterDriver(Driver):
 
         retrieve_tile = functools.partial(self._get_raster_tile, **kwargs)
 
-        future = executor.submit(retrieve_tile)
+        future = submit_to_executor(retrieve_tile)
 
         def cache_callback(future: Future) -> None:
             # insert result into global cache if execution was successful
