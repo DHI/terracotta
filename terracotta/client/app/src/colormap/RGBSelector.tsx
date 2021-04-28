@@ -23,9 +23,9 @@ const RGBSelector: FC = () => {
     useEffect(() => {
 
     }, [])
-
-    const minRange = activeDataset !== undefined && datasets?.[activeDataset - page * limit]?.range[0]
-    const maxRange = activeDataset !== undefined && datasets?.[activeDataset - page * limit]?.range[1]
+    const datasetPageRange = activeDataset !== undefined && datasets?.[activeDataset - page * limit]?.range
+    const minRange = datasetPageRange?.[0]
+    const maxRange = datasetPageRange?.[1]
 
     const onGetBandValue = (val: string, bandKey: string) => {
         setActiveRGB((activeRGB: activeRGBSelectorRange) => activeRGB && {
