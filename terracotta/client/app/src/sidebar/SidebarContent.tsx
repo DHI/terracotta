@@ -1,6 +1,7 @@
-import React, { FC, ReactNode } from 'react'
+import React, { FC, ReactNode, useState } from 'react'
 import { Paper, Box } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
+import VerticalHandle from "./VerticalHandle/VerticalHandle"
 
 const useStyles = makeStyles(({ breakpoints }) => ({
 	rooterThanRoot: {
@@ -13,8 +14,6 @@ const useStyles = makeStyles(({ breakpoints }) => ({
 		// overflowX: 'auto',
 		overflowY: 'auto',
 		height: '100%',
-		width: '30vw',
-		minWidth: 360,
 		[ breakpoints.down('xs') ]: {
 			width: '100%',
 		},
@@ -35,13 +34,20 @@ const SidebarContent: FC<Props> = ({
 }) => {
 
 	const classes = useStyles()
+	const [width, setWidth] = useState(30/100 * window.innerWidth)
 
 	return (
-		<Box className={classes.rooterThanRoot}>
-			<Paper className={classes.root}>
-				{children}
-			</Paper>
-		</Box>
+		<>
+			<VerticalHandle 
+				boxWidth={width}
+				onDrag={setWidth}
+			/>
+			<Box className={classes.rooterThanRoot}>
+				<Paper className={classes.root} style={{ width: width }}>
+					{children}
+				</Paper>
+			</Box>
+		</>
 	)
 
 }

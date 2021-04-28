@@ -1,7 +1,6 @@
 import React, { FC, useState, useEffect } from 'react';
 import { Box } from "@material-ui/core"
 import { makeStyles } from "@material-ui/core/styles"
-import SidebarControl from "./sidebar/SidebarControl"
 import SidebarContent from "./sidebar/SidebarContent"
 import SidebarTitle from "./sidebar/SidebarTitle"
 import SidebarDatasetsItem from "./sidebar-datasets/SidebarDatasets"
@@ -13,6 +12,7 @@ import { Viewport } from "./map/types"
 import { FeatureDataset } from "./map/types"
 import { ResponseMetadata200, KeyItem } from './common/data/getData';
 import COLORMAPS, { Colormap } from "./colormap/colormaps"
+
 
 const useStyles = makeStyles(() => ({
   root: {
@@ -38,6 +38,9 @@ const defaultViewport = {
 	transitionEasing: easeCubicInOut,
 }
 
+const isEnvDev = process.env.REACT_APP_NODE_ENV === 'development'
+const TC_URL = process.env.REACT_APP_TC_URL
+
 export const defaultRGB: activeRGBSelectorRange = {
   R: {
     band: undefined,
@@ -58,7 +61,6 @@ interface Props {
 }
 
 const App: FC<Props> = ({ hostnameProp }) => {
-  const [ isSidebarOpen, setIsSidebarOpen ] = useState<boolean>(true)
   const [ viewport, setViewport ] = useState<Viewport>(defaultViewport)
   const [ isOpticalBasemap, setIsOpticalBasemap ] = useState<boolean>(false)
 
@@ -78,12 +80,17 @@ const App: FC<Props> = ({ hostnameProp }) => {
 
   const classes = useStyles(); 
 
-	const toggleSidebarOpen = () => setIsSidebarOpen(!isSidebarOpen)
-
   const initializeApp = (hostname: string | undefined) => {
     // sanitize hostname
-    hostname = 'https://ix8zgaqqe1.execute-api.eu-central-1.amazonaws.com/production'
-    // hostname = 'https://4opg6b5hc3.execute-api.eu-central-1.amazonaws.com/development/'
+
+    // when developing, set up your .env in the /app folder with the env. variables:
+    // - REACT_APP_NODE_ENV=development
+    // - REACT_APP_TC_URL= your TC url to develop with
+
+    if(isEnvDev && TC_URL){
+      hostname = TC_URL
+    }
+    
     if(hostname){
 
       if (hostname.charAt(hostname.length - 1) === '/') {
@@ -145,7 +152,6 @@ const App: FC<Props> = ({ hostnameProp }) => {
           width={1}
         >
           <Map host={hostname}/>
-          {isSidebarOpen && (
             <SidebarContent>
               <SidebarTitle
                 host={hostname}
@@ -159,11 +165,6 @@ const App: FC<Props> = ({ hostnameProp }) => {
               }
               
             </SidebarContent>
-            )}
-            <SidebarControl
-              toggleSidebarOpen={toggleSidebarOpen}
-              isSidebarOpen={isSidebarOpen}
-            />
         </Box>
       </AppContext.Provider>
     </div>

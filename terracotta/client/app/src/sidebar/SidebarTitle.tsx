@@ -90,6 +90,7 @@ const SidebarTitle: FC<Props> = ({
 									keyItem.description ? 
 										<Tooltip 
 											title={keyItem.description || false}
+											key={`tooltip-${keyItem.key}`}
 										>
 											<span>
 												{'/'}
