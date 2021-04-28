@@ -9,7 +9,7 @@ interface Props{
 	onDrag: (w: number) => void,
 }
 
-const HorizontalHandle: FC<Props> = ({
+const VerticalHandle: FC<Props> = ({
 	boxWidth,
 	onDrag,
 }) => {
@@ -83,4 +83,4 @@ const HorizontalHandle: FC<Props> = ({
 
 }
 
-export default HorizontalHandle
+export default VerticalHandle

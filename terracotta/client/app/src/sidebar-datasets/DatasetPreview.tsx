@@ -21,6 +21,9 @@ const useStyles = makeStyles(() => ({
     },
     copyTooltip: {
         cursor: 'pointer'
+    },
+    tableCell: {
+        padding: 0,
     }
 }))
 
@@ -64,8 +67,8 @@ const DatasetPreview: FC<Props> = ({
            }, []).join('')
 
     return (
-        <TableRow style={{height: 0}}>
-            <TableCell style={{ padding: 0, height: 'unset' }} colSpan={8}>
+        <TableRow>
+            <TableCell className={classes.tableCell} colSpan={8}>
                 <Collapse in={page * limit + i === activeDataset} timeout="auto" unmountOnExit>
                     {
                         datasetUrl && (
