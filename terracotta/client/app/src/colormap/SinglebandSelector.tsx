@@ -10,7 +10,7 @@ import {
 import AppContext from "./../AppContext"
 import Slider from "../common/components/Slider"
 import COLORMAPS, { Colormap } from "./colormaps"
-import { Legend } from '@dhi-gras/react-components'
+import Legend from '../common/components/Legend'
 
 const SinglebandSelector: FC = () => {
     const {
@@ -93,6 +93,7 @@ const SinglebandSelector: FC = () => {
                                 src={colormap.img_url} 
                                 range={localRange}
                                 length={2}
+                                onGetRange={(val) => setActiveSinglebandRange(val)}
                             />
                         </>
                         )

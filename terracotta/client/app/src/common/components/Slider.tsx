@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Slider as MSlider, Box, Grid, Typography } from '@material-ui/core';
+import { Slider as MSlider, Box, Grid, Typography, TextField } from '@material-ui/core';
 
 type SliderProps = {
   /**
@@ -90,15 +90,21 @@ const Slider: React.FC<SliderProps> = ({
             container
             alignItems="center"
             justify="center"
-            style={{ height: '100%', width: '2rem' }}
+            style={{ height: '100%', maxWidth: '8rem' }}
           >
-            <Typography variant="body2">{value[0].toFixed(2) + unit}</Typography>
+            <TextField 
+              fullWidth
+              type={'number'}
+              variant={'standard'}
+              value={value[0]}
+              onChange={(e) => getValueCommitted && getValueCommitted([Number(e.target.value), value[1]])}
+            />
           </Grid>
         </Box>
       )}
 
       <MSlider
-        style={{ margin: '0rem .6rem' }}
+        style={{ margin: '0rem .6rem', width: '100%' }}
         value={value}
         min={min}
         step={step}
@@ -117,11 +123,18 @@ const Slider: React.FC<SliderProps> = ({
             container
             alignItems="center"
             justify="center"
-            style={{ height: '100%', width: '2rem' }}
+            style={{ height: '100%', maxWidth: '8rem' }}
           >
-            <Typography variant="body2">
-              {`${value[1].toFixed(2) || (!Array.isArray(value) && (value as number).toFixed(2))}${unit}`}
-            </Typography>
+            <TextField 
+              fullWidth
+              type={'number'}
+              variant={'standard'}
+              value={value[1] || (!Array.isArray(value) && (value as number))}
+              onChange={(e) => getValueCommitted && getValueCommitted([value[0], Number(e.target.value)])}
+            />
+            {/* <Typography variant="body2">
+              {`${}${unit}`}
+            </Typography> */}
           </Grid>
         </Box>
       )}
