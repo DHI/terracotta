@@ -13,7 +13,7 @@ const VerticalHandle: FC<Props> = ({
 	boxWidth,
 	onDrag,
 }) => {
-	console.log(boxWidth)
+
 	const [ isDragging, setIsDragging ] = useState(false)
 	const [ initialWidth, setInitialWidth ] = useState(minWidth * 2)
 

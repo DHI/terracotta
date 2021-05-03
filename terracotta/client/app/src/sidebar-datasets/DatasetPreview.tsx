@@ -16,7 +16,7 @@ const useStyles = makeStyles(() => ({
         maxWidth: '100%'
     },
     codeContainerText: {
-        color: '#86A2B3',
+        color: '#557A8F',
         fontSize: 11
     },
     copyTooltip: {
@@ -24,6 +24,10 @@ const useStyles = makeStyles(() => ({
     },
     tableCell: {
         padding: 0,
+    },
+    metadataLink: {
+        fontSize: 10,
+        color: '#86A2B3',
     }
 }))
 
@@ -96,18 +100,22 @@ const DatasetPreview: FC<Props> = ({
                                 <Box p={1} className={classes.codeContainer}>
                                 <Typography className={classes.codeContainerText}>
                                     <code>
-                                        {'Metadata - '}
-                                        <Link target={'_blank'} href={`${host}/metadata${Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('')}`}>
-                                        {'View full metadata\n'}
-                                    </Link>
+                                        {'Metadata'}
+                                        
                                     </code>
                                 </Typography>
                                     <code style={{ whiteSpace: 'pre' }}>
                                         {'{\n'}
                                         {returnJson(dataset)}
-                                        {'}'}
+                                        {'}\n'}
                                     </code>
-                                    
+                                    <Link 
+                                        target={'_blank'} 
+                                        href={`${host}/metadata${Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('')}`}
+                                        className={classes.metadataLink}
+                                    >
+                                        {'View full metadata\n'}
+                                    </Link>
                                 </Box>
                                 
                             </Grid>
