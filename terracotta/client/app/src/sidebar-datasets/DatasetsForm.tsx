@@ -1,10 +1,9 @@
-import React, { FC, useState, useEffect, ChangeEvent, FormEvent } from 'react'
+import React, { FC, useState, useEffect, FormEvent } from 'react'
 import { Box, TextField, Button  } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import { KeyItem } from "../common/data/getData"
 
 type FormValues = Record<string, string | number> | undefined
-type OnChangeInput = ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
 
 const useStyles = makeStyles(theme => ({
     input: {
@@ -29,15 +28,6 @@ const DatasetsForm: FC<Props> = ({
     const classes = useStyles()
     const [ formValues, setFormValues ] = useState<FormValues>(undefined)
 
-    const onChangeInput = (e: OnChangeInput, inputKey: string) => {
-        inputKey = inputKey.toLowerCase()
-        if(formValues){
-            const formValuesCopy = formValues
-            formValuesCopy[inputKey] = e.target.value
-            setFormValues(formValuesCopy)
-        }
-    }
-
     const onSubmitForm = (e: FormEvent<HTMLFormElement> | undefined) => {
         if(e) e.preventDefault()
         if(formValues){
@@ -52,7 +42,6 @@ const DatasetsForm: FC<Props> = ({
     }
 
     useEffect(() => {
-
         const reduceKeys = keys.reduce((acc:Record<string, string> , keyItem: KeyItem) => {
            
             acc[keyItem.key.toLowerCase()] = ''
@@ -62,7 +51,7 @@ const DatasetsForm: FC<Props> = ({
 
         setFormValues(reduceKeys)
 
-    }, [keys])
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <form onSubmit={e => onSubmitForm(e)}>
@@ -76,7 +65,8 @@ const DatasetsForm: FC<Props> = ({
                         label={keyItem.key}
                         className={`${isLastUneven ? '' : classes.input} ${classes.inputLabel}`} 
                         fullWidth={isLastUneven}
-                        onChange={(e) => onChangeInput(e, keyItem.key.toLowerCase())}
+                        onChange={(e) => setFormValues((val) => ({ ...val, [keyItem.key.toLowerCase()]: e.target.value }))}
+                        value={formValues?.[ keyItem.key ]}
                     />
                 )})
             }

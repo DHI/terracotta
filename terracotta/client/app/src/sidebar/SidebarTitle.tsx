@@ -98,7 +98,7 @@ const SidebarTitle: FC<Props> = ({
 											</span>
 										</Tooltip>
 									:
-										<span>
+										<span key={`tooltip-${keyItem.key}`}>
 											{'/'}
 											<span className={classes.noDescription}>{`{${keyItem.key.toLowerCase()}}`}</span>
 										</span>
