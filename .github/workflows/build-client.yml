@@ -20,9 +20,10 @@ jobs:
 
       - name: Build app
         run: |
-          cd terracotta/client/app
+          pushd terracotta/client/app
           yarn install --frozen-lockfile
           yarn build
+          popd
 
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v4.4.1
