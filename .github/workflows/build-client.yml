@@ -2,12 +2,14 @@ name: Build client app
 
 on:
   pull_request:
-    paths: "terracotta/client/app/**"
+    paths:
+      - "terracotta/client/app/**"
 
   push:
     branches:
       - master
-    paths: "terracotta/client/app/**"
+    paths:
+      - "terracotta/client/app/**"
 
 jobs:
   build:
