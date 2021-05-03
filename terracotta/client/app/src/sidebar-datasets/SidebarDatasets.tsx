@@ -151,8 +151,13 @@ const SidebarDatasetsItem: FC<Props> = ({
 
             const dataset = datasets?.[index]
             setActiveDataset(actualIndex)
+
             if(dataset){
-                setActiveSinglebandRange(dataset.range)
+
+                const { percentiles } = dataset
+                const validRange = [percentiles[5], percentiles[95]]
+                setActiveSinglebandRange(validRange)
+
             }
 
         }
@@ -186,7 +191,10 @@ const SidebarDatasetsItem: FC<Props> = ({
             setActiveRGB((activeRGBLocal: activeRGBSelectorRange) => 
                 Object.keys(activeRGBLocal).reduce((acc: any, colorString: string) => {
 
-                    acc[colorString] = { ...activeRGBLocal[colorString], range: dataset.range }
+                    const { percentiles } = dataset
+                    const validRange = [ percentiles[5], percentiles[95] ]
+                    
+                    acc[colorString] = { ...activeRGBLocal[colorString], range: validRange }
 
                     return acc
 
