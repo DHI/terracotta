@@ -63,7 +63,7 @@ const ZoomControl: FC = () => {
 			      className={classes.iconButton}
           >
             {
-              !isOpticalBasemap ? <StreetviewIcon className={classes.icon}/> : <PublicIcon className={classes.icon}/>
+              isOpticalBasemap ? <StreetviewIcon className={classes.icon}/> : <PublicIcon className={classes.icon}/>
             }
             {/* <PublicIcon
               className={!isOpticalBasemap ? classes.icon : classes.activeIcon}
