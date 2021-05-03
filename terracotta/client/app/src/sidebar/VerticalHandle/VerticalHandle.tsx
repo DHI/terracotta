@@ -43,6 +43,11 @@ const VerticalHandle: FC<Props> = ({
 			onDrag(initialWidth)
 
 		}
+
+		if(boxWidth < 300){
+			onDrag(0)
+		}
+
 		setIsDragging(false)
 
 	}, [ boxWidth, initialWidth, onDrag ])
