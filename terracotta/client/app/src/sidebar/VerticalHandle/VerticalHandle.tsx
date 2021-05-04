@@ -29,7 +29,7 @@ const VerticalHandle: FC<Props> = ({
 
 		onDrag(w)
 
-	}, [ onDrag, minMapSize ])
+	}, [ onDrag, minMapSize, minSize ])
 
 	const handleMouseDown = useCallback(e => {
 
@@ -42,7 +42,7 @@ const VerticalHandle: FC<Props> = ({
 	const handleMouseUp = useCallback(() => {
 		setIsDragging(false)
 
-	}, [ boxWidth, initialWidth, onDrag, minSize ])
+	}, [ ])
 
 	useEffect(() => {
 
