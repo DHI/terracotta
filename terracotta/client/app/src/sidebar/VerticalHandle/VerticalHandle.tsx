@@ -12,8 +12,8 @@ interface Props{
 const VerticalHandle: FC<Props> = ({
 	boxWidth,
 	onDrag,
-	minSize = 0,
-	minMapSize = 20/100 * window.innerWidth
+	minSize = 200,
+	minMapSize = 40/100 * window.innerWidth
 }) => {
 
 	const [ isDragging, setIsDragging ] = useState(false)
@@ -22,9 +22,10 @@ const VerticalHandle: FC<Props> = ({
 	const handleMouseMove = useCallback(e => {
 
 		const windowWidth = window.innerWidth
-		const w = e.clientX < minMapSize ?
+		let w = e.clientX < minMapSize ?
 			windowWidth - minMapSize :
 			windowWidth - e.clientX
+		w = w < minSize ? 0 : w
 
 		onDrag(w)
 
@@ -39,17 +40,6 @@ const VerticalHandle: FC<Props> = ({
 	}, [  initialWidth, minSize ])
 
 	const handleMouseUp = useCallback(() => {
-
-		if (boxWidth < minSize) {
-
-			onDrag(initialWidth)
-
-		}
-
-		if(boxWidth < 300){
-			onDrag(0)
-		}
-
 		setIsDragging(false)
 
 	}, [ boxWidth, initialWidth, onDrag, minSize ])
