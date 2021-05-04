@@ -96,7 +96,7 @@ const Slider: React.FC<SliderProps> = ({
               fullWidth
               type={'number'}
               variant={'standard'}
-              value={value[0]}
+              value={Number(value[0].toFixed(3))}
               onChange={(e) => getValueCommitted && getValueCommitted([Number(e.target.value), value[1]])}
             />
           </Grid>
@@ -129,12 +129,9 @@ const Slider: React.FC<SliderProps> = ({
               fullWidth
               type={'number'}
               variant={'standard'}
-              value={value[1] || (!Array.isArray(value) && (value as number))}
+              value={Number(value[1].toFixed(3)) || (!Array.isArray(value) && Number((value as number).toFixed(3)))}
               onChange={(e) => getValueCommitted && getValueCommitted([value[0], Number(e.target.value)])}
             />
-            {/* <Typography variant="body2">
-              {`${}${unit}`}
-            </Typography> */}
           </Grid>
         </Box>
       )}

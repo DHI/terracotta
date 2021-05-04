@@ -1,44 +1,46 @@
 import React, { useState, useEffect, useCallback, FC } from 'react'
 import Handle from './Handle'
 
-const minWidth = 0
-const minMapWidth = 50
 
 interface Props{
 	boxWidth: number,
 	onDrag: (w: number) => void,
+	minSize?: number,
+	minMapSize?: number
 }
 
 const VerticalHandle: FC<Props> = ({
 	boxWidth,
 	onDrag,
+	minSize = 0,
+	minMapSize = 20/100 * window.innerWidth
 }) => {
 
 	const [ isDragging, setIsDragging ] = useState(false)
-	const [ initialWidth, setInitialWidth ] = useState(minWidth * 2)
+	const [ initialWidth, setInitialWidth ] = useState(minSize * 2)
 
 	const handleMouseMove = useCallback(e => {
 
 		const windowWidth = window.innerWidth
-		const w = e.clientX < minMapWidth ?
-			windowWidth - minMapWidth :
+		const w = e.clientX < minMapSize ?
+			windowWidth - minMapSize :
 			windowWidth - e.clientX
 
 		onDrag(w)
 
-	}, [ onDrag ])
+	}, [ onDrag, minMapSize ])
 
 	const handleMouseDown = useCallback(e => {
 
 		setIsDragging(true)
 		const w = window.innerWidth - e.clientX
-		setInitialWidth(initialWidth < minWidth ? minWidth : w)
+		setInitialWidth(initialWidth < minSize ? minSize : w)
 
-	}, [  initialWidth ])
+	}, [  initialWidth, minSize ])
 
 	const handleMouseUp = useCallback(() => {
 
-		if (boxWidth < minWidth) {
+		if (boxWidth < minSize) {
 
 			onDrag(initialWidth)
 
@@ -50,7 +52,7 @@ const VerticalHandle: FC<Props> = ({
 
 		setIsDragging(false)
 
-	}, [ boxWidth, initialWidth, onDrag ])
+	}, [ boxWidth, initialWidth, onDrag, minSize ])
 
 	useEffect(() => {
 

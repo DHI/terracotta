@@ -4,8 +4,7 @@ import { makeStyles } from "@material-ui/core/styles"
 
 const useStyles = makeStyles(() => ({
   inputBox: {
-    width: '10%',
-    minWidth: 50
+    width: 50,
   }
 }))
 
@@ -24,7 +23,7 @@ export type LegendProps = {
   /**
    * Min/Max range for the Legend ticks.
    */
-  range?: number[] | string[] | undefined;
+  range?: number[] | undefined;
   /**
    * Append a unit at the end of the values. (%, °C, £, $)
    */
@@ -47,7 +46,7 @@ const Legend: React.FC<LegendProps> = ({ src, range, onGetRange }) => {
                 fullWidth
                 type={'number'}
                 variant={'standard'}
-                value={range[0]}
+                value={Number(range[0].toFixed(3))}
                 onChange={(e) => onGetRange([Number(e.target.value), Number(range[1])])}
               />
             </Box>
@@ -56,7 +55,7 @@ const Legend: React.FC<LegendProps> = ({ src, range, onGetRange }) => {
                 fullWidth
                 type={'number'}
                 variant={'standard'}
-                value={range[1]}
+                value={Number(range[1].toFixed(3))}
                 onChange={(e) => onGetRange([Number(range[0]), Number(e.target.value)])}
               />
             </Box>

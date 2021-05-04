@@ -41,6 +41,8 @@ const SidebarContent: FC<Props> = ({
 			<VerticalHandle 
 				boxWidth={width}
 				onDrag={setWidth}
+				minSize={0}
+				minMapSize={200}
 			/>
 			<Box className={classes.rooterThanRoot}>
 				<Paper className={classes.root} style={{ width: width }}>
