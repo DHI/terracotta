@@ -12,8 +12,8 @@ interface Props{
 const VerticalHandle: FC<Props> = ({
 	boxWidth,
 	onDrag,
-	minSize = 200,
-	minMapSize = 40/100 * window.innerWidth
+	minSize = 0,
+	minMapSize = 20/100 * window.innerWidth
 }) => {
 
 	const [ isDragging, setIsDragging ] = useState(false)
@@ -32,16 +32,13 @@ const VerticalHandle: FC<Props> = ({
 	}, [ onDrag, minMapSize, minSize ])
 
 	const handleMouseDown = useCallback(e => {
-
 		setIsDragging(true)
 		const w = window.innerWidth - e.clientX
 		setInitialWidth(initialWidth < minSize ? minSize : w)
-
 	}, [  initialWidth, minSize ])
 
 	const handleMouseUp = useCallback(() => {
 		setIsDragging(false)
-
 	}, [ ])
 
 	useEffect(() => {
@@ -72,7 +69,7 @@ const VerticalHandle: FC<Props> = ({
 	return (
 		<Handle
 			onMouseDown={handleMouseDown}
-			onMouseUp={() => setIsDragging(false)}
+			onMouseUp={handleMouseUp}
 			isCollapsed={boxWidth < 10}
 			onClickExpand={() => onDrag(30/100 * window.innerWidth)}
 		/>
