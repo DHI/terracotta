@@ -1,11 +1,11 @@
 import { createContext } from 'react'
 import { Viewport } from "./map/types"
 import { FeatureDataset } from "./map/types"
-import { ResponseMetadata200 } from "./common/data/getData"
+import { ResponseMetadata200, KeyItem } from "./common/data/getData"
 import { Colormap } from "./colormap/colormaps"
 
 export type RGBValue = {
-	range: number[],
+	range: number[] | undefined,
 	band: string | undefined
 }
 
@@ -21,7 +21,7 @@ interface AppContextValues {
         viewport: Viewport,
         isOpticalBasemap: boolean,
 		hostname: string | undefined,
-		keys: string[] | undefined,
+		keys: KeyItem[] | undefined,
 		hoveredDataset: FeatureDataset | undefined,
 		datasets: undefined | ResponseMetadata200[],
 		activeDataset: undefined | number,

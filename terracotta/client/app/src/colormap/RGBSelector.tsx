@@ -9,7 +9,11 @@ const RGBSelector: FC = () => {
     const {
         state: { 
             datasetBands,
-            activeRGB
+            activeRGB,
+            activeDataset,
+            datasets,
+            page,
+            limit
         },
         actions: {
             setActiveRGB
@@ -20,6 +24,10 @@ const RGBSelector: FC = () => {
 
     }, [])
 
+    const datasetPageRange = activeDataset !== undefined && datasets?.[activeDataset - page * limit]?.range
+    const minRange = datasetPageRange && datasetPageRange[0]
+    const maxRange = datasetPageRange && datasetPageRange[1]
+    
     const onGetBandValue = (val: string, bandKey: string) => {
         setActiveRGB((activeRGB: activeRGBSelectorRange) => activeRGB && {
             ...activeRGB,
@@ -40,14 +48,16 @@ const RGBSelector: FC = () => {
                 datasetBands && activeRGB && (
                     Object.keys(activeRGB).map((color: string) => (
                         <RGBSlider 
+                            key={`rgb-slider-${color}`}
                             options={datasetBands}
-                            max={255}
-                            min={0}
-                            sliderValue={activeRGB[color].range}
+                            max={Number(maxRange)}
+                            min={Number(minRange)}
+                            sliderValue={[Number(activeRGB[color].range?.[0]), Number(activeRGB[color].range?.[1])]}
                             title={color + ':'}
                             selectValue={activeRGB[color].band}
                             onGetSelectValue={(val) => onGetBandValue(val, color)}
                             onGetSliderValue={(val) => onGetSliderValue(val, color)}
+                            step={0.01}
                         />
                     ))
                 )

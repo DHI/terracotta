@@ -2,6 +2,7 @@ import React, { CSSProperties, useState, FC } from 'react';
 import { Grid, Tooltip } from '@material-ui/core';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import Clipboard from 'react-clipboard.js';
+
 const disabledStyle = {
   // borderBottom: '1px solid #cfdbe2',
   color: '#cfdbe2',

@@ -9,7 +9,7 @@ import {
     Typography,
     Box,
 } from '@material-ui/core'
-import AppContext from "../AppContext"
+import AppContext, { activeRGBSelectorRange } from "../AppContext"
 import { makeStyles } from '@material-ui/core/styles'
 import 
     getData, 
@@ -125,19 +125,12 @@ const SidebarDatasetsItem: FC<Props> = ({
     const getKeys = async (host: string) => {
 
         const response = await getData(`${host}/keys`)
-        const keysReponse = response as ResponseKeys | undefined
+        let keysReponse = response as ResponseKeys | undefined
 
         if(keysReponse && keysReponse.hasOwnProperty('keys') && Array.isArray(keysReponse.keys)){
-
-            const keysArray = keysReponse.keys.reduce((acc: string[], item: KeyItem) => {
             
-                acc = [...acc, item.key]
-                return acc
-
-            }, [])
-            
-            setKeys(keysArray)
-
+            keysReponse.keys = keysReponse.keys.map((item: KeyItem) => ({ ...item, key: item.key[0].toUpperCase() + item.key.substring(1, item.key.length ) }))
+            setKeys(keysReponse.keys)
             
         }
 
@@ -145,19 +138,28 @@ const SidebarDatasetsItem: FC<Props> = ({
     }
 
     const onHandleRow = (index: number) => {
-
+        
         const actualIndex = page * limit + index;
-
+        setActiveRGB(defaultRGB)
         if(activeDataset === actualIndex){
+
             setActiveDataset(undefined)
             setSelectedDatasetRasterUrl(undefined)
             setActiveSinglebandRange(undefined)
+
         }else{
+
             const dataset = datasets?.[index]
             setActiveDataset(actualIndex)
+
             if(dataset){
-                setActiveSinglebandRange(dataset.range)
+
+                const { percentiles } = dataset
+                const validRange = [percentiles[5], percentiles[95]]
+                setActiveSinglebandRange(validRange)
+
             }
+
         }
 
     }
@@ -180,10 +182,24 @@ const SidebarDatasetsItem: FC<Props> = ({
     const onGetRGBBands = async (dataset: ResponseMetadata200) => {
         const noBandKeysURL = `${host}/datasets?` + Object.keys(dataset.keys).map((item: string) => item !== 'band' ? `${item}=${dataset.keys[item]}&` : '' ).join('')
         const response = await getData(noBandKeysURL) as ResponseDatasets
+
         if(response?.datasets && activeRGB){
 
             const { datasets } = response
             const bands = datasets.map((dataset: DatasetItem) => dataset.band)
+            
+            setActiveRGB((activeRGBLocal: activeRGBSelectorRange) => 
+                Object.keys(activeRGBLocal).reduce((acc: any, colorString: string) => {
+
+                    const { percentiles } = dataset
+                    const validRange = [ percentiles[5], percentiles[95] ]
+                    
+                    acc[colorString] = { ...activeRGBLocal[colorString], range: validRange }
+
+                    return acc
+
+                }, {}))
+
             setDatasetBands(bands)
 
         }
@@ -200,7 +216,7 @@ const SidebarDatasetsItem: FC<Props> = ({
             
             if(activeEndpoint === 'singleband'){
 
-                setActiveRGB(defaultRGB)
+                // setActiveRGB(defaultRGB)
                 const buildRasterUrl = `${host}/${activeEndpoint}${keysRasterUrl}?colormap=${colormap.id}&stretch_range=[${activeSinglebandRange}]`
                 setSelectedDatasetRasterUrl(buildRasterUrl)
 
@@ -219,8 +235,10 @@ const SidebarDatasetsItem: FC<Props> = ({
 
             const dataset = datasets[activeDataset - page * limit]
             const hasValueForBand = Object.keys(activeRGB).every((colorObj) => activeRGB[colorObj].band)
+            const hasValueForRange = Object.keys(activeRGB).every((colorObj) => activeRGB[colorObj].range)
 
-            if(hasValueForBand && dataset !== undefined){
+            if(hasValueForBand && hasValueForRange && dataset !== undefined){
+
                 const lastKey = Object.keys(dataset.keys)[Object.keys(dataset.keys).length - 1]
                 const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => keyItem !== lastKey ? `/${dataset.keys[keyItem]}` : '').join('') + '/{z}/{x}/{y}.png'
                 const rgbParams = Object.keys(activeRGB).map((keyItem: string) => `${keyItem.toLowerCase()}=${activeRGB[keyItem].band}&${keyItem.toLowerCase()}_range=[${activeRGB[keyItem].range}]&`).join('')
@@ -256,10 +274,10 @@ const SidebarDatasetsItem: FC<Props> = ({
                             <MuiTableRow>
                                 <TableCell className={classes.tableCell} />
                                 {keys && (
-                                    keys.map((datasetKey: string, i: number) => (
+                                    keys.map((datasetKey: KeyItem, i: number) => (
                                         <TableCell className={classes.tableCell} key={`dataset-key-head-${i}`}>
                                             <Typography color={'primary'} className={classes.tableHeadTypography} variant={'body2'}>
-                                                {datasetKey}
+                                                {datasetKey.key}
                                             </Typography>
                                         </TableCell>
                                     ))
@@ -282,7 +300,6 @@ const SidebarDatasetsItem: FC<Props> = ({
                                             dataset={dataset}
                                             host={host}
                                             i={i}
-                                            keys={keys}
                                             limit={limit}
                                             page={page}
                                             datasetUrl={selectedDatasetRasterUrl}

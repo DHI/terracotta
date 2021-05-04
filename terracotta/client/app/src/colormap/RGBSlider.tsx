@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react'
+import React, { FC, useEffect, useState } from 'react'
 import { Box, Grid, FormControl, Select, MenuItem, InputLabel } from '@material-ui/core'
 import Slider from "../common/components/Slider"
 
@@ -10,7 +10,8 @@ interface Props {
     onGetSliderValue: (val: number[]) => void,
     min: number,
     max: number,
-    title: string
+    title: string,
+    step: number
 }
 
 const RGBSlider: FC<Props> = ({
@@ -21,10 +22,13 @@ const RGBSlider: FC<Props> = ({
     min,
     max,
     sliderValue,
-    title
+    title,
+    step
 }) => {
     const [ localRange, setLocalRange ] = useState(sliderValue)
-
+    useEffect(() => {
+        setLocalRange(sliderValue)
+    }, [sliderValue])
     return (
         <Grid container alignItems={'center'}>
             <Grid container item xs={2} alignItems={'center'}>
@@ -54,7 +58,7 @@ const RGBSlider: FC<Props> = ({
                         defaultValue={localRange} 
                         min={min} 
                         max={max} 
-                        step={1} 
+                        step={step} 
                         title={title}
                     />
                 </Box>

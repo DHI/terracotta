@@ -1,11 +1,8 @@
-import React, { CSSProperties, useState, FC } from 'react'
-import { Box, Typography, Paper, Link } from '@material-ui/core'
+import React, { CSSProperties, FC } from 'react'
+import { Box, Typography, Link, Tooltip } from '@material-ui/core'
 import HeaderImage from "./../common/images/header.svg"
-import ExpandMoreOutlinedIcon from '@material-ui/icons/ExpandMoreOutlined';
-import ExpandLessOutlinedIcon from '@material-ui/icons/ExpandLessOutlined';
-import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { makeStyles } from "@material-ui/core/styles"
-
+import { KeyItem } from "./../common/data/getData"
 const useStyles = makeStyles(() => ({
 	wrapper: {
 		margin: 16,
@@ -35,6 +32,15 @@ const useStyles = makeStyles(() => ({
 	hostText: {
 		fontSize: 12,
 		wordBreak: 'break-all'
+	},
+	hasDescription: {
+		cursor: 'pointer',
+		'&:hover': {
+			textDecoration: 'underline'
+		}
+	},
+	noDescription: {
+		cursor: 'default',
 	}
 }))
 
@@ -42,16 +48,14 @@ interface Props {
 	host?: string,
 	style?: CSSProperties,
 	details?: string,
-	keys?: string[]
+	keys?: KeyItem[]
 }
 const SidebarTitle: FC<Props> = ({
 	style,
 	host,
-	details,
 	keys
 }) => {
 
-	const [ showDetails, setShowDetails ] = useState<boolean>(false)
 	const classes = useStyles()
 
 	return (
@@ -62,35 +66,9 @@ const SidebarTitle: FC<Props> = ({
 			<Box display={'flex'} flexWrap={'nowrap'} justifyContent={'space-between'} alignItems={'center'}>
 				<img src={HeaderImage} alt={'Teracotta preview app'} />
 			</Box>
-			<Paper
-				className={classes.detailsBox}
-				onClick={() => setShowDetails(!showDetails)}
-			>
-				<Box 
-					display={'flex'}
-					justifyContent={'space-between'}
-					alignItems={'center'}
-				>
-					<Box display={'flex'} alignItems={'center'}>
-						<Typography variant={'body1'}>
-							{'Details'}
-						</Typography>
-						<InfoOutlinedIcon className={`${classes.icon} ${classes.infoIcon}`}/>
-					</Box>
-					{ !showDetails ? 
-						<ExpandMoreOutlinedIcon className={classes.icon} /> : 
-						<ExpandLessOutlinedIcon className={classes.icon} />
-					}
-				</Box>
-				{showDetails && (
-					<Typography className={classes.detailsText} variant={'body2'}>
-						{details}
-					</Typography>
-				)}
-			</Paper>
 			{
 				host && keys && (
-					<Box my={1}>
+					<Box my={1} mt={2}>
 						<Typography variant={'body1'} className={classes.hostText}>
 							<b>Host: </b>
 							<span>
@@ -101,15 +79,30 @@ const SidebarTitle: FC<Props> = ({
 							<b>Docs: </b>
 							<Link href={`${host}/apidoc`} target={'_blank'}>
 								<span>
-									{`${host}`}
-									<b>{'/apidoc'}</b>
+									{`${host}/apidoc`}
 								</span>
 							</Link>
 						</Typography>
 						<Typography variant={'body1'} className={classes.hostText}>
 							<b>{'Keys: '}</b>
 							<span>
-								{`${keys.map((keyItem: string) => `/{${keyItem.toLowerCase()}}`).join('')}`}	
+								{keys.map((keyItem: KeyItem) => 
+									keyItem.description ? 
+										<Tooltip 
+											title={keyItem.description || false}
+											key={`tooltip-${keyItem.key}`}
+										>
+											<span>
+												{'/'}
+												<span className={classes.hasDescription}>{`{${keyItem.key.toLowerCase()}}`}</span>
+											</span>
+										</Tooltip>
+									:
+										<span key={`tooltip-${keyItem.key}`}>
+											{'/'}
+											<span className={classes.noDescription}>{`{${keyItem.key.toLowerCase()}}`}</span>
+										</span>
+								)}	
 							</span>
 						</Typography>
 					</Box>
