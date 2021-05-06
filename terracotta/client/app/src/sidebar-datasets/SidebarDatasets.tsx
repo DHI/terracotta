@@ -1,22 +1,22 @@
 import React, { FC, useState, useEffect, useContext, Fragment } from 'react'
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableContainer, 
-    TableHead, 
-    TableRow as MuiTableRow, 
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow as MuiTableRow,
     Typography,
     Box,
 } from '@material-ui/core'
 import AppContext, { activeRGBSelectorRange } from "../AppContext"
 import { makeStyles } from '@material-ui/core/styles'
-import 
-    getData, 
-    { 
-        ResponseDatasets, 
-        DatasetItem, 
-        ResponseMetadata200, 
+import
+    getData,
+    {
+        ResponseDatasets,
+        DatasetItem,
+        ResponseMetadata200,
         ResponseKeys,
         KeyItem
 } from "../common/data/getData"
@@ -63,11 +63,11 @@ const SidebarDatasetsItem: FC<Props> = ({
 }) => {
     const classes = useStyles()
     const {
-        state: { 
-            keys, 
-            datasets, 
-            activeDataset, 
-            limit, 
+        state: {
+            keys,
+            datasets,
+            activeDataset,
+            limit,
             page,
             activeSinglebandRange,
             colormap,
@@ -75,11 +75,11 @@ const SidebarDatasetsItem: FC<Props> = ({
             activeRGB,
             selectedDatasetRasterUrl
         },
-        actions: { 
-            setKeys, 
-            setHoveredDataset, 
-            setDatasets, 
-            setActiveDataset, 
+        actions: {
+            setKeys,
+            setHoveredDataset,
+            setDatasets,
+            setActiveDataset,
             setSelectedDatasetRasterUrl,
             setLimit,
             setPage,
@@ -97,9 +97,9 @@ const SidebarDatasetsItem: FC<Props> = ({
         const response = await getData(`${host}/datasets?limit=${limitRef}&page=${pageRef}${queryString}`)
         const datasetsResponse = response as ResponseDatasets | undefined
         if(datasetsResponse && datasetsResponse.hasOwnProperty('datasets') && Array.isArray(datasetsResponse.datasets)){
-           
+
             if(datasetsResponse.datasets[0]){
-                
+
                 const metadataResponsesPreFetch: unknown = datasetsResponse.datasets.map(
                     async (dataset: DatasetItem) => {
                         const buildMetadataUrl = Object.keys(dataset).map((keyItem: string) => `/${dataset[keyItem]}`).join('')
@@ -128,17 +128,17 @@ const SidebarDatasetsItem: FC<Props> = ({
         let keysReponse = response as ResponseKeys | undefined
 
         if(keysReponse && keysReponse.hasOwnProperty('keys') && Array.isArray(keysReponse.keys)){
-            
+
             keysReponse.keys = keysReponse.keys.map((item: KeyItem) => ({ ...item, key: item.key[0].toUpperCase() + item.key.substring(1, item.key.length ) }))
             setKeys(keysReponse.keys)
-            
+
         }
 
-    
+
     }
 
     const onHandleRow = (index: number) => {
-        
+
         const actualIndex = page * limit + index;
         setActiveRGB(defaultRGB)
         if(activeDataset === actualIndex){
@@ -155,7 +155,7 @@ const SidebarDatasetsItem: FC<Props> = ({
             if(dataset){
 
                 const { percentiles } = dataset
-                const validRange = [percentiles[5], percentiles[95]]
+                const validRange = [percentiles[4], percentiles[94]]
                 setActiveSinglebandRange(validRange)
 
             }
@@ -187,13 +187,13 @@ const SidebarDatasetsItem: FC<Props> = ({
 
             const { datasets } = response
             const bands = datasets.map((dataset: DatasetItem) => dataset.band)
-            
-            setActiveRGB((activeRGBLocal: activeRGBSelectorRange) => 
+
+            setActiveRGB((activeRGBLocal: activeRGBSelectorRange) =>
                 Object.keys(activeRGBLocal).reduce((acc: any, colorString: string) => {
 
                     const { percentiles } = dataset
-                    const validRange = [ percentiles[5], percentiles[95] ]
-                    
+                    const validRange = [ percentiles[4], percentiles[94] ]
+
                     acc[colorString] = { ...activeRGBLocal[colorString], range: validRange }
 
                     return acc
@@ -213,7 +213,7 @@ const SidebarDatasetsItem: FC<Props> = ({
             setSelectedDatasetRasterUrl(undefined)
             const dataset = datasets[activeDataset - page * limit]
             const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('') + '/{z}/{x}/{y}.png'
-            
+
             if(activeEndpoint === 'singleband'){
 
                 // setActiveRGB(defaultRGB)
@@ -255,9 +255,9 @@ const SidebarDatasetsItem: FC<Props> = ({
         <SidebarItemWrapper isLoading={isLoading} title={'Search for datasets'}>
             <Box>
                 {
-                    keys && 
-                        <DatasetsForm 
-                            keys={keys} 
+                    keys &&
+                        <DatasetsForm
+                            keys={keys}
                             onSubmitFields={onSubmitFields}
                         />
                 }
@@ -288,14 +288,14 @@ const SidebarDatasetsItem: FC<Props> = ({
                             {
                                 datasets && datasets.map((dataset: ResponseMetadata200, i: number) => (
                                     <Fragment key={`dataset-${i}`}>
-                                        <TableRow 
-                                            dataset={dataset.keys} 
-                                            keyVal={`dataset-${i}`} 
+                                        <TableRow
+                                            dataset={dataset.keys}
+                                            keyVal={`dataset-${i}`}
                                             checked={page * limit + i === activeDataset}
                                             onClick={() => onHandleRow(i)}
                                             onMouseEnter={() => setHoveredDataset(dataset.convex_hull)}
                                         />
-                                        <DatasetPreview 
+                                        <DatasetPreview
                                             activeDataset={activeDataset}
                                             dataset={dataset}
                                             host={host}
@@ -307,13 +307,13 @@ const SidebarDatasetsItem: FC<Props> = ({
                                     </Fragment>
                                 ))
                             }
-                            
+
                         </TableBody>
                     </Table>
                 </TableContainer>
             </Box>
-            <TablePagination 
-                value={limit} 
+            <TablePagination
+                value={limit}
                 options={limitOptions}
                 onGetValue={(val: number) => setLimit(val)}
                 page={page}
@@ -321,7 +321,7 @@ const SidebarDatasetsItem: FC<Props> = ({
                 disableNext={limit > (datasets?.length || 0)}
             />
         </SidebarItemWrapper>
-       
+
     )
 
 }
