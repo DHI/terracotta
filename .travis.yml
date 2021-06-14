@@ -26,7 +26,7 @@ before_install:
 
 install:
   - pip install -e .[test]
-  - mypy --install-types
+  - mypy . > /dev/null; mypy --install-types
 
 before_script:
   - pip freeze
