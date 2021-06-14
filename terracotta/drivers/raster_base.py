@@ -16,8 +16,6 @@ import warnings
 import threading
 
 import numpy as np
-import cachetools
-import cachetools.keys
 
 if TYPE_CHECKING:  # pragma: no cover
     from rasterio.io import DatasetReader  # noqa: F401
@@ -575,7 +573,7 @@ class RasterDriver(Driver):
             resampling_method=settings.RESAMPLING_METHOD
         )
 
-        cache_key = cachetools.keys.hashkey(**kwargs)
+        cache_key = hash(tuple(kwargs.items()))
 
         try:
             with self._cache_lock:
