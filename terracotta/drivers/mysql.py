@@ -66,8 +66,13 @@ class MySQLCredentials:
         return self._user or get_settings().MYSQL_USER
 
     @property
-    def password(self) -> Optional[str]:
-        return self._password or get_settings().MYSQL_PASSWORD
+    def password(self) -> str:
+        pw = self._password or get_settings().MYSQL_PASSWORD
+
+        if pw is None:
+            pw = ''
+
+        return pw
 
 
 class MySQLDriver(RasterDriver):
@@ -219,7 +224,7 @@ class MySQLDriver(RasterDriver):
                         write_timeout=self.DB_CONNECTION_TIMEOUT,
                         binary_prefix=True, charset='utf8mb4'
                     )
-                self._cursor = cast(DictCursor, self._connection.cursor(DictCursor))
+                self._cursor = self._connection.cursor(DictCursor)
                 self._connected = close = True
 
                 if check:
@@ -360,7 +365,6 @@ class MySQLDriver(RasterDriver):
 
         datasets = {}
         for row in cursor:
-            row = cast(Dict[str, Any], row)
             datasets[keytuple(row)] = row['filepath']
 
         return datasets
