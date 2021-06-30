@@ -2,19 +2,19 @@ import pytest
 
 TEST_CASES = {
     'mysql://root@localhost:5000/test': dict(
-        user='root', host='localhost', port=5000, db='test'
+        user='root', password='', host='localhost', port=5000, db='test'
     ),
     'root@localhost:5000/test': dict(
-        user='root', host='localhost', port=5000, db='test'
+        user='root', password='', host='localhost', port=5000, db='test'
     ),
     'mysql://root:foo@localhost/test': dict(
         user='root', password='foo', host='localhost', port=3306, db='test'
     ),
     'mysql://localhost/test': dict(
-        host='localhost', port=3306, db='test'
+        password='', host='localhost', port=3306, db='test'
     ),
     'localhost/test': dict(
-        host='localhost', port=3306, db='test'
+        password='', host='localhost', port=3306, db='test'
     )
 }
 

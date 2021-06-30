@@ -365,7 +365,7 @@ class MySQLDriver(RasterDriver):
 
         datasets = {}
         for row in cursor:
-                datasets[keytuple(row)] = row['filepath']
+            datasets[keytuple(row)] = row['filepath']
 
         return datasets
 
