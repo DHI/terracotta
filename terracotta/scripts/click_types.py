@@ -24,7 +24,7 @@ class GlobbityGlob(click.ParamType):
 class PathlibPath(click.Path):
     """Converts a string to a pathlib.Path object"""
 
-    def convert(self, *args: Any) -> pathlib.Path:  # type: ignore
+    def convert(self, *args: Any) -> pathlib.Path:
         return pathlib.Path(super().convert(*args))
 
 
