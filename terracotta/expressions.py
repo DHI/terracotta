@@ -14,8 +14,10 @@ import numpy as np
 EXTRA_CALLABLES = {
     # 'name': (callable, nargs)
 
-    # boolean ops
+    # mask operations
     'where': (np.ma.where, 3),
+    'getmask': (np.ma.getmaskarray, 1),
+    'setmask': (lambda arr, mask: np.ma.masked_array(arr, mask=mask), 2),
     'masked_equal': (np.ma.masked_equal, 2),
     'masked_greater': (np.ma.masked_greater, 2),
     'masked_greater_equal': (np.ma.masked_greater_equal, 2),
@@ -54,6 +56,7 @@ EXTRA_CONSTANTS = {
     'pi': np.pi,
     'nan': np.nan,
     'inf': np.inf,
+    'nomask': np.ma.nomask,
 }
 
 
