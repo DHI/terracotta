@@ -226,3 +226,22 @@ def test_timeout():
         evaluate_expression('+'.join(['v1'] * 10), {'v1': np.ones((256, 256))}, timeout=0)
 
     assert 'timeout' in str(raised_exc.value)
+
+
+def test_mask_invalid():
+    from terracotta.expressions import evaluate_expression
+    res = evaluate_expression('where(v1 + v2 < 1, nan, 0)', OPERANDS)
+    mask = OPERANDS['v1'] + OPERANDS['v2'] < 1
+
+    assert isinstance(res, np.ma.MaskedArray)
+    assert np.all(res == 0)
+    assert np.array_equal(res.mask, mask)
+
+
+def test_out_dtype():
+    from terracotta.expressions import evaluate_expression
+    operands = dict(v1=np.ones(10, dtype='int64'), v2=np.zeros(10, dtype='int32'))
+    res = evaluate_expression('v1 + v2', operands)
+
+    assert isinstance(res, np.ma.MaskedArray)
+    assert res.dtype == np.dtype('int64')
