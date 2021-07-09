@@ -119,6 +119,9 @@ TemporaryRasterFile = _named_tempfile
     help='Output folder for cloud-optimized rasters. Subdirectories will be flattened.'
 )
 @click.option(
+    '--skip-existing', is_flag=True, default=False, help='Skip existing files'
+)
+@click.option(
     '--overwrite', is_flag=True, default=False, help='Force overwrite of existing files'
 )
 @click.option(
@@ -145,6 +148,7 @@ TemporaryRasterFile = _named_tempfile
 def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      output_folder: Path,
                      overwrite: bool = False,
+                     skip_existing: bool = False,
                      resampling_method: str = 'average',
                      reproject: bool = False,
                      in_memory: bool = None,
@@ -214,10 +218,13 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
             output_file = output_folder / input_file.with_suffix('.tif').name
 
-            if not overwrite and output_file.is_file():
-                raise click.BadParameter(
-                    f'Output file {output_file!s} exists (use --overwrite to ignore)'
-                )
+            if output_file.is_file():
+                if skip_existing:
+                    continue
+                if not overwrite:
+                    raise click.BadParameter(
+                        f'Output file {output_file!s} exists (use --overwrite to ignore)'
+                    )
 
             with contextlib.ExitStack() as es, warnings.catch_warnings():
                 warnings.filterwarnings('ignore', message='invalid value encountered.*')
