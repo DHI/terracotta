@@ -154,16 +154,17 @@ def test_optimize_rasters_multiband(tmpdir, unoptimized_raster_file):
 def test_reoptimize(tmpdir, unoptimized_raster_file, skip_existing):
     from terracotta.scripts import cli
 
+    infile = str(unoptimized_raster_file.dirpath('*.tif'))
     outfile = tmpdir / 'out.tif'
 
     # first time
     runner = CliRunner()
-    args = ['optimize-rasters', unoptimized_raster_file, '-o', str(outfile)]
+    args = ['optimize-rasters', infile, '-o', str(outfile)]
     result = runner.invoke(cli.cli, args)
     assert result.exit_code == 0
 
     # second time
-    args = ['optimize-rasters', unoptimized_raster_file, '-o', str(outfile)]
+    args = ['optimize-rasters', infile, '-o', str(outfile)]
     if skip_existing:
         args.append("--skip-existing")
         result = runner.invoke(cli.cli, args)
