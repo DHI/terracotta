@@ -153,33 +153,22 @@ def test_optimize_rasters_multiband(tmpdir, unoptimized_raster_file):
             np.testing.assert_array_equal(src1.read(), src2.read())
 
 @pytest.mark.parametrize('skip_existing', [True, False])
-def test_reoptimize(skip_existing, raster_file, tmpworkdir):
+def test_reoptimize(tmpdir, unoptimized_raster_file, skip_existing):
     from terracotta.scripts import cli
 
-    same_name = 'myimage'
-    infiles = [
-        tmpworkdir / p
-        for p in [f'dir1/{same_name}.tif', f'dir2/{same_name}.tif', f'dir3/{same_name}.tif']
-    ]
-    for temp_infile in infiles:
-        os.makedirs(temp_infile.dirpath(), exist_ok=True)
-        shutil.copy(raster_file, temp_infile)
-
-    outfile = tmpworkdir / 'out.tif'
+    outfile = tmpdir / 'out.tif'
 
     runner = CliRunner()
-    args = ['optimize-rasters', 'dir1/{name}.tif', '-o', str(outfile)]
+    args = ['optimize-rasters', unoptimized_raster_file, '-o', str(outfile)]
     result = runner.invoke(cli.cli, args)
     assert result.exit_code == 0
 
-    args = ['optimize-rasters', 'dir2/{name}.tif', '-o', str(outfile)]
+    # second time
+    args = ['optimize-rasters', unoptimized_raster_file, '-o', str(outfile)]
     if skip_existing:
         args.append("--skip-existing")
-    result = runner.invoke(cli.cli, args)
-    assert result.exit_code == 0
-
-    args = ['optimize-rasters', 'dir2/{name}.tif', '-o', str(outfile)]
-    if skip_existing:
-        args.append("--skip-existing")
-    result = runner.invoke(cli.cli, args)
-    assert result.exit_code == 0
+        result = runner.invoke(cli.cli, args)
+        assert result.exit_code == 0
+    if not skip_existing:
+        result = runner.invoke(cli.cli, args)
+        assert result.exit_code == 1
