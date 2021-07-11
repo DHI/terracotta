@@ -150,6 +150,7 @@ def test_optimize_rasters_multiband(tmpdir, unoptimized_raster_file):
             warnings.filterwarnings('ignore', 'invalid value encountered.*')
             np.testing.assert_array_equal(src1.read(), src2.read())
 
+
 @pytest.mark.parametrize('skip_existing', [True, False])
 def test_reoptimize(tmpdir, unoptimized_raster_file, skip_existing):
     from terracotta.scripts import cli
