@@ -223,7 +223,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     continue
                 if not overwrite:
                     raise click.BadParameter(
-                        f'Output file {output_file!s} exists (use --overwrite to ignore)'
+                        f'Output file {output_file!s} exists (use --overwrite or --skip-existing)'
                     )
 
             with contextlib.ExitStack() as es, warnings.catch_warnings():

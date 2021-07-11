@@ -1,5 +1,3 @@
-import os
-import shutil
 import warnings
 import traceback
 
@@ -158,6 +156,7 @@ def test_reoptimize(tmpdir, unoptimized_raster_file, skip_existing):
 
     outfile = tmpdir / 'out.tif'
 
+    # first time
     runner = CliRunner()
     args = ['optimize-rasters', unoptimized_raster_file, '-o', str(outfile)]
     result = runner.invoke(cli.cli, args)
@@ -171,4 +170,4 @@ def test_reoptimize(tmpdir, unoptimized_raster_file, skip_existing):
         assert result.exit_code == 0
     if not skip_existing:
         result = runner.invoke(cli.cli, args)
-        assert result.exit_code == 1
+        assert result.exit_code == 2
