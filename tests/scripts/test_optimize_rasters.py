@@ -152,7 +152,7 @@ def test_optimize_rasters_multiband(tmpdir, unoptimized_raster_file):
             np.testing.assert_array_equal(src1.read(), src2.read())
 
 
-@pytest.mark.parametrize('extra_flag', ['skip_existing', 'overwrite', None])
+@pytest.mark.parametrize('extra_flag', ['skip-existing', 'overwrite', None])
 def test_reoptimize(tmpdir, unoptimized_raster_file, extra_flag):
     from terracotta.scripts import cli
 
@@ -173,7 +173,7 @@ def test_reoptimize(tmpdir, unoptimized_raster_file, extra_flag):
 
     result = runner.invoke(cli.cli, args)
 
-    if extra_flag == 'skip_existing':
+    if extra_flag == 'skip-existing':
         assert result.exit_code == 0
         assert os.stat(outfile).st_ctime == ctime
     elif extra_flag == 'overwrite':
