@@ -169,7 +169,7 @@ def test_reoptimize(tmpdir, unoptimized_raster_file, extra_flag):
     # second time
     args = ['optimize-rasters', infile, '-o', str(outfile)]
     if extra_flag:
-        args.append(extra_flag)
+        args.append(f'--{extra_flag}')
 
     result = runner.invoke(cli.cli, args)
 
