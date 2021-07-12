@@ -1,3 +1,4 @@
+import os
 import warnings
 import traceback
 
@@ -151,8 +152,8 @@ def test_optimize_rasters_multiband(tmpdir, unoptimized_raster_file):
             np.testing.assert_array_equal(src1.read(), src2.read())
 
 
-@pytest.mark.parametrize('skip_existing', [True, False])
-def test_reoptimize(tmpdir, unoptimized_raster_file, skip_existing):
+@pytest.mark.parametrize('extra_flag', ['skip_existing', 'overwrite', None])
+def test_reoptimize(tmpdir, unoptimized_raster_file, extra_flag):
     from terracotta.scripts import cli
 
     infile = str(unoptimized_raster_file.dirpath('*.tif'))
@@ -163,13 +164,20 @@ def test_reoptimize(tmpdir, unoptimized_raster_file, skip_existing):
     args = ['optimize-rasters', infile, '-o', str(outfile)]
     result = runner.invoke(cli.cli, args)
     assert result.exit_code == 0
+    ctime = os.stat(outfile).st_ctime
 
     # second time
     args = ['optimize-rasters', infile, '-o', str(outfile)]
-    if skip_existing:
-        args.append("--skip-existing")
-        result = runner.invoke(cli.cli, args)
+    if extra_flag:
+        args.append(extra_flag)
+
+    result = runner.invoke(cli.cli, args)
+
+    if extra_flag == 'skip_existing':
         assert result.exit_code == 0
-    if not skip_existing:
-        result = runner.invoke(cli.cli, args)
+        assert os.stat(outfile).st_ctime == ctime
+    elif extra_flag == 'overwrite':
+        assert result.exit_code == 0
+        assert os.stat(outfile).st_ctime != ctime
+    else:
         assert result.exit_code == 2
