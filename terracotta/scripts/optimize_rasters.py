@@ -152,7 +152,7 @@ def _optimize_single_raster(
         # iterate over blocks
         windows = list(dst.block_windows(1))
 
-        for _, w in tqdm.tqdm(windows, desc='Reading', **sub_pbar_args):
+        for _, w in windows:
             block_data = vrt.read(window=w, indexes=[1])
             dst.write(block_data, window=w)
             block_mask = vrt.dataset_mask(window=w).astype('uint8')
@@ -172,17 +172,15 @@ def _optimize_single_raster(
 
         if max_overview_level > 0:
             overviews = [2 ** j for j in range(1, max_overview_level + 1)]
-            with tqdm.tqdm(desc='Creating overviews', total=1, **sub_pbar_args):
-                dst.build_overviews(overviews, rs_method)
+            dst.build_overviews(overviews, rs_method)
 
             dst.update_tags(ns='rio_overview', resampling=rs_method.value)
 
         # copy to destination (this is necessary to push overviews to start of file)
-        with tqdm.tqdm(desc='Compressing', total=1, **sub_pbar_args):
-            copy(
-                dst, str(output_file), copy_src_overviews=True,
-                compress=compression, **COG_PROFILE
-            )
+        copy(
+            dst, str(output_file), copy_src_overviews=True,
+            compress=compression, **COG_PROFILE
+        )
 
     return input_file.name, dst.height * dst.width, 'optimized'
 
