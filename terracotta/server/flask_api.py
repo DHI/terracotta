@@ -1,5 +1,4 @@
-from typing import Callable, Any
-import functools
+from typing import Any
 import copy
 
 from apispec import APISpec
@@ -34,40 +33,35 @@ SPEC = APISpec(
 )
 
 
-def abort(status_code: int, message: str = '') -> Any:
+def _abort(status_code: int, message: str = '') -> Any:
     response = jsonify({'message': message})
     response.status_code = status_code
     return response
 
 
-def convert_exceptions(fun: Callable) -> Callable:
-    """Converts internal exceptions to appropriate HTTP responses"""
+def _setup_error_handlers(app: Flask) -> None:
+    @app.errorhandler(exceptions.TileOutOfBoundsError)
+    def handle_tile_out_of_bounds_error(exc: Exception) -> Any:
+        # send empty image
+        from terracotta import get_settings, image
+        settings = get_settings()
+        return send_file(image.empty_image(settings.DEFAULT_TILE_SIZE), mimetype='image/png')
 
-    @functools.wraps(fun)
-    def inner(*args: Any, **kwargs: Any) -> Any:
-        try:
-            return fun(*args, **kwargs)
+    @app.errorhandler(exceptions.DatasetNotFoundError)
+    def handle_dataset_not_found_error(exc: Exception) -> Any:
+        # wrong path -> 404
+        if current_app.debug:
+            raise exc
+        return _abort(404, str(exc))
 
-        except exceptions.TileOutOfBoundsError:
-            # send empty image
-            from terracotta import get_settings, image
-            settings = get_settings()
-            return send_file(image.empty_image(settings.DEFAULT_TILE_SIZE), mimetype='image/png')
-
-        except exceptions.DatasetNotFoundError as exc:
-            # wrong path -> 404
-            if current_app.debug:
-                raise
-            return abort(404, str(exc))
-
-        except (exceptions.InvalidArgumentsError, exceptions.InvalidKeyError,
-                marshmallow.ValidationError) as exc:
-            # wrong query arguments -> 400
-            if current_app.debug:
-                raise
-            return abort(400, str(exc))
-
-    return inner
+    @app.errorhandler(exceptions.InvalidArgumentsError)
+    @app.errorhandler(exceptions.InvalidKeyError)
+    @app.errorhandler(marshmallow.ValidationError)
+    def handle_marshmallow_validation_error(exc: Exception) -> Any:
+        # wrong query arguments -> 400
+        if current_app.debug:
+            raise exc
+        return _abort(400, str(exc))
 
 
 def create_app(debug: bool = False, profile: bool = False) -> Flask:
@@ -123,5 +117,7 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
             'wsgi_app',
             ProfilerMiddleware(new_app.wsgi_app, restrictions=[30])
         )
+
+    _setup_error_handlers(new_app)
 
     return new_app
