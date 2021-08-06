@@ -94,12 +94,12 @@ setup(
             'sphinx',
             'sphinx_autodoc_typehints',
             'sphinx-click',
-            'pymysql<0.10'
+            'pymysql>=1.0.0'
         ],
         'recommended': [
             'colorlog',
             'crick',
-            'pymysql<0.10'
+            'pymysql>=1.0.0'
         ]
     },
     # CLI
