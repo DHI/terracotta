@@ -12,6 +12,7 @@ import contextlib
 import tempfile
 import logging
 from pathlib import Path
+import multiprocessing
 
 import click
 import tqdm
@@ -106,6 +107,91 @@ def _named_tempfile(basedir: Union[str, Path]) -> Iterator[str]:
 
 
 TemporaryRasterFile = _named_tempfile
+
+
+def _optimize_single_raster(input_file, output_folder, skip_existing, overwrite, reproject, rs_method, in_memory, compression, sub_pbar_args):
+    output_file = output_folder / input_file.with_suffix('.tif').name
+
+    if output_file.is_file():
+        if skip_existing:
+            # Calculate the size of the skipped image, to facilitate updating the pbar accordingly
+            with rasterio.open(str(input_file), 'r') as src:
+                return input_file.name, src.height * src.width, 'skipped'
+        if not overwrite:
+            raise click.BadParameter(
+                f'Output file {output_file!s} exists (use --overwrite or --skip-existing)'
+            )
+
+    with contextlib.ExitStack() as es, warnings.catch_warnings():
+        warnings.filterwarnings('ignore', message='invalid value encountered.*')
+
+        src = es.enter_context(rasterio.open(str(input_file)))
+
+        if reproject:
+            vrt = es.enter_context(_get_vrt(src, rs_method=rs_method))
+        else:
+            vrt = src
+
+        profile = vrt.profile.copy()
+        profile.update(COG_PROFILE)
+
+        if in_memory is None:
+            in_memory = vrt.width * vrt.height < IN_MEMORY_THRESHOLD
+
+        if in_memory:
+            memfile = es.enter_context(MemoryFile())
+            dst = es.enter_context(memfile.open(**profile))
+        else:
+            tempraster = es.enter_context(TemporaryRasterFile(basedir=output_folder))
+            dst = es.enter_context(rasterio.open(tempraster, 'w', **profile))
+
+        # iterate over blocks
+        windows = list(dst.block_windows(1))
+
+        for _, w in tqdm.tqdm(windows, desc='Reading', **sub_pbar_args):
+            block_data = vrt.read(window=w, indexes=[1])
+            dst.write(block_data, window=w)
+            block_mask = vrt.dataset_mask(window=w).astype('uint8')
+            dst.write_mask(block_mask, window=w)
+
+        # add overviews
+        if not in_memory:
+            # work around bug mapbox/rasterio#1497
+            dst.close()
+            dst = es.enter_context(rasterio.open(tempraster, 'r+'))
+
+        max_overview_level = math.ceil(math.log2(max(
+            dst.height // profile['blockysize'],
+            dst.width // profile['blockxsize'],
+            1
+        )))
+
+        if max_overview_level > 0:
+            overviews = [2 ** j for j in range(1, max_overview_level + 1)]
+            with tqdm.tqdm(desc='Creating overviews', total=1, **sub_pbar_args):
+                dst.build_overviews(overviews, rs_method)
+
+            dst.update_tags(ns='rio_overview', resampling=rs_method.value)
+
+        # copy to destination (this is necessary to push overviews to start of file)
+        with tqdm.tqdm(desc='Compressing', total=1, **sub_pbar_args):
+            copy(
+                dst, str(output_file), copy_src_overviews=True,
+                compress=compression, **COG_PROFILE
+            )
+
+    return input_file.name, dst.height * dst.width, 'optimized'
+
+
+def _pbar_status_update(file_name, pixels_processed, status, pbar):
+    if len(file_name) > 30:
+        short_name = file_name[:13] + '...' + file_name[-13:]
+    else:
+        short_name = file_name
+    short_name += f" ({status})"
+
+    pbar.set_postfix(file=short_name)
+    pbar.update(pixels_processed)
 
 
 @click.command(
@@ -208,80 +294,17 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         ))
         outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
 
-        for input_file in raster_files_flat:
-            if len(input_file.name) > 30:
-                short_name = input_file.name[:13] + '...' + input_file.name[-13:]
-            else:
-                short_name = input_file.name
-
-            pbar.set_postfix(file=short_name)
-
-            output_file = output_folder / input_file.with_suffix('.tif').name
-
-            if output_file.is_file():
-                if skip_existing:
-                    continue
-                if not overwrite:
-                    raise click.BadParameter(
-                        f'Output file {output_file!s} exists (use --overwrite or --skip-existing)'
-                    )
-
-            with contextlib.ExitStack() as es, warnings.catch_warnings():
-                warnings.filterwarnings('ignore', message='invalid value encountered.*')
-
-                src = es.enter_context(rasterio.open(str(input_file)))
-
-                if reproject:
-                    vrt = es.enter_context(_get_vrt(src, rs_method=rs_method))
-                else:
-                    vrt = src
-
-                profile = vrt.profile.copy()
-                profile.update(COG_PROFILE)
-
-                if in_memory is None:
-                    in_memory = vrt.width * vrt.height < IN_MEMORY_THRESHOLD
-
-                if in_memory:
-                    memfile = es.enter_context(MemoryFile())
-                    dst = es.enter_context(memfile.open(**profile))
-                else:
-                    tempraster = es.enter_context(TemporaryRasterFile(basedir=output_folder))
-                    dst = es.enter_context(rasterio.open(tempraster, 'w', **profile))
-
-                # iterate over blocks
-                windows = list(dst.block_windows(1))
-
-                for _, w in tqdm.tqdm(windows, desc='Reading', **sub_pbar_args):
-                    block_data = vrt.read(window=w, indexes=[1])
-                    dst.write(block_data, window=w)
-                    block_mask = vrt.dataset_mask(window=w).astype('uint8')
-                    dst.write_mask(block_mask, window=w)
-
-                # add overviews
-                if not in_memory:
-                    # work around bug mapbox/rasterio#1497
-                    dst.close()
-                    dst = es.enter_context(rasterio.open(tempraster, 'r+'))
-
-                max_overview_level = math.ceil(math.log2(max(
-                    dst.height // profile['blockysize'],
-                    dst.width // profile['blockxsize'],
-                    1
-                )))
-
-                if max_overview_level > 0:
-                    overviews = [2 ** j for j in range(1, max_overview_level + 1)]
-                    with tqdm.tqdm(desc='Creating overviews', total=1, **sub_pbar_args):
-                        dst.build_overviews(overviews, rs_method)
-
-                    dst.update_tags(ns='rio_overview', resampling=rs_method.value)
-
-                # copy to destination (this is necessary to push overviews to start of file)
-                with tqdm.tqdm(desc='Compressing', total=1, **sub_pbar_args):
-                    copy(
-                        dst, str(output_file), copy_src_overviews=True,
-                        compress=compression, **COG_PROFILE
-                    )
-
-            pbar.update(dst.height * dst.width)
+        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+            def _raise_exception(exc):
+                pool.terminate()
+                raise exc
+            for input_file in raster_files_flat:
+                pool.apply_async(
+                    _optimize_single_raster,
+                    (input_file, output_folder, skip_existing, overwrite, reproject, rs_method, in_memory, compression, sub_pbar_args),
+                    callback=lambda return_vals: _pbar_status_update(*return_vals, pbar),
+                    error_callback=_raise_exception
+                )
+            # Wait for all processes to end:
+            pool.close()
+            pool.join()
