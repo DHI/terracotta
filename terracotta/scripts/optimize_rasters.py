@@ -3,7 +3,7 @@
 Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 """
 
-from typing import Any, Dict, Literal, Sequence, Iterator, Tuple, Union
+from typing import Any, Literal, Sequence, Iterator, Tuple, Union
 import os
 import math
 import warnings
