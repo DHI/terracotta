@@ -3,7 +3,7 @@
 Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 """
 
-from typing import Sequence, Iterator, Union
+from typing import Any, Dict, Literal, Sequence, Iterator, Tuple, Union
 import os
 import math
 import warnings
@@ -109,7 +109,11 @@ def _named_tempfile(basedir: Union[str, Path]) -> Iterator[str]:
 TemporaryRasterFile = _named_tempfile
 
 
-def _optimize_single_raster(input_file, output_folder, skip_existing, overwrite, reproject, rs_method, in_memory, compression, sub_pbar_args):
+def _optimize_single_raster(
+    input_file: Path, output_folder: Path, skip_existing: bool,
+    overwrite: bool, reproject: bool, rs_method: Any, in_memory: Union[bool, None],
+    compression: str, sub_pbar_args: Dict[str, Union[str, bool]]
+) -> Tuple[str, int, Literal['optimized', 'skipped']]:
     output_file = output_folder / input_file.with_suffix('.tif').name
 
     if output_file.is_file():
@@ -183,7 +187,10 @@ def _optimize_single_raster(input_file, output_folder, skip_existing, overwrite,
     return input_file.name, dst.height * dst.width, 'optimized'
 
 
-def _pbar_status_update(file_name, pixels_processed, status, pbar):
+def _pbar_status_update(
+    file_name: str, pixels_processed: int,
+    status: Literal['optimized', 'skipped'], pbar: Any
+) -> None:
     if len(file_name) > 30:
         short_name = file_name[:13] + '...' + file_name[-13:]
     else:
@@ -237,7 +244,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      skip_existing: bool = False,
                      resampling_method: str = 'average',
                      reproject: bool = False,
-                     in_memory: bool = None,
+                     in_memory: Union[bool, None] = None,
                      compression: str = 'auto',
                      quiet: bool = False) -> None:
     """Optimize a collection of raster files for use with Terracotta.
@@ -295,14 +302,21 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
 
         with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-            def _raise_exception(exc):
+            def _update_pbar(return_vals: Tuple[str, int, Literal['optimized', 'skipped']]) -> None:
+                _pbar_status_update(*return_vals, pbar)
+
+            def _raise_exception(exc: BaseException) -> None:
                 pool.terminate()
                 raise exc
+
             for input_file in raster_files_flat:
                 pool.apply_async(
                     _optimize_single_raster,
-                    (input_file, output_folder, skip_existing, overwrite, reproject, rs_method, in_memory, compression, sub_pbar_args),
-                    callback=lambda return_vals: _pbar_status_update(*return_vals, pbar),
+                    (
+                        input_file, output_folder, skip_existing, overwrite, reproject,
+                        rs_method, in_memory, compression, sub_pbar_args
+                    ),
+                    callback=_update_pbar,
                     error_callback=_raise_exception
                 )
             # Wait for all processes to end:
