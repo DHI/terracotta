@@ -112,7 +112,7 @@ TemporaryRasterFile = _named_tempfile
 def _optimize_single_raster(
     input_file: Path, output_folder: Path, skip_existing: bool,
     overwrite: bool, reproject: bool, rs_method: Any, in_memory: Union[bool, None],
-    compression: str, sub_pbar_args: Dict[str, Union[str, bool]]
+    compression: str
 ) -> Tuple[str, int, Literal['optimized', 'skipped']]:
     output_file = output_folder / input_file.with_suffix('.tif').name
 
@@ -285,12 +285,6 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         # insert newline for nicer progress bar style
         click.echo('')
 
-    sub_pbar_args = dict(
-        disable=quiet,
-        leave=False,
-        bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}'
-    )
-
     with contextlib.ExitStack() as outer_env:
         pbar = outer_env.enter_context(tqdm.tqdm(
             total=total_pixels, smoothing=0, disable=quiet,
@@ -312,7 +306,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     _optimize_single_raster,
                     (
                         input_file, output_folder, skip_existing, overwrite, reproject,
-                        rs_method, in_memory, compression, sub_pbar_args
+                        rs_method, in_memory, compression
                     ),
                     callback=_update_pbar,
                     error_callback=_raise_exception
