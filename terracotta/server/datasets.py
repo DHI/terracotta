@@ -6,7 +6,7 @@ Flask route to handle /datasets calls.
 from flask import request, jsonify, Response
 from marshmallow import Schema, fields, validate, INCLUDE
 
-from terracotta.server.flask_api import convert_exceptions, METADATA_API
+from terracotta.server.flask_api import METADATA_API
 
 
 class DatasetOptionSchema(Schema):
@@ -42,7 +42,6 @@ class DatasetSchema(Schema):
 
 
 @METADATA_API.route('/datasets', methods=['GET'])
-@convert_exceptions
 def get_datasets() -> Response:
     """Get all available key combinations
     ---
