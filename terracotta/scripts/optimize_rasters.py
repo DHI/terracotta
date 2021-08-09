@@ -219,6 +219,10 @@ def _optimize_single_raster(
     help='Compression algorithm to use [default: auto (ZSTD if available, DEFLATE otherwise)]'
 )
 @click.option(
+    '--cores', default=1, type=click.INT,
+    help='Number of processes to use for multi-core processing [default: 1, i.e., single-core processing]'
+)
+@click.option(
     '-q', '--quiet', is_flag=True, default=False, show_default=True,
     help='Suppress all output to stdout'
 )
@@ -230,6 +234,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      reproject: bool = False,
                      in_memory: Union[bool, None] = None,
                      compression: str = 'auto',
+                     cores: int = 1,
                      quiet: bool = False) -> None:
     """Optimize a collection of raster files for use with Terracotta.
 
@@ -279,7 +284,9 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         ))
         outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
 
-        with concurrent.futures.ProcessPoolExecutor() as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=cores) as executor:
+            pbar.write(f'Optimizing {len(raster_files_flat)} files on {executor._max_workers} process{"es" if executor._max_workers > 1 else ""}...')
+
             futures = [
                 executor.submit(
                     _optimize_single_raster,
