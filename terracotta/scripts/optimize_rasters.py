@@ -5,6 +5,7 @@ Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 
 from typing import Any, Sequence, Iterator, Union
 import os
+import sys
 import math
 import warnings
 import itertools
@@ -282,7 +283,8 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         # insert newline for nicer progress bar style
         click.echo('')
 
-    with contextlib.ExitStack() as outer_env, click_spinner.spinner():
+    with contextlib.ExitStack() as outer_env, \
+         click_spinner.spinner(beep=False, disable=False, force=False, stream=sys.stdout):
         outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
 
         if cores == -1:
