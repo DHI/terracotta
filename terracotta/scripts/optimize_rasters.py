@@ -220,7 +220,8 @@ def _optimize_single_raster(
 )
 @click.option(
     '--cores', default=1, type=click.INT,
-    help='Number of processes to use for multi-core processing [default: 1, i.e., single-core processing]'
+    help='Number of processes to use for multi-core processing'
+         '[default: 1, i.e., single-core processing]'
 )
 @click.option(
     '-q', '--quiet', is_flag=True, default=False, show_default=True,
@@ -285,7 +286,8 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=cores) as executor:
-            pbar.write(f'Optimizing {len(raster_files_flat)} files on {executor._max_workers} process{"es" if executor._max_workers > 1 else ""}...')
+            pbar.write(f'Optimizing {len(raster_files_flat)} files on {cores} '
+                       f'process{"es" if cores > 1 else ""}...')
 
             futures = [
                 executor.submit(
@@ -301,7 +303,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 )
                 for input_file in raster_files_flat
             ]
-            
+
             for future in concurrent.futures.as_completed(futures):
                 file_name, pixel_count, action = future.result()
                 if not quiet:
