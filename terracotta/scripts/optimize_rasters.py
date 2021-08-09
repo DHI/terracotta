@@ -3,7 +3,7 @@
 Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 """
 
-from typing import Any, Literal, Sequence, Iterator, Tuple, Union
+from typing import Any, Sequence, Iterator, Tuple, Union
 import os
 import math
 import warnings
@@ -113,7 +113,7 @@ def _optimize_single_raster(
     input_file: Path, output_folder: Path, skip_existing: bool,
     overwrite: bool, reproject: bool, rs_method: Any, in_memory: Union[bool, None],
     compression: str
-) -> Tuple[str, int, Literal['optimized', 'skipped']]:
+) -> Tuple[str, int, str]:
     output_file = output_folder / input_file.with_suffix('.tif').name
 
     if output_file.is_file():
