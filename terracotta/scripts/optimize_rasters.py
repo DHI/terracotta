@@ -15,7 +15,7 @@ from pathlib import Path
 import concurrent.futures
 
 import click
-import tqdm
+import click_spinner
 import rasterio
 from rasterio.shutil import copy
 from rasterio.io import DatasetReader, MemoryFile
@@ -112,20 +112,23 @@ TemporaryRasterFile = _named_tempfile
 def _optimize_single_raster(
     input_file: Path, output_folder: Path, skip_existing: bool,
     overwrite: bool, reproject: bool, rs_method: Any, in_memory: Union[bool, None],
-    compression: str
-) -> Tuple[str, int, str]:
+    compression: str, quiet: bool
+) -> None:
     output_file = output_folder / input_file.with_suffix('.tif').name
 
     if output_file.is_file():
         if skip_existing:
-            # Calculate the size of the skipped image, to facilitate updating the pbar accordingly
-            with rasterio.open(str(input_file), 'r') as src:
-                return input_file.name, src.height * src.width, 'skipped'
+            if not quiet:
+                click.echo(f'\rSkipping {input_file.name!r}')
+            return
         if not overwrite:
             raise click.BadParameter(
                 f'Output file {output_file!s} exists (use --overwrite or --skip-existing)'
             )
-
+    
+    if not quiet:
+        click.echo(f'\rOptimizing {input_file.name!r}...')
+    
     with contextlib.ExitStack() as es, warnings.catch_warnings():
         warnings.filterwarnings('ignore', message='invalid value encountered.*')
 
@@ -182,7 +185,8 @@ def _optimize_single_raster(
             compress=compression, **COG_PROFILE
         )
 
-    return input_file.name, dst.height * dst.width, 'optimized'
+    if not quiet:
+        click.echo(f"\rOptimized {input_file.name!r}")
 
 
 @click.command(
@@ -278,19 +282,15 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         # insert newline for nicer progress bar style
         click.echo('')
 
-    with contextlib.ExitStack() as outer_env:
-        pbar = outer_env.enter_context(tqdm.tqdm(
-            total=total_pixels, smoothing=0, disable=quiet,
-            bar_format='{l_bar}{bar}| [{elapsed}<{remaining}{postfix}]',
-            desc='Optimizing rasters'
-        ))
+    with contextlib.ExitStack() as outer_env, click_spinner.spinner():
         outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
 
         if cores == -1:
             cores = os.cpu_count() or 1  # Default to 1 if `cpu_count` returns None
         if cores > 1:
             with concurrent.futures.ProcessPoolExecutor(max_workers=cores) as executor:
-                pbar.write(f'Optimizing {len(raster_files_flat)} files on {cores} processes...')
+                if not quiet:
+                    click.echo(f'\bOptimizing {len(raster_files_flat)} files on {cores} processes...')
 
                 futures = [
                     executor.submit(
@@ -302,19 +302,17 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                         reproject,
                         rs_method,
                         in_memory,
-                        compression
+                        compression,
+                        quiet
                     )
                     for input_file in raster_files_flat
                 ]
 
                 for future in concurrent.futures.as_completed(futures):
-                    file_name, pixel_count, action = future.result()
-                    if not quiet:
-                        pbar.write(f"{action.capitalize()} {file_name!r}")
-                    pbar.update(pixel_count)
+                    future.result()  # Needed to throw any exceptions
         else:  # Single-core; run in the current process
             for input_file in raster_files_flat:
-                file_name, pixel_count, action = _optimize_single_raster(
+                _optimize_single_raster(
                     input_file,
                     output_folder,
                     skip_existing,
@@ -322,7 +320,6 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     reproject,
                     rs_method,
                     in_memory,
-                    compression
+                    compression,
+                    quiet
                 )
-                pbar.set_postfix(file=f"{file_name!r} ({action})")
-                pbar.update(pixel_count)
