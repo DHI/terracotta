@@ -12,7 +12,7 @@ import contextlib
 import tempfile
 import logging
 from pathlib import Path
-import multiprocessing
+import concurrent.futures
 
 import click
 import tqdm
@@ -185,20 +185,6 @@ def _optimize_single_raster(
     return input_file.name, dst.height * dst.width, 'optimized'
 
 
-def _pbar_status_update(
-    file_name: str, pixels_processed: int,
-    status: Literal['optimized', 'skipped'], pbar: Any
-) -> None:
-    if len(file_name) > 30:
-        short_name = file_name[:13] + '...' + file_name[-13:]
-    else:
-        short_name = file_name
-    short_name += f" ({status})"
-
-    pbar.set_postfix(file=short_name)
-    pbar.update(pixels_processed)
-
-
 @click.command(
     'optimize-rasters',
     short_help='Optimize a collection of raster files for use with Terracotta.'
@@ -293,24 +279,24 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         ))
         outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
 
-        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-            def _update_pbar(return_vals: Tuple[str, int, Literal['optimized', 'skipped']]) -> None:
-                _pbar_status_update(*return_vals, pbar)
-
-            def _raise_exception(exc: BaseException) -> None:
-                pool.terminate()
-                raise exc
-
-            for input_file in raster_files_flat:
-                pool.apply_async(
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            futures = [
+                executor.submit(
                     _optimize_single_raster,
-                    (
-                        input_file, output_folder, skip_existing, overwrite, reproject,
-                        rs_method, in_memory, compression
-                    ),
-                    callback=_update_pbar,
-                    error_callback=_raise_exception
+                    input_file,
+                    output_folder,
+                    skip_existing,
+                    overwrite,
+                    reproject,
+                    rs_method,
+                    in_memory,
+                    compression,
                 )
-            # Wait for all processes to end:
-            pool.close()
-            pool.join()
+                for input_file in raster_files_flat
+            ]
+            
+            for future in concurrent.futures.as_completed(futures):
+                file_name, pixel_count, action = future.result()
+                if not quiet:
+                    pbar.write(f"{action.capitalize()} {file_name!r}")
+                pbar.update(pixel_count)
