@@ -3,7 +3,7 @@
 Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 """
 
-from typing import Any, Sequence, Iterator, Tuple, Union
+from typing import Any, Sequence, Iterator, Union
 import os
 import math
 import warnings
@@ -125,10 +125,10 @@ def _optimize_single_raster(
             raise click.BadParameter(
                 f'Output file {output_file!s} exists (use --overwrite or --skip-existing)'
             )
-    
+
     if not quiet:
         click.echo(f'\rOptimizing {input_file.name!r}...')
-    
+
     with contextlib.ExitStack() as es, warnings.catch_warnings():
         warnings.filterwarnings('ignore', message='invalid value encountered.*')
 
@@ -290,7 +290,8 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         if cores > 1:
             with concurrent.futures.ProcessPoolExecutor(max_workers=cores) as executor:
                 if not quiet:
-                    click.echo(f'\bOptimizing {len(raster_files_flat)} files on {cores} processes...')
+                    click.echo(f'\bOptimizing {len(raster_files_flat)} files '
+                               f'on {cores} processes...')
 
                 futures = [
                     executor.submit(
