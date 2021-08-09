@@ -36,7 +36,9 @@ def tiny_raster_file(unoptimized_raster_file, tmpdir_factory):
 @pytest.mark.parametrize('in_memory', [True, None, False])
 @pytest.mark.parametrize('reproject', [True, False])
 @pytest.mark.parametrize('compression', ['auto', 'lzw', 'none'])
-def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory, reproject, compression):
+@pytest.mark.parametrize('cores', [None, 1, 2, -1])
+def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory,
+                          reproject, compression, cores):
     from terracotta.cog import validate
     from terracotta.scripts import cli
 
@@ -52,6 +54,9 @@ def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory, reproject,
 
     if reproject:
         flags.append('--reproject')
+
+    if cores is not None:
+        flags.append('--cores=%i' % cores)
 
     result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o', str(tmpdir), *flags])
 
