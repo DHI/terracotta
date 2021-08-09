@@ -288,13 +288,33 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
         if cores == -1:
             cores = os.cpu_count() or 1  # Default to 1 if `cpu_count` returns None
-        with concurrent.futures.ProcessPoolExecutor(max_workers=cores) as executor:
-            pbar.write(f'Optimizing {len(raster_files_flat)} files on {cores} '
-                       f'process{"es" if cores > 1 else ""}...')
+        if cores > 1:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=cores) as executor:
+                pbar.write(f'Optimizing {len(raster_files_flat)} files on {cores} processes...')
 
-            futures = [
-                executor.submit(
-                    _optimize_single_raster,
+                futures = [
+                    executor.submit(
+                        _optimize_single_raster,
+                        input_file,
+                        output_folder,
+                        skip_existing,
+                        overwrite,
+                        reproject,
+                        rs_method,
+                        in_memory,
+                        compression
+                    )
+                    for input_file in raster_files_flat
+                ]
+
+                for future in concurrent.futures.as_completed(futures):
+                    file_name, pixel_count, action = future.result()
+                    if not quiet:
+                        pbar.write(f"{action.capitalize()} {file_name!r}")
+                    pbar.update(pixel_count)
+        else:  # Single-core; run in the current process
+            for input_file in raster_files_flat:
+                file_name, pixel_count, action = _optimize_single_raster(
                     input_file,
                     output_folder,
                     skip_existing,
@@ -302,13 +322,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     reproject,
                     rs_method,
                     in_memory,
-                    compression,
+                    compression
                 )
-                for input_file in raster_files_flat
-            ]
-
-            for future in concurrent.futures.as_completed(futures):
-                file_name, pixel_count, action = future.result()
-                if not quiet:
-                    pbar.write(f"{action.capitalize()} {file_name!r}")
+                pbar.set_postfix(file=f"{file_name!r} ({action})")
                 pbar.update(pixel_count)
