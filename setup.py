@@ -60,6 +60,7 @@ setup(
         'apispec-webframeworks',
         'cachetools>=3.1.0',
         'click',
+        'click-spinner',
         'flask',
         'flask_cors',
         'marshmallow>=3.0.0',
