@@ -113,14 +113,14 @@ TemporaryRasterFile = _named_tempfile
 def _optimize_single_raster(
     input_file: Path, output_folder: Path, skip_existing: bool,
     overwrite: bool, reproject: bool, rs_method: Any, in_memory: Union[bool, None],
-    compression: str, quiet: bool
+    compression: str, quiet: bool, progress_suffix: str
 ) -> None:
     output_file = output_folder / input_file.with_suffix('.tif').name
 
     if output_file.is_file():
         if skip_existing:
             if not quiet:
-                click.echo(f'\rSkipping {input_file.name!r}')
+                click.echo(f'\rSkipping {input_file.name!r} {progress_suffix}')
             return
         if not overwrite:
             raise click.BadParameter(
@@ -128,7 +128,7 @@ def _optimize_single_raster(
             )
 
     if not quiet:
-        click.echo(f'\rOptimizing {input_file.name!r}...')
+        click.echo(f'\rOptimizing {input_file.name!r}... {progress_suffix}')
 
     with contextlib.ExitStack() as es, warnings.catch_warnings():
         warnings.filterwarnings('ignore', message='invalid value encountered.*')
@@ -306,15 +306,16 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                         rs_method,
                         in_memory,
                         compression,
-                        quiet
+                        quiet,
+                        f'({i}/{len(raster_files_flat)})'
                     )
-                    for input_file in raster_files_flat
+                    for i, input_file in enumerate(raster_files_flat, start=1)
                 ]
 
                 for future in concurrent.futures.as_completed(futures):
                     future.result()  # Needed to throw any exceptions
         else:  # Single-core; run in the current process
-            for input_file in raster_files_flat:
+            for i, input_file in enumerate(raster_files_flat, start=1):
                 _optimize_single_raster(
                     input_file,
                     output_folder,
@@ -324,5 +325,6 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     rs_method,
                     in_memory,
                     compression,
-                    quiet
+                    quiet,
+                    f'({i}/{len(raster_files_flat)})'
                 )
