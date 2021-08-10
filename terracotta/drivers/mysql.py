@@ -355,8 +355,14 @@ class MySQLDriver(RasterDriver):
             if not all(key in self.key_names for key in where.keys()):
                 raise exceptions.InvalidKeyError('Encountered unrecognized keys in '
                                                  'where clause')
-            where = {key: value if isinstance(value, list) else [value] for key, value in where.items()}
-            conditions = ['(%s)' % ' OR '.join([f'{key}=%s']*len(value)) for key, value in where.items()]
+            where = {
+                key: value if isinstance(value, list) else [value]
+                for key, value in where.items()
+            }
+            conditions = [
+                '(%s)' % ' OR '.join([f'{key}=%s'] * len(value))
+                for key, value in where.items()
+            ]
             values = list(itertools.chain(*where.values()))
             where_fragment = ' AND '.join(conditions)
             cursor.execute(

@@ -3,7 +3,7 @@
 Handle /datasets API endpoint.
 """
 
-from typing import Mapping, List  # noqa: F401
+from typing import Mapping, List, Union  # noqa: F401
 from collections import OrderedDict
 import re
 
@@ -21,8 +21,10 @@ def datasets(some_keys: Mapping[str, str] = None,
     # TODO: Use some proper parsing
     if some_keys is not None:
         for key, value in some_keys.items():
-            if re.match('^\[.*\]$', value):
-                some_keys[key] = value[1:-1].split(',')
+            if re.match(r'^\[.*\]$', value):
+                # This changes the typing of `some_keys`, as expected by `driver.get_datasets`,
+                # but that makes mypy worried; hence the rather ugly # type: ignore
+                some_keys[key] = value[1:-1].split(',')  # type: ignore
 
     with driver.connect():
         dataset_keys = driver.get_datasets(
