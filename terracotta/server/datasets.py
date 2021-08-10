@@ -33,7 +33,6 @@ class DatasetOptionSchema(Schema):
         # Create lists of values supplied as stringified lists
         for key, value in data.items():
             if isinstance(value, str) and re.match(r'^\[.*\]$', value):
-                print(value)
                 data[key] = value[1:-1].split(',')
         return data
 
