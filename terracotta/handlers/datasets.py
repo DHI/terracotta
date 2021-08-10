@@ -23,8 +23,6 @@ def datasets(some_keys: Mapping[str, str] = None,
         for key, value in some_keys.items():
             if re.match('^\[.*\]$', value):
                 some_keys[key] = value[1:-1].split(',')
-            else:
-                some_keys[key] = [value]
 
     with driver.connect():
         dataset_keys = driver.get_datasets(

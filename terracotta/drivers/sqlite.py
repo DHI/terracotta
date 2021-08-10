@@ -234,7 +234,7 @@ class SQLiteDriver(RasterDriver):
     @trace('get_datasets')
     @requires_connection
     @convert_exceptions('Could not retrieve datasets')
-    def get_datasets(self, where: Mapping[str, List[str]] = None,
+    def get_datasets(self, where: Mapping[str, Union[str, List[str]]] = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
         conn = self._connection
 
@@ -253,6 +253,7 @@ class SQLiteDriver(RasterDriver):
             if not all(key in self.key_names for key in where.keys()):
                 raise exceptions.InvalidKeyError('Encountered unrecognized keys in '
                                                  'where clause')
+            where = {key: value if isinstance(value, list) else [value] for key, value in where.items()}
             conditions = ['(%s)' % ' OR '.join([f'{key}=?']*len(value)) for key, value in where.items()]
             values = list(itertools.chain(*where.values()))
             where_fragment = ' AND '.join(conditions)
