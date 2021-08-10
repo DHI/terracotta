@@ -5,7 +5,6 @@ Handle /datasets API endpoint.
 
 from typing import Mapping, List, Union  # noqa: F401
 from collections import OrderedDict
-import re
 
 from terracotta import get_settings, get_driver
 from terracotta.profile import trace

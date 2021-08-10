@@ -3,6 +3,7 @@
 Flask route to handle /datasets calls.
 """
 
+from typing import Any, Dict, List, Union
 from flask import request, jsonify, Response
 from marshmallow import Schema, fields, validate, INCLUDE, post_load
 import re
@@ -28,7 +29,7 @@ class DatasetOptionSchema(Schema):
     )
 
     @post_load
-    def list_items(self, data, **kwargs):
+    def list_items(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Union[str, List[str]]]:
         # Create lists of values supplied as stringified lists
         for key, value in data.items():
             if isinstance(value, str) and re.match(r'^\[.*\]$', value):
