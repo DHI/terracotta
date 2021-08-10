@@ -4,11 +4,12 @@ MySQL-backed raster driver. Metadata is stored in a MySQL database, raster data 
 to be present on disk.
 """
 
-from typing import (Tuple, Dict, Iterator, Sequence, Union,
+from typing import (List, Tuple, Dict, Iterator, Sequence, Union,
                     Mapping, Any, Optional, cast, TypeVar)
 from collections import OrderedDict
 import contextlib
 from contextlib import AbstractContextManager
+import itertools
 import re
 import json
 import urllib.parse as urlparse
@@ -335,7 +336,7 @@ class MySQLDriver(RasterDriver):
     @trace('get_datasets')
     @requires_connection
     @convert_exceptions('Could not retrieve datasets')
-    def get_datasets(self, where: Mapping[str, str] = None,
+    def get_datasets(self, where: Mapping[str, List[str]] = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
         cursor = self._cursor
 
@@ -354,10 +355,12 @@ class MySQLDriver(RasterDriver):
             if not all(key in self.key_names for key in where.keys()):
                 raise exceptions.InvalidKeyError('Encountered unrecognized keys in '
                                                  'where clause')
-            where_fragment = ' AND '.join([f'{key}=%s' for key in where.keys()])
+            conditions = ['(%s)' % ' OR '.join([f'{key}=%s']*len(value)) for key, value in where.items()]
+            values = list(itertools.chain(*where.values()))
+            where_fragment = ' AND '.join(conditions)
             cursor.execute(
                 f'SELECT * FROM datasets WHERE {where_fragment} {order_fragment} {page_fragment}',
-                list(where.values())
+                values
             )
 
         def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:

@@ -130,7 +130,7 @@ class RasterDriver(Driver):
 
     # specify signature and docstring for get_datasets
     @abstractmethod
-    def get_datasets(self, where: Mapping[str, str] = None,
+    def get_datasets(self, where: Mapping[str, List[str]] = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
         """Retrieve keys and file paths of datasets.
 

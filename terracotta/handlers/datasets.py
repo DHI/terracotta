@@ -5,6 +5,7 @@ Handle /datasets API endpoint.
 
 from typing import Mapping, List  # noqa: F401
 from collections import OrderedDict
+import re
 
 from terracotta import get_settings, get_driver
 from terracotta.profile import trace
@@ -16,6 +17,14 @@ def datasets(some_keys: Mapping[str, str] = None,
     """List all available key combinations"""
     settings = get_settings()
     driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
+
+    # TODO: Use some proper parsing
+    if some_keys is not None:
+        for key, value in some_keys.items():
+            if re.match('^\[.*\]$', value):
+                some_keys[key] = value[1:-1].split(',')
+            else:
+                some_keys[key] = [value]
 
     with driver.connect():
         dataset_keys = driver.get_datasets(

@@ -3,7 +3,7 @@
 Base class for drivers.
 """
 
-from typing import Callable, Mapping, Any, Tuple, Sequence, Dict, Union, TypeVar
+from typing import Callable, List, Mapping, Any, Tuple, Sequence, Dict, Union, TypeVar
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 import functools
@@ -82,7 +82,7 @@ class Driver(ABC):
         pass
 
     @abstractmethod
-    def get_datasets(self, where: Mapping[str, str] = None,
+    def get_datasets(self, where: Mapping[str, List[str]] = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], Any]:
         # Get all known dataset key combinations matching the given constraints,
         # and a handle to retrieve the data (driver dependent)
