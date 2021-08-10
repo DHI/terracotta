@@ -4,7 +4,8 @@ Flask route to handle /datasets calls.
 """
 
 from flask import request, jsonify, Response
-from marshmallow import Schema, fields, validate, INCLUDE
+from marshmallow import Schema, fields, validate, INCLUDE, post_load
+import re
 
 from terracotta.server.flask_api import METADATA_API
 
@@ -25,6 +26,15 @@ class DatasetOptionSchema(Schema):
     page = fields.Integer(
         missing=0, description='Current dataset page', validate=validate.Range(min=0)
     )
+
+    @post_load
+    def list_items(self, data, **kwargs):
+        # Create lists of values supplied as stringified lists
+        for key, value in data.items():
+            if isinstance(value, str) and re.match(r'^\[.*\]$', value):
+                print(value)
+                data[key] = value[1:-1].split(',')
+        return data
 
 
 class DatasetSchema(Schema):
