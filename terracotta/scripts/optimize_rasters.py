@@ -120,7 +120,7 @@ def _optimize_single_raster(
     if output_file.is_file():
         if skip_existing:
             if not quiet:
-                click.echo(f'\rSkipping {input_file.name!r} {progress_suffix}')
+                click.echo(f'\r{input_file.name!r} {progress_suffix}')
             return
         if not overwrite:
             raise click.BadParameter(
@@ -128,7 +128,7 @@ def _optimize_single_raster(
             )
 
     if not quiet:
-        click.echo(f'\rOptimizing {input_file.name!r}... {progress_suffix}')
+        click.echo(f'\r{input_file.name} ... {progress_suffix}')
 
     with contextlib.ExitStack() as es, warnings.catch_warnings():
         warnings.filterwarnings('ignore', message='invalid value encountered.*')
@@ -185,9 +185,6 @@ def _optimize_single_raster(
             dst, str(output_file), copy_src_overviews=True,
             compress=compression, **COG_PROFILE
         )
-
-    if not quiet:
-        click.echo(f"\rOptimized {input_file.name!r}")
 
 
 @click.command(
@@ -292,8 +289,8 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         if cores > 1:
             with concurrent.futures.ProcessPoolExecutor(max_workers=cores) as executor:
                 if not quiet:
-                    click.echo(f'\bOptimizing {len(raster_files_flat)} files '
-                               f'on {cores} processes...')
+                    click.echo(f'\rOptimizing {len(raster_files_flat)} files '
+                               f'on {cores} processes')
 
                 futures = [
                     executor.submit(
