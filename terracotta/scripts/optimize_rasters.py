@@ -117,15 +117,10 @@ def _optimize_single_raster(
 ) -> None:
     output_file = output_folder / input_file.with_suffix('.tif').name
 
-    if output_file.is_file():
-        if skip_existing:
-            if not quiet:
-                click.echo(f'\r{input_file.name!r} {progress_suffix}')
-            return
-        if not overwrite:
-            raise click.BadParameter(
-                f'Output file {output_file!s} exists (use --overwrite or --skip-existing)'
-            )
+    if output_file.is_file() and skip_existing:
+        if not quiet:
+            click.echo(f'\r{input_file.name!r} skipped {progress_suffix}')
+        return
 
     if not quiet:
         click.echo(f'\r{input_file.name} ... {progress_suffix}')
@@ -265,6 +260,12 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
     for f in raster_files_flat:
         if not f.is_file():
             raise click.BadParameter(f'Input raster {f!s} is not a file')
+
+        output_file = output_folder / f.with_suffix('.tif').name
+        if output_file.is_file() and not (skip_existing or overwrite):
+            raise click.BadParameter(
+                f'Output file {f!s} exists (use --overwrite or --skip-existing)'
+            )
 
         with rasterio.open(str(f), 'r') as src:
             if src.count > 1 and not quiet:
