@@ -216,7 +216,7 @@ def _optimize_single_raster(
     help='Compression algorithm to use [default: auto (ZSTD if available, DEFLATE otherwise)]'
 )
 @click.option(
-    '--cores', default=1, type=click.INT,
+    '--nproc', default=1, type=click.INT,
     help='Number of processes to use for multi-core processing '
          '[default: 1, i.e., single-core processing] '
          'Set to -1 to use all available (logical) cores'
@@ -233,7 +233,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                      reproject: bool = False,
                      in_memory: Union[bool, None] = None,
                      compression: str = 'auto',
-                     cores: int = 1,
+                     nproc: int = 1,
                      quiet: bool = False) -> None:
     """Optimize a collection of raster files for use with Terracotta.
 
@@ -285,13 +285,13 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
          click_spinner.spinner(beep=False, disable=False, force=False, stream=sys.stdout):
         outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
 
-        if cores == -1:
-            cores = os.cpu_count() or 1  # Default to 1 if `cpu_count` returns None
-        if cores > 1:
-            with concurrent.futures.ProcessPoolExecutor(max_workers=cores) as executor:
+        if nproc == -1:
+            nproc = os.cpu_count() or 1  # Default to 1 if `cpu_count` returns None
+        if nproc > 1:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=nproc) as executor:
                 if not quiet:
                     click.echo(f'\rOptimizing {len(raster_files_flat)} files '
-                               f'on {cores} processes')
+                               f'on {nproc} processes')
 
                 futures = [
                     executor.submit(
