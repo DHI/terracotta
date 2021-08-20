@@ -11,7 +11,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 # resolve relative links to figures
 long_description = re.sub(
     r'!\[(.*?)\]\((docs/_figures/.*?)\)',
-    r'![\1](https://github.com/DHI-GRAS/terracotta/raw/master/\2)',
+    r'![\1](https://github.com/DHI-GRAS/terracotta/raw/main/\2)',
     long_description
 )
 

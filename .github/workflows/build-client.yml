@@ -7,7 +7,7 @@ on:
 
   push:
     branches:
-      - master
+      - main
     paths:
       - "terracotta/client/app/**"
 
