@@ -73,4 +73,3 @@ Contents
    tutorial
    reference
    issues
-   preview-app

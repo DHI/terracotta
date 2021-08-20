@@ -22,7 +22,7 @@ import re
 from terracotta import __version__
 
 project = 'Terracotta'
-copyright = '2018-2020, the Terracotta contributors'
+copyright = '2018-2021, the Terracotta contributors'
 author = 'Dion Häfner, Philip Graae'
 
 # The short X.Y version
@@ -73,33 +73,13 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'friendly'
 
-# -- Dirty HAXX to compile and serve preview app -----------------------------
-
-preview_hostname = 'https://2truhxo59g.execute-api.eu-central-1.amazonaws.com/production'
-
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates', '../terracotta/client/templates']
+templates_path = ['_templates']
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static', '../terracotta/client/static']
-
-html_additional_pages = {
-    'preview-app': 'app.html',
-}
-
-
-def _url_for(folder, filename):
-    assert folder == 'static'
-    return f'_static/{filename}'
-
-
-# Inject Jinja variables defined by Flask
-html_context = {
-    'hostname': preview_hostname,
-    'url_for': _url_for
-}
+html_static_path = ['_static']
 
 # -- Extension settings --------------------------------------------------------
 
@@ -278,5 +258,5 @@ class ExecDirective(Directive):
 # -- Setup function ----------------------------------------------------------
 
 def setup(app):
-    app.add_stylesheet('https://fonts.googleapis.com/css?family=Lato|Roboto+Mono')
+    app.add_css_file('https://fonts.googleapis.com/css?family=Lato|Roboto+Mono')
     app.add_directive('exec', ExecDirective)
