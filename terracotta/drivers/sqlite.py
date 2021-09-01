@@ -253,16 +253,14 @@ class SQLiteDriver(RasterDriver):
             if not all(key in self.key_names for key in where.keys()):
                 raise exceptions.InvalidKeyError('Encountered unrecognized keys in '
                                                  'where clause')
-            where = {
-                key: value if isinstance(value, list) else [value]
-                for key, value in where.items()
-            }
-            conditions = [
-                '(%s)' % ' OR '.join([f'{key}=?'] * len(value))
-                for key, value in where.items()
-            ]
-            values = list(itertools.chain(*where.values()))
-            where_fragment = ' AND '.join(conditions)
+            conditions = []
+            values = []
+            for key, value in where.items():
+                if isinstance(value, str):
+                    value = [value]
+                values.extend(value)
+                conditions.append(' OR '.join([f'{key}=?'] * len(value)))
+            where_fragment = ' AND '.join([f'({condition})' for condition in conditions])
             rows = conn.execute(
                 f'SELECT * FROM datasets WHERE {where_fragment} {order_fragment} {page_fragment}',
                 values
