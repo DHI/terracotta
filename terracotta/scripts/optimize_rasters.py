@@ -110,12 +110,16 @@ def _named_tempfile(basedir: Union[str, Path]) -> Iterator[str]:
 TemporaryRasterFile = _named_tempfile
 
 
+def _output_file(output_folder: Path, input_file: Path) -> Path:
+    return output_folder / input_file.with_suffix('.tif').name
+
+
 def _optimize_single_raster(
     input_file: Path, output_folder: Path,
     reproject: bool, rs_method: Any, in_memory: Union[bool, None],
     compression: str, quiet: bool, progress_suffix: str
 ) -> None:
-    output_file = output_folder / input_file.with_suffix('.tif').name
+    output_file = _output_file(output_folder, input_file)
 
     if not quiet:
         click.echo(f'\r{input_file.name} ... {progress_suffix}')
@@ -264,7 +268,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         if not f.is_file():
             raise click.BadParameter(f'Input raster {f!s} is not a file')
 
-        output_file = output_folder / f.with_suffix('.tif').name
+        output_file = _output_file(output_folder, f)
         if output_file.is_file():
             if not (skip_existing or overwrite):
                 raise click.BadParameter(
