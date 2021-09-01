@@ -245,7 +245,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     Note that all rasters may only contain a single band.
     """
-    raster_files_flat = sorted(set(itertools.chain.from_iterable(raster_files)))
+    raster_files_flat = set(itertools.chain.from_iterable(raster_files))
 
     if not raster_files_flat:
         click.echo('No files given')
@@ -257,15 +257,19 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         compression = _prefered_compression_method()
 
     total_pixels = 0
+    raster_files_to_skip = set()
     for f in raster_files_flat:
         if not f.is_file():
             raise click.BadParameter(f'Input raster {f!s} is not a file')
 
         output_file = output_folder / f.with_suffix('.tif').name
-        if output_file.is_file() and not (skip_existing or overwrite):
-            raise click.BadParameter(
-                f'Output file {f!s} exists (use --overwrite or --skip-existing)'
-            )
+        if output_file.is_file():
+            if not (skip_existing or overwrite):
+                raise click.BadParameter(
+                    f'Output file {f!s} exists (use --overwrite or --skip-existing)'
+                )
+            elif skip_existing:
+                raster_files_to_skip.add(f)
 
         with rasterio.open(str(f), 'r') as src:
             if src.count > 1 and not quiet:
@@ -274,6 +278,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     'Only the first one will be used.', err=True
                 )
             total_pixels += src.height * src.width
+    raster_files_to_optimize = sorted(raster_files_flat - raster_files_to_skip)
 
     output_folder.mkdir(exist_ok=True)
 
@@ -290,7 +295,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         if nproc > 1:
             with concurrent.futures.ProcessPoolExecutor(max_workers=nproc) as executor:
                 if not quiet:
-                    click.echo(f'\rOptimizing {len(raster_files_flat)} files '
+                    click.echo(f'\rOptimizing {len(raster_files_to_optimize)} files '
                                f'on {nproc} processes')
 
                 futures = [
@@ -305,15 +310,15 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                         in_memory,
                         compression,
                         quiet,
-                        f'({i}/{len(raster_files_flat)})'
+                        f'({i}/{len(raster_files_to_optimize)})'
                     )
-                    for i, input_file in enumerate(raster_files_flat, start=1)
+                    for i, input_file in enumerate(raster_files_to_optimize, start=1)
                 ]
 
                 for future in concurrent.futures.as_completed(futures):
                     future.result()  # Needed to throw any exceptions
         else:  # Single-core; run in the current process
-            for i, input_file in enumerate(raster_files_flat, start=1):
+            for i, input_file in enumerate(raster_files_to_optimize, start=1):
                 _optimize_single_raster(
                     input_file,
                     output_folder,
@@ -324,5 +329,5 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     in_memory,
                     compression,
                     quiet,
-                    f'({i}/{len(raster_files_flat)})'
+                    f'({i}/{len(raster_files_to_optimize)})'
                 )
