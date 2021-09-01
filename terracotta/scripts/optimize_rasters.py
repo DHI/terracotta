@@ -295,14 +295,21 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
     if not quiet:
         files_str = 'file' if len(raster_files_to_optimize) == 1 else 'files'
         processes_str = 'process' if nproc == 1 else 'processes'
-        click.echo(f'Optimizing {len(raster_files_to_optimize)} {files_str} on {nproc} {processes_str}')
+        click.echo(
+            f'Optimizing {len(raster_files_to_optimize)} {files_str} on {nproc} {processes_str}'
+        )
 
     with contextlib.ExitStack() as outer_env:
-        outer_env.enter_context(click_spinner.spinner(beep=False, disable=quiet, force=False, stream=sys.stdout))
+        outer_env.enter_context(click_spinner.spinner(beep=False,
+                                                      disable=quiet,
+                                                      force=False,
+                                                      stream=sys.stdout))
         outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
 
         if nproc > 1:
-            executor = outer_env.enter_context(concurrent.futures.ProcessPoolExecutor(max_workers=nproc))
+            executor = outer_env.enter_context(
+                concurrent.futures.ProcessPoolExecutor(max_workers=nproc)
+            )
 
             futures = {
                 executor.submit(
