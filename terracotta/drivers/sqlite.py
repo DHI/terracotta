@@ -4,7 +4,7 @@ SQLite-backed raster driver. Metadata is stored in an SQLite database, raster da
 to be present on disk.
 """
 
-from typing import Any, Sequence, Mapping, Tuple, Union, Iterator, Dict, cast
+from typing import Any, List, Sequence, Mapping, Tuple, Union, Iterator, Dict, cast
 import os
 import contextlib
 from contextlib import AbstractContextManager
@@ -233,7 +233,7 @@ class SQLiteDriver(RasterDriver):
     @trace('get_datasets')
     @requires_connection
     @convert_exceptions('Could not retrieve datasets')
-    def get_datasets(self, where: Mapping[str, str] = None,
+    def get_datasets(self, where: Mapping[str, Union[str, List[str]]] = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
         conn = self._connection
 
@@ -252,10 +252,17 @@ class SQLiteDriver(RasterDriver):
             if not all(key in self.key_names for key in where.keys()):
                 raise exceptions.InvalidKeyError('Encountered unrecognized keys in '
                                                  'where clause')
-            where_fragment = ' AND '.join([f'{key}=?' for key in where.keys()])
+            conditions = []
+            values = []
+            for key, value in where.items():
+                if isinstance(value, str):
+                    value = [value]
+                values.extend(value)
+                conditions.append(' OR '.join([f'{key}=?'] * len(value)))
+            where_fragment = ' AND '.join([f'({condition})' for condition in conditions])
             rows = conn.execute(
                 f'SELECT * FROM datasets WHERE {where_fragment} {order_fragment} {page_fragment}',
-                list(where.values())
+                values
             )
 
         def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:

@@ -3,7 +3,7 @@
 Handle /datasets API endpoint.
 """
 
-from typing import Mapping, List  # noqa: F401
+from typing import Mapping, List, Union  # noqa: F401
 from collections import OrderedDict
 
 from terracotta import get_settings, get_driver
@@ -11,7 +11,7 @@ from terracotta.profile import trace
 
 
 @trace('datasets_handler')
-def datasets(some_keys: Mapping[str, str] = None,
+def datasets(some_keys: Mapping[str, Union[str, List[str]]] = None,
              page: int = 0, limit: int = 500) -> 'List[OrderedDict[str, str]]':
     """List all available key combinations"""
     settings = get_settings()

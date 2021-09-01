@@ -98,6 +98,14 @@ def test_get_datasets_selective(client, use_testdb):
     assert rv.status_code == 200
     assert len(json.loads(rv.data)['datasets']) == 1
 
+    rv = client.get('/datasets?key1=[val21]')
+    assert rv.status_code == 200
+    assert len(json.loads(rv.data)['datasets']) == 3
+
+    rv = client.get('/datasets?key2=[val23,val24]&akey=x')
+    assert rv.status_code == 200
+    assert len(json.loads(rv.data)['datasets']) == 2
+
 
 def test_get_datasets_unknown_key(client, use_testdb):
     rv = client.get('/datasets?UNKNOWN=val21')

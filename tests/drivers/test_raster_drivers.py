@@ -76,6 +76,34 @@ def test_where(driver_path, provider, raster_file):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
+def test_where_with_multiquery(driver_path, provider, raster_file):
+    from terracotta import drivers
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('some', 'keynames')
+
+    db.create(keys)
+    db.insert(['some', 'value'], str(raster_file))
+    db.insert(['some', 'other_value'], str(raster_file))
+    db.insert({'some': 'a', 'keynames': 'third_value'}, str(raster_file))
+
+    data = db.get_datasets()
+    assert len(data) == 3
+
+    data = db.get_datasets(where=dict(some=['some']))
+    assert len(data) == 2
+
+    data = db.get_datasets(where=dict(keynames=['value', 'other_value']))
+    assert len(data) == 2
+
+    data = db.get_datasets(where=dict(some='some', keynames=['value', 'third_value']))
+    assert list(data.keys()) == [('some', 'value')]
+    assert data[('some', 'value')] == str(raster_file)
+
+    data = db.get_datasets(where=dict(some=['unknown']))
+    assert data == {}
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_pagination(driver_path, provider, raster_file):
     from terracotta import drivers
     db = drivers.get_driver(driver_path, provider=provider)
