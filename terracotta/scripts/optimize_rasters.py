@@ -289,21 +289,20 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     output_folder.mkdir(exist_ok=True)
 
+    if nproc == -1:
+        nproc = os.cpu_count() or 1  # Default to 1 if `cpu_count` returns None
+
     if not quiet:
-        # insert newline for nicer progress bar style
-        click.echo('')
+        files_str = 'file' if len(raster_files_to_optimize) == 1 else 'files'
+        processes_str = 'process' if nproc == 1 else 'processes'
+        click.echo(f'Optimizing {len(raster_files_to_optimize)} {files_str} on {nproc} {processes_str}')
 
     with contextlib.ExitStack() as outer_env:
         outer_env.enter_context(click_spinner.spinner(beep=False, disable=False, force=False, stream=sys.stdout))
         outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
 
-        if nproc == -1:
-            nproc = os.cpu_count() or 1  # Default to 1 if `cpu_count` returns None
         if nproc > 1:
             executor = outer_env.enter_context(concurrent.futures.ProcessPoolExecutor(max_workers=nproc))
-            if not quiet:
-                click.echo(f'\rOptimizing {len(raster_files_to_optimize)} files '
-                            f'on {nproc} processes')
 
             futures = [
                 executor.submit(
