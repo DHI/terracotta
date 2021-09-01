@@ -304,7 +304,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         if nproc > 1:
             executor = outer_env.enter_context(concurrent.futures.ProcessPoolExecutor(max_workers=nproc))
 
-            futures = [
+            futures = {
                 executor.submit(
                     _optimize_single_raster,
                     input_file,
@@ -317,12 +317,15 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     compression,
                     quiet,
                     f'({i}/{len(raster_files_to_optimize)})'
-                )
+                ): input_file
                 for i, input_file in enumerate(raster_files_to_optimize, start=1)
-            ]
+            }
 
             for future in concurrent.futures.as_completed(futures):
-                future.result()  # Needed to throw any exceptions
+                try:
+                    future.result()
+                except Exception as exc:
+                    raise RuntimeError(f"Error while optimizing file {futures[future]}") from exc
         else:  # Single-core; run in the current process
             for i, input_file in enumerate(raster_files_to_optimize, start=1):
                 _optimize_single_raster(
