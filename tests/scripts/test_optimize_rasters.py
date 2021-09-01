@@ -36,7 +36,9 @@ def tiny_raster_file(unoptimized_raster_file, tmpdir_factory):
 @pytest.mark.parametrize('in_memory', [True, None, False])
 @pytest.mark.parametrize('reproject', [True, False])
 @pytest.mark.parametrize('compression', ['auto', 'lzw', 'none'])
-def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory, reproject, compression):
+@pytest.mark.parametrize('nproc', [None, 1, 2, -1])
+def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory,
+                          reproject, compression, nproc):
     from terracotta.cog import validate
     from terracotta.scripts import cli
 
@@ -52,6 +54,9 @@ def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory, reproject,
 
     if reproject:
         flags.append('--reproject')
+
+    if nproc is not None:
+        flags.append(f'--nproc={nproc}')
 
     result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o', str(tmpdir), *flags])
 
@@ -117,6 +122,11 @@ def test_optimize_rasters_invalid(tmpdir):
     assert result.exit_code != 0
     assert 'not a file' in result.output
 
+    result = runner.invoke(cli.cli, ['optimize-rasters', str(tmpdir), '-o', str(tmpdir),
+                                     '--overwrite', '--skip-existing'])
+    assert result.exit_code != 0
+    assert 'mutually exclusive' in result.output
+
 
 def test_optimize_rasters_multiband(tmpdir, unoptimized_raster_file):
     from terracotta.scripts import cli
@@ -181,3 +191,27 @@ def test_reoptimize(tmpdir, unoptimized_raster_file, extra_flag):
         assert os.stat(outfile).st_ctime != ctime
     else:
         assert result.exit_code == 2
+
+
+def _throw(*args):
+    raise RuntimeError('A mock error is raised')
+
+
+def test_exception_in_subprocess(unoptimized_raster_file, tmpdir, monkeypatch):
+    from terracotta.scripts import cli
+
+    monkeypatch.setattr(
+        'terracotta.scripts.optimize_rasters._optimize_single_raster',
+        _throw
+    )
+
+    args = [
+        'optimize-rasters', str(unoptimized_raster_file), '-o',
+        str(tmpdir / 'foo.tif'), '--nproc', 2
+    ]
+
+    runner = CliRunner()
+    result = runner.invoke(cli.cli, args)
+
+    assert result.exit_code != 0
+    assert 'Error while optimizing file' in str(result.exception)
