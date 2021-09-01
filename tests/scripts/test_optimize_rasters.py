@@ -193,18 +193,25 @@ def test_reoptimize(tmpdir, unoptimized_raster_file, extra_flag):
         assert result.exit_code == 2
 
 
-def test_error_thrown_inside_optimization_process(unoptimized_raster_file, tmpdir, monkeypatch):
-    from terracotta.scripts.optimize_rasters import optimize_rasters
-    from pathlib import Path
+def _throw(*args):
+    raise RuntimeError('A mock error is raised')
 
-    def mock_optimize_throwing_exception(*args):
-        raise RuntimeError('A mock error is raised')
+
+def test_exception_in_subprocess(unoptimized_raster_file, tmpdir, monkeypatch):
+    from terracotta.scripts import cli
+
     monkeypatch.setattr(
         'terracotta.scripts.optimize_rasters._optimize_single_raster',
-        mock_optimize_throwing_exception
+        _throw
     )
 
-    with pytest.raises(RuntimeError) as excinfo:
-        optimize_rasters.callback([[Path(unoptimized_raster_file)]], Path(str(tmpdir)), nproc=2)
-    assert 'mock error is raised' in str(excinfo.getrepr())
-    assert 'Error while optimizing file' in str(excinfo.getrepr())
+    args = [
+        'optimize-rasters', str(unoptimized_raster_file), '-o',
+        str(tmpdir / 'foo.tif'), '--nproc', 2
+    ]
+
+    runner = CliRunner()
+    result = runner.invoke(cli.cli, args)
+
+    assert result.exit_code != 0
+    assert 'Error while optimizing file' in str(result.exception)
