@@ -122,7 +122,7 @@ def test_optimize_rasters_invalid(tmpdir):
     assert result.exit_code != 0
     assert 'not a file' in result.output
 
-    result = runner.invoke(cli.cli, ['optimize-rasters', "not-a-file", '-o', str(tmpdir),
+    result = runner.invoke(cli.cli, ['optimize-rasters', str(tmpdir), '-o', str(tmpdir),
                                      '--overwrite', '--skip-existing'])
     assert result.exit_code != 0
     assert 'mutually exclusive' in result.output
@@ -191,3 +191,20 @@ def test_reoptimize(tmpdir, unoptimized_raster_file, extra_flag):
         assert os.stat(outfile).st_ctime != ctime
     else:
         assert result.exit_code == 2
+
+
+def test_error_thrown_inside_optimization_process(unoptimized_raster_file, tmpdir, monkeypatch):
+    from terracotta.scripts.optimize_rasters import optimize_rasters
+    from pathlib import Path
+
+    def mock_optimize_throwing_exception(*args):
+        raise RuntimeError('A mock error is raised')
+    monkeypatch.setattr(
+        'terracotta.scripts.optimize_rasters._optimize_single_raster',
+        mock_optimize_throwing_exception
+    )
+
+    with pytest.raises(RuntimeError) as excinfo:
+        optimize_rasters.callback([[Path(unoptimized_raster_file)]], Path(str(tmpdir)), nproc=2)
+    assert 'mock error is raised' in str(excinfo.getrepr())
+    assert 'Error while optimizing file' in str(excinfo.getrepr())
