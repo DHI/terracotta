@@ -9,7 +9,6 @@ from typing import (List, Tuple, Dict, Iterator, Sequence, Union,
 from collections import OrderedDict
 import contextlib
 from contextlib import AbstractContextManager
-import itertools
 import re
 import json
 import urllib.parse as urlparse

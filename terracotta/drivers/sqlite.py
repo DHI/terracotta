@@ -4,7 +4,6 @@ SQLite-backed raster driver. Metadata is stored in an SQLite database, raster da
 to be present on disk.
 """
 
-import itertools
 from typing import Any, List, Sequence, Mapping, Tuple, Union, Iterator, Dict, cast
 import os
 import contextlib
