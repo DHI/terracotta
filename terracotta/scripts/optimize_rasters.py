@@ -245,6 +245,13 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
 
     Note that all rasters may only contain a single band.
     """
+    if overwrite and skip_existing:
+        raise click.BadOptionUsage(
+            '--overwrite and --skip-existing',
+            'Both --overwrite and --skip-existing flags are provided. '
+            'These are mutually exclusive. Please provide at max one of them'
+        )
+
     raster_files_flat = set(itertools.chain.from_iterable(raster_files))
 
     if not raster_files_flat:
