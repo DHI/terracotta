@@ -293,37 +293,37 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         # insert newline for nicer progress bar style
         click.echo('')
 
-    with contextlib.ExitStack() as outer_env, \
-         click_spinner.spinner(beep=False, disable=False, force=False, stream=sys.stdout):
+    with contextlib.ExitStack() as outer_env:
+        outer_env.enter_context(click_spinner.spinner(beep=False, disable=False, force=False, stream=sys.stdout))
         outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
 
         if nproc == -1:
             nproc = os.cpu_count() or 1  # Default to 1 if `cpu_count` returns None
         if nproc > 1:
-            with concurrent.futures.ProcessPoolExecutor(max_workers=nproc) as executor:
-                if not quiet:
-                    click.echo(f'\rOptimizing {len(raster_files_to_optimize)} files '
-                               f'on {nproc} processes')
+            executor = outer_env.enter_context(concurrent.futures.ProcessPoolExecutor(max_workers=nproc))
+            if not quiet:
+                click.echo(f'\rOptimizing {len(raster_files_to_optimize)} files '
+                            f'on {nproc} processes')
 
-                futures = [
-                    executor.submit(
-                        _optimize_single_raster,
-                        input_file,
-                        output_folder,
-                        skip_existing,
-                        overwrite,
-                        reproject,
-                        rs_method,
-                        in_memory,
-                        compression,
-                        quiet,
-                        f'({i}/{len(raster_files_to_optimize)})'
-                    )
-                    for i, input_file in enumerate(raster_files_to_optimize, start=1)
-                ]
+            futures = [
+                executor.submit(
+                    _optimize_single_raster,
+                    input_file,
+                    output_folder,
+                    skip_existing,
+                    overwrite,
+                    reproject,
+                    rs_method,
+                    in_memory,
+                    compression,
+                    quiet,
+                    f'({i}/{len(raster_files_to_optimize)})'
+                )
+                for i, input_file in enumerate(raster_files_to_optimize, start=1)
+            ]
 
-                for future in concurrent.futures.as_completed(futures):
-                    future.result()  # Needed to throw any exceptions
+            for future in concurrent.futures.as_completed(futures):
+                future.result()  # Needed to throw any exceptions
         else:  # Single-core; run in the current process
             for i, input_file in enumerate(raster_files_to_optimize, start=1):
                 _optimize_single_raster(
