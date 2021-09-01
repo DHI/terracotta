@@ -111,16 +111,11 @@ TemporaryRasterFile = _named_tempfile
 
 
 def _optimize_single_raster(
-    input_file: Path, output_folder: Path, skip_existing: bool,
-    overwrite: bool, reproject: bool, rs_method: Any, in_memory: Union[bool, None],
+    input_file: Path, output_folder: Path,
+    reproject: bool, rs_method: Any, in_memory: Union[bool, None],
     compression: str, quiet: bool, progress_suffix: str
 ) -> None:
     output_file = output_folder / input_file.with_suffix('.tif').name
-
-    if output_file.is_file() and skip_existing:
-        if not quiet:
-            click.echo(f'\r{input_file.name!r} skipped {progress_suffix}')
-        return
 
     if not quiet:
         click.echo(f'\r{input_file.name} ... {progress_suffix}')
@@ -316,8 +311,6 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                     _optimize_single_raster,
                     input_file,
                     output_folder,
-                    skip_existing,
-                    overwrite,
                     reproject,
                     rs_method,
                     in_memory,
@@ -338,8 +331,6 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
                 _optimize_single_raster(
                     input_file,
                     output_folder,
-                    skip_existing,
-                    overwrite,
                     reproject,
                     rs_method,
                     in_memory,
