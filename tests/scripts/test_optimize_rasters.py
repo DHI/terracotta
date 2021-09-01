@@ -56,7 +56,7 @@ def test_optimize_rasters(unoptimized_raster_file, tmpdir, in_memory,
         flags.append('--reproject')
 
     if nproc is not None:
-        flags.append('--nproc=%i' % nproc)
+        flags.append(f'--nproc={nproc}')
 
     result = runner.invoke(cli.cli, ['optimize-rasters', input_pattern, '-o', str(tmpdir), *flags])
 
