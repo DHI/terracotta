@@ -298,7 +298,7 @@ def optimize_rasters(raster_files: Sequence[Sequence[Path]],
         click.echo(f'Optimizing {len(raster_files_to_optimize)} {files_str} on {nproc} {processes_str}')
 
     with contextlib.ExitStack() as outer_env:
-        outer_env.enter_context(click_spinner.spinner(beep=False, disable=False, force=False, stream=sys.stdout))
+        outer_env.enter_context(click_spinner.spinner(beep=False, disable=quiet, force=False, stream=sys.stdout))
         outer_env.enter_context(rasterio.Env(**GDAL_CONFIG))
 
         if nproc > 1:
