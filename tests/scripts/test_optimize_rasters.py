@@ -122,6 +122,11 @@ def test_optimize_rasters_invalid(tmpdir):
     assert result.exit_code != 0
     assert 'not a file' in result.output
 
+    result = runner.invoke(cli.cli, ['optimize-rasters', "not-a-file", '-o', str(tmpdir),
+                                     '--overwrite', '--skip-existing'])
+    assert result.exit_code != 0
+    assert 'mutually exclusive' in result.output
+
 
 def test_optimize_rasters_multiband(tmpdir, unoptimized_raster_file):
     from terracotta.scripts import cli
