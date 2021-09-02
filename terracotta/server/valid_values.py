@@ -44,7 +44,7 @@ def get_valid_values() -> Response:
     get:
         summary: /datasets
         description:
-            Get uniwue key values of all available datasets that match given key constraint.
+            Get unique key values of all available datasets that match given key constraint.
             Constraints may be combined freely. Returns all valid key values if no query parameters
             are given.
         parameters:
@@ -52,7 +52,7 @@ def get_valid_values() -> Response:
             schema: KeyValueOptionSchema
         responses:
             200:
-                description: All available key combinations
+                description: All available key value combinations
                 schema:
                     type: KeyValueSchema
             400:
