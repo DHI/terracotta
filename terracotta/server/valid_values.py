@@ -54,8 +54,7 @@ def get_valid_values() -> Response:
             200:
                 description: All available key combinations
                 schema:
-                    type: array
-                    items: KeyValueSchema
+                    type: KeyValueSchema
             400:
                 description: Query parameters contain unrecognized keys
     """
