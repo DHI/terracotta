@@ -69,6 +69,7 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
     from terracotta import get_settings
     import terracotta.server.datasets
     import terracotta.server.keys
+    import terracotta.server.valid_values
     import terracotta.server.colormap
     import terracotta.server.metadata
     import terracotta.server.rgb
@@ -97,6 +98,7 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
     with new_app.test_request_context():
         SPEC.path(view=terracotta.server.datasets.get_datasets)
         SPEC.path(view=terracotta.server.keys.get_keys)
+        SPEC.path(view=terracotta.server.valid_values.get_valid_values)
         SPEC.path(view=terracotta.server.colormap.get_colormap)
         SPEC.path(view=terracotta.server.metadata.get_metadata)
         SPEC.path(view=terracotta.server.rgb.get_rgb)

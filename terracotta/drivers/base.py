@@ -82,6 +82,10 @@ class Driver(ABC):
         pass
 
     @abstractmethod
+    def get_valid_values(self, where: Mapping[str, Union[str, List[str]]]) -> Dict[str, List[str]]:
+        pass
+
+    @abstractmethod
     def get_datasets(self, where: Mapping[str, Union[str, List[str]]] = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], Any]:
         # Get all known dataset key combinations matching the given constraints,
