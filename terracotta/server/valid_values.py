@@ -28,6 +28,15 @@ class KeyValueOptionSchema(Schema):
         return data
 
 
+class KeyValueSchema(Schema):
+    valid_values = fields.Dict(
+        key=fields.String(example='key1'),
+        values=fields.List(fields.String(example='value1')),
+        required=True,
+        description='Array containing all available key combinations'
+    )
+
+
 @METADATA_API.route('/valid_values', methods=['GET'])
 def get_valid_values() -> Response:
     """Get all valid values combinations (possibly when given a value for some keys)
@@ -35,18 +44,18 @@ def get_valid_values() -> Response:
     get:
         summary: /datasets
         description:
-            Get keys of all available datasets that match given key constraint.
-            Constraints may be combined freely. Returns all known datasets if no query parameters
+            Get uniwue key values of all available datasets that match given key constraint.
+            Constraints may be combined freely. Returns all valid key values if no query parameters
             are given.
         parameters:
           - in: query
-            schema: DatasetOptionSchema
+            schema: KeyValueOptionSchema
         responses:
             200:
                 description: All available key combinations
                 schema:
                     type: array
-                    items: DatasetSchema
+                    items: KeyValueSchema
             400:
                 description: Query parameters contain unrecognized keys
     """
@@ -60,4 +69,5 @@ def get_valid_values() -> Response:
         'valid_values': valid_values(keys)
     }
 
-    return jsonify(payload)
+    schema = KeyValueSchema()
+    return jsonify(schema.load(payload))
