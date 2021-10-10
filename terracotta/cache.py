@@ -9,7 +9,7 @@ import sys
 import zlib
 
 import numpy as np
-from cachetools import LFUCache, Cache
+from cachetools import LFUCache
 
 CompressionTuple = Tuple[bytes, bytes, str, Tuple[int, int]]
 SizeFunction = Callable[[CompressionTuple], int]
