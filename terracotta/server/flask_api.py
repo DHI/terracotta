@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 import copy
 
 from apispec import APISpec
@@ -6,6 +6,7 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from apispec_webframeworks.flask import FlaskPlugin
 
 from flask import Flask, Blueprint, current_app, send_file, jsonify
+from flask.typing import ErrorHandlerCallable
 from flask_cors import CORS
 
 import marshmallow
@@ -40,28 +41,45 @@ def _abort(status_code: int, message: str = '') -> Any:
 
 
 def _setup_error_handlers(app: Flask) -> None:
-    @app.errorhandler(exceptions.TileOutOfBoundsError)
     def handle_tile_out_of_bounds_error(exc: Exception) -> Any:
         # send empty image
         from terracotta import get_settings, image
         settings = get_settings()
         return send_file(image.empty_image(settings.DEFAULT_TILE_SIZE), mimetype='image/png')
 
-    @app.errorhandler(exceptions.DatasetNotFoundError)
+    app.register_error_handler(
+        exceptions.TileOutOfBoundsError,
+        cast(ErrorHandlerCallable, handle_tile_out_of_bounds_error)
+    )
+
     def handle_dataset_not_found_error(exc: Exception) -> Any:
         # wrong path -> 404
         if current_app.debug:
             raise exc
         return _abort(404, str(exc))
 
-    @app.errorhandler(exceptions.InvalidArgumentsError)
-    @app.errorhandler(exceptions.InvalidKeyError)
-    @app.errorhandler(marshmallow.ValidationError)
+    app.register_error_handler(
+        exceptions.DatasetNotFoundError,
+        cast(ErrorHandlerCallable, handle_dataset_not_found_error)
+    )
+
     def handle_marshmallow_validation_error(exc: Exception) -> Any:
         # wrong query arguments -> 400
         if current_app.debug:
             raise exc
         return _abort(400, str(exc))
+
+    validation_errors = (
+        exceptions.InvalidArgumentsError,
+        exceptions.InvalidKeyError,
+        marshmallow.ValidationError
+    )
+
+    for err in validation_errors:
+        app.register_error_handler(
+            err,
+            cast(ErrorHandlerCallable, handle_marshmallow_validation_error)
+        )
 
 
 def create_app(debug: bool = False, profile: bool = False) -> Flask:

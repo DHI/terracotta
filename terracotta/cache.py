@@ -22,16 +22,14 @@ class CompressedLFUCache(LFUCache):
         super().__init__(maxsize, self._get_size)
         self.compression_level = compression_level
 
-    def __getitem__(self, key: Any,
-                    cache_getitem: Callable = Cache.__getitem__) -> np.ma.MaskedArray:
-        compressed_item = super().__getitem__(key, cache_getitem)
+    def __getitem__(self, key: Any) -> np.ma.MaskedArray:
+        compressed_item = super().__getitem__(key)
         return self._decompress_tuple(compressed_item)
 
     def __setitem__(self, key: Any,
-                    value: np.ma.MaskedArray,
-                    cache_setitem: Callable = Cache.__setitem__) -> None:
+                    value: np.ma.MaskedArray) -> None:
         val_compressed = self._compress_ma(value, self.compression_level)
-        super().__setitem__(key, val_compressed, cache_setitem)
+        super().__setitem__(key, val_compressed)
 
     @staticmethod
     def _compress_ma(arr: np.ma.MaskedArray, compression_level: int) -> CompressionTuple:
