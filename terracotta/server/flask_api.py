@@ -40,7 +40,7 @@ def _abort(status_code: int, message: str = '') -> Any:
 
 def _setup_error_handlers(app: Flask) -> None:
     def register_error_handler(exc: Type[Exception], func: Callable[[Exception], Any]) -> None:
-        if TYPE_CHECKING:
+        if TYPE_CHECKING:  # pragma: no cover
             # Flask defines this type only during type checking
             from flask.typing import ErrorHandlerCallable
             func = cast(ErrorHandlerCallable, func)
