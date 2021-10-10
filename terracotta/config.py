@@ -65,7 +65,7 @@ class TerracottaSettings(NamedTuple):
     ALLOWED_ORIGINS_METADATA: List[str] = ['*']
 
     #: CORS allowed origins for tiles endpoints
-    ALLOWED_ORIGINS_TILES: List[str] = []
+    ALLOWED_ORIGINS_TILES: List[str] = [r'http[s]?://(localhost|127\.0\.0\.1):*']
 
     #: MySQL database username (if not given in driver path)
     MYSQL_USER: Optional[str] = None
