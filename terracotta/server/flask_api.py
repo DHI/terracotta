@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast, Callable, Type, TYPE_CHECKING
 import copy
 
 from apispec import APISpec
@@ -11,7 +11,6 @@ from flask_cors import CORS
 import marshmallow
 
 from terracotta import exceptions, __version__
-
 
 # define blueprints, will be populated by submodules
 TILE_API = Blueprint('tile_api', 'terracotta.server')
@@ -40,28 +39,44 @@ def _abort(status_code: int, message: str = '') -> Any:
 
 
 def _setup_error_handlers(app: Flask) -> None:
-    @app.errorhandler(exceptions.TileOutOfBoundsError)
+    def register_error_handler(exc: Type[Exception], func: Callable[[Exception], Any]) -> None:
+        if TYPE_CHECKING:  # pragma: no cover
+            # Flask defines this type only during type checking
+            from flask.typing import ErrorHandlerCallable
+            func = cast(ErrorHandlerCallable, func)
+
+        app.register_error_handler(exc, func)
+
     def handle_tile_out_of_bounds_error(exc: Exception) -> Any:
         # send empty image
         from terracotta import get_settings, image
         settings = get_settings()
         return send_file(image.empty_image(settings.DEFAULT_TILE_SIZE), mimetype='image/png')
 
-    @app.errorhandler(exceptions.DatasetNotFoundError)
+    register_error_handler(exceptions.TileOutOfBoundsError, handle_tile_out_of_bounds_error)
+
     def handle_dataset_not_found_error(exc: Exception) -> Any:
         # wrong path -> 404
         if current_app.debug:
             raise exc
         return _abort(404, str(exc))
 
-    @app.errorhandler(exceptions.InvalidArgumentsError)
-    @app.errorhandler(exceptions.InvalidKeyError)
-    @app.errorhandler(marshmallow.ValidationError)
+    register_error_handler(exceptions.DatasetNotFoundError, handle_dataset_not_found_error)
+
     def handle_marshmallow_validation_error(exc: Exception) -> Any:
         # wrong query arguments -> 400
         if current_app.debug:
             raise exc
         return _abort(400, str(exc))
+
+    validation_errors = (
+        exceptions.InvalidArgumentsError,
+        exceptions.InvalidKeyError,
+        marshmallow.ValidationError
+    )
+
+    for err in validation_errors:
+        register_error_handler(err, handle_marshmallow_validation_error)
 
 
 def create_app(debug: bool = False, profile: bool = False) -> Flask:
