@@ -1,4 +1,4 @@
-from typing import Any, cast, Callable, TYPE_CHECKING
+from typing import Any, cast, Callable, Type, TYPE_CHECKING
 import copy
 
 from apispec import APISpec
@@ -39,8 +39,9 @@ def _abort(status_code: int, message: str = '') -> Any:
 
 
 def _setup_error_handlers(app: Flask) -> None:
-    def register_error_handler(exc: Exception, func: Callable[[Exception], Any]) -> None:
+    def register_error_handler(exc: Type[Exception], func: Callable[[Exception], Any]) -> None:
         if TYPE_CHECKING:
+            # Flask defines this type only during type checking
             from flask.typing import ErrorHandlerCallable
             func = cast(ErrorHandlerCallable, func)
 
