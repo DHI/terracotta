@@ -33,9 +33,7 @@ def test_path_parsing(case):
 
     db = drivers.get_driver(case, provider='mysql')
     db_args = db._CONNECTION_PARAMETERS
-    print(db_args)
     for attr in ('username', 'password', 'hostname', 'port', 'path'):
-        print(attr)
         assert getattr(db_args, attr) == TEST_CASES[case].get(attr, None)
 
 
