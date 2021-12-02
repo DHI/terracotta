@@ -13,10 +13,13 @@ Number = TypeVar('Number', int, float)
 T = TypeVar('T')
 
 
-def requires_connection(fun: Callable[..., T]) -> Callable[..., T]:
+def requires_connection(fun: Callable[..., T] = None, *, verify: bool = True) -> Callable[..., T]:
+    if fun is None:
+        return functools.partial(requires_connection, verify=verify)
+
     @functools.wraps(fun)
     def inner(self: Driver, *args: Any, **kwargs: Any) -> T:
-        with self.connect():
+        with self.connect(verify=verify):
             return fun(self, *args, **kwargs)
     return inner
 
