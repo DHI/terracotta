@@ -28,8 +28,15 @@ class Driver(ABC):
     """
     _RESERVED_KEYS = ('limit', 'page')
 
-    db_version: str  #: Terracotta version used to create the database
-    key_names: Tuple[str]  #: Names of all keys defined by the database
+    @property
+    @abstractmethod
+    def db_version(self) -> str:
+        ...  # Terracotta version used to create the database
+
+    @property
+    @abstractmethod
+    def key_names(self) -> Tuple[str, ...]:
+        ...  # Names of all keys defined by the database
 
     @abstractmethod
     def __init__(self, url_or_path: str) -> None:
