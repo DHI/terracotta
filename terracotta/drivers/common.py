@@ -29,18 +29,18 @@ class RelationalDriver(RasterDriver, ABC):
     SQLA_TEXT = sqla.types.Text
     SQLA_BLOB = sqla.types.LargeBinary
     _METADATA_COLUMNS: Tuple[Tuple[str, sqla.types.TypeEngine], ...] = (
-        ('bounds_north', SQLA_REAL()),
-        ('bounds_east', SQLA_REAL()),
-        ('bounds_south', SQLA_REAL()),
-        ('bounds_west', SQLA_REAL()),
-        ('convex_hull', SQLA_TEXT()),
-        ('valid_percentage', SQLA_REAL()),
-        ('min', SQLA_REAL()),
-        ('max', SQLA_REAL()),
-        ('mean', SQLA_REAL()),
-        ('stdev', SQLA_REAL()),
-        ('percentiles', SQLA_BLOB()),
-        ('metadata', SQLA_TEXT())
+        ('bounds_north', SQLA_REAL),
+        ('bounds_east', SQLA_REAL),
+        ('bounds_south', SQLA_REAL),
+        ('bounds_west', SQLA_REAL),
+        ('convex_hull', SQLA_TEXT),
+        ('valid_percentage', SQLA_REAL),
+        ('min', SQLA_REAL),
+        ('max', SQLA_REAL),
+        ('mean', SQLA_REAL),
+        ('stdev', SQLA_REAL),
+        ('percentiles', SQLA_BLOB),
+        ('metadata', SQLA_TEXT)
     )
 
     def __init__(self, path: str) -> None:
@@ -56,7 +56,7 @@ class RelationalDriver(RasterDriver, ABC):
             connection_string,
             echo=True,
             future=True,
-            connect_args={'timeout': db_connection_timeout}
+            #connect_args={'timeout': db_connection_timeout}
         )
         self.sqla_metadata = sqla.MetaData()
 
@@ -85,12 +85,13 @@ class RelationalDriver(RasterDriver, ABC):
         return con_params
 
     @contextlib.contextmanager
-    def connect(self) -> Iterator:
+    def connect(self, verify: bool = True) -> Iterator:
         if not self.connected:
             with self.sqla_engine.connect() as connection:
                 self.connection = connection
                 self.connected = True
-                self._verify_db_version()
+                if verify:
+                    self._verify_db_version()
                 yield
             self.connected = False
             self.connection = None
@@ -149,7 +150,7 @@ class RelationalDriver(RasterDriver, ABC):
         # it may already exist for some vendors
         pass
 
-    @requires_connection
+    @requires_connection(verify=False)
     def _initialize_database(
         self,
         keys: Sequence[str],
@@ -187,9 +188,10 @@ class RelationalDriver(RasterDriver, ABC):
         _ = sqla.Table(
             'metadata', self.sqla_metadata,
             *[sqla.Column(key, sqla.types.String(self.SQL_KEY_SIZE), primary_key=True) for key in keys],  # noqa: E501
-            *self._METADATA_COLUMNS
+            *[sqla.Column(name, column_type()) for name, column_type in self._METADATA_COLUMNS]
         )
         self.sqla_metadata.create_all(self.sqla_engine)
+        self.connection.commit()
 
         self.connection.execute(
             terracotta_table.insert().values(version=terracotta.__version__)
