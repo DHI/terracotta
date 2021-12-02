@@ -1,24 +1,28 @@
-from abc import ABC, abstractmethod
-from collections import OrderedDict
 import contextlib
 import functools
 import json
 import re
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 import urllib.parse as urlparse
-import numpy as np
+from abc import ABC, abstractmethod
+from collections import OrderedDict
+from typing import (Any, Dict, Iterator, List, Mapping, Optional, Sequence,
+                    Tuple, Union)
 
+import numpy as np
 import sqlalchemy as sqla
+import terracotta
 from sqlalchemy.engine.base import Connection
 from terracotta import exceptions
-import terracotta
 from terracotta.drivers.base import requires_connection
 from terracotta.drivers.raster_base import RasterDriver
+from terracotta.profile import trace
 
 
 class RelationalDriver(RasterDriver, ABC):
+    # NOTE: `convert_exceptions` decorators are NOT added yet
 
-    SQL_DRIVER_TYPE: str  # The actual DB driver, eg pymysql, psycopg2, etc
+    SQL_DATABASE_SCHEME: str  # The database flavour, eg mysql, sqlite, etc
+    SQL_DRIVER_TYPE: str  # The actual database driver, eg pymysql, sqlite3, etc
     SQL_KEY_SIZE: int
 
     SQLA_REAL = functools.partial(sqla.types.Float, precision=8)
@@ -44,7 +48,8 @@ class RelationalDriver(RasterDriver, ABC):
         db_connection_timeout: int = settings.DB_CONNECTION_TIMEOUT
 
         assert self.SQL_DRIVER_TYPE is not None
-        cp = urlparse.urlparse(path)
+        self._CONNECTION_PARAMETERS = self._parse_connection_string(path)
+        cp = self._CONNECTION_PARAMETERS
         connection_string = f'{cp.scheme}+{self.SQL_DRIVER_TYPE}://{cp.netloc}{cp.path}'
 
         self.sqla_engine = sqla.create_engine(
@@ -64,9 +69,23 @@ class RelationalDriver(RasterDriver, ABC):
         # use normalized path to make sure username and password don't leak into __repr__
         qualified_path = self._normalize_path(path)
         super().__init__(qualified_path)
-    
+
+    @classmethod
+    def _parse_connection_string(cls, connection_string: str) -> urlparse.ParseResult:
+        con_params = urlparse.urlparse(connection_string)
+
+        if not con_params.hostname:
+            con_params = urlparse.urlparse(f'{cls.SQL_DATABASE_SCHEME}://{connection_string}')
+
+        assert con_params.hostname is not None
+
+        if con_params.scheme != cls.SQL_DATABASE_SCHEME:
+            raise ValueError(f'unsupported URL scheme "{con_params.scheme}"')
+
+        return con_params
+
     @contextlib.contextmanager
-    def connect(self) -> contextlib.AbstractContextManager:
+    def connect(self) -> Iterator:
         if not self.connected:
             with self.sqla_engine.connect() as connection:
                 self.connection = connection
@@ -83,7 +102,7 @@ class RelationalDriver(RasterDriver, ABC):
             # check for version compatibility
             def version_tuple(version_string: str) -> Sequence[str]:
                 return version_string.split('.')
-            
+
             db_version = self.db_version
             current_version = terracotta.__version__
 
@@ -94,11 +113,15 @@ class RelationalDriver(RasterDriver, ABC):
                 )
             self.db_version_verified = True
 
-    @property
+    @property  # type: ignore
     @requires_connection
     def db_version(self) -> str:
         """Terracotta version used to create the database"""
-        terracotta_table = sqla.Table('terracotta', self.sqla_metadata, autoload_with=self.sqla_engine)
+        terracotta_table = sqla.Table(
+            'terracotta',
+            self.sqla_metadata,
+            autoload_with=self.sqla_engine
+        )
         stmt = sqla.select(terracotta_table.c.version)
         version = self.connection.execute(stmt).scalar()
         return version
@@ -117,17 +140,21 @@ class RelationalDriver(RasterDriver, ABC):
 
         """
         self._create_database()
-        self._initialize_database()
+        self._initialize_database(keys, key_descriptions)
 
     @abstractmethod
-    def _create_database(self, database_name: str) -> None:
+    def _create_database(self) -> None:
         # This might be made abstract, for each subclass to implement specifically
         # Note that some subclasses may not actually create any database here, as
         # it may already exist for some vendors
         pass
 
     @requires_connection
-    def _initialize_database(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> None:
+    def _initialize_database(
+        self,
+        keys: Sequence[str],
+        key_descriptions: Mapping[str, str] = None
+    ) -> None:
         if key_descriptions is None:
             key_descriptions = {}
         else:
@@ -141,7 +168,7 @@ class RelationalDriver(RasterDriver, ABC):
 
         if any(key in self._RESERVED_KEYS for key in keys):
             raise exceptions.InvalidKeyError(f'key names cannot be one of {self._RESERVED_KEYS!s}')
-        
+
         terracotta_table = sqla.Table(
             'terracotta', self.sqla_metadata,
             sqla.Column('version', sqla.types.String(255), primary_key=True)
@@ -151,14 +178,15 @@ class RelationalDriver(RasterDriver, ABC):
             sqla.Column('key_name', sqla.types.String(self.SQL_KEY_SIZE), primary_key=True),
             sqla.Column('description', sqla.types.String(8000))
         )
-        datasets_table = sqla.Table(
+        _ = sqla.Table(
             'datasets', self.sqla_metadata,
-            *[sqla.Column(key, sqla.types.String(self.SQL_KEY_SIZE), primary_key=True) for key in keys],
+            *[
+                sqla.Column(key, sqla.types.String(self.SQL_KEY_SIZE), primary_key=True) for key in keys],  # noqa: E501
             sqla.Column('filepath', sqla.types.String(8000))
         )
-        metadata_table = sqla.Table(
+        _ = sqla.Table(
             'metadata', self.sqla_metadata,
-            *[sqla.Column(key, sqla.types.String(self.SQL_KEY_SIZE), primary_key=True) for key in keys],
+            *[sqla.Column(key, sqla.types.String(self.SQL_KEY_SIZE), primary_key=True) for key in keys],  # noqa: E501
             *self._METADATA_COLUMNS
         )
         self.sqla_metadata.create_all(self.sqla_engine)
@@ -171,7 +199,7 @@ class RelationalDriver(RasterDriver, ABC):
             [dict(key_name=key, description=key_descriptions.get(key, '')) for key in keys]
         )
         self.connection.commit()
-        
+
         # invalidate key cache  # TODO: Is that actually necessary?
         self._db_keys = None
 
@@ -182,42 +210,53 @@ class RelationalDriver(RasterDriver, ABC):
         return OrderedDict(result.all())
 
     @property
-    def key_names(self) -> Tuple[str]:
+    def key_names(self) -> Tuple[str, ...]:
         """Names of all keys defined by the database"""
         if self._db_keys is None:
             self._db_keys = self.get_keys()
         return tuple(self._db_keys.keys())
 
+    @trace('get_datasets')
     @requires_connection
-    def get_datasets(self, where: Mapping[str, Union[str, List[str]]] = None, page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
+    def get_datasets(
+        self,
+        where: Mapping[str, Union[str, List[str]]] = None,
+        page: int = 0,
+        limit: int = None
+    ) -> Dict[Tuple[str, ...], str]:
         # Ensure standardized structure of where items
         if where is None:
             where = {}
+        else:
+            where = dict(where)
         for key, value in where.items():
             if not isinstance(value, list):
                 where[key] = [value]
 
         datasets_table = sqla.Table('datasets', self.sqla_metadata, autoload_with=self.sqla_engine)
-        stmt = datasets_table \
-                .select() \
-                .where(*
-                    [
-                        sqla.or_(*[datasets_table.c.get(column) == value for value in values])
-                        for column, values in where.items()
-                    ]
-                ) \
-                .order_by(*datasets_table.c.values()) \
-                .limit(limit) \
-                .offset(page * limit if limit is not None else None)
+        stmt = (
+            datasets_table
+            .select()
+            .where(
+                *[
+                    sqla.or_(*[datasets_table.c.get(column) == value for value in values])
+                    for column, values in where.items()
+                ]
+            )
+            .order_by(*datasets_table.c.values())
+            .limit(limit)
+            .offset(page * limit if limit is not None else None)
+        )
 
         result = self.connection.execute(stmt)
-        
+
         def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
-        
+
         datasets = {keytuple(row): row['filepath'] for row in result}
         return datasets
-    
+
+    @trace('get_metadata')
     @requires_connection
     def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
         keys = tuple(self._key_dict_to_sequence(keys))
@@ -225,19 +264,21 @@ class RelationalDriver(RasterDriver, ABC):
             raise exceptions.InvalidKeyError(
                 f'Got wrong number of keys (available keys: {self.key_names})'
             )
-        
+
         metadata_table = sqla.Table('metadata', self.sqla_metadata, autoload_with=self.sqla_engine)
-        stmt = metadata_table \
-                .select() \
-                .where(*
-                    [
-                        metadata_table.c.get(key) == value
-                        for key, value in zip(self.key_names, keys)
-                    ]
-                )
-                
+        stmt = (
+            metadata_table
+            .select()
+            .where(
+                *[
+                    metadata_table.c.get(key) == value
+                    for key, value in zip(self.key_names, keys)
+                ]
+            )
+        )
+
         row = self.connection.execute(stmt).first()
-        
+
         if not row:  # support lazy loading
             filepath = self.get_datasets(dict(zip(self.key_names, keys)))
             if not filepath:
@@ -247,13 +288,14 @@ class RelationalDriver(RasterDriver, ABC):
             # compute metadata and try again
             self.insert(keys, filepath[keys], skip_metadata=False)
             row = self.connection.execute(stmt).first()
-        
+
         assert row
 
         data_columns, _ = zip(*self._METADATA_COLUMNS)
         encoded_data = {col: row[col] for col in self.key_names + data_columns}
         return self._decode_data(encoded_data)
 
+    @trace('insert')
     @requires_connection
     def insert(
         self,
@@ -267,47 +309,70 @@ class RelationalDriver(RasterDriver, ABC):
             raise exceptions.InvalidKeyError(
                 f'Got wrong number of keys (available keys: {self.key_names})'
             )
-        
+
         if override_path is None:
             override_path = filepath
-        
+
         keys = self._key_dict_to_sequence(keys)
         key_dict = dict(zip(self.key_names, keys))
 
         datasets_table = sqla.Table('datasets', self.sqla_metadata, autoload_with=self.sqla_engine)
         metadata_table = sqla.Table('metadata', self.sqla_metadata, autoload_with=self.sqla_engine)
 
-        self.connection.execute(datasets_table.delete().where(*[datasets_table.c.get(column) == value for column, value in key_dict.items()]))
-        self.connection.execute(datasets_table.insert().values(**key_dict, filepath=override_path))
+        self.connection.execute(
+            datasets_table
+            .delete()
+            .where(*[datasets_table.c.get(column) == value for column, value in key_dict.items()])
+        )
+        self.connection.execute(
+            datasets_table.insert().values(**key_dict, filepath=override_path)
+        )
 
         if metadata is None and not skip_metadata:
             metadata = self.compute_metadata(filepath)
 
         if metadata is not None:
             encoded_data = self._encode_data(metadata)
-            self.connection.execute(metadata_table.delete().where(*[metadata_table.c.get(column) == value for column, value in key_dict.items()]))
-            self.connection.execute(metadata_table.insert().values(**key_dict, **encoded_data))
-        
+            self.connection.execute(
+                metadata_table
+                .delete()
+                .where(
+                    *[metadata_table.c.get(column) == value for column, value in key_dict.items()]
+                )
+            )
+            self.connection.execute(
+                metadata_table.insert().values(**key_dict, **encoded_data)
+            )
+
         self.connection.commit()
 
+    @trace('delete')
     @requires_connection
-    def delete(self, keys: Union[Sequence[str], Mapping[str, str]], silent=False) -> None:
+    def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
         if len(keys) != len(self.key_names):
             raise exceptions.InvalidKeyError(
                 f'Got wrong number of keys (available keys: {self.key_names})'
             )
-        
+
         keys = self._key_dict_to_sequence(keys)
         key_dict = dict(zip(self.key_names, keys))
 
         if not self.get_datasets(key_dict):
             raise exceptions.DatasetNotFoundError(f'No dataset found with keys {keys}')
-        
+
         datasets_table = sqla.Table('datasets', self.sqla_metadata, autoload_with=self.sqla_engine)
         metadata_table = sqla.Table('metadata', self.sqla_metadata, autoload_with=self.sqla_engine)
 
-        self.connection.execute(datasets_table.delete().where(*[datasets_table.c.get(column) == value for column, value in key_dict.items()]))
-        self.connection.execute(metadata_table.delete().where(*[metadata_table.c.get(column) == value for column, value in key_dict.items()]))
+        self.connection.execute(
+            datasets_table
+            .delete()
+            .where(*[datasets_table.c.get(column) == value for column, value in key_dict.items()])
+        )
+        self.connection.execute(
+            metadata_table
+            .delete()
+            .where(*[metadata_table.c.get(column) == value for column, value in key_dict.items()])
+        )
         self.connection.commit()
 
     @staticmethod
