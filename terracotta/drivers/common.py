@@ -19,6 +19,7 @@ from terracotta.drivers.raster_base import RasterDriver
 class RelationalDriver(RasterDriver, ABC):
 
     SQL_DRIVER_TYPE: str  # The actual DB driver, eg pymysql, psycopg2, etc
+    SQL_KEY_SIZE: int
 
     SQLA_REAL = functools.partial(sqla.types.Float, precision=8)
     SQLA_TEXT = sqla.types.Text
@@ -147,17 +148,17 @@ class RelationalDriver(RasterDriver, ABC):
         )
         key_names_table = sqla.Table(
             'key_names', self.sqla_metadata,
-            sqla.Column('key_name', sqla.types.String, primary_key=True),
+            sqla.Column('key_name', sqla.types.String(self.SQL_KEY_SIZE), primary_key=True),
             sqla.Column('description', sqla.types.String(8000))
         )
         datasets_table = sqla.Table(
             'datasets', self.sqla_metadata,
-            *[sqla.Column(key, sqla.types.String, primary_key=True) for key in keys],
+            *[sqla.Column(key, sqla.types.String(self.SQL_KEY_SIZE), primary_key=True) for key in keys],
             sqla.Column('filepath', sqla.types.String(8000))
         )
         metadata_table = sqla.Table(
             'metadata', self.sqla_metadata,
-            *[sqla.Column(key, sqla.types.String, primary_key=True) for key in keys],
+            *[sqla.Column(key, sqla.types.String(self.SQL_KEY_SIZE), primary_key=True) for key in keys],
             *self._METADATA_COLUMNS
         )
         self.sqla_metadata.create_all(self.sqla_engine)
