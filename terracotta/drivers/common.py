@@ -177,7 +177,8 @@ class RelationalDriver(RasterDriver, ABC):
         key_names_table = sqla.Table(
             'key_names', self.sqla_metadata,
             sqla.Column('key_name', sqla.types.String(self.SQL_KEY_SIZE), primary_key=True),
-            sqla.Column('description', sqla.types.String(8000))
+            sqla.Column('description', sqla.types.String(8000)),
+            sqla.Column('index', sqla.types.Integer, unique=True)
         )
         _ = sqla.Table(
             'datasets', self.sqla_metadata,
@@ -198,7 +199,7 @@ class RelationalDriver(RasterDriver, ABC):
         )
         self.connection.execute(
             key_names_table.insert(),
-            [dict(key_name=key, description=key_descriptions.get(key, '')) for key in keys]
+            [dict(key_name=key, description=key_descriptions.get(key, ''), index=i) for i, key in enumerate(keys)]
         )
         self.connection.commit()
 
@@ -208,7 +209,12 @@ class RelationalDriver(RasterDriver, ABC):
     @requires_connection
     def get_keys(self) -> OrderedDict:
         keys_table = sqla.Table('key_names', self.sqla_metadata, autoload_with=self.sqla_engine)
-        result = self.connection.execute(keys_table.select())
+        result = self.connection.execute(
+            sqla.select(
+                keys_table.c.get('key_name'),
+                keys_table.c.get('description')
+            )
+            .order_by(keys_table.c.get('index')))
         return OrderedDict(result.all())
 
     @property
