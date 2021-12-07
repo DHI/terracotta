@@ -403,7 +403,7 @@ class RelationalDriver(RasterDriver, ABC):
                 metadata_table.insert().values(**key_dict, **encoded_data)
             )
 
-        self.connection.commit()
+        # self.connection.commit()
 
     @trace('delete')
     @requires_connection
