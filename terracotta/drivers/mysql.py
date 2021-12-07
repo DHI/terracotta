@@ -8,6 +8,7 @@ import contextlib
 import urllib.parse as urlparse
 from typing import Iterator, TypeVar
 from urllib.parse import ParseResult
+import pymysql
 
 import sqlalchemy as sqla
 from terracotta import exceptions

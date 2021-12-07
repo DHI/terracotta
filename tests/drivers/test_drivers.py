@@ -140,6 +140,7 @@ def test_connect_before_create(driver_path, provider):
 
     with pytest.raises(exceptions.InvalidDatabaseError) as exc:
         with db.connect():
+            import ipdb; ipdb.set_trace()
             pass
 
     assert 'ran driver.create()' in str(exc.value)
@@ -163,10 +164,10 @@ def test_broken_connection(driver_path, provider):
 
     with pytest.raises(RuntimeError):
         with db.connect():
-            db._connection = Evanescence()
+            db.connection = Evanescence()
             db.get_keys()
 
-    assert not db._connected
+    assert not db.connected
 
     with db.connect():
         db.get_keys()
@@ -207,8 +208,8 @@ def test_version_conflict(driver_path, provider, raster_file, monkeypatch):
 
     with monkeypatch.context() as m:
         fake_version = '0.0.0'
-        m.setattr(f'{db.__module__}.__version__', fake_version)
-        db._version_checked = False
+        m.setattr(f'terracotta.__version__', fake_version)
+        db.db_version_verified = False
 
         with pytest.raises(exceptions.InvalidDatabaseError) as exc:
             with db.connect():
