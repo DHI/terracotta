@@ -1,32 +1,13 @@
-"""drivers/sqlite.py
+"""drivers/mysql.py
 
 MySQL-backed raster driver. Metadata is stored in a MySQL database, raster data is assumed
 to be present on disk.
 """
 
-import contextlib
-import urllib.parse as urlparse
-from typing import Iterator, TypeVar
 from urllib.parse import ParseResult
-import pymysql
 
 import sqlalchemy as sqla
-from terracotta import exceptions
 from terracotta.drivers.common import RelationalDriver
-
-T = TypeVar('T')
-
-DEFAULT_PORT = 3306
-
-
-@contextlib.contextmanager
-def convert_exceptions(msg: str) -> Iterator:
-    """Convert internal mysql exceptions to our InvalidDatabaseError"""
-    from pymysql import InternalError, OperationalError, ProgrammingError
-    try:
-        yield
-    except (OperationalError, InternalError, ProgrammingError) as exc:
-        raise exceptions.InvalidDatabaseError(msg) from exc
 
 
 class MySQLDriver(RelationalDriver):
@@ -49,7 +30,8 @@ class MySQLDriver(RelationalDriver):
     SQL_DATABASE_SCHEME = 'mysql'
     SQL_DRIVER_TYPE = 'pymysql'
     SQL_KEY_SIZE = 50
-    _CHARSET: str = 'utf8mb4'
+
+    DEFAULT_PORT = 3306
 
     def __init__(self, mysql_path: str) -> None:
         """Initialize the MySQLDriver.
@@ -67,12 +49,9 @@ class MySQLDriver(RelationalDriver):
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:
-        parts = urlparse.urlparse(path)
+        parts = cls._parse_connection_string(path)
 
-        if not parts.hostname:
-            parts = urlparse.urlparse(f'mysql://{path}')
-
-        path = f'{parts.scheme}://{parts.hostname}:{parts.port or DEFAULT_PORT}{parts.path}'
+        path = f'{parts.scheme}://{parts.hostname}:{parts.port or cls.DEFAULT_PORT}{parts.path}'
         path = path.rstrip('/')
         return path
 
