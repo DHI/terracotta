@@ -104,10 +104,8 @@ class RelationalDriver(RasterDriver, ABC):
     def _parse_connection_string(cls, connection_string: str) -> urlparse.ParseResult:
         con_params = urlparse.urlparse(connection_string)
 
-        if not con_params.hostname:
+        if not con_params.scheme:
             con_params = urlparse.urlparse(f'{cls.SQL_DATABASE_SCHEME}://{connection_string}')
-
-        assert con_params.hostname is not None
 
         if con_params.scheme != cls.SQL_DATABASE_SCHEME:
             raise ValueError(f'unsupported URL scheme "{con_params.scheme}"')
