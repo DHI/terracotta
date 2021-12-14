@@ -5,7 +5,7 @@ import re
 import urllib.parse as urlparse
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import (Any, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence,
+from typing import (Any, Dict, Iterator, List, Mapping, Optional, Sequence,
                     Tuple, Type, Union)
 
 import numpy as np
@@ -16,7 +16,6 @@ from terracotta import exceptions
 from terracotta.drivers.base import requires_connection
 from terracotta.drivers.raster_base import RasterDriver
 from terracotta.profile import trace
-
 
 _ERROR_ON_CONNECT = (
     'Could not connect to database. Make sure that the given path points '
@@ -43,8 +42,6 @@ def convert_exceptions_context(error_message, exceptions_to_convert):
 
 
 class RelationalDriver(RasterDriver, ABC):
-    # NOTE: `convert_exceptions` decorators are NOT added yet
-
     SQL_DATABASE_SCHEME: str  # The database flavour, eg mysql, sqlite, etc
     SQL_DRIVER_TYPE: str  # The actual database driver, eg pymysql, sqlite3, etc
     SQL_KEY_SIZE: int
@@ -52,7 +49,8 @@ class RelationalDriver(RasterDriver, ABC):
     DATABASE_DRIVER_EXCEPTIONS_TO_CONVERT: Tuple[Type[Exception]] = (
         sqla.exc.OperationalError,
         sqla.exc.InternalError,
-        sqla.exc.ProgrammingError
+        sqla.exc.ProgrammingError,
+        sqla.exc.InvalidRequestError,
     )
 
     SQLA_REAL = functools.partial(sqla.types.Float, precision=8)
