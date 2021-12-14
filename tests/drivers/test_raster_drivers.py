@@ -275,7 +275,6 @@ def test_multiprocess_insertion(driver_path, provider, raster_file):
             pass
 
     datasets = db.get_datasets()
-    print(sorted((k[0] for k in datasets.keys())))
     assert all((key,) in datasets for key in key_vals)
 
     data1 = db.get_metadata(['77'])
