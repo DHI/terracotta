@@ -79,7 +79,7 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          if [ ${{ runner.os }} == "Linux" ] then
+          if [ ${{ runner.os }} == "Linux" ]; then
             MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.DB_PORT }}/${{ env.DB_DATABASE }}"
             python -m pytest --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV
           else
