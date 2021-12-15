@@ -31,7 +31,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         # only test oldest and most recent supported Python versions
-        python-version: ["3.6", "3.10"]
+        python-version: ["3.6", "3.9"]
 
     steps:
       - uses: actions/checkout@v2
@@ -55,9 +55,12 @@ jobs:
 
       - name: Setup Python environment
         run: |
-          pip install wheel cython
+          python -m pip install --upgrade pip
+          pip install -U setuptools wheel
+          pip install cython
 
       - name: Setup MySQL
+        if: ${{ runner.os == "Linux" }}
         uses: mirromutth/mysql-action@v1.1
         with:
           # host port: 3800 # Optional, default value is 3306. The port of host
@@ -75,10 +78,15 @@ jobs:
           pip freeze
 
       - name: Run tests
+        shell: bash
         run: |
-          MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.DB_PORT }}/${{ env.DB_DATABASE }}"
-          echo $MYSQL_SRV
-          python -m pytest --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV
+          if [ ${{ runner.os }} == "Linux" ] then
+            MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.DB_PORT }}/${{ env.DB_DATABASE }}"
+            python -m pytest --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV
+          else
+            python -m pytest --color=yes --cov=terracotta
+          fi
+
           python -m pytest --color=yes tests/benchmarks.py
 
       - name: Upload coverage
