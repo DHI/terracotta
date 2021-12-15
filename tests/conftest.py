@@ -407,8 +407,8 @@ def driver_path(provider, tmpdir, mysql_server):
 
         import pymysql
         try:
-            with pymysql.connect(con_info.hostname, user=con_info.username,
-                                 password=con_info.password) as con:
+            with pymysql.connect(host=con_info.hostname, user=con_info.username,
+                                 password=con_info.password):
                 pass
         except pymysql.OperationalError as exc:
             raise RuntimeError('error connecting to MySQL server') from exc
@@ -417,12 +417,13 @@ def driver_path(provider, tmpdir, mysql_server):
             yield f'{mysql_server}/{dbpath}'
 
         finally:  # cleanup
-            with pymysql.connect(con_info.hostname, user=con_info.username,
-                                 password=con_info.password) as con:
-                try:
-                    con.execute(f'DROP DATABASE IF EXISTS {dbpath}')
-                except pymysql.Warning:
-                    pass
+            with pymysql.connect(host=con_info.hostname, user=con_info.username,
+                                 password=con_info.password) as connection:
+                with connection.cursor() as cursor:
+                    try:
+                        cursor.execute(f'DROP DATABASE IF EXISTS {dbpath}')
+                    except pymysql.Warning:
+                        pass
 
     else:
         return NotImplementedError(f'unknown provider {provider}')

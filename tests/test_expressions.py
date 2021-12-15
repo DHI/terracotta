@@ -7,8 +7,8 @@ import numpy as np
 
 
 OPERANDS = {
-    'v1': np.random.rand(5),
-    'v2': 2 * np.random.rand(5)
+    'v1': np.ma.masked_array(np.arange(1, 6), dtype='float64'),
+    'v2': np.ma.masked_array(2 * np.arange(1, 6), dtype='float64', mask=np.array([1, 1, 1, 0, 0])),
 }
 
 
@@ -85,6 +85,23 @@ VALID_EXPR = (
     # trigonometry
     (
         'sin(pi * v1)', np.sin(np.pi * OPERANDS['v1'])
+    ),
+
+    # mask operations
+    (
+        'setmask(v1, getmask(v2))', np.ma.masked_array(OPERANDS['v1'], mask=OPERANDS['v2'].mask)
+    ),
+
+    (
+        'setmask(v2, nomask)', np.ma.masked_array(OPERANDS['v2'], mask=np.ma.nomask)
+    ),
+
+    (  # replaces mask
+        'setmask(v2, ~getmask(v2))', np.ma.masked_array(OPERANDS['v2'], mask=~OPERANDS['v2'].mask)
+    ),
+
+    (  # adds to mask
+        'masked_where(~getmask(v2), v2)', np.ma.masked_array(OPERANDS['v2'], mask=True)
     ),
 
     # long expression
@@ -226,3 +243,22 @@ def test_timeout():
         evaluate_expression('+'.join(['v1'] * 10), {'v1': np.ones((256, 256))}, timeout=0)
 
     assert 'timeout' in str(raised_exc.value)
+
+
+def test_mask_invalid():
+    from terracotta.expressions import evaluate_expression
+    res = evaluate_expression('where(v1 + v2 < 10, nan, 0)', OPERANDS)
+    mask = (OPERANDS['v1'] + OPERANDS['v2'] < 10) | OPERANDS['v1'].mask | OPERANDS['v2'].mask
+
+    assert isinstance(res, np.ma.MaskedArray)
+    assert np.all(res == 0)
+    assert np.array_equal(res.mask, mask)
+
+
+def test_out_dtype():
+    from terracotta.expressions import evaluate_expression
+    operands = dict(v1=np.ones(10, dtype='int64'), v2=np.zeros(10, dtype='int32'))
+    res = evaluate_expression('v1 + v2', operands)
+
+    assert isinstance(res, np.ma.MaskedArray)
+    assert res.dtype == np.dtype('int64')

@@ -3,10 +3,12 @@
 Flask route to handle /datasets calls.
 """
 
-from flask import request, jsonify
-from marshmallow import Schema, fields, validate, INCLUDE
+from typing import Any, Dict, List, Union
+from flask import request, jsonify, Response
+from marshmallow import Schema, fields, validate, INCLUDE, post_load
+import re
 
-from terracotta.server.flask_api import convert_exceptions, METADATA_API
+from terracotta.server.flask_api import METADATA_API
 
 
 class DatasetOptionSchema(Schema):
@@ -26,6 +28,14 @@ class DatasetOptionSchema(Schema):
         missing=0, description='Current dataset page', validate=validate.Range(min=0)
     )
 
+    @post_load
+    def list_items(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Union[str, List[str]]]:
+        # Create lists of values supplied as stringified lists
+        for key, value in data.items():
+            if isinstance(value, str) and re.match(r'^\[.*\]$', value):
+                data[key] = value[1:-1].split(',')
+        return data
+
 
 class DatasetSchema(Schema):
     class Meta:
@@ -42,8 +52,7 @@ class DatasetSchema(Schema):
 
 
 @METADATA_API.route('/datasets', methods=['GET'])
-@convert_exceptions
-def get_datasets() -> str:
+def get_datasets() -> Response:
     """Get all available key combinations
     ---
     get:

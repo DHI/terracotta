@@ -1,0 +1,37 @@
+name: Build client app
+
+on:
+  pull_request:
+    paths:
+      - "terracotta/client/app/**"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "terracotta/client/app/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12
+
+      - name: Build app
+        run: |
+          pushd terracotta/client/app
+          yarn install --frozen-lockfile
+          yarn build
+          popd
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v4.9.0
+        with:
+          commit_message: "[skip ci] Commit latest build"

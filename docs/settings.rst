@@ -73,7 +73,7 @@ endpoints individually with the settings :attr:`~terracotta.config.TerracottaSet
 
 .. code-block:: bash
 
-   $ export TC_ALLOWED_ORIGINS_METADATA="['*']"
+   $ export TC_ALLOWED_ORIGINS_METADATA='["*"]'
    $ export TC_ALLOWED_ORIGINS_TILES="[]"
 
 The above settings are the defaults when you omit these settings (allow all origins for metadata, and no origins for tiles).

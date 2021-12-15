@@ -80,8 +80,7 @@ interactively:
 
    $ terracotta connect localhost:5000
 
-If you did everything correctly, a new window should open in your browser,
-showing something :doc:`similar to this <preview-app>`.
+If you did everything correctly, a new window should open in your browser that lets you explore the dataset.
 
 .. _ingestion:
 

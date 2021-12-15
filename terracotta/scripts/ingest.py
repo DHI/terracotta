@@ -25,12 +25,15 @@ logger = logging.getLogger(__name__)
                    '(will be computed on first request instead)')
 @click.option('--rgb-key', default=None,
               help='Key to use for RGB compositing [default: last key in pattern]')
+@click.option('--skip-existing', is_flag=True, default=False,
+              help='Skip existing datasets by key')
 @click.option('-q', '--quiet', is_flag=True, default=False, show_default=True,
               help='Suppress all output to stdout')
 def ingest(raster_pattern: RasterPatternType,
            output_file: Path,
            skip_metadata: bool = False,
            rgb_key: str = None,
+           skip_existing: bool = False,
            quiet: bool = False) -> None:
     """Ingest a collection of raster files into a (new or existing) SQLite database.
 
@@ -42,7 +45,7 @@ def ingest(raster_pattern: RasterPatternType,
 
     The empty group {} is replaced by a wildcard matching anything (similar to * in glob patterns).
 
-    Existing datasets are silently overwritten.
+    Existing datasets are silently overwritten, unless you set --skip-existing.
 
     This command only supports the creation of a simple, local SQLite database without any
     additional metadata. For more sophisticated use cases use the Terracotta Python API.
@@ -68,6 +71,10 @@ def ingest(raster_pattern: RasterPatternType,
 
     if not output_file.is_file():
         driver.create(keys)
+
+    if skip_existing:
+        existing = driver.get_datasets()
+        raster_files = {key: path for key, path in raster_files.items() if key not in existing}
 
     if tuple(keys) != driver.key_names:
         click.echo(

@@ -58,7 +58,7 @@ TEST_CASES = (
         'input_pattern': '{bärbel}.tif',
         'expected_keys': ['bärbel'],
         'expected_datasets': [('günther',)]
-    }
+    },
 )
 
 INVALID_TEST_CASES = (
@@ -150,6 +150,56 @@ def test_ingest_append(raster_file, tmpworkdir):
     driver = get_driver(str(outfile), provider='sqlite')
     assert driver.key_names == ('name',)
     assert all((ds,) in driver.get_datasets() for ds in ('img1', 'img2'))
+
+
+@pytest.mark.parametrize('skip_existing', [True, False])
+def test_reingest(skip_existing, raster_file, tmpworkdir):
+    from terracotta.scripts import cli
+    from terracotta import get_driver
+
+    same_name = 'myimage'
+    infiles = [
+        tmpworkdir / p
+        for p in [f'dir1/{same_name}.tif', f'dir2/{same_name}.tif', f'dir3/{same_name}.tif']
+    ]
+    for temp_infile in infiles:
+        os.makedirs(temp_infile.dirpath(), exist_ok=True)
+        shutil.copy(raster_file, temp_infile)
+
+    outfile = tmpworkdir / 'out.sqlite'
+
+    def _assert_datasets_equal(datasets):
+        assert outfile.check()
+        driver = get_driver(str(outfile), provider='sqlite')
+        existing_datasets = driver.get_datasets()
+        assert len(existing_datasets) == 1
+        assert existing_datasets == datasets
+
+    runner = CliRunner()
+    args = ['ingest', 'dir1/{name}.tif', '-o', str(outfile)]
+    result = runner.invoke(cli.cli, args)
+    assert result.exit_code == 0
+    _assert_datasets_equal({(same_name,): str(infiles[0])})
+
+    args = ['ingest', 'dir2/{name}.tif', '-o', str(outfile)]
+    if skip_existing:
+        args.append("--skip-existing")
+    result = runner.invoke(cli.cli, args)
+    assert result.exit_code == 0
+    if skip_existing:
+        _assert_datasets_equal({(same_name,): str(infiles[0])})
+    else:
+        _assert_datasets_equal({(same_name,): str(infiles[1])})
+
+    args = ['ingest', 'dir3/{name}.tif', '-o', str(outfile)]
+    if skip_existing:
+        args.append("--skip-existing")
+    result = runner.invoke(cli.cli, args)
+    assert result.exit_code == 0
+    if skip_existing:
+        _assert_datasets_equal({(same_name,): str(infiles[0])})
+    else:
+        _assert_datasets_equal({(same_name,): str(infiles[2])})
 
 
 def test_ingest_append_invalid(raster_file, tmpworkdir):

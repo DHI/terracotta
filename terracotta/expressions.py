@@ -12,8 +12,24 @@ import numpy as np
 
 
 EXTRA_CALLABLES = {
-    # name: (callable, nargs)
-    'where': (np.where, 3),
+    # 'name': (callable, nargs)
+
+    # mask operations
+    'where': (np.ma.where, 3),
+    'getmask': (np.ma.getmaskarray, 1),
+    'setmask': (lambda arr, mask: np.ma.masked_array(arr, mask=mask), 2),
+    'masked_equal': (np.ma.masked_equal, 2),
+    'masked_greater': (np.ma.masked_greater, 2),
+    'masked_greater_equal': (np.ma.masked_greater_equal, 2),
+    'masked_inside': (np.ma.masked_inside, 3),
+    'masked_invalid': (np.ma.masked_invalid, 1),
+    'masked_less': (np.ma.masked_less, 2),
+    'masked_less_equal': (np.ma.masked_less_equal, 2),
+    'masked_not_equal': (np.ma.masked_not_equal, 2),
+    'masked_outside': (np.ma.masked_outside, 3),
+    'masked_where': (np.ma.masked_where, 2),
+
+    # math
     'minimum': (np.minimum, 2),
     'maximum': (np.maximum, 2),
     'abs': (np.abs, 1),
@@ -37,7 +53,10 @@ EXTRA_CALLABLES = {
 }
 
 EXTRA_CONSTANTS = {
-    'pi': np.pi
+    'pi': np.pi,
+    'nan': np.nan,
+    'inf': np.inf,
+    'nomask': np.ma.nomask,
 }
 
 
@@ -172,5 +191,8 @@ def evaluate_expression(expr: str,
 
     if not isinstance(result, np.ndarray):
         raise ValueError('expression does not return an array')
+
+    # mask inf and nan values
+    result = np.ma.masked_invalid(result)
 
     return result

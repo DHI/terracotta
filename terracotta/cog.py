@@ -66,10 +66,9 @@ def check_raster_file(src_path: str) -> ValidationInfo:  # pragma: no cover
 
             ifd_offset = int(src.get_tag_item('IFD_OFFSET', 'TIFF', bidx=1))
             ifd_offsets = [ifd_offset]
-            if ifd_offset not in (8, 16):
+            if ifd_offset > 300:
                 errors.append(
-                    'The offset of the main IFD should be 8 for ClassicTIFF '
-                    'or 16 for BigTIFF. It is {} instead'.format(ifd_offset)
+                    f'The offset of the main IFD should be < 300. It is {ifd_offset} instead'
                 )
 
             details['ifd_offsets'] = {}

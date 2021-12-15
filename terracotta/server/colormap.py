@@ -6,10 +6,10 @@ Flask route to handle /colormap calls.
 from typing import Any, Mapping, Dict
 import json
 
-from flask import jsonify, request
+from flask import jsonify, request, Response
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 
-from terracotta.server.flask_api import convert_exceptions, METADATA_API
+from terracotta.server.flask_api import METADATA_API
 from terracotta.cmaps import AVAILABLE_CMAPS
 
 
@@ -52,8 +52,7 @@ class ColormapOptionSchema(Schema):
 
 
 @METADATA_API.route('/colormap', methods=['GET'])
-@convert_exceptions
-def get_colormap() -> str:
+def get_colormap() -> Response:
     """Get a colormap mapping pixel values to colors
     ---
     get:

@@ -1,5 +1,4 @@
-from typing import Callable, Any
-import functools
+from typing import Any, cast, Callable, Type, TYPE_CHECKING
 import copy
 
 from apispec import APISpec
@@ -12,7 +11,6 @@ from flask_cors import CORS
 import marshmallow
 
 from terracotta import exceptions, __version__
-
 
 # define blueprints, will be populated by submodules
 TILE_API = Blueprint('tile_api', 'terracotta.server')
@@ -34,40 +32,51 @@ SPEC = APISpec(
 )
 
 
-def abort(status_code: int, message: str = '') -> Any:
+def _abort(status_code: int, message: str = '') -> Any:
     response = jsonify({'message': message})
     response.status_code = status_code
     return response
 
 
-def convert_exceptions(fun: Callable) -> Callable:
-    """Converts internal exceptions to appropriate HTTP responses"""
+def _setup_error_handlers(app: Flask) -> None:
+    def register_error_handler(exc: Type[Exception], func: Callable[[Exception], Any]) -> None:
+        if TYPE_CHECKING:  # pragma: no cover
+            # Flask defines this type only during type checking
+            from flask.typing import ErrorHandlerCallable
+            func = cast(ErrorHandlerCallable, func)
 
-    @functools.wraps(fun)
-    def inner(*args: Any, **kwargs: Any) -> Any:
-        try:
-            return fun(*args, **kwargs)
+        app.register_error_handler(exc, func)
 
-        except exceptions.TileOutOfBoundsError:
-            # send empty image
-            from terracotta import get_settings, image
-            settings = get_settings()
-            return send_file(image.empty_image(settings.DEFAULT_TILE_SIZE), mimetype='image/png')
+    def handle_tile_out_of_bounds_error(exc: Exception) -> Any:
+        # send empty image
+        from terracotta import get_settings, image
+        settings = get_settings()
+        return send_file(image.empty_image(settings.DEFAULT_TILE_SIZE), mimetype='image/png')
 
-        except exceptions.DatasetNotFoundError as exc:
-            # wrong path -> 404
-            if current_app.debug:
-                raise
-            return abort(404, str(exc))
+    register_error_handler(exceptions.TileOutOfBoundsError, handle_tile_out_of_bounds_error)
 
-        except (exceptions.InvalidArgumentsError, exceptions.InvalidKeyError,
-                marshmallow.ValidationError) as exc:
-            # wrong query arguments -> 400
-            if current_app.debug:
-                raise
-            return abort(400, str(exc))
+    def handle_dataset_not_found_error(exc: Exception) -> Any:
+        # wrong path -> 404
+        if current_app.debug:
+            raise exc
+        return _abort(404, str(exc))
 
-    return inner
+    register_error_handler(exceptions.DatasetNotFoundError, handle_dataset_not_found_error)
+
+    def handle_marshmallow_validation_error(exc: Exception) -> Any:
+        # wrong query arguments -> 400
+        if current_app.debug:
+            raise exc
+        return _abort(400, str(exc))
+
+    validation_errors = (
+        exceptions.InvalidArgumentsError,
+        exceptions.InvalidKeyError,
+        marshmallow.ValidationError
+    )
+
+    for err in validation_errors:
+        register_error_handler(err, handle_marshmallow_validation_error)
 
 
 def create_app(debug: bool = False, profile: bool = False) -> Flask:
@@ -123,5 +132,7 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
             'wsgi_app',
             ProfilerMiddleware(new_app.wsgi_app, restrictions=[30])
         )
+
+    _setup_error_handlers(new_app)
 
     return new_app

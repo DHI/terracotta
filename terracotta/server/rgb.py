@@ -7,9 +7,9 @@ from typing import Any, Mapping, Dict, Tuple
 import json
 
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
-from flask import request, send_file
+from flask import request, send_file, Response
 
-from terracotta.server.flask_api import convert_exceptions, TILE_API
+from terracotta.server.flask_api import TILE_API
 
 
 class RGBQuerySchema(Schema):
@@ -58,8 +58,7 @@ class RGBOptionSchema(Schema):
 
 @TILE_API.route('/rgb/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
 @TILE_API.route('/rgb/<path:keys>/<int:tile_z>/<int:tile_x>/<int:tile_y>.png', methods=['GET'])
-@convert_exceptions
-def get_rgb(tile_z: int, tile_y: int, tile_x: int, keys: str = '') -> Any:
+def get_rgb(tile_z: int, tile_y: int, tile_x: int, keys: str = '') -> Response:
     """Return the requested RGB tile as a PNG image.
     ---
     get:
@@ -91,8 +90,7 @@ class RGBPreviewQuerySchema(Schema):
 
 @TILE_API.route('/rgb/preview.png', methods=['GET'])
 @TILE_API.route('/rgb/<path:keys>/preview.png', methods=['GET'])
-@convert_exceptions
-def get_rgb_preview(keys: str = '') -> Any:
+def get_rgb_preview(keys: str = '') -> Response:
     """Return the requested RGB dataset preview as a PNG image.
     ---
     get:
@@ -117,7 +115,7 @@ def get_rgb_preview(keys: str = '') -> Any:
     return _get_rgb_image(keys)
 
 
-def _get_rgb_image(keys: str, tile_xyz: Tuple[int, int, int] = None) -> Any:
+def _get_rgb_image(keys: str, tile_xyz: Tuple[int, int, int] = None) -> Response:
     from terracotta.handlers.rgb import rgb
 
     option_schema = RGBOptionSchema()

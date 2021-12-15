@@ -53,10 +53,6 @@ def _get_cmap_files() -> Dict[str, str]:
     return cmap_files
 
 
-CMAP_FILES = _get_cmap_files()
-AVAILABLE_CMAPS = sorted(CMAP_FILES.keys())
-
-
 def _read_cmap(path: str) -> np.ndarray:
     with open(path, 'rb') as f:
         cmap_data = np.load(f)
@@ -68,6 +64,10 @@ def _read_cmap(path: str) -> np.ndarray:
         raise ValueError(f'invalid dtype (expected: uint8; got: {cmap_data.dtype})')
 
     return cmap_data
+
+
+CMAP_FILES = _get_cmap_files()
+AVAILABLE_CMAPS = sorted(CMAP_FILES.keys())
 
 
 def get_cmap(name: str) -> np.ndarray:

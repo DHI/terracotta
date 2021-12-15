@@ -17,7 +17,7 @@ services:
 
 branches:
   only:
-    - master
+    - main
     # build release tags
     - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 
@@ -26,6 +26,7 @@ before_install:
 
 install:
   - pip install -e .[test]
+  - mypy . > /dev/null; "yes" | mypy --install-types
 
 before_script:
   - pip freeze
@@ -44,7 +45,7 @@ deploy:
   provider: pypi
   user: "__token__"
   password:
-    secure: "lGexaFNOHer0sfvwc8rIDbOZuxb90G+v5hIjrrqroHFfk6TPsC83ACCtfT1TyglP1FT0guw29n9BecqWLa0mD0ZH/PPBM2zoYEoUz9YFDuFGnf5XaKUKy8ZJH71E44BntblfVWpU9kZsAZTrtyHOXFqdKjcRoA9J6hvEAJWPUHvoyjN9rkK6ayBqFiKDVI1FDC3ir27FoC75JoE1JixI+CbSLzqbguk7ttSqZP5Tg8FYyxUMf7esoB+fxvy0+me55H5jZUj6jlHxbQ0uqO1jDhgnRKU4NMJuLD6BI9aRSHXhwXpPKVFDvQKgIIAPvf6GMXZkuEK71dJhDjuyEH9uj1isgfGjSOQHg6PnojcOZZCTDrV1i1z4YeC960QCwuAF9iqrGGxaMknUMT78R9f0vsGn46P+L/evy3gMsWsAg7utf5u2HmPmU6H5mO8FXpaf4qbfDNxM7uDVi3vwoovTRIRO/3mVm6o+Mh5+ab6FEuQ7S40kL1xel5iLW8QQUtv/LCW0aQtct+Q0EDlalCPl2qqZm8BKPaoqrPwfH+F+WIhgeqqVCVaJm66VUoyjW390e762xQMjk+0jnXYtdQ9SPtZNWTqewycCnrqsv4D4iHcAk15BsV5m5FbayUANNjdFVfjLpzIDqWWDQq6caDPu1pdYYxLqEwQzT54TkThH0gg="
+    secure: "jhuGFxr2OSgeKR92V5rmfGEXmKLr8cEnUN5pyo+BCZLT8fUmQkUUlPsuwzDk7+O+0yPevaSltQ7vs2cXtE/HpigDs3El/umBcg2GaUX3eSvJKmcjgNenDobcmaHyQ1OyDYF0eJv7ziMWSmOlJENNOdQOSa7xKkU8XkM7dz6xplwCCsrN9XdR1Orn/e5FskjS0vZf1lQ//6Ql+WuBK2jcj2LEm0oBRVMH/ePF6+NfHVEOL73pVqRm+2Kt4bVOBBrVy3eIYY6JeZ8CgbCvIyOxtbzLBth58YG0vYS/ySxNH05WHLpd+mR0m/lxDzcISUHyVL3f4BCVkKYcvxZxJFaW+7FpuGxu+gW7+sC//D0QsCf7c/YPfBUrHKr2OOBFeGPxvLP6i2sIrgVbmcrEILbEPDxIUItZs8z8QRxVwhe5gd8EPh0QCU45Fo7+An+v4PRS/+HT8aMFlfOKNu3mHEprh94croO22StSznljwmPnQIvPNhOVjT/+0rnjSm3PKPH6xw630ETl/L+scYlAUFWLZb3ULcMGmcQQkFwE8tmAYzQI7ks6535YOikwDPbsoV1ka3gzT+ngDlzir7hkcYizK318PpTh9SNX+7xKtlb7eAJg/vr04KxSkE2oC/ISF0kzs+XOWEEtqOk7NlA37pcYmgnna2hoq6H3hMZNLe6LLfs="
   on:
     tags: true
   skip_existing: true

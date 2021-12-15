@@ -1,9 +1,9 @@
-[![Build Status](https://travis-ci.com/DHI-GRAS/terracotta.svg?token=27HwdYKjJ1yP6smyEa25&branch=master)](https://travis-ci.org/DHI-GRAS/terracotta)
+[![Build Status](https://travis-ci.com/DHI-GRAS/terracotta.svg?token=27HwdYKjJ1yP6smyEa25&branch=main)](https://travis-ci.org/DHI-GRAS/terracotta)
 [![Documentation Status](https://readthedocs.org/projects/terracotta-python/badge/?version=latest)](https://terracotta-python.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/DHI-GRAS/terracotta/branch/master/graph/badge.svg?token=u16QBwwvvn)](https://codecov.io/gh/DHI-GRAS/terracotta)
+[![codecov](https://codecov.io/gh/DHI-GRAS/terracotta/branch/main/graph/badge.svg?token=u16QBwwvvn)](https://codecov.io/gh/DHI-GRAS/terracotta)
 [![GitHub release](https://img.shields.io/github/release-pre/dhi-gras/terracotta.svg)](https://github.com/DHI-GRAS/terracotta/releases)
 [![PyPI release](https://img.shields.io/pypi/v/terracotta.svg)](https://pypi.org/project/terracotta)
-[![License](https://img.shields.io/github/license/dhi-gras/terracotta.svg)](https://github.com/DHI-GRAS/terracotta/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/dhi-gras/terracotta.svg)](https://github.com/DHI-GRAS/terracotta/blob/main/LICENSE)
 [![Python versions](https://img.shields.io/pypi/pyversions/terracotta.svg)](https://pypi.org/project/terracotta)
 
 [![Logo](docs/_figures/logo-banner.svg)](#)

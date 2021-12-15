@@ -11,7 +11,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 # resolve relative links to figures
 long_description = re.sub(
     r'!\[(.*?)\]\((docs/_figures/.*?)\)',
-    r'![\1](https://github.com/DHI-GRAS/terracotta/raw/master/\2)',
+    r'![\1](https://github.com/DHI-GRAS/terracotta/raw/main/\2)',
     long_description
 )
 
@@ -61,6 +61,7 @@ setup(
         'apispec-webframeworks',
         'cachetools>=3.1.0',
         'click',
+        'click-spinner',
         'flask',
         'flask_cors',
         'marshmallow>=3.0.0',
@@ -69,7 +70,7 @@ setup(
         'pillow',
         'pyyaml>=3.10',  # downstream dependency of apispec
         'shapely',
-        'rasterio>=1.0',
+        'rasterio>=1.0,<=1.1.8',  # TODO: unpin when performance issues with GDAL3 are fixed
         'shapely',
         'toml',
         'tqdm'
@@ -88,18 +89,19 @@ setup(
             'flake8',
             'matplotlib',
             'moto',
-            'pymysql<0.10'
+            'aws-xray-sdk',
+            'pymysql>=1.0.0'
         ],
         'docs': [
             'sphinx',
             'sphinx_autodoc_typehints',
             'sphinx-click',
-            'pymysql<0.10'
+            'pymysql>=1.0.0'
         ],
         'recommended': [
             'colorlog',
             'crick',
-            'pymysql<0.10'
+            'pymysql>=1.0.0'
         ]
     },
     # CLI
@@ -112,7 +114,7 @@ setup(
     package_data={
         'terracotta': [
             'cmaps/data/*_rgba.npy',  # colormaps
-            'templates/*.html', 'static/*.js', 'static/*.css', 'static/images/*.png'  # preview app
+            'templates/*.html', 'static/*'  # preview app
         ]
     },
 )
