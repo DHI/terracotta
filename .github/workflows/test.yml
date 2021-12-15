@@ -33,9 +33,9 @@ jobs:
         # only test oldest and most recent supported Python versions
         python-version: ["3.6", "3.9"]
 
-      defaults:
-        run:
-          shell: bash
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - uses: actions/checkout@v2
