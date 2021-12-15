@@ -60,7 +60,7 @@ jobs:
           pip install cython
 
       - name: Setup MySQL
-        if: ${{ runner.os == "Linux" }}
+        if: contains(matrix.os, 'ubuntu')
         uses: mirromutth/mysql-action@v1.1
         with:
           # host port: 3800 # Optional, default value is 3306. The port of host
