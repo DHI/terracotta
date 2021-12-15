@@ -1,0 +1,150 @@
+name: Tests
+
+on:
+  pull_request:
+
+  push:
+    branches:
+      - master
+
+env:
+  DB_DATABASE: test_db
+  DB_PORT: 3307
+  DB_USER: root
+  DB_PASSWORD: root
+
+jobs:
+  test-pip:
+    name: Run tests (with pip)
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        # only test oldest and most recent supported Python versions
+        python-version: ["3.6", "3.9"]
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # make sure tags are fetched so we can get a version
+      - run: git fetch --prune --unshallow --tags
+
+      - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Restore pip cache
+        uses: actions/cache@v2
+        id: pip-cache
+        with:
+          path: ~/.cache/pip
+          key: ${{ matrix.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ matrix.os }}-pip-
+
+      - name: Setup Python environment
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install cython numpy
+
+      - name: Setup MySQL
+        if: contains(matrix.os, 'ubuntu')
+        uses: mirromutth/mysql-action@v1.1
+        with:
+          # host port: 3800 # Optional, default value is 3306. The port of host
+          container port: ${{ env.DB_PORT }} # Optional, default value is 3306. The port of container
+          # character set server: 'utf8' # Optional, default value is 'utf8mb4'. The '--character-set-server' option for mysqld
+          # collation server: 'utf8_general_ci' # Optional, default value is 'utf8mb4_general_ci'. The '--collation-server' option for mysqld
+          # mysql version: '8.0' # Optional, default value is "latest". The version of the MySQL
+          # mysql database: ${{ env.DB_DATABASE }}
+          mysql user: ${{ env.DB_USER }}
+          mysql password: ${{ env.DB_PASSWORD }}
+
+      - name: Install Terracotta
+        run: |
+          pip install -e .[test]
+          pip freeze
+
+      - name: Initialize mypy
+        run: |
+          mypy . > /dev/null || true
+          mypy --install-types --non-interactive
+
+      - name: Run tests
+        run: |
+          if [ ${{ runner.os }} == "Linux" ]; then
+            MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.DB_PORT }}"
+            python -m pytest --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV
+          else
+            python -m pytest --color=yes --cov=terracotta
+          fi
+
+          python -m pytest --color=yes tests/benchmarks.py
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+
+
+  test-conda:
+    name: Run tests (with conda)
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        os: [windows-latest]
+        # only test oldest and most recent supported Python versions
+        python-version: ["3.6", "3.9"]
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # make sure tags are fetched so we can get a version
+      - run: git fetch --prune --unshallow --tags
+
+      - name: Cache conda
+        uses: actions/cache@v2
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ matrix.python-version }}-${{ hashFiles('environment.yml') }}
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          environment-file: environment.yml
+          activate-environment: terracotta
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Terracotta
+        run: |
+          pip install -e .[test]
+          pip freeze
+
+      - name: Initialize mypy
+        run: |
+          mypy . > /dev/null || true
+          mypy --install-types --non-interactive
+
+      - name: Run tests
+        run: |
+          python -m pytest --color=yes --cov=terracotta
+          python -m pytest --color=yes tests/benchmarks.py
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
