@@ -10,8 +10,8 @@ on:
 env:
   DB_DATABASE: test_db
   DB_PORT: 3307
-  DB_USER: root
-  DB_PASSWORD: root
+  DB_USER: tc
+  DB_PASSWORD: TcRuLeZ1
 
 jobs:
   test-pip:

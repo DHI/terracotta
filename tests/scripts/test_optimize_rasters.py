@@ -174,7 +174,7 @@ def test_reoptimize(tmpdir, unoptimized_raster_file, extra_flag):
     args = ['optimize-rasters', infile, '-o', str(outfile)]
     result = runner.invoke(cli.cli, args)
     assert result.exit_code == 0
-    ctime = os.stat(outfile).st_ctime
+    ctime = os.path.getmtime(outfile)
 
     # second time
     args = ['optimize-rasters', infile, '-o', str(outfile)]
@@ -185,10 +185,10 @@ def test_reoptimize(tmpdir, unoptimized_raster_file, extra_flag):
 
     if extra_flag == 'skip-existing':
         assert result.exit_code == 0
-        assert os.stat(outfile).st_ctime == ctime
+        assert os.path.getmtime(outfile) == ctime
     elif extra_flag == 'overwrite':
         assert result.exit_code == 0
-        assert os.stat(outfile).st_ctime != ctime
+        assert os.path.getmtime(outfile) != ctime
     else:
         assert result.exit_code == 2
 
