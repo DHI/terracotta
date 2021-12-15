@@ -69,7 +69,7 @@ jobs:
           # character set server: 'utf8' # Optional, default value is 'utf8mb4'. The '--character-set-server' option for mysqld
           # collation server: 'utf8_general_ci' # Optional, default value is 'utf8mb4_general_ci'. The '--collation-server' option for mysqld
           # mysql version: '8.0' # Optional, default value is "latest". The version of the MySQL
-          mysql database: ${{ env.DB_DATABASE }}
+          # mysql database: ${{ env.DB_DATABASE }}
           mysql user: ${{ env.DB_USER }}
           mysql password: ${{ env.DB_PASSWORD }}
 
@@ -85,7 +85,7 @@ jobs:
       - name: Run tests
         run: |
           if [ ${{ runner.os }} == "Linux" ]; then
-            MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.DB_PORT }}/${{ env.DB_DATABASE }}"
+            MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.DB_PORT }}"
             python -m pytest --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV
           else
             python -m pytest --color=yes --cov=terracotta
