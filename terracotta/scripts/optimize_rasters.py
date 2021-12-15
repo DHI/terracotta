@@ -198,7 +198,7 @@ def _optimize_single_raster(
     '--overwrite', is_flag=True, default=False, help='Force overwrite of existing files'
 )
 @click.option(
-    '--resampling-method', type=click.Choice(RESAMPLING_METHODS.keys()),
+    '--resampling-method', type=click.Choice(list(RESAMPLING_METHODS.keys())),
     default='average', help='Resampling method for overviews', show_default=True
 )
 @click.option(

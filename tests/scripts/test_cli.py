@@ -46,10 +46,10 @@ def test_entrypoint(monkeypatch, capsys):
         m.setattr(sys, 'argv', ['terracotta'])
         with pytest.raises(SystemExit) as exc:
             entrypoint()
-            assert exc.code == 0
+        assert exc.code == 0
 
     captured = capsys.readouterr()
-    assert 'Usage: terracotta' in captured.out
+    assert 'Usage:' in captured.out
 
 
 def test_entrypoint_exception(monkeypatch, capsys):
@@ -66,7 +66,7 @@ def test_entrypoint_exception(monkeypatch, capsys):
         m.setattr(sys, 'argv', ['terracotta', 'dummy'])
         with pytest.raises(SystemExit) as exc:
             entrypoint()
-            assert exc.code == 1
+        assert exc.code == 1
 
     captured = capsys.readouterr()
     assert 'Uncaught exception' in captured.err

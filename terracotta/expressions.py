@@ -11,7 +11,7 @@ import concurrent.futures
 import numpy as np
 
 
-EXTRA_CALLABLES = {
+EXTRA_CALLABLES: Dict[str, Tuple[Callable, int]] = {
     # 'name': (callable, nargs)
 
     # mask operations
