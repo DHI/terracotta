@@ -1,5 +1,6 @@
 import pytest
 
+import platform
 import time
 
 import rasterio
@@ -253,6 +254,7 @@ def insertion_worker(key, path, raster_file, provider):
         time.sleep(0.01)
 
 
+@pytest.mark.xfail(platform.system() == "Darwin", reason="Flaky on OSX")
 @pytest.mark.parametrize('provider', DRIVERS)
 def test_multiprocess_insertion(driver_path, provider, raster_file):
     import functools
@@ -271,7 +273,7 @@ def test_multiprocess_insertion(driver_path, provider, raster_file):
                                provider=provider)
 
     with concurrent.futures.ProcessPoolExecutor(4) as executor:
-        for result in executor.map(worker, key_vals):
+        for _ in executor.map(worker, key_vals):
             pass
 
     datasets = db.get_datasets()

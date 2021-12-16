@@ -34,6 +34,7 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Framework :: Flask',
         'Operating System :: Microsoft :: Windows :: Windows 10',
         'Operating System :: MacOS :: MacOS X',
@@ -69,7 +70,7 @@ setup(
         'pillow',
         'pyyaml>=3.10',  # downstream dependency of apispec
         'shapely',
-        'rasterio>=1.0,<=1.1.8',  # TODO: unpin when performance issues with GDAL3 are fixed
+        'rasterio>=1.0',
         'shapely',
         'toml',
         'tqdm'
