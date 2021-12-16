@@ -8,10 +8,9 @@ on:
       - master
 
 env:
-  DB_DATABASE: test_db
   DB_PORT: 3306
-  DB_USER: tc
-  DB_PASSWORD: TcRuLeZ1
+  DB_USER: root
+  DB_PASSWORD: root
 
 jobs:
   test-pip:
@@ -60,7 +59,7 @@ jobs:
         if: contains(matrix.os, 'ubuntu')
         run: |
           sudo /etc/init.d/mysql start
-          mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
+          mysql -e 'SHOW DATABASES;' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
 
       - name: Install Terracotta
         run: |
@@ -122,7 +121,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           environment-file: environment.yml
           activate-environment: terracotta
-          use-mamba: true
+          mamba-version: "*"
 
       - name: Install Terracotta
         run: |
