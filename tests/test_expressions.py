@@ -240,7 +240,7 @@ def test_timeout():
     from terracotta.expressions import evaluate_expression
 
     with pytest.raises(RuntimeError) as raised_exc:
-        evaluate_expression('+'.join(['v1'] * 10), {'v1': np.ones((256, 256))}, timeout=0)
+        evaluate_expression('+'.join(['v1'] * 100), {'v1': np.ones((256, 256))}, timeout=0)
 
     assert 'timeout' in str(raised_exc.value)
 

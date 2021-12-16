@@ -9,7 +9,7 @@ on:
 
 env:
   DB_DATABASE: test_db
-  DB_PORT: 3307
+  DB_PORT: 3306
   DB_USER: tc
   DB_PASSWORD: TcRuLeZ1
 
@@ -58,16 +58,10 @@ jobs:
 
       - name: Setup MySQL
         if: contains(matrix.os, 'ubuntu')
-        uses: mirromutth/mysql-action@v1.1
-        with:
-          host port: ${{ env.DB_PORT }} # Optional, default value is 3306. The port of host
-          container port: ${{ env.DB_PORT }} # Optional, default value is 3306. The port of container
-          # character set server: 'utf8' # Optional, default value is 'utf8mb4'. The '--character-set-server' option for mysqld
-          # collation server: 'utf8_general_ci' # Optional, default value is 'utf8mb4_general_ci'. The '--collation-server' option for mysqld
-          # mysql version: '8.0' # Optional, default value is "latest". The version of the MySQL
-          # mysql database: ${{ env.DB_DATABASE }}
-          mysql user: ${{ env.DB_USER }}
-          mysql password: ${{ env.DB_PASSWORD }}
+        run: |
+          sudo apt-get install -y mysql-server
+          sudo /etc/init.d/mysql start
+          mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
 
       - name: Install Terracotta
         run: |
