@@ -115,7 +115,24 @@ jobs:
       # make sure tags are fetched so we can get a version
       - run: git fetch --prune --unshallow --tags
 
-      - name: Cache conda packages
+      - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+
+      - name: Restore pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ matrix.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+
+      - name: Restore conda cache
         uses: actions/cache@v2
         with:
           path: ~/conda_pkgs_dir
@@ -127,12 +144,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
           environment-file: environment.yml
           activate-environment: terracotta
-          mamba-version: "*"
+            ${{ matrix.os }}-pip-
 
       - name: Install Terracotta
         run: |
           pip install -e .[test]
-          pip freeze
+          conda list
 
       - name: Initialize mypy
         run: |
