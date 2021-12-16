@@ -79,9 +79,9 @@ jobs:
         run: |
           if [ ${{ runner.os }} == "Linux" ]; then
             MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.DB_PORT }}"
-            python -m pytest --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV
+            python -m pytest . --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV
           else
-            python -m pytest --color=yes --cov=terracotta
+            python -m pytest . --color=yes --cov=terracotta
           fi
 
       - name: Run benchmarks
@@ -158,11 +158,11 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m pytest --color=yes --cov=terracotta
+          python -m pytest . --color=yes --cov=terracotta
 
       - name: Run benchmarks
         run: |
-          python -m pytest --color=yes tests/benchmarks.py
+          python -m pytest tests/benchmarks.py --color=yes
 
       - name: Upload coverage
         uses: codecov/codecov-action@v1
