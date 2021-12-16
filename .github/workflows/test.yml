@@ -41,11 +41,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+
       - name: Restore pip cache
         uses: actions/cache@v2
         id: pip-cache
         with:
-          path: ~/.cache/pip
+          path: ${{ steps.pip-cache.outputs.dir }}
           key: ${{ matrix.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
           restore-keys: |
             ${{ matrix.os }}-pip-
@@ -80,6 +85,8 @@ jobs:
             python -m pytest --color=yes --cov=terracotta
           fi
 
+      - name: Run benchmarks
+        run: |
           python -m pytest --color=yes tests/benchmarks.py
 
       - name: Upload coverage
@@ -136,6 +143,9 @@ jobs:
       - name: Run tests
         run: |
           python -m pytest --color=yes --cov=terracotta
+
+      - name: Run benchmarks
+        run: |
           python -m pytest --color=yes tests/benchmarks.py
 
       - name: Upload coverage
