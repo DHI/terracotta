@@ -131,6 +131,7 @@ jobs:
           path: ${{ steps.pip-cache.outputs.dir }}
           key: ${{ matrix.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
           restore-keys: |
+            ${{ matrix.os }}-pip-
 
       - name: Restore conda cache
         uses: actions/cache@v2
@@ -144,7 +145,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           environment-file: environment.yml
           activate-environment: terracotta
-            ${{ matrix.os }}-pip-
 
       - name: Install Terracotta
         run: |
