@@ -59,7 +59,9 @@ jobs:
       - name: Setup MySQL
         if: contains(matrix.os, 'ubuntu')
         run: |
-          sudo apt-get install -y mysql-server-8.0
+          sudo apt-get update
+          sudo apt-get upgrade -y
+          sudo apt-get install -y mysql-server
           sudo /etc/init.d/mysql start
           mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
 
