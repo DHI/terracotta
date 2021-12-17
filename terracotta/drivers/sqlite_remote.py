@@ -1,4 +1,4 @@
-"""drivers/sqlite.py
+"""drivers/sqlite_remote.py
 
 SQLite-backed raster driver. Metadata is stored in an SQLite database, raster data is assumed
 to be present on disk.
@@ -103,6 +103,7 @@ class RemoteSQLiteDriver(SQLiteDriver):
         self._last_updated = -float('inf')
 
         super().__init__(local_db_file.name)
+        self.path = local_db_file.name
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:
@@ -129,9 +130,9 @@ class RemoteSQLiteDriver(SQLiteDriver):
             _update_from_s3(remote_path, local_path)
             self._last_updated = time.time()
 
-    def _connection_callback(self) -> None:
+    def _verify_db_version(self) -> None:
         self._update_db(self._remote_path, self.path)
-        super()._connection_callback()
+        super()._verify_db_version()
 
     def create(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
