@@ -71,6 +71,7 @@ setup(
         'shapely',
         'rasterio>=1.0,<=1.1.8',  # TODO: unpin when performance issues with GDAL3 are fixed
         'shapely',
+        'sqlalchemy',
         'toml',
         'tqdm'
     ],
