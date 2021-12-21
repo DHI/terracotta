@@ -67,6 +67,22 @@ def test_normalize_url(provider):
         assert driver._normalize_path(p) == first_path
 
 
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
+def test_parse_connection_string_with_invalid_schemes(provider):
+    from terracotta import drivers
+
+    invalid_schemes = (
+        'fakescheme://test.example.com/foo',
+        'fakescheme://test.example.com:80/foo',
+    )
+
+    for invalid_scheme in invalid_schemes:
+        with pytest.raises(ValueError) as exc:
+            driver = drivers.get_driver(invalid_scheme, provider)
+            print(type(driver))
+        assert 'unsupported URL scheme' in str(exc.value)
+
+
 def test_get_driver_invalid():
     from terracotta import drivers
     with pytest.raises(ValueError) as exc:
