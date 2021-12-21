@@ -4,16 +4,17 @@ SQLite-backed raster driver. Metadata is stored in an SQLite database, raster da
 to be present on disk.
 """
 
-from typing import Any, Iterator
-import os
-import time
-import tempfile
-import shutil
-import logging
 import contextlib
+import logging
+import os
+import shutil
+import tempfile
+import time
 import urllib.parse as urlparse
+from pathlib import Path
+from typing import Any, Iterator, Union
 
-from terracotta import get_settings, exceptions
+from terracotta import exceptions, get_settings
 from terracotta.drivers.sqlite import SQLiteDriver
 from terracotta.profile import trace
 
@@ -74,7 +75,7 @@ class RemoteSQLiteDriver(SQLiteDriver):
 
     """
 
-    def __init__(self, remote_path: str) -> None:
+    def __init__(self, remote_path: Union[str, Path]) -> None:
         """Initialize the RemoteSQLiteDriver.
 
         This should not be called directly, use :func:`~terracotta.get_driver` instead.
