@@ -352,7 +352,7 @@ def run_test_server(driver_path, port):
     create_app().run(port=port)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def test_server(testdb):
     """Spawn a Terracotta server in a separate process"""
     port = 5555

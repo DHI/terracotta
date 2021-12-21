@@ -1,4 +1,3 @@
-import os
 import pytest
 
 TESTABLE_DRIVERS = ['sqlite', 'mysql']
@@ -32,7 +31,6 @@ def test_normalize_filepath(provider, tmpdir):
     equivalent_paths = (
         f'{tmpdir}/foo.tc',
         f'{tmpdir}//foo.tc',
-        os.path.relpath(f'{tmpdir}/foo.tc', '.'),
         f'{tmpdir}/bar/../foo.tc',
     )
 

@@ -1,0 +1,168 @@
+name: Tests
+
+on:
+  pull_request:
+
+  push:
+    branches:
+      - main
+
+env:
+  DB_PORT: 3306
+  DB_USER: root
+  DB_PASSWORD: root
+
+jobs:
+  test-pip:
+    name: Run tests (with pip)
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        # only test oldest and most recent supported Python versions
+        python-version: ["3.6", "3.9"]
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # make sure tags are fetched so we can get a version
+      - run: git fetch --prune --unshallow --tags
+
+      - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+
+      - name: Restore pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ matrix.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ matrix.os }}-pip-
+
+      - name: Setup Python environment
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install cython numpy
+
+      - name: Setup MySQL
+        if: contains(matrix.os, 'ubuntu')
+        run: |
+          sudo /etc/init.d/mysql start
+          mysql -e 'SHOW DATABASES;' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
+
+      - name: Install Terracotta
+        run: |
+          pip install -e .[test]
+          pip freeze
+
+      - name: Initialize mypy
+        run: |
+          mypy . > /dev/null || true
+          mypy --install-types --non-interactive
+
+      - name: Run tests
+        run: |
+          if [ ${{ runner.os }} == "Linux" ]; then
+            MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.DB_PORT }}"
+            python -m pytest . --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV
+          else
+            python -m pytest . --color=yes --cov=terracotta
+          fi
+
+      - name: Run benchmarks
+        run: |
+          python -m pytest --color=yes tests/benchmarks.py
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+
+
+  test-conda:
+    name: Run tests (with conda)
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        os: [windows-latest]
+        # Python 3.6 is EOL on conda-forge, so use 3.7 instead
+        python-version: ["3.7", "3.9"]
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # make sure tags are fetched so we can get a version
+      - run: git fetch --prune --unshallow --tags
+
+      - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+
+      - name: Restore pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ matrix.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ matrix.os }}-pip-
+
+      - name: Restore conda cache
+        uses: actions/cache@v2
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ matrix.python-version }}-${{ hashFiles('environment.yml') }}
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          environment-file: environment.yml
+          activate-environment: terracotta
+
+      - name: Install Terracotta
+        run: |
+          pip install -e .[test]
+          conda list
+
+      - name: Initialize mypy
+        run: |
+          mypy . > /dev/null || true
+          mypy --install-types --non-interactive
+
+      - name: Run tests
+        run: |
+          python -m pytest . --color=yes --cov=terracotta
+
+      - name: Run benchmarks
+        run: |
+          python -m pytest tests/benchmarks.py --color=yes
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1

@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/DHI-GRAS/terracotta.svg?token=27HwdYKjJ1yP6smyEa25&branch=main)](https://travis-ci.org/DHI-GRAS/terracotta)
+[![Tests](https://github.com/DHI-GRAS/terracotta/actions/workflows/test.yml/badge.svg)](https://github.com/DHI-GRAS/terracotta/actions/workflows/test.yml)
 [![Documentation Status](https://readthedocs.org/projects/terracotta-python/badge/?version=latest)](https://terracotta-python.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/DHI-GRAS/terracotta/branch/main/graph/badge.svg?token=u16QBwwvvn)](https://codecov.io/gh/DHI-GRAS/terracotta)
 [![GitHub release](https://img.shields.io/github/release-pre/dhi-gras/terracotta.svg)](https://github.com/DHI-GRAS/terracotta/releases)

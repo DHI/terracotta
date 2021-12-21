@@ -49,7 +49,7 @@ def test_entrypoint(monkeypatch, capsys):
             assert exc.code == 0
 
     captured = capsys.readouterr()
-    assert 'Usage: terracotta' in captured.out
+    assert 'Usage:' in captured.out
 
 
 def test_entrypoint_exception(monkeypatch, capsys):
