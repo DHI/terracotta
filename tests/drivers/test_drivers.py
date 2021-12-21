@@ -67,7 +67,7 @@ def test_normalize_url(provider):
         assert driver._normalize_path(p) == first_path
 
 
-@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
+@pytest.mark.parametrize('provider', ['mysql'])
 def test_parse_connection_string_with_invalid_schemes(provider):
     from terracotta import drivers
 
