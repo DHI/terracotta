@@ -3,24 +3,29 @@
 Base class for drivers.
 """
 
-from typing import Callable, List, Mapping, Any, Tuple, Sequence, Dict, Union, TypeVar
+import contextlib
+import functools
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-import functools
-import contextlib
+from typing import (Any, Callable, Dict, List, Mapping, Sequence, Tuple,
+                    TypeVar, Union)
 
 Number = TypeVar('Number', int, float)
 T = TypeVar('T')
 
 
-def requires_connection(fun: Callable[..., T] = None, *, verify: bool = True) -> Callable[..., T]:
+def requires_connection(
+    fun: Callable[..., T] = None, *,
+    verify: bool = True
+) -> Union[Callable[..., T], functools.partial]:
     if fun is None:
         return functools.partial(requires_connection, verify=verify)
 
     @functools.wraps(fun)
     def inner(self: Driver, *args: Any, **kwargs: Any) -> T:
         with self.connect(verify=verify):
-            return fun(self, *args, **kwargs)
+            # Apparently mypy thinks fun might still be None, hence the ignore:
+            return fun(self, *args, **kwargs)  # type: ignore
     return inner
 
 
@@ -57,7 +62,7 @@ class Driver(ABC):
         pass
 
     @abstractmethod
-    def connect(self) -> contextlib.AbstractContextManager:
+    def connect(self, verify: bool = True) -> contextlib.AbstractContextManager:
         """Context manager to connect to a given database and clean up on exit.
 
         This allows you to pool interactions with the database to prevent possibly

@@ -45,6 +45,7 @@ class SQLiteDriver(RelationalDriver):
     SQL_DATABASE_SCHEME = 'sqlite'
     SQL_DRIVER_TYPE = 'pysqlite'
     SQL_KEY_SIZE = 256
+    SQL_TIMEOUT_KEY = 'timeout'
 
     def __init__(self, path: Union[str, Path]) -> None:
         """Initialize the SQLiteDriver.

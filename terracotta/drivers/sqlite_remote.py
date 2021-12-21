@@ -23,11 +23,10 @@ logger = logging.getLogger(__name__)
 @contextlib.contextmanager
 def convert_exceptions(msg: str) -> Iterator:
     """Convert internal sqlite and boto exceptions to our InvalidDatabaseError"""
-    import sqlite3
     import botocore.exceptions
     try:
         yield
-    except (sqlite3.OperationalError, botocore.exceptions.ClientError) as exc:
+    except botocore.exceptions.ClientError as exc:
         raise exceptions.InvalidDatabaseError(msg) from exc
 
 

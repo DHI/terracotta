@@ -30,6 +30,7 @@ class MySQLDriver(RelationalDriver):
     SQL_DATABASE_SCHEME = 'mysql'
     SQL_DRIVER_TYPE = 'pymysql'
     SQL_KEY_SIZE = 50
+    SQL_TIMEOUT_KEY = 'connect_timeout'
 
     DEFAULT_PORT = 3306
 

@@ -5,8 +5,8 @@ import re
 import urllib.parse as urlparse
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import (Any, Dict, Iterator, List, Mapping, Optional, Sequence,
-                    Tuple, Type, Union)
+from typing import (Any, Callable, Dict, Iterator, List, Mapping, Optional,
+                    Sequence, Tuple, Type, Union)
 
 import numpy as np
 import sqlalchemy as sqla
@@ -23,18 +23,24 @@ _ERROR_ON_CONNECT = (
 )
 
 
-def convert_exceptions(error_message: str):
-    def decorator(fun):
+def convert_exceptions(error_message: str) -> Callable[..., Any]:
+    def decorator(fun: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(fun)
-        def inner(self: 'RelationalDriver', *args, **kwargs):
-            with convert_exceptions_context(error_message, self.DATABASE_DRIVER_EXCEPTIONS_TO_CONVERT):
+        def inner(self: 'RelationalDriver', *args: Any, **kwargs: Any) -> Any:
+            with convert_exceptions_context(
+                error_message,
+                self.DATABASE_DRIVER_EXCEPTIONS_TO_CONVERT
+            ):
                 return fun(self, *args, **kwargs)
         return inner
     return decorator
 
 
 @contextlib.contextmanager
-def convert_exceptions_context(error_message, exceptions_to_convert):
+def convert_exceptions_context(
+    error_message: str,
+    exceptions_to_convert: Union[Type[Exception], Tuple[Type[Exception], ...]]
+) -> Iterator:
     try:
         yield
     except exceptions_to_convert as exception:
@@ -45,8 +51,9 @@ class RelationalDriver(RasterDriver, ABC):
     SQL_DATABASE_SCHEME: str  # The database flavour, eg mysql, sqlite, etc
     SQL_DRIVER_TYPE: str  # The actual database driver, eg pymysql, sqlite3, etc
     SQL_KEY_SIZE: int
+    SQL_TIMEOUT_KEY: str
 
-    DATABASE_DRIVER_EXCEPTIONS_TO_CONVERT: Tuple[Type[Exception]] = (
+    DATABASE_DRIVER_EXCEPTIONS_TO_CONVERT: Tuple[Type[Exception], ...] = (
         sqla.exc.OperationalError,
         sqla.exc.InternalError,
         sqla.exc.ProgrammingError,
@@ -84,7 +91,7 @@ class RelationalDriver(RasterDriver, ABC):
             connection_string,
             echo=True,
             future=True,
-            #connect_args={'timeout': db_connection_timeout}
+            connect_args={self.SQL_TIMEOUT_KEY: db_connection_timeout}
         )
         self.sqla_metadata = sqla.MetaData()
 
@@ -113,7 +120,7 @@ class RelationalDriver(RasterDriver, ABC):
     @contextlib.contextmanager
     def connect(self, verify: bool = True) -> Iterator:
         if not self.connected:
-            def _connect_with_exceptions_converted():
+            def _connect_with_exceptions_converted() -> Connection:
                 with convert_exceptions_context(_ERROR_ON_CONNECT, sqla.exc.OperationalError):
                     connection = self.sqla_engine.connect()
                 return connection
@@ -238,7 +245,10 @@ class RelationalDriver(RasterDriver, ABC):
         )
         self.connection.execute(
             key_names_table.insert(),
-            [dict(key_name=key, description=key_descriptions.get(key, ''), index=i) for i, key in enumerate(keys)]
+            [
+                dict(key_name=key, description=key_descriptions.get(key, ''), index=i)
+                for i, key in enumerate(keys)
+            ]
         )
         # self.connection.commit()
 
