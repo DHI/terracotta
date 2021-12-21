@@ -98,11 +98,11 @@ class RemoteSQLiteDriver(SQLiteDriver):
         )
         local_db_file.close()
 
+        self._local_path = local_db_file.name
         self._remote_path = str(remote_path)
         self._last_updated = -float('inf')
 
         super().__init__(local_db_file.name)
-        self.path = local_db_file.name
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:
@@ -130,7 +130,7 @@ class RemoteSQLiteDriver(SQLiteDriver):
             self._last_updated = time.time()
 
     def _verify_db_version(self) -> None:
-        self._update_db(self._remote_path, self.path)
+        self._update_db(self._remote_path, self._local_path)
         super()._verify_db_version()
 
     def create(self, *args: Any, **kwargs: Any) -> None:
@@ -144,4 +144,4 @@ class RemoteSQLiteDriver(SQLiteDriver):
 
     def __del__(self) -> None:
         """Clean up temporary database upon exit"""
-        self.__rm(self.path)
+        self.__rm(self._local_path)

@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pytest
 
+from terracotta.drivers.sqlite_remote import RemoteSQLiteDriver
+
 boto3 = pytest.importorskip('boto3')
 moto = pytest.importorskip('moto')
 
@@ -104,33 +106,33 @@ def test_remote_database_cache(s3_db_factory, raster_file, monkeypatch):
 
     from terracotta import get_driver
 
-    driver = get_driver(dbpath)
+    driver: RemoteSQLiteDriver = get_driver(dbpath)
     driver._last_updated = -float('inf')
 
     with driver.connect():
         assert driver.key_names == keys
         assert driver.get_datasets() == {}
-        modification_date = os.path.getmtime(driver.path)
+        modification_date = os.path.getmtime(driver._local_path)
 
         s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
 
         # no change yet
         assert driver.get_datasets() == {}
-        assert os.path.getmtime(driver.path) == modification_date
+        assert os.path.getmtime(driver._local_path) == modification_date
 
     # check if remote db is cached correctly
     driver._last_updated = time.time()
 
     with driver.connect():  # db connection is cached; so still no change
         assert driver.get_datasets() == {}
-        assert os.path.getmtime(driver.path) == modification_date
+        assert os.path.getmtime(driver._local_path) == modification_date
 
     # invalidate cache
     driver._last_updated = -float('inf')
 
     with driver.connect():  # now db is updated on reconnect
         assert list(driver.get_datasets().keys()) == [('some', 'value')]
-        assert os.path.getmtime(driver.path) != modification_date
+        assert os.path.getmtime(driver._local_path) != modification_date
 
 
 @moto.mock_s3
@@ -159,15 +161,15 @@ def test_destructor(s3_db_factory, raster_file, capsys):
 
     from terracotta import get_driver
 
-    driver = get_driver(dbpath)
-    assert os.path.isfile(driver.path)
+    driver: RemoteSQLiteDriver = get_driver(dbpath)
+    assert os.path.isfile(driver._local_path)
 
     driver.__del__()
-    assert not os.path.isfile(driver.path)
+    assert not os.path.isfile(driver._local_path)
 
     captured = capsys.readouterr()
     assert 'Exception ignored' not in captured.err
 
     # re-create file to prevent actual destructor from failing
-    with open(driver.path, 'w'):
+    with open(driver._local_path, 'w'):
         pass
