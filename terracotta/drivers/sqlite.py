@@ -47,6 +47,8 @@ class SQLiteDriver(RelationalDriver):
     SQL_KEY_SIZE = 256
     SQL_TIMEOUT_KEY = 'timeout'
 
+    FILE_BASED_DATABASE = True
+
     def __init__(self, path: Union[str, Path]) -> None:
         """Initialize the SQLiteDriver.
 
@@ -57,12 +59,11 @@ class SQLiteDriver(RelationalDriver):
             path: File path to target SQLite database (may or may not exist yet)
 
         """
-        super().__init__(str(path))
+        super().__init__(f'file:///{path}')
 
     @classmethod
     def _resolve_path(cls, path: str) -> str:
-        full_path = os.path.realpath(Path(path).resolve())
-        return f'/{full_path}'
+        return os.path.realpath(Path(path).resolve())
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:

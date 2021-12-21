@@ -58,6 +58,8 @@ class RelationalDriver(RasterDriver, ABC):
     SQL_KEY_SIZE: int
     SQL_TIMEOUT_KEY: str
 
+    FILE_BASED_DATABASE: bool = False
+
     DATABASE_DRIVER_EXCEPTIONS_TO_CONVERT: Tuple[Type[Exception], ...] = (
         sqla.exc.OperationalError,
         sqla.exc.InternalError,
@@ -90,8 +92,8 @@ class RelationalDriver(RasterDriver, ABC):
         assert self.SQL_DRIVER_TYPE is not None
         self._CONNECTION_PARAMETERS = self._parse_connection_string(path)
         cp = self._CONNECTION_PARAMETERS
-        resolved_path = self._resolve_path(cp.path)
-        connection_string = f'{cp.scheme}+{self.SQL_DRIVER_TYPE}://{cp.netloc}{resolved_path}'
+        resolved_path = self._resolve_path(cp.path[1:])  # Remove the leading '/'
+        connection_string = f'{cp.scheme}+{self.SQL_DRIVER_TYPE}://{cp.netloc}/{resolved_path}'
 
         self.sqla_engine = sqla.create_engine(
             connection_string,
@@ -114,6 +116,10 @@ class RelationalDriver(RasterDriver, ABC):
     @classmethod
     def _parse_connection_string(cls, connection_string: str) -> urlparse.ParseResult:
         con_params = urlparse.urlparse(connection_string)
+
+        if con_params.scheme == 'file' and cls.FILE_BASED_DATABASE:
+            file_connection_string = connection_string[len('file://'):]
+            con_params = urlparse.urlparse(f'{cls.SQL_DATABASE_SCHEME}://{file_connection_string}')
 
         if not con_params.scheme:
             con_params = urlparse.urlparse(f'{cls.SQL_DATABASE_SCHEME}://{connection_string}')
