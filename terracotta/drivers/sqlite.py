@@ -57,13 +57,16 @@ class SQLiteDriver(RelationalDriver):
             path: File path to target SQLite database (may or may not exist yet)
 
         """
-        path = str(path)
-        super().__init__(f'sqlite:///{os.path.realpath(path)}')
+        super().__init__(str(path))
+
+    @classmethod
+    def _resolve_path(cls, path: str) -> str:
+        full_path = os.path.realpath(Path(path).resolve())
+        return f'/{full_path}'
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:
-        con_params = cls._parse_connection_string(path)
-        return os.path.normpath(os.path.realpath(con_params.path))
+        return os.path.normpath(os.path.realpath(path))
 
     def _create_database(self) -> None:
         """The database is automatically created by the sqlite driver on connection,

@@ -1,3 +1,8 @@
+"""drivers/relational_base.py
+
+Base class for relational database drivers, using SQLAlchemy
+"""
+
 import contextlib
 import functools
 import json
@@ -85,7 +90,8 @@ class RelationalDriver(RasterDriver, ABC):
         assert self.SQL_DRIVER_TYPE is not None
         self._CONNECTION_PARAMETERS = self._parse_connection_string(path)
         cp = self._CONNECTION_PARAMETERS
-        connection_string = f'{cp.scheme}+{self.SQL_DRIVER_TYPE}://{cp.netloc}{cp.path}'
+        resolved_path = self._resolve_path(cp.path)
+        connection_string = f'{cp.scheme}+{self.SQL_DRIVER_TYPE}://{cp.netloc}{resolved_path}'
 
         self.sqla_engine = sqla.create_engine(
             connection_string,
@@ -116,6 +122,11 @@ class RelationalDriver(RasterDriver, ABC):
             raise ValueError(f'unsupported URL scheme "{con_params.scheme}"')
 
         return con_params
+
+    @classmethod
+    def _resolve_path(cls, path: str) -> str:
+        # Default to do nothing; may be overriden to actually handle file paths according to OS
+        return path
 
     @contextlib.contextmanager
     def connect(self, verify: bool = True) -> Iterator:

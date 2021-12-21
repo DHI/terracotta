@@ -76,8 +76,8 @@ def get_driver(url_or_path: URLOrPathType, provider: str = None) -> Driver:
     if provider is None:  # try and auto-detect
         provider = auto_detect_provider(url_or_path)
 
-    if isinstance(url_or_path, Path) or provider == 'sqlite':
-        url_or_path = str(Path(url_or_path).resolve())
+    if isinstance(url_or_path, Path):
+        url_or_path = str(url_or_path)
 
     DriverClass = load_driver(provider)
     normalized_path = DriverClass._normalize_path(url_or_path)
