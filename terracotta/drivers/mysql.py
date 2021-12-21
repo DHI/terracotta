@@ -7,7 +7,7 @@ to be present on disk.
 from urllib.parse import ParseResult
 
 import sqlalchemy as sqla
-from terracotta.drivers.common import RelationalDriver
+from terracotta.drivers.relational_base import RelationalDriver
 
 
 class MySQLDriver(RelationalDriver):

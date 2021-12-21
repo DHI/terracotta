@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Union
 
-from terracotta.drivers.common import RelationalDriver
+from terracotta.drivers.relational_base import RelationalDriver
 
 
 class SQLiteDriver(RelationalDriver):
