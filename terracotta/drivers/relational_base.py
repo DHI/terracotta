@@ -211,9 +211,8 @@ class RelationalDriver(RasterDriver, ABC):
 
     @abstractmethod
     def _create_database(self) -> None:
-        # This might be made abstract, for each subclass to implement specifically
         # Note that some subclasses may not actually create any database here, as
-        # it may already exist for some vendors
+        # it may be created automatically on connection for some database vendors
         pass
 
     @requires_connection(verify=False)
@@ -257,7 +256,6 @@ class RelationalDriver(RasterDriver, ABC):
             *[sqla.Column(name, column_type()) for name, column_type in self._METADATA_COLUMNS]
         )
         self.sqla_metadata.create_all(self.sqla_engine)
-        # self.connection.commit()
 
         self.connection.execute(
             terracotta_table.insert().values(version=terracotta.__version__)
@@ -269,10 +267,6 @@ class RelationalDriver(RasterDriver, ABC):
                 for i, key in enumerate(keys)
             ]
         )
-        # self.connection.commit()
-
-        # invalidate key cache  # TODO: Is that actually necessary?
-        self._db_keys = None
 
     @requires_connection
     @convert_exceptions('Could not retrieve keys from database')
@@ -428,8 +422,6 @@ class RelationalDriver(RasterDriver, ABC):
                 metadata_table.insert().values(**key_dict, **encoded_data)
             )
 
-        # self.connection.commit()
-
     @trace('delete')
     @requires_connection
     @convert_exceptions('Could not write to database')
@@ -458,7 +450,6 @@ class RelationalDriver(RasterDriver, ABC):
             .delete()
             .where(*[metadata_table.c.get(column) == value for column, value in key_dict.items()])
         )
-        # self.connection.commit()
 
     @staticmethod
     def _encode_data(decoded: Mapping[str, Any]) -> Dict[str, Any]:
