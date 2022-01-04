@@ -3,6 +3,7 @@
 Define an interface to retrieve Terracotta drivers.
 """
 
+import os
 from typing import Union, Tuple, Dict, Type
 import urllib.parse as urlparse
 from pathlib import Path
@@ -81,7 +82,7 @@ def get_driver(url_or_path: URLOrPathType, provider: str = None) -> Driver:
 
     DriverClass = load_driver(provider)
     normalized_path = DriverClass._normalize_path(url_or_path)
-    cache_key = (normalized_path, provider)
+    cache_key = (normalized_path, provider, os.getpid())
 
     if cache_key not in _DRIVER_CACHE:
         _DRIVER_CACHE[cache_key] = DriverClass(url_or_path)
