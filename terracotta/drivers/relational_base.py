@@ -139,7 +139,9 @@ class RelationalDriver(RasterDriver, ABC):
         if not self.connected:
             def _connect_with_exceptions_converted() -> Connection:
                 with convert_exceptions_context(_ERROR_ON_CONNECT, sqla.exc.OperationalError):
-                    connection = self.sqla_engine.connect()
+                    connection = self.sqla_engine.connect().execution_options(
+                        isolation_level='READ UNCOMMITTED'
+                    )
                 return connection
             try:
                 with _connect_with_exceptions_converted() as connection:
