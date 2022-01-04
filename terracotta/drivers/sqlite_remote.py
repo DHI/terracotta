@@ -137,10 +137,10 @@ class RemoteSQLiteDriver(SQLiteDriver):
     def create(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
 
-    def insert(self, *args: Any, **kwargs: Any) -> None:
+    def insert(self, *args: Any, **kwargs: Any) -> None:  # type: ignore
         raise NotImplementedError('Remote SQLite databases are read-only')
 
-    def delete(self, *args: Any, **kwargs: Any) -> None:
+    def delete(self, *args: Any, **kwargs: Any) -> None:  # type: ignore
         raise NotImplementedError('Remote SQLite databases are read-only')
 
     def __del__(self) -> None:

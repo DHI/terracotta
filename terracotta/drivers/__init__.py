@@ -42,7 +42,7 @@ def auto_detect_provider(url_or_path: Union[str, Path]) -> str:
     return 'sqlite'
 
 
-_DRIVER_CACHE: Dict[Tuple[URLOrPathType, str], Driver] = {}
+_DRIVER_CACHE: Dict[Tuple[URLOrPathType, str, int], Driver] = {}
 
 
 def get_driver(url_or_path: URLOrPathType, provider: str = None) -> Driver:
