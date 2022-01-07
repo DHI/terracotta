@@ -97,7 +97,7 @@ class RelationalDriver(RasterDriver, ABC):
 
         self.sqla_engine = sqla.create_engine(
             connection_string,
-            echo=True,
+            echo=False,
             future=True,
             connect_args={self.SQL_TIMEOUT_KEY: db_connection_timeout}
         )
