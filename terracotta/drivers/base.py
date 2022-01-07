@@ -39,12 +39,14 @@ class Driver(ABC):
     @property
     @abstractmethod
     def db_version(self) -> str:
-        ...  # Terracotta version used to create the database
+        """Terracotta version used to create the database."""
+        pass
 
     @property
     @abstractmethod
     def key_names(self) -> Tuple[str, ...]:
-        ...  # Names of all keys defined by the database
+        """Names of all keys defined by the database."""
+        pass
 
     @abstractmethod
     def __init__(self, url_or_path: str) -> None:
