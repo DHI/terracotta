@@ -46,7 +46,8 @@ class MySQLDriver(RelationalDriver):
 
         """
         super().__init__(mysql_path)
-        self._parse_db_name(self._CONNECTION_PARAMETERS)  # To enforce path is parsable
+        # raises an exception if path is invalid
+        self._parse_db_name(self._CONNECTION_PARAMETERS)
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:
