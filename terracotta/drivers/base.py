@@ -70,6 +70,12 @@ class Driver(ABC):
         This allows you to pool interactions with the database to prevent possibly
         expensive reconnects, or to roll back several interactions if one of them fails.
 
+        Arguments:
+
+            verify: Whether to verify the database (primarily its version) when connecting.
+                Should be `true` unless absolutely necessary, such as when instantiating the
+                database during creation of it.
+
         Note:
 
             Make sure to call :meth:`create` on a fresh database before using this method.
