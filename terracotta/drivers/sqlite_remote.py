@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 @contextlib.contextmanager
 def convert_exceptions(msg: str) -> Iterator:
-    """Convert internal sqlite and boto exceptions to our InvalidDatabaseError"""
+    """Convert internal boto exceptions to our InvalidDatabaseError"""
     import botocore.exceptions
     try:
         yield
@@ -137,10 +137,10 @@ class RemoteSQLiteDriver(SQLiteDriver):
     def create(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
 
-    def insert(self, *args: Any, **kwargs: Any) -> None:  # type: ignore
+    def insert(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
 
-    def delete(self, *args: Any, **kwargs: Any) -> None:  # type: ignore
+    def delete(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')
 
     def __del__(self) -> None:

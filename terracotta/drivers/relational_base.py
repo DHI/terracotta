@@ -10,8 +10,8 @@ import re
 import urllib.parse as urlparse
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import (Any, Callable, Dict, Iterator, List, Mapping, Optional,
-                    Sequence, Tuple, Type, Union)
+from typing import (Any, Dict, Iterator, List, Mapping, Optional, Sequence,
+                    Tuple, Type, Union)
 
 import numpy as np
 import sqlalchemy as sqla
@@ -27,24 +27,20 @@ _ERROR_ON_CONNECT = (
     'to a valid Terracotta database, and that you ran driver.create().'
 )
 
+DATABASE_DRIVER_EXCEPTIONS_TO_CONVERT: Tuple[Type[Exception], ...] = (
+    sqla.exc.OperationalError,
+    sqla.exc.InternalError,
+    sqla.exc.ProgrammingError,
+    sqla.exc.InvalidRequestError,
+)
 
-def convert_exceptions(error_message: str) -> Callable[..., Any]:
-    def decorator(fun: Callable[..., Any]) -> Callable[..., Any]:
-        @functools.wraps(fun)
-        def inner(self: 'RelationalDriver', *args: Any, **kwargs: Any) -> Any:
-            with convert_exceptions_context(
-                error_message,
-                self.DATABASE_DRIVER_EXCEPTIONS_TO_CONVERT
-            ):
-                return fun(self, *args, **kwargs)
-        return inner
-    return decorator
+ExceptionType = Union[Type[Exception], Tuple[Type[Exception], ...]]
 
 
 @contextlib.contextmanager
-def convert_exceptions_context(
+def convert_exceptions(
     error_message: str,
-    exceptions_to_convert: Union[Type[Exception], Tuple[Type[Exception], ...]]
+    exceptions_to_convert: ExceptionType = DATABASE_DRIVER_EXCEPTIONS_TO_CONVERT,
 ) -> Iterator:
     try:
         yield
@@ -59,13 +55,6 @@ class RelationalDriver(RasterDriver, ABC):
     SQL_TIMEOUT_KEY: str
 
     FILE_BASED_DATABASE: bool = False
-
-    DATABASE_DRIVER_EXCEPTIONS_TO_CONVERT: Tuple[Type[Exception], ...] = (
-        sqla.exc.OperationalError,
-        sqla.exc.InternalError,
-        sqla.exc.ProgrammingError,
-        sqla.exc.InvalidRequestError,
-    )
 
     SQLA_REAL = functools.partial(sqla.types.Float, precision=8)
     SQLA_TEXT = sqla.types.Text
@@ -141,7 +130,7 @@ class RelationalDriver(RasterDriver, ABC):
     def connect(self, verify: bool = True) -> Iterator:
         if not self.connected:
             def _connect_with_exceptions_converted() -> Connection:
-                with convert_exceptions_context(_ERROR_ON_CONNECT, sqla.exc.OperationalError):
+                with convert_exceptions(_ERROR_ON_CONNECT, sqla.exc.OperationalError):
                     connection = self.sqla_engine.connect().execution_options(
                         isolation_level='READ UNCOMMITTED'
                     )
