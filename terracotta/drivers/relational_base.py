@@ -128,15 +128,13 @@ class RelationalDriver(RasterDriver, ABC):
 
     @contextlib.contextmanager
     def connect(self, verify: bool = True) -> Iterator:
+        @convert_exceptions(_ERROR_ON_CONNECT, sqla.exc.OperationalError)
+        def get_connection() -> Connection:
+            return self.sqla_engine.connect().execution_options(isolation_level='READ UNCOMMITTED')
+
         if not self.connected:
-            def _connect_with_exceptions_converted() -> Connection:
-                with convert_exceptions(_ERROR_ON_CONNECT, sqla.exc.OperationalError):
-                    connection = self.sqla_engine.connect().execution_options(
-                        isolation_level='READ UNCOMMITTED'
-                    )
-                return connection
             try:
-                with _connect_with_exceptions_converted() as connection:
+                with get_connection() as connection:
                     self.connection = connection
                     self.connected = True
                     if verify:
