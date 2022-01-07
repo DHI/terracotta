@@ -53,7 +53,7 @@ def convert_exceptions_context(
 
 
 class RelationalDriver(RasterDriver, ABC):
-    SQL_DATABASE_SCHEME: str  # The database flavour, eg mysql, sqlite, etc
+    SQL_URL_SCHEME: str  # The database flavour, eg mysql, sqlite, etc
     SQL_DRIVER_TYPE: str  # The actual database driver, eg pymysql, sqlite3, etc
     SQL_KEY_SIZE: int
     SQL_TIMEOUT_KEY: str
@@ -122,12 +122,12 @@ class RelationalDriver(RasterDriver, ABC):
 
         if con_params.scheme == 'file' and cls.FILE_BASED_DATABASE:
             file_connection_string = connection_string[len('file://'):]
-            con_params = urlparse.urlparse(f'{cls.SQL_DATABASE_SCHEME}://{file_connection_string}')
+            con_params = urlparse.urlparse(f'{cls.SQL_URL_SCHEME}://{file_connection_string}')
 
         if not con_params.scheme:
-            con_params = urlparse.urlparse(f'{cls.SQL_DATABASE_SCHEME}:{connection_string}')
+            con_params = urlparse.urlparse(f'{cls.SQL_URL_SCHEME}:{connection_string}')
 
-        if con_params.scheme != cls.SQL_DATABASE_SCHEME:
+        if con_params.scheme != cls.SQL_URL_SCHEME:
             raise ValueError(f'unsupported URL scheme "{con_params.scheme}"')
 
         return con_params

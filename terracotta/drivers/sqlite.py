@@ -42,7 +42,7 @@ class SQLiteDriver(RelationalDriver):
         outside the main thread.
 
     """
-    SQL_DATABASE_SCHEME = 'sqlite'
+    SQL_URL_SCHEME = 'sqlite'
     SQL_DRIVER_TYPE = 'pysqlite'
     SQL_KEY_SIZE = 256
     SQL_TIMEOUT_KEY = 'timeout'
