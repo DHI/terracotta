@@ -130,9 +130,9 @@ class RemoteSQLiteDriver(SQLiteDriver):
             _update_from_s3(remote_path, local_path)
             self._last_updated = time.time()
 
-    def _verify_db_version(self) -> None:
+    def _connection_callback(self) -> None:
         self._update_db(self._remote_path, self._local_path)
-        super()._verify_db_version()
+        super()._connection_callback()
 
     def create(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError('Remote SQLite databases are read-only')

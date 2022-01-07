@@ -138,7 +138,7 @@ class RelationalDriver(RasterDriver, ABC):
                     self.connection = connection
                     self.connected = True
                     if verify:
-                        self._verify_db_version()
+                        self._connection_callback()
 
                     yield
                     self.connection.commit()
@@ -152,7 +152,7 @@ class RelationalDriver(RasterDriver, ABC):
                 self.connection.rollback()
                 raise exception
 
-    def _verify_db_version(self) -> None:
+    def _connection_callback(self) -> None:
         if not self.db_version_verified:
             # check for version compatibility
             def version_tuple(version_string: str) -> Sequence[str]:
