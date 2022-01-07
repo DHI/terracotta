@@ -115,6 +115,9 @@ class RelationalDriver(RasterDriver, ABC):
 
     @classmethod
     def _parse_connection_string(cls, connection_string: str) -> urlparse.ParseResult:
+        if "//" not in connection_string:
+            connection_string = f"//{connection_string}"
+
         con_params = urlparse.urlparse(connection_string)
 
         if con_params.scheme == 'file' and cls.FILE_BASED_DATABASE:
@@ -122,7 +125,7 @@ class RelationalDriver(RasterDriver, ABC):
             con_params = urlparse.urlparse(f'{cls.SQL_DATABASE_SCHEME}://{file_connection_string}')
 
         if not con_params.scheme:
-            con_params = urlparse.urlparse(f'{cls.SQL_DATABASE_SCHEME}://{connection_string}')
+            con_params = urlparse.urlparse(f'{cls.SQL_DATABASE_SCHEME}:{connection_string}')
 
         if con_params.scheme != cls.SQL_DATABASE_SCHEME:
             raise ValueError(f'unsupported URL scheme "{con_params.scheme}"')
