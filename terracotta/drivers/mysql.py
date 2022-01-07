@@ -32,7 +32,7 @@ class MySQLDriver(RelationalDriver):
     SQL_DRIVER_TYPE = 'pymysql'
     SQL_TIMEOUT_KEY = 'connect_timeout'
 
-    MAX_PRIMARY_KEY_SIZE = 767 // 4
+    MAX_PRIMARY_KEY_SIZE = 767 // 4  # Max key length for MySQL is at least 767B
     DEFAULT_PORT = 3306
 
     def __init__(self, mysql_path: str) -> None:
@@ -86,5 +86,6 @@ class MySQLDriver(RelationalDriver):
         keys: Sequence[str],
         key_descriptions: Mapping[str, str] = None
     ) -> None:
+        # total primary key length has an upper limit in MySQL
         self.SQL_KEY_SIZE = self.MAX_PRIMARY_KEY_SIZE // len(keys)
         super()._initialize_database(keys, key_descriptions)
