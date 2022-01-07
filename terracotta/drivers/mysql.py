@@ -4,6 +4,7 @@ MySQL-backed raster driver. Metadata is stored in a MySQL database, raster data 
 to be present on disk.
 """
 
+from typing import Mapping, Sequence
 from urllib.parse import ParseResult
 
 import sqlalchemy as sqla
@@ -29,9 +30,9 @@ class MySQLDriver(RelationalDriver):
     """
     SQL_URL_SCHEME = 'mysql'
     SQL_DRIVER_TYPE = 'pymysql'
-    SQL_KEY_SIZE = 50
     SQL_TIMEOUT_KEY = 'connect_timeout'
 
+    MAX_PRIMARY_KEY_SIZE = 767 // 4
     DEFAULT_PORT = 3306
 
     def __init__(self, mysql_path: str) -> None:
@@ -79,3 +80,11 @@ class MySQLDriver(RelationalDriver):
             db_name = self._parse_db_name(self._CONNECTION_PARAMETERS)
             connection.execute(sqla.text(f'CREATE DATABASE {db_name}'))
             connection.commit()
+
+    def _initialize_database(
+        self,
+        keys: Sequence[str],
+        key_descriptions: Mapping[str, str] = None
+    ) -> None:
+        self.SQL_KEY_SIZE = self.MAX_PRIMARY_KEY_SIZE // len(keys)
+        super()._initialize_database(keys, key_descriptions)
