@@ -6,10 +6,9 @@ to be present on disk.
 
 import functools
 from typing import Mapping, Sequence
-from urllib.parse import ParseResult
 
 import sqlalchemy as sqla
-from sqlalchemy.dialects.mysql import VARCHAR, TEXT
+from sqlalchemy.dialects.mysql import TEXT, VARCHAR
 from terracotta.drivers.relational_base import RelationalDriver
 
 
@@ -55,38 +54,28 @@ class MySQLDriver(RelationalDriver):
 
         self.SQLA_METADATA_TYPE_LOOKUP['text'] = functools.partial(TEXT, charset=self._CHARSET)
 
-        # raises an exception if path is invalid
-        self._parse_db_name(self._CONNECTION_PARAMETERS)
+        # raise an exception if database name is invalid
+        if not self.url.database:
+            raise ValueError('database must be specified in MySQL path')
+        if '/' in self.url.database.strip('/'):
+            raise ValueError('invalid database path')
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:
-        parts = cls._parse_connection_string(path)
+        url = cls._parse_path(path)
 
-        path = f'{parts.scheme}://{parts.hostname}:{parts.port or cls.DEFAULT_PORT}{parts.path}'
+        path = f'{url.drivername}://{url.host}:{url.port or cls.DEFAULT_PORT}/{url.database}'
         path = path.rstrip('/')
-        return path
-
-    @staticmethod
-    def _parse_db_name(con_params: ParseResult) -> str:
-        if not con_params.path:
-            raise ValueError('database must be specified in MySQL path')
-
-        path = con_params.path.strip('/')
-        if '/' in path:
-            raise ValueError('invalid database path')
-
         return path
 
     def _create_database(self) -> None:
         engine = sqla.create_engine(
-            f'{self._CONNECTION_PARAMETERS.scheme}+{self.SQL_DRIVER_TYPE}://'
-            f'{self._CONNECTION_PARAMETERS.netloc}',
+            self.url.set(database=''),  # `.set()` returns a copy with changed parameters
             echo=False,
             future=True
         )
         with engine.connect() as connection:
-            db_name = self._parse_db_name(self._CONNECTION_PARAMETERS)
-            connection.execute(sqla.text(f'CREATE DATABASE {db_name}'))
+            connection.execute(sqla.text(f'CREATE DATABASE {self.url.database}'))
             connection.commit()
 
     def _initialize_database(

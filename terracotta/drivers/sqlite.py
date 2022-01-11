@@ -59,11 +59,7 @@ class SQLiteDriver(RelationalDriver):
             path: File path to target SQLite database (may or may not exist yet)
 
         """
-        super().__init__(f'file:///{path}')
-
-    @classmethod
-    def _resolve_path(cls, path: str) -> str:
-        return str(Path(path).resolve())
+        super().__init__(f'{self.SQL_URL_SCHEME}:///{path}')
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:

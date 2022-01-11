@@ -2,19 +2,19 @@ import pytest
 
 TEST_CASES = {
     'mysql://root@localhost:5000/test': dict(
-        username='root', password=None, hostname='localhost', port=5000, path='/test'
+        username='root', password=None, host='localhost', port=5000, database='test'
     ),
     'root@localhost:5000/test': dict(
-        username='root', password=None, hostname='localhost', port=5000, path='/test'
+        username='root', password=None, host='localhost', port=5000, database='test'
     ),
     'mysql://root:foo@localhost/test': dict(
-        username='root', password='foo', hostname='localhost', port=None, path='/test'
+        username='root', password='foo', host='localhost', port=None, database='test'
     ),
     'mysql://localhost/test': dict(
-        password=None, hostname='localhost', port=None, path='/test'
+        password=None, host='localhost', port=None, database='test'
     ),
     'localhost/test': dict(
-        password=None, hostname='localhost', port=None, path='/test'
+        password=None, host='localhost', port=None, database='test'
     )
 }
 
@@ -32,9 +32,8 @@ def test_path_parsing(case):
     drivers._DRIVER_CACHE = {}
 
     db = drivers.get_driver(case, provider='mysql')
-    db_args = db._CONNECTION_PARAMETERS
-    for attr in ('username', 'password', 'hostname', 'port', 'path'):
-        assert getattr(db_args, attr) == TEST_CASES[case].get(attr, None)
+    for attr in ('username', 'password', 'host', 'port', 'database'):
+        assert getattr(db.url, attr) == TEST_CASES[case].get(attr, None)
 
 
 @pytest.mark.parametrize('case', INVALID_TEST_CASES)

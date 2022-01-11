@@ -17,6 +17,7 @@ import numpy as np
 import sqlalchemy as sqla
 import terracotta
 from sqlalchemy.engine.base import Connection
+from sqlalchemy.engine.url import URL
 from terracotta import exceptions
 from terracotta.drivers.base import requires_connection
 from terracotta.drivers.raster_base import RasterDriver
@@ -83,14 +84,9 @@ class RelationalDriver(RasterDriver, ABC):
         db_connection_timeout: int = settings.DB_CONNECTION_TIMEOUT
         self.LAZY_LOADING_MAX_SHAPE: Tuple[int, int] = settings.LAZY_LOADING_MAX_SHAPE
 
-        assert self.SQL_DRIVER_TYPE is not None
-        self._CONNECTION_PARAMETERS = self._parse_connection_string(path)
-        cp = self._CONNECTION_PARAMETERS
-        resolved_path = self._resolve_path(cp.path[1:])  # Remove the leading '/'
-        connection_string = f'{cp.scheme}+{self.SQL_DRIVER_TYPE}://{cp.netloc}/{resolved_path}'
-
+        self.url = self._parse_path(path)
         self.sqla_engine = sqla.create_engine(
-            connection_string,
+            self.url,
             echo=False,
             future=True,
             connect_args={self.SQL_TIMEOUT_KEY: db_connection_timeout}
@@ -104,19 +100,14 @@ class RelationalDriver(RasterDriver, ABC):
         self.db_version_verified: bool = False
 
         # use normalized path to make sure username and password don't leak into __repr__
-        qualified_path = self._normalize_path(path)
-        super().__init__(qualified_path)
+        super().__init__(self._normalize_path(path))
 
     @classmethod
-    def _parse_connection_string(cls, connection_string: str) -> urlparse.ParseResult:
+    def _parse_path(cls, connection_string: str) -> URL:
         if "//" not in connection_string:
             connection_string = f"//{connection_string}"
 
         con_params = urlparse.urlparse(connection_string)
-
-        if con_params.scheme == 'file' and cls.FILE_BASED_DATABASE:
-            file_connection_string = connection_string[len('file://'):]
-            con_params = urlparse.urlparse(f'{cls.SQL_URL_SCHEME}://{file_connection_string}')
 
         if not con_params.scheme:
             con_params = urlparse.urlparse(f'{cls.SQL_URL_SCHEME}:{connection_string}')
@@ -124,12 +115,17 @@ class RelationalDriver(RasterDriver, ABC):
         if con_params.scheme != cls.SQL_URL_SCHEME:
             raise ValueError(f'unsupported URL scheme "{con_params.scheme}"')
 
-        return con_params
+        url = URL.create(
+            drivername=f'{cls.SQL_URL_SCHEME}+{cls.SQL_DRIVER_TYPE}',
+            username=con_params.username,
+            password=con_params.password,
+            host=con_params.hostname,
+            port=con_params.port,
+            database=con_params.path[1:],  # remove leading '/' from urlparse
+            query=con_params.query
+        )
 
-    @classmethod
-    def _resolve_path(cls, path: str) -> str:
-        # Default to do nothing; may be overriden to actually handle file paths according to OS
-        return path
+        return url
 
     @contextlib.contextmanager
     def connect(self, verify: bool = True) -> Iterator:
