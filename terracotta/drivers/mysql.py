@@ -73,7 +73,7 @@ class MySQLDriver(RelationalDriver):
         engine = sqla.create_engine(
             f'{self._CONNECTION_PARAMETERS.scheme}+{self.SQL_DRIVER_TYPE}://'
             f'{self._CONNECTION_PARAMETERS.netloc}',
-            echo=True,
+            echo=False,
             future=True
         )
         with engine.connect() as connection:
