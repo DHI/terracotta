@@ -4,10 +4,12 @@ MySQL-backed raster driver. Metadata is stored in a MySQL database, raster data 
 to be present on disk.
 """
 
+import functools
 from typing import Mapping, Sequence
 from urllib.parse import ParseResult
 
 import sqlalchemy as sqla
+from sqlalchemy.dialects.mysql import VARCHAR, TEXT
 from terracotta.drivers.relational_base import RelationalDriver
 
 
@@ -31,6 +33,10 @@ class MySQLDriver(RelationalDriver):
     SQL_URL_SCHEME = 'mysql'
     SQL_DRIVER_TYPE = 'pymysql'
     SQL_TIMEOUT_KEY = 'connect_timeout'
+
+    _CHARSET = 'utf8mb4'
+    SQLA_STRING = functools.partial(VARCHAR, charset=_CHARSET)
+    SQLA_TEXT = functools.partial(TEXT, charset=_CHARSET)
 
     MAX_PRIMARY_KEY_SIZE = 767 // 4  # Max key length for MySQL is at least 767B
     DEFAULT_PORT = 3306

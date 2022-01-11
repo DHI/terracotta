@@ -56,25 +56,28 @@ class RelationalDriver(RasterDriver, ABC):
 
     FILE_BASED_DATABASE: bool = False
 
+    SQLA_STRING = sqla.types.String
     SQLA_REAL = functools.partial(sqla.types.Float, precision=8)
     SQLA_TEXT = sqla.types.Text
     SQLA_BLOB = sqla.types.LargeBinary
-    _METADATA_COLUMNS: Tuple[Tuple[str, sqla.types.TypeEngine], ...] = (
-        ('bounds_north', SQLA_REAL),
-        ('bounds_east', SQLA_REAL),
-        ('bounds_south', SQLA_REAL),
-        ('bounds_west', SQLA_REAL),
-        ('convex_hull', SQLA_TEXT),
-        ('valid_percentage', SQLA_REAL),
-        ('min', SQLA_REAL),
-        ('max', SQLA_REAL),
-        ('mean', SQLA_REAL),
-        ('stdev', SQLA_REAL),
-        ('percentiles', SQLA_BLOB),
-        ('metadata', SQLA_TEXT)
-    )
 
     def __init__(self, path: str) -> None:
+        # it is sadly necessary to define this in here, in order to let subclasses redefine types
+        self._METADATA_COLUMNS: Tuple[Tuple[str, sqla.types.TypeEngine], ...] = (
+            ('bounds_north', self.SQLA_REAL),
+            ('bounds_east', self.SQLA_REAL),
+            ('bounds_south', self.SQLA_REAL),
+            ('bounds_west', self.SQLA_REAL),
+            ('convex_hull', self.SQLA_TEXT),
+            ('valid_percentage', self.SQLA_REAL),
+            ('min', self.SQLA_REAL),
+            ('max', self.SQLA_REAL),
+            ('mean', self.SQLA_REAL),
+            ('stdev', self.SQLA_REAL),
+            ('percentiles', self.SQLA_BLOB),
+            ('metadata', self.SQLA_TEXT)
+        )
+
         settings = terracotta.get_settings()
         db_connection_timeout: int = settings.DB_CONNECTION_TIMEOUT
         self.LAZY_LOADING_MAX_SHAPE: Tuple[int, int] = settings.LAZY_LOADING_MAX_SHAPE
@@ -228,22 +231,22 @@ class RelationalDriver(RasterDriver, ABC):
 
         terracotta_table = sqla.Table(
             'terracotta', self.sqla_metadata,
-            sqla.Column('version', sqla.types.String(255), primary_key=True)
+            sqla.Column('version', self.SQLA_STRING(255), primary_key=True)
         )
         key_names_table = sqla.Table(
             'key_names', self.sqla_metadata,
-            sqla.Column('key_name', sqla.types.String(self.SQL_KEY_SIZE), primary_key=True),
-            sqla.Column('description', sqla.types.String(8000)),
+            sqla.Column('key_name', self.SQLA_STRING(self.SQL_KEY_SIZE), primary_key=True),
+            sqla.Column('description', self.SQLA_STRING(8000)),
             sqla.Column('index', sqla.types.Integer, unique=True)
         )
         _ = sqla.Table(
             'datasets', self.sqla_metadata,
-            *[sqla.Column(key, sqla.types.String(self.SQL_KEY_SIZE), primary_key=True) for key in keys],  # noqa: E501
-            sqla.Column('filepath', sqla.types.String(8000))
+            *[sqla.Column(key, self.SQLA_STRING(self.SQL_KEY_SIZE), primary_key=True) for key in keys],  # noqa: E501
+            sqla.Column('filepath', self.SQLA_STRING(8000))
         )
         _ = sqla.Table(
             'metadata', self.sqla_metadata,
-            *[sqla.Column(key, sqla.types.String(self.SQL_KEY_SIZE), primary_key=True) for key in keys],  # noqa: E501
+            *[sqla.Column(key, self.SQLA_STRING(self.SQL_KEY_SIZE), primary_key=True) for key in keys],  # noqa: E501
             *[sqla.Column(name, column_type()) for name, column_type in self._METADATA_COLUMNS]
         )
         self.sqla_metadata.create_all(self.sqla_engine)
