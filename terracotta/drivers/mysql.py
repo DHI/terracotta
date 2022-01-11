@@ -50,7 +50,7 @@ class MySQLDriver(RelationalDriver):
                 ``mysql://username:password@hostname/database``
 
         """
-        super().__init__(mysql_path)
+        super().__init__(f'{mysql_path}?charset={self._CHARSET}')
 
         self.SQLA_METADATA_TYPE_LOOKUP['text'] = functools.partial(TEXT, charset=self._CHARSET)
 

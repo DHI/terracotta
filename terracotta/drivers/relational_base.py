@@ -122,7 +122,7 @@ class RelationalDriver(RasterDriver, ABC):
             host=con_params.hostname,
             port=con_params.port,
             database=con_params.path[1:],  # remove leading '/' from urlparse
-            query=con_params.query
+            query=dict(urlparse.parse_qsl(con_params.query))
         )
 
         return url
