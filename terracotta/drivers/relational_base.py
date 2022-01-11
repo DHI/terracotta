@@ -77,6 +77,7 @@ class RelationalDriver(RasterDriver, ABC):
     def __init__(self, path: str) -> None:
         settings = terracotta.get_settings()
         db_connection_timeout: int = settings.DB_CONNECTION_TIMEOUT
+        self.LAZY_LOADING_MAX_SHAPE: Tuple[int, int] = settings.LAZY_LOADING_MAX_SHAPE
 
         assert self.SQL_DRIVER_TYPE is not None
         self._CONNECTION_PARAMETERS = self._parse_connection_string(path)
@@ -353,7 +354,8 @@ class RelationalDriver(RasterDriver, ABC):
             assert len(filepath) == 1
 
             # compute metadata and try again
-            self.insert(keys, filepath[keys], skip_metadata=False)
+            metadata = self.compute_metadata(filepath[keys], max_shape=self.LAZY_LOADING_MAX_SHAPE)
+            self.insert(keys, filepath[keys], metadata=metadata)
             row = self.connection.execute(stmt).first()
 
         assert row
