@@ -63,7 +63,7 @@ class SQLiteDriver(RelationalDriver):
 
     @classmethod
     def _resolve_path(cls, path: str) -> str:
-        return os.path.realpath(Path(path).resolve())
+        return str(Path(path).resolve())
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:
