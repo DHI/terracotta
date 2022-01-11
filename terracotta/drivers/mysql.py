@@ -36,7 +36,6 @@ class MySQLDriver(RelationalDriver):
 
     _CHARSET = 'utf8mb4'
     SQLA_STRING = functools.partial(VARCHAR, charset=_CHARSET)
-    SQLA_TEXT = functools.partial(TEXT, charset=_CHARSET)
 
     MAX_PRIMARY_KEY_SIZE = 767 // 4  # Max key length for MySQL is at least 767B
     DEFAULT_PORT = 3306
@@ -53,6 +52,9 @@ class MySQLDriver(RelationalDriver):
 
         """
         super().__init__(mysql_path)
+
+        self.SQLA_METADATA_TYPE_LOOKUP['text'] = functools.partial(TEXT, charset=self._CHARSET)
+
         # raises an exception if path is invalid
         self._parse_db_name(self._CONNECTION_PARAMETERS)
 
