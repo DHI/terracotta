@@ -47,8 +47,6 @@ class SQLiteDriver(RelationalDriver):
     SQL_KEY_SIZE = 256
     SQL_TIMEOUT_KEY = 'timeout'
 
-    FILE_BASED_DATABASE = True
-
     def __init__(self, path: Union[str, Path]) -> None:
         """Initialize the SQLiteDriver.
 

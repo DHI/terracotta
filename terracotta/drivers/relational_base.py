@@ -55,8 +55,6 @@ class RelationalDriver(RasterDriver, ABC):
     SQL_KEY_SIZE: int
     SQL_TIMEOUT_KEY: str
 
-    FILE_BASED_DATABASE: bool = False
-
     SQLA_STRING = sqla.types.String
     SQLA_METADATA_TYPE_LOOKUP: Dict[str, sqla.types.TypeEngine] = {
         'real': functools.partial(sqla.types.Float, precision=8),
