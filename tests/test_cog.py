@@ -69,12 +69,12 @@ def test_validate_unoptimized(tmpdir):
     from terracotta import cog
 
     outfile = str(tmpdir / 'raster.tif')
-    raster_data = 1000 * np.random.rand(512, 512).astype(np.uint16)
+    raster_data = 1000 * np.random.rand(1024, 1024).astype(np.uint16)
 
     profile = BASE_PROFILE.copy()
     profile.update(
         height=raster_data.shape[0],
-        width=raster_data.shape[1]
+        width=raster_data.shape[1],
     )
 
     with rasterio.open(outfile, 'w', **profile) as dst:
@@ -87,7 +87,7 @@ def test_validate_no_overviews(tmpdir):
     from terracotta import cog
 
     outfile = str(tmpdir / 'raster.tif')
-    raster_data = 1000 * np.random.rand(512, 512).astype(np.uint16)
+    raster_data = 1000 * np.random.rand(1024, 1024).astype(np.uint16)
 
     profile = BASE_PROFILE.copy()
     profile.update(
