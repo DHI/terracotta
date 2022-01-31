@@ -48,7 +48,8 @@ def standardize_keys(
                 'Encountered unknown key type, expected Mapping or Sequence'
             )
 
-        if unknown_keys := set(keys) - set(self.key_names):
+        unknown_keys = set(keys) - set(self.key_names)
+        if unknown_keys:
             raise exceptions.InvalidKeyError(
                 f'Encountered unrecognized keys {unknown_keys} (available keys: {self.key_names})'
             )
