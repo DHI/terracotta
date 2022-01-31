@@ -1,7 +1,8 @@
+from typing import (Any, Callable, Collection, Dict, Mapping,
+                    Sequence, Tuple, TypeVar, Union, cast)
 import contextlib
 import functools
-from typing import (Any, Callable, Collection, Dict, Mapping, OrderedDict,
-                    Sequence, Tuple, TypeVar, Union, cast)
+from collections import OrderedDict
 
 import terracotta
 from terracotta import exceptions
