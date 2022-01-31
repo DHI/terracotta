@@ -144,11 +144,6 @@ def test_lazy_loading(driver_path, provider, raster_file):
     data1 = db.get_metadata(['some', 'value'])
     data2 = db.get_metadata({'some': 'some', 'keynames': 'other_value'})
     assert set(data1.keys()) == set(data2.keys())
-    for k in data1.keys():
-        if not np.all(data1[k] == data2[k]):
-            print(k)
-            print(data1[k])
-            print(data2[k])
     assert all(np.all(data1[k] == data2[k]) for k in data1.keys())
 
 
