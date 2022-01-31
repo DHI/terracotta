@@ -214,3 +214,11 @@ def test_get_raster_tile(raster_file, preserve_values, resampling_method):
         tile_size=(256, 256)
     )
     assert data.shape == (256, 256)
+
+
+def test_invalid_resampling_method():
+    from terracotta import raster
+
+    with pytest.raises(ValueError) as exc:
+        raster.get_resampling_enum('not-a-resampling-method')
+    assert 'unknown resampling method' in str(exc)
