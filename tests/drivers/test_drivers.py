@@ -229,3 +229,34 @@ def test_version_conflict(driver_path, provider, raster_file, monkeypatch):
                 pass
 
         assert fake_version in str(exc.value)
+
+
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
+def test_invalid_key_types(driver_path, provider):
+    from terracotta import drivers, exceptions
+
+    db = drivers.get_driver(driver_path, provider)
+    keys = ('some', 'keys')
+
+    db.create(keys)
+
+    db.get_datasets()
+    db.get_datasets(['a', 'b'])
+    db.get_datasets({'some': 'a', 'keys': 'b'})
+    db.get_datasets(None)
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.get_datasets(45)
+    assert 'unknown key type' in str(exc)
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.delete(['a'])
+    assert 'wrong number of keys' in str(exc)
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.delete(None)
+    assert 'wrong number of keys' in str(exc)
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.get_datasets({'not-a-key': 'val'})
+    assert 'unrecognized keys' in str(exc)
