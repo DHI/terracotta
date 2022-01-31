@@ -199,3 +199,18 @@ def test_compute_metadata_unoptimized(unoptimized_raster_file):
     )
 
     assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-6
+
+
+@pytest.mark.parametrize('preserve_values', [True, False])
+@pytest.mark.parametrize('resampling_method', ['nearest', 'linear', 'cubic', 'average'])
+def test_get_raster_tile(raster_file, preserve_values, resampling_method):
+    from terracotta import raster
+
+    data = raster.get_raster_tile(
+        str(raster_file),
+        reprojection_method=resampling_method,
+        resampling_method=resampling_method,
+        preserve_values=preserve_values,
+        tile_size=(256, 256)
+    )
+    assert data.shape == (256, 256)
