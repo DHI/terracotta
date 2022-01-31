@@ -7,9 +7,11 @@ import contextlib
 import functools
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import (Any, Callable, Dict, List, Mapping, Sequence, Tuple,
-                    TypeVar, Union)
+from typing import (Any, Callable, Dict, List, Mapping, Optional, Sequence,
+                    Tuple, TypeVar, Union)
 
+KeysType = Dict[str, str]
+MultiValueKeysType = Dict[str, Union[str, List[str]]]
 Number = TypeVar('Number', int, float)
 T = TypeVar('T')
 
@@ -22,14 +24,14 @@ def requires_connection(
         return functools.partial(requires_connection, verify=verify)
 
     @functools.wraps(fun)
-    def inner(self: Driver, *args: Any, **kwargs: Any) -> T:
+    def inner(self: MetaStore, *args: Any, **kwargs: Any) -> T:
         with self.connect(verify=verify):
             # Apparently mypy thinks fun might still be None, hence the ignore:
             return fun(self, *args, **kwargs)  # type: ignore
     return inner
 
 
-class Driver(ABC):
+class MetaStore(ABC):
     """Abstract base class for all Terracotta data backends.
 
     Defines a common interface for all drivers.
@@ -105,14 +107,14 @@ class Driver(ABC):
         pass
 
     @abstractmethod
-    def get_datasets(self, where: Mapping[str, Union[str, List[str]]] = None,
+    def get_datasets(self, where: MultiValueKeysType = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], Any]:
         # Get all known dataset key combinations matching the given constraints,
         # and a handle to retrieve the data (driver dependent)
         pass
 
     @abstractmethod
-    def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
+    def get_metadata(self, keys: KeysType) -> Optional[Dict[str, Any]]:
         """Return all stored metadata for given keys.
 
         Arguments:
@@ -137,18 +139,49 @@ class Driver(ABC):
         pass
 
     @abstractmethod
+    def insert(self, keys: KeysType,
+               handle: Any, **kwargs: Any) -> None:
+        """Register a new dataset. Used to populate metadata database.
+
+        Arguments:
+
+            keys: Keys of the dataset. Can either be given as a sequence of key values, or
+                as a mapping ``{key_name: key_value}``.
+            handle: Handle to access dataset (driver dependent).
+
+        """
+        pass
+
+    @abstractmethod
+    def delete(self, keys: KeysType) -> None:
+        """Remove a dataset from the metadata database.
+
+        Arguments:
+
+            keys:  Keys of the dataset. Can either be given as a sequence of key values, or
+                as a mapping ``{key_name: key_value}``.
+
+        """
+        pass
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(\'{self.path}\')'
+
+
+class RasterStore(ABC):
+
+    @abstractmethod
     # TODO: add accurate signature if mypy ever supports conditional return types
-    def get_raster_tile(self, keys: Union[Sequence[str], Mapping[str, str]], *,
+    def get_raster_tile(self, handle: str, *,
                         tile_bounds: Sequence[float] = None,
                         tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
-        """Load a raster tile with given keys and bounds.
+        """Load a raster tile with given handle and bounds.
 
         Arguments:
 
-            keys: Keys of the requested dataset. Can either be given as a sequence of key values,
-                or as a mapping ``{key_name: key_value}``.
+            handle: Handle of the requested dataset.
             tile_bounds: Physical bounds of the tile to read, in Web Mercator projection (EPSG3857).
                 Reads the whole dataset if not given.
             tile_size: Shape of the output array to return. Must be two-dimensional.
@@ -168,39 +201,11 @@ class Driver(ABC):
         """
         pass
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def compute_metadata(data: Any, *,
+    def compute_metadata(cls, handle: str, *,
                          extra_metadata: Any = None,
-                         **kwargs: Any) -> Dict[str, Any]:
+                         use_chunks: bool = None,
+                         max_shape: Sequence[int] = None) -> Dict[str, Any]:
         # Compute metadata for a given input file (driver dependent)
         pass
-
-    @abstractmethod
-    def insert(self, keys: Union[Sequence[str], Mapping[str, str]],
-               handle: Any, **kwargs: Any) -> None:
-        """Register a new dataset. Used to populate metadata database.
-
-        Arguments:
-
-            keys: Keys of the dataset. Can either be given as a sequence of key values, or
-                as a mapping ``{key_name: key_value}``.
-            handle: Handle to access dataset (driver dependent).
-
-        """
-        pass
-
-    @abstractmethod
-    def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
-        """Remove a dataset from the metadata database.
-
-        Arguments:
-
-            keys:  Keys of the dataset. Can either be given as a sequence of key values, or
-                as a mapping ``{key_name: key_value}``.
-
-        """
-        pass
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(\'{self.path}\')'
