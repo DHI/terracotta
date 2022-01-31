@@ -1,7 +1,8 @@
+from typing import (Any, Callable, Collection, Dict, Mapping,
+                    Sequence, Tuple, TypeVar, Union, cast)
 import contextlib
 import functools
-from typing import (Any, Callable, Collection, Dict, Mapping, OrderedDict,
-                    Sequence, Tuple, TypeVar, Union, cast)
+from collections import OrderedDict
 
 import terracotta
 from terracotta import exceptions
@@ -48,7 +49,8 @@ def standardize_keys(
                 'Encountered unknown key type, expected Mapping or Sequence'
             )
 
-        if unknown_keys := set(keys) - set(self.key_names):
+        unknown_keys = set(keys) - set(self.key_names)
+        if unknown_keys:
             raise exceptions.InvalidKeyError(
                 f'Encountered unrecognized keys {unknown_keys} (available keys: {self.key_names})'
             )
