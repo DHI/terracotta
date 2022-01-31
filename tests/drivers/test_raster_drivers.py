@@ -299,7 +299,11 @@ def test_insertion_invalid_raster(driver_path, provider, invalid_raster_file):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_raster_retrieval(driver_path, provider, raster_file):
+@pytest.mark.parametrize('resampling_method', ['nearest', 'linear', 'cubic', 'average'])
+def test_raster_retrieval(driver_path, provider, raster_file, resampling_method):
+    import terracotta
+    terracotta.update_settings(RESAMPLING_METHOD=resampling_method)
+
     from terracotta import drivers
     db = drivers.get_driver(driver_path, provider=provider)
     keys = ('some', 'keynames')
