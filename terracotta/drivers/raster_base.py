@@ -3,9 +3,8 @@
 Base class for drivers operating on physical raster files.
 """
 
-from typing import (Any, Callable, Union, Mapping, Sequence, Dict, List, Tuple,
-                    TypeVar, Optional, cast, TYPE_CHECKING)
-from abc import abstractmethod
+from typing import (Any, Callable, Sequence, Dict, Tuple,
+                    TypeVar, Optional, TYPE_CHECKING)
 from concurrent.futures import Future, Executor, ProcessPoolExecutor, ThreadPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 
@@ -28,7 +27,7 @@ except ImportError:  # pragma: no cover
 
 from terracotta import get_settings, exceptions
 from terracotta.cache import CompressedLFUCache
-from terracotta.drivers.base import requires_connection, Driver
+from terracotta.drivers.base import RasterStore
 from terracotta.profile import trace
 
 Number = TypeVar('Number', int, float)
@@ -76,7 +75,7 @@ def submit_to_executor(task: Callable[..., Any]) -> Future:
     return future
 
 
-class RasterDriver(Driver):
+class RasterDriver(RasterStore):
     """Mixin that implements methods to load raster data from disk.
 
     get_datasets has to return path to raster file as sole dict value.
@@ -88,89 +87,13 @@ class RasterDriver(Driver):
         GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR'
     )
 
-    @abstractmethod
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self) -> None:
         settings = get_settings()
         self._raster_cache = CompressedLFUCache(
             settings.RASTER_CACHE_SIZE,
             compression_level=settings.RASTER_CACHE_COMPRESS_LEVEL
         )
         self._cache_lock = threading.RLock()
-        super().__init__(*args, **kwargs)
-
-    # specify signature and docstring for insert
-    @abstractmethod
-    def insert(self,  # type: ignore
-               keys: Union[Sequence[str], Mapping[str, str]],
-               filepath: str, *,
-               metadata: Mapping[str, Any] = None,
-               skip_metadata: bool = False,
-               override_path: str = None) -> None:
-        """Insert a raster file into the database.
-
-        Arguments:
-
-            keys: Keys identifying the new dataset. Can either be given as a sequence of key
-                values, or as a mapping ``{key_name: key_value}``.
-            filepath: Path to the GDAL-readable raster file.
-            metadata: If not given (default), call :meth:`compute_metadata` with default arguments
-                to compute raster metadata. Otherwise, use the given values. This can be used to
-                decouple metadata computation from insertion, or to use the optional arguments
-                of :meth:`compute_metadata`.
-            skip_metadata: Do not compute any raster metadata (will be computed during the first
-                request instead). Use sparingly; this option has a detrimental result on the end
-                user experience and might lead to surprising results. Has no effect if ``metadata``
-                is given.
-            override_path: Override the path to the raster file in the database. Use this option if
-                you intend to copy the data somewhere else after insertion (e.g. when moving files
-                to a cloud storage later on).
-
-        """
-        pass
-
-    # specify signature and docstring for get_datasets
-    @abstractmethod
-    def get_datasets(self, where: Mapping[str, Union[str, List[str]]] = None,
-                     page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], str]:
-        """Retrieve keys and file paths of datasets.
-
-        Arguments:
-
-            where: Constraints on returned datasets in the form ``{key_name: allowed_key_value}``.
-                Returns all datasets if not given (default).
-            page: Current page of results. Has no effect if ``limit`` is not given.
-            limit: If given, return at most this many datasets. Unlimited by default.
-
-
-        Returns:
-
-            :class:`dict` containing
-            ``{(key_value1, key_value2, ...): raster_file_path}``
-
-        Example:
-
-            >>> import terracotta as tc
-            >>> driver = tc.get_driver('tc.sqlite')
-            >>> driver.get_datasets()
-            {
-                ('reflectance', '20180101', 'B04'): 'reflectance_20180101_B04.tif',
-                ('reflectance', '20180102', 'B04'): 'reflectance_20180102_B04.tif',
-            }
-            >>> driver.get_datasets({'date': '20180101'})
-            {('reflectance', '20180101', 'B04'): 'reflectance_20180101_B04.tif'}
-
-        """
-        pass
-
-    def _key_dict_to_sequence(self, keys: Union[Mapping[str, Any], Sequence[Any]]) -> List[Any]:
-        """Convert {key_name: key_value} to [key_value] with the correct key order."""
-        try:
-            keys_as_mapping = cast(Mapping[str, Any], keys)
-            return [keys_as_mapping[key] for key in self.key_names]
-        except TypeError:  # not a mapping
-            return list(keys)
-        except KeyError as exc:
-            raise exceptions.InvalidKeyError('Encountered unknown key') from exc
 
     @staticmethod
     def _hull_candidate_mask(mask: np.ndarray) -> np.ndarray:
@@ -323,7 +246,7 @@ class RasterDriver(Driver):
 
     @classmethod
     @trace('compute_metadata')
-    def compute_metadata(cls, raster_path: str, *,  # type: ignore[override]  # noqa: F821
+    def compute_metadata(cls, handle: str, *,  # noqa: F821
                          extra_metadata: Any = None,
                          use_chunks: bool = None,
                          max_shape: Sequence[int] = None) -> Dict[str, Any]:
@@ -359,18 +282,18 @@ class RasterDriver(Driver):
             raise ValueError('Cannot use both use_chunks and max_shape arguments')
 
         with rasterio.Env(**cls._RIO_ENV_KEYS):
-            if not validate(raster_path):
+            if not validate(handle):
                 warnings.warn(
-                    f'Raster file {raster_path} is not a valid cloud-optimized GeoTIFF. '
+                    f'Raster file {handle} is not a valid cloud-optimized GeoTIFF. '
                     'Any interaction with it will be significantly slower. Consider optimizing '
                     'it through `terracotta optimize-rasters` before ingestion.',
                     exceptions.PerformanceWarning, stacklevel=3
                 )
 
-            with rasterio.open(raster_path) as src:
+            with rasterio.open(handle) as src:
                 if src.nodata is None and not cls._has_alpha_band(src):
                     warnings.warn(
-                        f'Raster file {raster_path} does not have a valid nodata value, '
+                        f'Raster file {handle} does not have a valid nodata value, '
                         'and does not contain an alpha band. No data will be masked.'
                     )
 
@@ -383,7 +306,7 @@ class RasterDriver(Driver):
 
                     if use_chunks:
                         logger.debug(
-                            f'Computing metadata for file {raster_path} using more than '
+                            f'Computing metadata for file {handle} using more than '
                             f'{RasterDriver._LARGE_RASTER_THRESHOLD // 10**6}M pixels, iterating '
                             'over chunks'
                         )
@@ -401,7 +324,7 @@ class RasterDriver(Driver):
                     raster_stats = RasterDriver._compute_image_stats(src, max_shape)
 
         if raster_stats is None:
-            raise ValueError(f'Raster file {raster_path} does not contain any valid data')
+            raise ValueError(f'Raster file {handle} does not contain any valid data')
 
         row_data.update(raster_stats)
 
@@ -541,9 +464,8 @@ class RasterDriver(Driver):
         return np.ma.masked_array(tile_data, mask=mask)
 
     # return type has to be Any until mypy supports conditional return types
-    @requires_connection
     def get_raster_tile(self,
-                        keys: Union[Sequence[str], Mapping[str, str]], *,
+                        handle: str, *,
                         tile_bounds: Sequence[float] = None,
                         tile_size: Sequence[int] = None,
                         preserve_values: bool = False,
@@ -555,17 +477,13 @@ class RasterDriver(Driver):
         result: np.ma.MaskedArray
 
         settings = get_settings()
-        key_tuple = tuple(self._key_dict_to_sequence(keys))
-        datasets = self.get_datasets(dict(zip(self.key_names, key_tuple)))
-        assert len(datasets) == 1
-        path = datasets[key_tuple]
 
         if tile_size is None:
             tile_size = settings.DEFAULT_TILE_SIZE
 
         # make sure all arguments are hashable
         kwargs = dict(
-            path=path,
+            path=handle,
             tile_bounds=tuple(tile_bounds) if tile_bounds else None,
             tile_size=tuple(tile_size),
             preserve_values=preserve_values,

@@ -10,8 +10,8 @@ import re
 import urllib.parse as urlparse
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import (Any, Dict, Iterator, List, Mapping, Optional, Sequence,
-                    Tuple, Type, Union)
+from typing import (Any, Dict, Iterator, Mapping, Optional, Sequence, Tuple,
+                    Type, Union)
 
 import numpy as np
 import sqlalchemy as sqla
@@ -19,8 +19,8 @@ import terracotta
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.engine.url import URL
 from terracotta import exceptions
-from terracotta.drivers.base import requires_connection
-from terracotta.drivers.raster_base import RasterDriver
+from terracotta.drivers.base import (KeysType, MetaStore, MultiValueKeysType,
+                                     requires_connection)
 from terracotta.profile import trace
 
 _ERROR_ON_CONNECT = (
@@ -49,7 +49,7 @@ def convert_exceptions(
         raise exceptions.InvalidDatabaseError(error_message) from exception
 
 
-class RelationalDriver(RasterDriver, ABC):
+class RelationalDriver(MetaStore, ABC):
     SQL_URL_SCHEME: str  # The database flavour, eg mysql, sqlite, etc
     SQL_DRIVER_TYPE: str  # The actual database driver, eg pymysql, sqlite3, etc
     SQL_KEY_SIZE: int
@@ -80,7 +80,6 @@ class RelationalDriver(RasterDriver, ABC):
     def __init__(self, path: str) -> None:
         settings = terracotta.get_settings()
         db_connection_timeout: int = settings.DB_CONNECTION_TIMEOUT
-        self.LAZY_LOADING_MAX_SHAPE: Tuple[int, int] = settings.LAZY_LOADING_MAX_SHAPE
 
         self.url = self._parse_path(path)
         self.sqla_engine = sqla.create_engine(
@@ -289,22 +288,14 @@ class RelationalDriver(RasterDriver, ABC):
     @convert_exceptions('Could not retrieve datasets')
     def get_datasets(
         self,
-        where: Mapping[str, Union[str, List[str]]] = None,
+        where: MultiValueKeysType = None,
         page: int = 0,
         limit: int = None
     ) -> Dict[Tuple[str, ...], str]:
-        # Ensure standardized structure of where items
-        if where is None:
-            where = {}
-        else:
-            where = dict(where)
-
-        if not all(key in self.key_names for key in where.keys()):
-            raise exceptions.InvalidKeyError('Encountered unrecognized keys in where clause')
-
-        for key, value in where.items():
-            if not isinstance(value, list):
-                where[key] = [value]
+        where = {
+            key: value if isinstance(value, list) else [value]
+            for key, value in (where or {}).items()
+        }
 
         datasets_table = sqla.Table('datasets', self.sqla_metadata, autoload_with=self.sqla_engine)
         stmt = (
@@ -332,13 +323,7 @@ class RelationalDriver(RasterDriver, ABC):
     @trace('get_metadata')
     @requires_connection
     @convert_exceptions('Could not retrieve metadata')
-    def get_metadata(self, keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
-        keys = tuple(self._key_dict_to_sequence(keys))
-        if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError(
-                f'Got wrong number of keys (available keys: {self.key_names})'
-            )
-
+    def get_metadata(self, keys: KeysType) -> Optional[Dict[str, Any]]:
         metadata_table = sqla.Table('metadata', self.sqla_metadata, autoload_with=self.sqla_engine)
         stmt = (
             metadata_table
@@ -346,25 +331,14 @@ class RelationalDriver(RasterDriver, ABC):
             .where(
                 *[
                     metadata_table.c.get(key) == value
-                    for key, value in zip(self.key_names, keys)
+                    for key, value in keys.items()
                 ]
             )
         )
 
         row = self.connection.execute(stmt).first()
-
-        if not row:  # support lazy loading
-            filepath = self.get_datasets(dict(zip(self.key_names, keys)))
-            if not filepath:
-                raise exceptions.DatasetNotFoundError(f'No dataset found for given keys {keys}')
-            assert len(filepath) == 1
-
-            # compute metadata and try again
-            metadata = self.compute_metadata(filepath[keys], max_shape=self.LAZY_LOADING_MAX_SHAPE)
-            self.insert(keys, filepath[keys], metadata=metadata)
-            row = self.connection.execute(stmt).first()
-
-        assert row
+        if not row:
+            return None
 
         data_columns, _ = zip(*self._METADATA_COLUMNS)
         encoded_data = {col: row[col] for col in self.key_names + data_columns}
@@ -375,37 +349,21 @@ class RelationalDriver(RasterDriver, ABC):
     @convert_exceptions('Could not write to database')
     def insert(
         self,
-        keys: Union[Sequence[str], Mapping[str, str]],
-        filepath: str, *,
-        metadata: Mapping[str, Any] = None,
-        skip_metadata: bool = False,
-        override_path: str = None
+        keys: KeysType,
+        handle: str, *,
+        metadata: Mapping[str, Any] = None
     ) -> None:
-        if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError(
-                f'Got wrong number of keys (available keys: {self.key_names})'
-            )
-
-        if override_path is None:
-            override_path = filepath
-
-        keys = self._key_dict_to_sequence(keys)
-        key_dict = dict(zip(self.key_names, keys))
-
         datasets_table = sqla.Table('datasets', self.sqla_metadata, autoload_with=self.sqla_engine)
         metadata_table = sqla.Table('metadata', self.sqla_metadata, autoload_with=self.sqla_engine)
 
         self.connection.execute(
             datasets_table
             .delete()
-            .where(*[datasets_table.c.get(column) == value for column, value in key_dict.items()])
+            .where(*[datasets_table.c.get(column) == value for column, value in keys.items()])
         )
         self.connection.execute(
-            datasets_table.insert().values(**key_dict, filepath=override_path)
+            datasets_table.insert().values(**keys, filepath=handle)
         )
-
-        if metadata is None and not skip_metadata:
-            metadata = self.compute_metadata(filepath)
 
         if metadata is not None:
             encoded_data = self._encode_data(metadata)
@@ -413,40 +371,33 @@ class RelationalDriver(RasterDriver, ABC):
                 metadata_table
                 .delete()
                 .where(
-                    *[metadata_table.c.get(column) == value for column, value in key_dict.items()]
+                    *[metadata_table.c.get(column) == value for column, value in keys.items()]
                 )
             )
             self.connection.execute(
-                metadata_table.insert().values(**key_dict, **encoded_data)
+                metadata_table.insert().values(**keys, **encoded_data)
             )
 
     @trace('delete')
     @requires_connection
     @convert_exceptions('Could not write to database')
-    def delete(self, keys: Union[Sequence[str], Mapping[str, str]]) -> None:
-        if len(keys) != len(self.key_names):
-            raise exceptions.InvalidKeyError(
-                f'Got wrong number of keys (available keys: {self.key_names})'
-            )
-
-        keys = self._key_dict_to_sequence(keys)
-        key_dict = dict(zip(self.key_names, keys))
-
-        if not self.get_datasets(key_dict):
+    def delete(self, keys: KeysType) -> None:
+        if not self.get_datasets(keys):
             raise exceptions.DatasetNotFoundError(f'No dataset found with keys {keys}')
 
         datasets_table = sqla.Table('datasets', self.sqla_metadata, autoload_with=self.sqla_engine)
         metadata_table = sqla.Table('metadata', self.sqla_metadata, autoload_with=self.sqla_engine)
 
+        print(keys)
         self.connection.execute(
             datasets_table
             .delete()
-            .where(*[datasets_table.c.get(column) == value for column, value in key_dict.items()])
+            .where(*[datasets_table.c.get(column) == value for column, value in keys.items()])
         )
         self.connection.execute(
             metadata_table
             .delete()
-            .where(*[metadata_table.c.get(column) == value for column, value in key_dict.items()])
+            .where(*[metadata_table.c.get(column) == value for column, value in keys.items()])
         )
 
     @staticmethod
