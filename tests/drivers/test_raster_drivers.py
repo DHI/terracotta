@@ -61,18 +61,18 @@ def test_where(driver_path, provider, raster_file):
     data = db.get_datasets()
     assert len(data) == 3
 
-    data = db.get_datasets(where=dict(some='some'))
+    data = db.get_datasets(keys=dict(some='some'))
     assert len(data) == 2
 
-    data = db.get_datasets(where=dict(some='some', keynames='value'))
+    data = db.get_datasets(keys=dict(some='some', keynames='value'))
     assert list(data.keys()) == [('some', 'value')]
     assert data[('some', 'value')] == str(raster_file)
 
-    data = db.get_datasets(where=dict(some='unknown'))
+    data = db.get_datasets(keys=dict(some='unknown'))
     assert data == {}
 
     with pytest.raises(exceptions.InvalidKeyError) as exc:
-        db.get_datasets(where=dict(unknown='foo'))
+        db.get_datasets(keys=dict(unknown='foo'))
     assert 'unrecognized keys' in str(exc.value)
 
 
@@ -90,17 +90,17 @@ def test_where_with_multiquery(driver_path, provider, raster_file):
     data = db.get_datasets()
     assert len(data) == 3
 
-    data = db.get_datasets(where=dict(some=['some']))
+    data = db.get_datasets(keys=dict(some=['some']))
     assert len(data) == 2
 
-    data = db.get_datasets(where=dict(keynames=['value', 'other_value']))
+    data = db.get_datasets(keys=dict(keynames=['value', 'other_value']))
     assert len(data) == 2
 
-    data = db.get_datasets(where=dict(some='some', keynames=['value', 'third_value']))
+    data = db.get_datasets(keys=dict(some='some', keynames=['value', 'third_value']))
     assert list(data.keys()) == [('some', 'value')]
     assert data[('some', 'value')] == str(raster_file)
 
-    data = db.get_datasets(where=dict(some=['unknown']))
+    data = db.get_datasets(keys=dict(some=['unknown']))
     assert data == {}
 
 
@@ -124,7 +124,7 @@ def test_pagination(driver_path, provider, raster_file):
     data = db.get_datasets(limit=2, page=1)
     assert len(data) == 1
 
-    data = db.get_datasets(where=dict(some='some'), limit=1, page=0)
+    data = db.get_datasets(keys=dict(some='some'), limit=1, page=0)
     assert len(data) == 1
 
 
@@ -143,7 +143,12 @@ def test_lazy_loading(driver_path, provider, raster_file):
 
     data1 = db.get_metadata(['some', 'value'])
     data2 = db.get_metadata({'some': 'some', 'keynames': 'other_value'})
-    assert list(data1.keys()) == list(data2.keys())
+    assert set(data1.keys()) == set(data2.keys())
+    for k in data1.keys():
+        if not np.all(data1[k] == data2[k]):
+            print(k)
+            print(data1[k])
+            print(data2[k])
     assert all(np.all(data1[k] == data2[k]) for k in data1.keys())
 
 
@@ -208,7 +213,7 @@ def test_wrong_key_number(driver_path, provider, raster_file):
     assert 'wrong number of keys' in str(exc.value)
 
     with pytest.raises(exceptions.InvalidKeyError) as exc:
-        db.insert(['a', 'b'], '')
+        db.insert(['a', 'b'], '', skip_metadata=True)
     assert 'wrong number of keys' in str(exc.value)
 
     with pytest.raises(exceptions.InvalidKeyError) as exc:
@@ -331,7 +336,7 @@ def test_raster_cache(driver_path, provider, raster_file, asynchronous):
     db.insert(['some', 'value'], str(raster_file))
     db.insert(['some', 'other_value'], str(raster_file))
 
-    assert len(db._raster_cache) == 0
+    assert len(db.rasterstore._raster_cache) == 0
 
     data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
 
@@ -339,7 +344,7 @@ def test_raster_cache(driver_path, provider, raster_file, asynchronous):
         data1 = data1.result()
         time.sleep(1)  # allow callback to finish
 
-    assert len(db._raster_cache) == 1
+    assert len(db.rasterstore._raster_cache) == 1
 
     data2 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
 
@@ -347,7 +352,7 @@ def test_raster_cache(driver_path, provider, raster_file, asynchronous):
         data2 = data2.result()
 
     np.testing.assert_array_equal(data1, data2)
-    assert len(db._raster_cache) == 1
+    assert len(db.rasterstore._raster_cache) == 1
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -363,7 +368,7 @@ def test_raster_cache_fail(driver_path, provider, raster_file, asynchronous):
     db.create(keys)
     db.insert(['some', 'value'], str(raster_file))
 
-    assert len(db._raster_cache) == 0
+    assert len(db.rasterstore._raster_cache) == 0
 
     data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
 
@@ -371,7 +376,7 @@ def test_raster_cache_fail(driver_path, provider, raster_file, asynchronous):
         data1 = data1.result()
         time.sleep(1)  # allow callback to finish
 
-    assert len(db._raster_cache) == 0
+    assert len(db.rasterstore._raster_cache) == 0
 
 
 @pytest.mark.parametrize('provider', DRIVERS)

@@ -12,14 +12,14 @@ DRIVER_CLASSES = {
 def test_auto_detect(driver_path, provider):
     from terracotta import drivers
     db = drivers.get_driver(driver_path)
-    assert db.__class__.__name__ == DRIVER_CLASSES[provider]
+    assert db.metastore.__class__.__name__ == DRIVER_CLASSES[provider]
     assert drivers.get_driver(driver_path, provider=provider) is db
 
 
 def test_normalize_base(tmpdir):
-    from terracotta.drivers import Driver
+    from terracotta.drivers import MetaStore
     # base class normalize is noop
-    assert Driver._normalize_path(str(tmpdir)) == str(tmpdir)
+    assert MetaStore._normalize_path(str(tmpdir)) == str(tmpdir)
 
 
 @pytest.mark.parametrize('provider', ['sqlite'])
@@ -177,10 +177,10 @@ def test_broken_connection(driver_path, provider):
 
     with pytest.raises(RuntimeError):
         with db.connect():
-            db.connection = Evanescence()
+            db.metastore.connection = Evanescence()
             db.get_keys()
 
-    assert not db.connected
+    assert not db.metastore.connected
 
     with db.connect():
         db.get_keys()
@@ -222,7 +222,7 @@ def test_version_conflict(driver_path, provider, raster_file, monkeypatch):
     with monkeypatch.context() as m:
         fake_version = '0.0.0'
         m.setattr('terracotta.__version__', fake_version)
-        db.db_version_verified = False
+        db.metastore.db_version_verified = False
 
         with pytest.raises(exceptions.InvalidDatabaseError) as exc:
             with db.connect():
