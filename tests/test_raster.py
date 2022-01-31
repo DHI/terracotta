@@ -28,10 +28,11 @@ def convex_hull_exact(src):
     return convex_hull
 
 
-@pytest.mark.parametrize('use_chunks', [True, False])
+@pytest.mark.parametrize('large_raster_threshold', [None, 0])
+@pytest.mark.parametrize('use_chunks', [True, False, None])
 @pytest.mark.parametrize('nodata_type', ['nodata', 'masked', 'none', 'nan'])
-def test_compute_metadata(big_raster_file_nodata, big_raster_file_nomask,
-                          big_raster_file_mask, raster_file_float, nodata_type, use_chunks):
+def test_compute_metadata(big_raster_file_nodata, big_raster_file_nomask, big_raster_file_mask,
+                          raster_file_float, nodata_type, use_chunks, large_raster_threshold):
     from terracotta import raster
 
     if nodata_type == 'nodata':
@@ -54,10 +55,18 @@ def test_compute_metadata(big_raster_file_nodata, big_raster_file_nomask,
     # compare
     if nodata_type == 'none':
         with pytest.warns(UserWarning) as record:
-            mtd = raster.compute_metadata(str(raster_file), use_chunks=use_chunks)
+            mtd = raster.compute_metadata(
+                str(raster_file),
+                use_chunks=use_chunks,
+                large_raster_threshold=large_raster_threshold
+            )
             assert 'does not have a valid nodata value' in str(record[0].message)
     else:
-        mtd = raster.compute_metadata(str(raster_file), use_chunks=use_chunks)
+        mtd = raster.compute_metadata(
+            str(raster_file),
+            use_chunks=use_chunks,
+            large_raster_threshold=large_raster_threshold
+        )
 
     np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)
     np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()))
