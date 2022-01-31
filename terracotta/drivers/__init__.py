@@ -8,12 +8,14 @@ from typing import Union, Tuple, Dict, Type
 import urllib.parse as urlparse
 from pathlib import Path
 
-from terracotta.drivers.base import Driver
+from terracotta.drivers.base import MetaStore
+from terracotta.drivers.driver import TerracottaDriver
+from terracotta.drivers.raster_base import RasterDriver
 
 URLOrPathType = Union[str, Path]
 
 
-def load_driver(provider: str) -> Type[Driver]:
+def load_driver(provider: str) -> Type[MetaStore]:
     if provider == 'sqlite-remote':
         from terracotta.drivers.sqlite_remote import RemoteSQLiteDriver
         return RemoteSQLiteDriver
@@ -42,10 +44,10 @@ def auto_detect_provider(url_or_path: Union[str, Path]) -> str:
     return 'sqlite'
 
 
-_DRIVER_CACHE: Dict[Tuple[URLOrPathType, str, int], Driver] = {}
+_DRIVER_CACHE: Dict[Tuple[URLOrPathType, str, int], TerracottaDriver] = {}
 
 
-def get_driver(url_or_path: URLOrPathType, provider: str = None) -> Driver:
+def get_driver(url_or_path: URLOrPathType, provider: str = None) -> TerracottaDriver:
     """Retrieve Terracotta driver instance for the given path.
 
     This function always returns the same instance for identical inputs.
@@ -85,6 +87,10 @@ def get_driver(url_or_path: URLOrPathType, provider: str = None) -> Driver:
     cache_key = (normalized_path, provider, os.getpid())
 
     if cache_key not in _DRIVER_CACHE:
-        _DRIVER_CACHE[cache_key] = DriverClass(url_or_path)
+        driver = TerracottaDriver(
+            metastore=DriverClass(url_or_path),
+            rasterstore=RasterDriver()
+        )
+        _DRIVER_CACHE[cache_key] = driver
 
     return _DRIVER_CACHE[cache_key]
