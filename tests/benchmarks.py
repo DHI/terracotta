@@ -136,12 +136,14 @@ def test_bench_singleband_out_of_bounds(benchmark, benchmark_database):
 @pytest.mark.parametrize('raster_type', ['nodata', 'masked'])
 def test_bench_compute_metadata(benchmark, big_raster_file_nodata, big_raster_file_mask,
                                 chunks, raster_type):
-    from terracotta.drivers.raster_base import RasterDriver
+    from terracotta import raster
+
     if raster_type == 'nodata':
         raster_file = big_raster_file_nodata
     elif raster_type == 'masked':
         raster_file = big_raster_file_mask
-    benchmark(RasterDriver.compute_metadata, str(raster_file), use_chunks=chunks)
+
+    benchmark(raster.compute_metadata, str(raster_file), use_chunks=chunks)
 
 
 @pytest.mark.parametrize('in_memory', [False, True])

@@ -10,8 +10,8 @@ from collections import OrderedDict
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Sequence,
                     Tuple, TypeVar, Union)
 
-KeysType = Dict[str, str]
-MultiValueKeysType = Dict[str, Union[str, List[str]]]
+KeysType = Mapping[str, str]
+MultiValueKeysType = Mapping[str, Union[str, List[str]]]
 Number = TypeVar('Number', int, float)
 T = TypeVar('T')
 
@@ -201,9 +201,8 @@ class RasterStore(ABC):
         """
         pass
 
-    @classmethod
     @abstractmethod
-    def compute_metadata(cls, handle: str, *,
+    def compute_metadata(self, handle: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None,
                          max_shape: Sequence[int] = None) -> Dict[str, Any]:
