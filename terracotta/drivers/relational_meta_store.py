@@ -295,7 +295,7 @@ class RelationalMetaStore(MetaStore, ABC):
     ) -> Dict[Tuple[str, ...], str]:
         if where is None:
             where = {}
-            
+
         where = {
             key: value if isinstance(value, list) else [value]
             for key, value in where.items()

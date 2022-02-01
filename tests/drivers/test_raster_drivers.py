@@ -58,18 +58,18 @@ def test_where(driver_path, provider, raster_file):
     data = db.get_datasets()
     assert len(data) == 3
 
-    data = db.get_datasets(keys=dict(some='some'))
+    data = db.get_datasets(where=dict(some='some'))
     assert len(data) == 2
 
-    data = db.get_datasets(keys=dict(some='some', keynames='value'))
+    data = db.get_datasets(where=dict(some='some', keynames='value'))
     assert list(data.keys()) == [('some', 'value')]
     assert data[('some', 'value')] == str(raster_file)
 
-    data = db.get_datasets(keys=dict(some='unknown'))
+    data = db.get_datasets(where=dict(some='unknown'))
     assert data == {}
 
     with pytest.raises(exceptions.InvalidKeyError) as exc:
-        db.get_datasets(keys=dict(unknown='foo'))
+        db.get_datasets(where=dict(unknown='foo'))
     assert 'unrecognized keys' in str(exc.value)
 
 
@@ -87,17 +87,17 @@ def test_where_with_multiquery(driver_path, provider, raster_file):
     data = db.get_datasets()
     assert len(data) == 3
 
-    data = db.get_datasets(keys=dict(some=['some']))
+    data = db.get_datasets(where=dict(some=['some']))
     assert len(data) == 2
 
-    data = db.get_datasets(keys=dict(keynames=['value', 'other_value']))
+    data = db.get_datasets(where=dict(keynames=['value', 'other_value']))
     assert len(data) == 2
 
-    data = db.get_datasets(keys=dict(some='some', keynames=['value', 'third_value']))
+    data = db.get_datasets(where=dict(some='some', keynames=['value', 'third_value']))
     assert list(data.keys()) == [('some', 'value')]
     assert data[('some', 'value')] == str(raster_file)
 
-    data = db.get_datasets(keys=dict(some=['unknown']))
+    data = db.get_datasets(where=dict(some=['unknown']))
     assert data == {}
 
 
@@ -121,7 +121,7 @@ def test_pagination(driver_path, provider, raster_file):
     data = db.get_datasets(limit=2, page=1)
     assert len(data) == 1
 
-    data = db.get_datasets(keys=dict(some='some'), limit=1, page=0)
+    data = db.get_datasets(where=dict(some='some'), limit=1, page=0)
     assert len(data) == 1
 
 

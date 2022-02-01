@@ -5,7 +5,7 @@ The driver to interact with.
 
 import contextlib
 from collections import OrderedDict
-from typing import (Any, Collection, Dict, Mapping, Sequence, Tuple, TypeVar,
+from typing import (Any, Collection, Dict, Mapping, Optional, Sequence, Tuple, TypeVar,
                     Union)
 
 import terracotta
@@ -54,10 +54,10 @@ class TerracottaDriver:
         return self.meta_store.get_keys()
 
     @requires_connection
-    def get_datasets(self, keys: MultiValueKeysType = None,
+    def get_datasets(self, where: MultiValueKeysType = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], Any]:
         return self.meta_store.get_datasets(
-            where=self._standardize_keys(keys, requires_all_keys=False),
+            where=self._standardize_keys(where, requires_all_keys=False),
             page=page,
             limit=limit
         )
@@ -135,7 +135,7 @@ class TerracottaDriver:
 
     def _standardize_keys(
         self,
-        keys: Union[ExtendedKeysType, MultiValueKeysType],
+        keys: Union[ExtendedKeysType, Optional[MultiValueKeysType]],
         requires_all_keys: bool = True
     ) -> KeysType:
         if requires_all_keys and (keys is None or len(keys) != len(self.key_names)):

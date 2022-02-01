@@ -19,7 +19,7 @@ def datasets(some_keys: Mapping[str, Union[str, List[str]]] = None,
 
     with driver.connect():
         dataset_keys = driver.get_datasets(
-            keys=some_keys, page=page, limit=limit
+            where=some_keys, page=page, limit=limit
         ).keys()
         key_names = driver.key_names
 
