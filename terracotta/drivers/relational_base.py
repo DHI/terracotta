@@ -293,9 +293,12 @@ class RelationalMetaStore(MetaStore, ABC):
         page: int = 0,
         limit: int = None
     ) -> Dict[Tuple[str, ...], str]:
+        if where is None:
+            where = {}
+            
         where = {
             key: value if isinstance(value, list) else [value]
-            for key, value in (where or {}).items()
+            for key, value in where.items()
         }
 
         datasets_table = sqla.Table('datasets', self.sqla_metadata, autoload_with=self.sqla_engine)
