@@ -278,8 +278,8 @@ def has_alpha_band(src: 'DatasetReader') -> bool:
 
 @trace("get_raster_tile")
 def get_raster_tile(path: str, *,
-                    reprojection_method: str,
-                    resampling_method: str,
+                    reprojection_method: str = "nearest",
+                    resampling_method: str = "nearest",
                     tile_bounds: Tuple[float, float, float, float] = None,
                     tile_size: Tuple[int, int] = (256, 256),
                     preserve_values: bool = False,
@@ -334,7 +334,8 @@ def get_raster_tile(path: str, *,
         )
         dst_res = (abs(dst_transform.a), abs(dst_transform.e))
 
-        # make sure VRT resolves the entire tile
+        # in some cases (e.g. at extreme latitudes), the default transform
+        # suggests very coarse resolutions - in this case, fall back to native tile res
         tile_transform = transform.from_bounds(*tile_bounds, *tile_size)
         tile_res = (abs(tile_transform.a), abs(tile_transform.e))
 

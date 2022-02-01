@@ -199,3 +199,26 @@ def test_compute_metadata_unoptimized(unoptimized_raster_file):
     )
 
     assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-6
+
+
+def test_get_raster_tile_out_of_bounds(raster_file):
+    from terracotta import exceptions
+    from terracotta import raster
+
+    bounds = (
+        -1e30,
+        -1e30,
+        1e30,
+        1e30,
+    )
+
+    with pytest.raises(exceptions.TileOutOfBoundsError):
+        raster.get_raster_tile(str(raster_file), tile_bounds=bounds)
+
+
+def test_get_raster_no_nodata(big_raster_file_nomask):
+    from terracotta import raster
+
+    tile_size = (256, 256)
+    out = raster.get_raster_tile(str(big_raster_file_nomask), tile_size=tile_size)
+    assert out.shape == tile_size
