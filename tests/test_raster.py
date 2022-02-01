@@ -28,10 +28,11 @@ def convex_hull_exact(src):
     return convex_hull
 
 
-@pytest.mark.parametrize('use_chunks', [True, False])
+@pytest.mark.parametrize('large_raster_threshold', [None, 0])
+@pytest.mark.parametrize('use_chunks', [True, False, None])
 @pytest.mark.parametrize('nodata_type', ['nodata', 'masked', 'none', 'nan'])
-def test_compute_metadata(big_raster_file_nodata, big_raster_file_nomask,
-                          big_raster_file_mask, raster_file_float, nodata_type, use_chunks):
+def test_compute_metadata(big_raster_file_nodata, big_raster_file_nomask, big_raster_file_mask,
+                          raster_file_float, nodata_type, use_chunks, large_raster_threshold):
     from terracotta import raster
 
     if nodata_type == 'nodata':
@@ -54,10 +55,18 @@ def test_compute_metadata(big_raster_file_nodata, big_raster_file_nomask,
     # compare
     if nodata_type == 'none':
         with pytest.warns(UserWarning) as record:
-            mtd = raster.compute_metadata(str(raster_file), use_chunks=use_chunks)
+            mtd = raster.compute_metadata(
+                str(raster_file),
+                use_chunks=use_chunks,
+                large_raster_threshold=large_raster_threshold
+            )
             assert 'does not have a valid nodata value' in str(record[0].message)
     else:
-        mtd = raster.compute_metadata(str(raster_file), use_chunks=use_chunks)
+        mtd = raster.compute_metadata(
+            str(raster_file),
+            use_chunks=use_chunks,
+            large_raster_threshold=large_raster_threshold
+        )
 
     np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)
     np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()))
@@ -201,6 +210,21 @@ def test_compute_metadata_unoptimized(unoptimized_raster_file):
     assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-6
 
 
+@pytest.mark.parametrize('preserve_values', [True, False])
+@pytest.mark.parametrize('resampling_method', ['nearest', 'linear', 'cubic', 'average'])
+def test_get_raster_tile(raster_file, preserve_values, resampling_method):
+    from terracotta import raster
+
+    data = raster.get_raster_tile(
+        str(raster_file),
+        reprojection_method=resampling_method,
+        resampling_method=resampling_method,
+        preserve_values=preserve_values,
+        tile_size=(256, 256)
+    )
+    assert data.shape == (256, 256)
+
+
 def test_get_raster_tile_out_of_bounds(raster_file):
     from terracotta import exceptions
     from terracotta import raster
@@ -222,3 +246,11 @@ def test_get_raster_no_nodata(big_raster_file_nomask):
     tile_size = (256, 256)
     out = raster.get_raster_tile(str(big_raster_file_nomask), tile_size=tile_size)
     assert out.shape == tile_size
+
+
+def test_invalid_resampling_method():
+    from terracotta import raster
+
+    with pytest.raises(ValueError) as exc:
+        raster.get_resampling_enum('not-a-resampling-method')
+    assert 'unknown resampling method' in str(exc)
