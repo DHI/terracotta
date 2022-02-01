@@ -190,7 +190,7 @@ def test_broken_connection(driver_path, provider):
 def test_repr(driver_path, provider):
     from terracotta import drivers
     db = drivers.get_driver(driver_path, provider=provider)
-    assert repr(db).startswith(DRIVER_CLASSES[provider])
+    assert f'meta_store={DRIVER_CLASSES[provider]}' in repr(db)
 
 
 @pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
