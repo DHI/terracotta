@@ -64,7 +64,7 @@ def submit_to_executor(task: Callable[..., Any]) -> Future:
     return future
 
 
-class RasterDriver(RasterStore):
+class GeoTiffRasterStore(RasterStore):
     """Mixin that implements methods to load raster data from disk.
 
     get_datasets has to return path to raster file as sole dict value.

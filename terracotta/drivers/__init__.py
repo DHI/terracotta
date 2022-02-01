@@ -10,7 +10,7 @@ from pathlib import Path
 
 from terracotta.drivers.base_classes import MetaStore
 from terracotta.drivers.terracotta_driver import TerracottaDriver
-from terracotta.drivers.raster_base import RasterDriver
+from terracotta.drivers.raster_base import GeoTiffRasterStore
 
 URLOrPathType = Union[str, Path]
 
@@ -89,7 +89,7 @@ def get_driver(url_or_path: URLOrPathType, provider: str = None) -> TerracottaDr
     if cache_key not in _DRIVER_CACHE:
         driver = TerracottaDriver(
             meta_store=DriverClass(url_or_path),
-            raster_store=RasterDriver()
+            raster_store=GeoTiffRasterStore()
         )
         _DRIVER_CACHE[cache_key] = driver
 
