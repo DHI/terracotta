@@ -8,7 +8,7 @@ import functools
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Sequence,
-                    Tuple, TypeVar, Union)
+                    Tuple, TypeVar, Union, cast)
 
 KeysType = Mapping[str, str]
 MultiValueKeysType = Mapping[str, Union[str, List[str]]]
@@ -25,9 +25,10 @@ def requires_connection(
 
     @functools.wraps(fun)
     def inner(self: MetaStore, *args: Any, **kwargs: Any) -> T:
+        assert fun is not None
         with self.connect(verify=verify):
-            # Apparently mypy thinks fun might still be None, hence the ignore:
-            return fun(self, *args, **kwargs)  # type: ignore
+            return fun(self, *args, **kwargs)
+
     return inner
 
 
