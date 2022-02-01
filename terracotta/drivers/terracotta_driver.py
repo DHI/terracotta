@@ -57,7 +57,7 @@ class TerracottaDriver:
     def get_datasets(self, keys: MultiValueKeysType = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], Any]:
         return self.meta_store.get_datasets(
-            where=keys,
+            where=self._standardize_keys(keys, requires_all_keys=False),
             page=page,
             limit=limit
         )
@@ -135,7 +135,7 @@ class TerracottaDriver:
 
     def _standardize_keys(
         self,
-        keys: ExtendedKeysType,
+        keys: Union[ExtendedKeysType, MultiValueKeysType],
         requires_all_keys: bool = True
     ) -> KeysType:
         if requires_all_keys and (keys is None or len(keys) != len(self.key_names)):
@@ -147,6 +147,8 @@ class TerracottaDriver:
             keys = dict(keys.items())
         elif isinstance(keys, Sequence):
             keys = dict(zip(self.key_names, keys))
+        elif keys is None:
+            keys = {}
         else:
             raise exceptions.InvalidKeyError(
                 'Encountered unknown key type, expected Mapping or Sequence'
