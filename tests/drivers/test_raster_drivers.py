@@ -380,7 +380,7 @@ def test_multiprocessing_fallback(driver_path, provider, raster_file, monkeypatc
     import concurrent.futures
     from importlib import reload
     from terracotta import drivers
-    import terracotta.drivers.raster_base
+    import terracotta.drivers.geotiff_raster_store
 
     def dummy(*args, **kwargs):
         raise OSError('monkeypatched')
@@ -389,7 +389,7 @@ def test_multiprocessing_fallback(driver_path, provider, raster_file, monkeypatc
         with monkeypatch.context() as m, pytest.warns(UserWarning):
             m.setattr(concurrent.futures, 'ProcessPoolExecutor', dummy)
 
-            reload(terracotta.drivers.raster_base)
+            reload(terracotta.drivers.geotiff_raster_store)
             db = drivers.get_driver(driver_path, provider=provider)
             keys = ('some', 'keynames')
 
@@ -405,7 +405,7 @@ def test_multiprocessing_fallback(driver_path, provider, raster_file, monkeypatc
 
             np.testing.assert_array_equal(data1, data2)
     finally:
-        reload(terracotta.drivers.raster_base)
+        reload(terracotta.drivers.geotiff_raster_store)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -480,7 +480,7 @@ def test_nodata_consistency(driver_path, provider, big_raster_file_mask, big_ras
 def test_broken_process_pool(driver_path, provider, raster_file):
     import concurrent.futures
     from terracotta import drivers
-    from terracotta.drivers.raster_base import context
+    from terracotta.drivers.geotiff_raster_store import context
 
     class BrokenPool:
         def submit(self, *args, **kwargs):
@@ -507,7 +507,7 @@ def test_broken_process_pool(driver_path, provider, raster_file):
 def test_no_multiprocessing():
     import concurrent.futures
     from terracotta import update_settings
-    from terracotta.drivers.raster_base import create_executor
+    from terracotta.drivers.geotiff_raster_store import create_executor
 
     update_settings(USE_MULTIPROCESSING=False)
 

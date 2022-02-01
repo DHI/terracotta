@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Union
 
-from terracotta.drivers.relational_base import RelationalMetaStore
+from terracotta.drivers.relational_meta_store import RelationalMetaStore
 
 
 class SQLiteDriver(RelationalMetaStore):

@@ -10,22 +10,22 @@ from pathlib import Path
 
 from terracotta.drivers.base_classes import MetaStore
 from terracotta.drivers.terracotta_driver import TerracottaDriver
-from terracotta.drivers.raster_base import GeoTiffRasterStore
+from terracotta.drivers.geotiff_raster_store import GeoTiffRasterStore
 
 URLOrPathType = Union[str, Path]
 
 
 def load_driver(provider: str) -> Type[MetaStore]:
     if provider == 'sqlite-remote':
-        from terracotta.drivers.sqlite_remote import RemoteSQLiteDriver
+        from terracotta.drivers.sqlite_remote_meta_store import RemoteSQLiteDriver
         return RemoteSQLiteDriver
 
     if provider == 'mysql':
-        from terracotta.drivers.mysql import MySQLDriver
+        from terracotta.drivers.mysql_meta_store import MySQLDriver
         return MySQLDriver
 
     if provider == 'sqlite':
-        from terracotta.drivers.sqlite import SQLiteDriver
+        from terracotta.drivers.sqlite_meta_store import SQLiteDriver
         return SQLiteDriver
 
     raise ValueError(f'Unknown database provider {provider}')

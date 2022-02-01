@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Iterator, Union
 
 from terracotta import exceptions, get_settings
-from terracotta.drivers.sqlite import SQLiteDriver
+from terracotta.drivers.sqlite_meta_store import SQLiteDriver
 from terracotta.profile import trace
 
 logger = logging.getLogger(__name__)

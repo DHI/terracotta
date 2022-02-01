@@ -9,7 +9,7 @@ from typing import Mapping, Sequence
 
 import sqlalchemy as sqla
 from sqlalchemy.dialects.mysql import TEXT, VARCHAR
-from terracotta.drivers.relational_base import RelationalMetaStore
+from terracotta.drivers.relational_meta_store import RelationalMetaStore
 
 
 class MySQLDriver(RelationalMetaStore):

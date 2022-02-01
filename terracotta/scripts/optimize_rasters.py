@@ -85,7 +85,7 @@ def _prefered_compression_method() -> str:
 
 
 def _get_vrt(src: DatasetReader, rs_method: int) -> WarpedVRT:
-    from terracotta.drivers.raster_base import GeoTiffRasterStore
+    from terracotta.drivers.geotiff_raster_store import GeoTiffRasterStore
     target_crs = GeoTiffRasterStore._TARGET_CRS
     vrt_transform, vrt_width, vrt_height = calculate_default_transform(
         src.crs, target_crs, src.width, src.height, *src.bounds

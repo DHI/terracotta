@@ -156,13 +156,13 @@ def test_compute_metadata_nocrick(big_raster_file_nodata, monkeypatch):
         convex_hull = convex_hull_exact(src)
 
     from terracotta import exceptions
-    import terracotta.drivers.raster_base
+    import terracotta.drivers.geotiff_raster_store
 
     with monkeypatch.context() as m:
         m.setattr(terracotta.raster, 'has_crick', False)
 
         with pytest.warns(exceptions.PerformanceWarning):
-            mtd = terracotta.drivers.raster_base.raster.compute_metadata(
+            mtd = terracotta.drivers.geotiff_raster_store.raster.compute_metadata(
                 str(big_raster_file_nodata), use_chunks=True
             )
 
