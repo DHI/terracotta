@@ -9,10 +9,10 @@ from typing import Mapping, Sequence
 
 import sqlalchemy as sqla
 from sqlalchemy.dialects.mysql import TEXT, VARCHAR
-from terracotta.drivers.relational_base import RelationalDriver
+from terracotta.drivers.relational_base import RelationalMetaStore
 
 
-class MySQLDriver(RelationalDriver):
+class MySQLDriver(RelationalMetaStore):
     """A MySQL-backed raster driver.
 
     Assumes raster data to be present in separate GDAL-readable files on disk or remotely.

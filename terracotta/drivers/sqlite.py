@@ -8,10 +8,10 @@ import os
 from pathlib import Path
 from typing import Union
 
-from terracotta.drivers.relational_base import RelationalDriver
+from terracotta.drivers.relational_base import RelationalMetaStore
 
 
-class SQLiteDriver(RelationalDriver):
+class SQLiteDriver(RelationalMetaStore):
     """An SQLite-backed raster driver.
 
     Assumes raster data to be present in separate GDAL-readable files on disk or remotely.

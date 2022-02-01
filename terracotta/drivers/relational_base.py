@@ -50,7 +50,7 @@ def convert_exceptions(
         raise exceptions.InvalidDatabaseError(error_message) from exception
 
 
-class RelationalDriver(MetaStore, ABC):
+class RelationalMetaStore(MetaStore, ABC):
     SQL_URL_SCHEME: str  # The database flavour, eg mysql, sqlite, etc
     SQL_DRIVER_TYPE: str  # The actual database driver, eg pymysql, sqlite3, etc
     SQL_KEY_SIZE: int
