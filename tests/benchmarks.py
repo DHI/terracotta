@@ -114,7 +114,7 @@ def test_bench_singleband(benchmark, zoom, resampling, big_raster_file_nodata, b
             rv = benchmark(client.get, '/singleband/nodata/1/preview.png')
 
     assert rv.status_code == 200
-    assert not len(get_driver(str(benchmark_database)).rasterstore._raster_cache)
+    assert not len(get_driver(str(benchmark_database)).raster_store._raster_cache)
 
 
 def test_bench_singleband_out_of_bounds(benchmark, benchmark_database):

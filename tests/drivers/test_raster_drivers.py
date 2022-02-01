@@ -332,7 +332,7 @@ def test_raster_cache(driver_path, provider, raster_file, asynchronous):
     db.insert(['some', 'value'], str(raster_file))
     db.insert(['some', 'other_value'], str(raster_file))
 
-    assert len(db.rasterstore._raster_cache) == 0
+    assert len(db.raster_store._raster_cache) == 0
 
     data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
 
@@ -340,7 +340,7 @@ def test_raster_cache(driver_path, provider, raster_file, asynchronous):
         data1 = data1.result()
         time.sleep(1)  # allow callback to finish
 
-    assert len(db.rasterstore._raster_cache) == 1
+    assert len(db.raster_store._raster_cache) == 1
 
     data2 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
 
@@ -348,7 +348,7 @@ def test_raster_cache(driver_path, provider, raster_file, asynchronous):
         data2 = data2.result()
 
     np.testing.assert_array_equal(data1, data2)
-    assert len(db.rasterstore._raster_cache) == 1
+    assert len(db.raster_store._raster_cache) == 1
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -364,7 +364,7 @@ def test_raster_cache_fail(driver_path, provider, raster_file, asynchronous):
     db.create(keys)
     db.insert(['some', 'value'], str(raster_file))
 
-    assert len(db.rasterstore._raster_cache) == 0
+    assert len(db.raster_store._raster_cache) == 0
 
     data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
 
@@ -372,7 +372,7 @@ def test_raster_cache_fail(driver_path, provider, raster_file, asynchronous):
         data1 = data1.result()
         time.sleep(1)  # allow callback to finish
 
-    assert len(db.rasterstore._raster_cache) == 0
+    assert len(db.raster_store._raster_cache) == 0
 
 
 @pytest.mark.parametrize('provider', DRIVERS)

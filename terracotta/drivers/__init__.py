@@ -88,8 +88,8 @@ def get_driver(url_or_path: URLOrPathType, provider: str = None) -> TerracottaDr
 
     if cache_key not in _DRIVER_CACHE:
         driver = TerracottaDriver(
-            metastore=DriverClass(url_or_path),
-            rasterstore=RasterDriver()
+            meta_store=DriverClass(url_or_path),
+            raster_store=RasterDriver()
         )
         _DRIVER_CACHE[cache_key] = driver
 

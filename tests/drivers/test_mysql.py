@@ -33,7 +33,7 @@ def test_path_parsing(case):
 
     db = drivers.get_driver(case, provider='mysql')
     for attr in ('username', 'password', 'host', 'port', 'database'):
-        assert getattr(db.metastore.url, attr) == TEST_CASES[case].get(attr, None)
+        assert getattr(db.meta_store.url, attr) == TEST_CASES[case].get(attr, None)
 
 
 @pytest.mark.parametrize('case', INVALID_TEST_CASES)

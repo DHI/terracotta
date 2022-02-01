@@ -12,7 +12,7 @@ DRIVER_CLASSES = {
 def test_auto_detect(driver_path, provider):
     from terracotta import drivers
     db = drivers.get_driver(driver_path)
-    assert db.metastore.__class__.__name__ == DRIVER_CLASSES[provider]
+    assert db.meta_store.__class__.__name__ == DRIVER_CLASSES[provider]
     assert drivers.get_driver(driver_path, provider=provider) is db
 
 
@@ -177,10 +177,10 @@ def test_broken_connection(driver_path, provider):
 
     with pytest.raises(RuntimeError):
         with db.connect():
-            db.metastore.connection = Evanescence()
+            db.meta_store.connection = Evanescence()
             db.get_keys()
 
-    assert not db.metastore.connected
+    assert not db.meta_store.connected
 
     with db.connect():
         db.get_keys()
@@ -222,7 +222,7 @@ def test_version_conflict(driver_path, provider, raster_file, monkeypatch):
     with monkeypatch.context() as m:
         fake_version = '0.0.0'
         m.setattr('terracotta.__version__', fake_version)
-        db.metastore.db_version_verified = False
+        db.meta_store.db_version_verified = False
 
         with pytest.raises(exceptions.InvalidDatabaseError) as exc:
             with db.connect():

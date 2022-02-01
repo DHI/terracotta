@@ -27,36 +27,36 @@ def only_element(iterable: Collection[T]) -> T:
 
 class TerracottaDriver:
 
-    def __init__(self, metastore: MetaStore, rasterstore: RasterStore) -> None:
-        self.metastore = metastore
-        self.rasterstore = rasterstore
+    def __init__(self, meta_store: MetaStore, raster_store: RasterStore) -> None:
+        self.meta_store = meta_store
+        self.raster_store = raster_store
 
         settings = terracotta.get_settings()
         self.LAZY_LOADING_MAX_SHAPE: Tuple[int, int] = settings.LAZY_LOADING_MAX_SHAPE
 
     @property
     def db_version(self) -> str:
-        return self.metastore.db_version
+        return self.meta_store.db_version
 
     @property
     def key_names(self) -> Tuple[str, ...]:
-        return self.metastore.key_names
+        return self.meta_store.key_names
 
     def create(self, keys: Sequence[str], *,
                key_descriptions: Mapping[str, str] = None) -> None:
-        self.metastore.create(keys=keys, key_descriptions=key_descriptions)
+        self.meta_store.create(keys=keys, key_descriptions=key_descriptions)
 
     def connect(self, verify: bool = True) -> contextlib.AbstractContextManager:
-        return self.metastore.connect(verify=verify)
+        return self.meta_store.connect(verify=verify)
 
     @requires_connection
     def get_keys(self) -> OrderedDict:
-        return self.metastore.get_keys()
+        return self.meta_store.get_keys()
 
     @requires_connection
     def get_datasets(self, keys: MultiValueKeysType = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], Any]:
-        return self.metastore.get_datasets(
+        return self.meta_store.get_datasets(
             where=keys,
             page=page,
             limit=limit
@@ -66,7 +66,7 @@ class TerracottaDriver:
     def get_metadata(self, keys: ExtendedKeysType) -> Dict[str, Any]:
         keys = self._standardize_keys(keys)
 
-        metadata = self.metastore.get_metadata(keys)
+        metadata = self.meta_store.get_metadata(keys)
 
         if metadata is None:
             # metadata is not computed yet, trigger lazy loading
@@ -75,7 +75,7 @@ class TerracottaDriver:
             self.insert(keys, handle, metadata=metadata)
 
             # this is necessary to make the lazy loading tests pass...
-            metadata = self.metastore.get_metadata(keys)
+            metadata = self.meta_store.get_metadata(keys)
             assert metadata is not None
 
         return metadata
@@ -94,7 +94,7 @@ class TerracottaDriver:
         if metadata is None and not skip_metadata:
             metadata = self.compute_metadata(handle)
 
-        self.metastore.insert(
+        self.meta_store.insert(
             keys=keys,
             handle=override_path or handle,
             metadata=metadata,
@@ -105,7 +105,7 @@ class TerracottaDriver:
     def delete(self, keys: ExtendedKeysType) -> None:
         keys = self._standardize_keys(keys)
 
-        self.metastore.delete(keys)
+        self.meta_store.delete(keys)
 
     def get_raster_tile(self, keys: ExtendedKeysType, *,
                         tile_bounds: Sequence[float] = None,
@@ -114,7 +114,7 @@ class TerracottaDriver:
                         asynchronous: bool = False) -> Any:
         handle = only_element(self.get_datasets(keys).values())
 
-        return self.rasterstore.get_raster_tile(
+        return self.raster_store.get_raster_tile(
             handle=handle,
             tile_bounds=tile_bounds,
             tile_size=tile_size,
@@ -126,7 +126,7 @@ class TerracottaDriver:
                          extra_metadata: Any = None,
                          use_chunks: bool = None,
                          max_shape: Sequence[int] = None) -> Dict[str, Any]:
-        return self.rasterstore.compute_metadata(
+        return self.raster_store.compute_metadata(
             handle=handle,
             extra_metadata=extra_metadata,
             use_chunks=use_chunks,
@@ -161,4 +161,4 @@ class TerracottaDriver:
         return keys
 
     def __repr__(self) -> str:
-        return self.metastore.__repr__()
+        return self.meta_store.__repr__()
