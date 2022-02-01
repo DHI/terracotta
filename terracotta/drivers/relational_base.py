@@ -19,8 +19,9 @@ import terracotta
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.engine.url import URL
 from terracotta import exceptions
-from terracotta.drivers.base import (KeysType, MetaStore, MultiValueKeysType,
-                                     requires_connection)
+from terracotta.drivers.base_classes import (KeysType, MetaStore,
+                                             MultiValueKeysType,
+                                             requires_connection)
 from terracotta.profile import trace
 
 _ERROR_ON_CONNECT = (

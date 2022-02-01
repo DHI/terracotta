@@ -8,7 +8,7 @@ from typing import Sequence, Union, Mapping, Tuple, Any
 import mercantile
 
 from terracotta import exceptions
-from terracotta.drivers.driver import TerracottaDriver
+from terracotta.drivers.terracotta_driver import TerracottaDriver
 
 
 # TODO: add accurate signature if mypy ever supports conditional return types

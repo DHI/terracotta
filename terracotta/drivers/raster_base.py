@@ -17,7 +17,7 @@ import numpy as np
 from terracotta import get_settings
 from terracotta import raster
 from terracotta.cache import CompressedLFUCache
-from terracotta.drivers.base import RasterStore
+from terracotta.drivers.base_classes import RasterStore
 
 Number = TypeVar('Number', int, float)
 

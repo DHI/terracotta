@@ -8,8 +8,8 @@ from typing import Union, Tuple, Dict, Type
 import urllib.parse as urlparse
 from pathlib import Path
 
-from terracotta.drivers.base import MetaStore
-from terracotta.drivers.driver import TerracottaDriver
+from terracotta.drivers.base_classes import MetaStore
+from terracotta.drivers.terracotta_driver import TerracottaDriver
 from terracotta.drivers.raster_base import RasterDriver
 
 URLOrPathType = Union[str, Path]
