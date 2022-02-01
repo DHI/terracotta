@@ -8,7 +8,7 @@ import functools
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Sequence,
-                    Tuple, TypeVar, Union, cast)
+                    Tuple, TypeVar, Union)
 
 KeysType = Mapping[str, str]
 MultiValueKeysType = Mapping[str, Union[str, List[str]]]

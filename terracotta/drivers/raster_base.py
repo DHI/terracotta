@@ -87,7 +87,7 @@ class RasterDriver(RasterStore):
         from rasterio import Env
         self._rio_env = Env(**self._RIO_ENV_OPTIONS)
 
-    def compute_metadata(self, handle: str, *,  # noqa: F821
+    def compute_metadata(self, handle: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None,
                          max_shape: Sequence[int] = None) -> Dict[str, Any]:
@@ -103,8 +103,6 @@ class RasterDriver(RasterStore):
                         tile_size: Sequence[int] = None,
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
-        # This wrapper handles cache interaction and asynchronous tile retrieval.
-        # The real work is done in terracotta.raster.get_raster_tile.
         future: Future[np.ma.MaskedArray]
         result: np.ma.MaskedArray
 
