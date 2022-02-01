@@ -392,7 +392,6 @@ class RelationalMetaStore(MetaStore, ABC):
         datasets_table = sqla.Table('datasets', self.sqla_metadata, autoload_with=self.sqla_engine)
         metadata_table = sqla.Table('metadata', self.sqla_metadata, autoload_with=self.sqla_engine)
 
-        print(keys)
         self.connection.execute(
             datasets_table
             .delete()
