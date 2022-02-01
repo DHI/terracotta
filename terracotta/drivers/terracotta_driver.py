@@ -18,7 +18,7 @@ ExtendedKeysType = Union[Sequence[str], KeysType]
 T = TypeVar('T')
 
 
-def only_element(iterable: Collection[T]) -> T:
+def squeeze(iterable: Collection[T]) -> T:
     if not iterable:
         raise exceptions.DatasetNotFoundError('No dataset found')
     assert len(iterable) == 1
@@ -70,7 +70,7 @@ class TerracottaDriver:
 
         if metadata is None:
             # metadata is not computed yet, trigger lazy loading
-            handle = only_element(self.get_datasets(keys).values())
+            handle = squeeze(self.get_datasets(keys).values())
             metadata = self.compute_metadata(handle, max_shape=self.LAZY_LOADING_MAX_SHAPE)
             self.insert(keys, handle, metadata=metadata)
 
@@ -112,7 +112,7 @@ class TerracottaDriver:
                         tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
-        handle = only_element(self.get_datasets(keys).values())
+        handle = squeeze(self.get_datasets(keys).values())
 
         return self.raster_store.get_raster_tile(
             handle=handle,
