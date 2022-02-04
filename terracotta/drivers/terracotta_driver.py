@@ -5,7 +5,7 @@ The driver to interact with.
 
 import contextlib
 from collections import OrderedDict
-from typing import (Any, Collection, Dict, Mapping, Optional, Sequence, Tuple, TypeVar,
+from typing import (Any, Collection, Dict, List, Mapping, Optional, Sequence, Tuple, TypeVar,
                     Union)
 
 import terracotta
@@ -15,6 +15,7 @@ from terracotta.drivers.base_classes import (KeysType, MetaStore,
                                              requires_connection)
 
 ExtendedKeysType = Union[Sequence[str], Mapping[str, str]]
+ExtendedMultiValueKeysType = Union[Sequence[str], Mapping[str, Union[str, List[str]]]]
 T = TypeVar('T')
 
 
@@ -55,7 +56,7 @@ class TerracottaDriver:
     def get_datasets(self, where: MultiValueKeysType = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], Any]:
         return self.meta_store.get_datasets(
-            where=self._standardize_keys(where, requires_all_keys=False),
+            where=self._standardize_multi_value_keys(where, requires_all_keys=False),
             page=page,
             limit=limit
         )
@@ -136,10 +137,20 @@ class TerracottaDriver:
         )
 
     def _standardize_keys(
+        self, keys: ExtendedKeysType, requires_all_keys: bool = True
+    ) -> KeysType:
+        return self._ensure_keys_as_dict(keys, requires_all_keys)
+
+    def _standardize_multi_value_keys(
+        self, keys: Optional[ExtendedMultiValueKeysType], requires_all_keys: bool = True
+    ) -> MultiValueKeysType:
+        return self._ensure_keys_as_dict(keys, requires_all_keys)
+
+    def _ensure_keys_as_dict(
         self,
         keys: Union[ExtendedKeysType, Optional[MultiValueKeysType]],
         requires_all_keys: bool = True
-    ) -> KeysType:
+    ) -> Dict[str, Any]:
         if requires_all_keys and (keys is None or len(keys) != len(self.key_names)):
             raise exceptions.InvalidKeyError(
                 f'Got wrong number of keys (available keys: {self.key_names})'
