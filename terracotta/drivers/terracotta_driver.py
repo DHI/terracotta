@@ -14,7 +14,7 @@ from terracotta.drivers.base_classes import (KeysType, MetaStore,
                                              MultiValueKeysType, RasterStore,
                                              requires_connection)
 
-ExtendedKeysType = Union[Sequence[str], KeysType]
+ExtendedKeysType = Union[Sequence[str], Mapping[str, str]]
 T = TypeVar('T')
 
 
