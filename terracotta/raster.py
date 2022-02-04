@@ -176,7 +176,7 @@ def compute_image_stats(dataset: 'DatasetReader',
 
 
 @trace('compute_metadata')
-def compute_metadata(handle: str, *,
+def compute_metadata(path: str, *,
                      extra_metadata: Any = None,
                      use_chunks: bool = None,
                      max_shape: Sequence[int] = None,
@@ -199,18 +199,18 @@ def compute_metadata(handle: str, *,
         rio_env = rasterio.Env()
 
     with rio_env:
-        if not validate(handle):
+        if not validate(path):
             warnings.warn(
-                f'Raster file {handle} is not a valid cloud-optimized GeoTIFF. '
+                f'Raster file {path} is not a valid cloud-optimized GeoTIFF. '
                 'Any interaction with it will be significantly slower. Consider optimizing '
                 'it through `terracotta optimize-rasters` before ingestion.',
                 exceptions.PerformanceWarning, stacklevel=3
             )
 
-        with rasterio.open(handle) as src:
+        with rasterio.open(path) as src:
             if src.nodata is None and not has_alpha_band(src):
                 warnings.warn(
-                    f'Raster file {handle} does not have a valid nodata value, '
+                    f'Raster file {path} does not have a valid nodata value, '
                     'and does not contain an alpha band. No data will be masked.'
                 )
 
@@ -223,7 +223,7 @@ def compute_metadata(handle: str, *,
 
                 if use_chunks:
                     logger.debug(
-                        f'Computing metadata for file {handle} using more than '
+                        f'Computing metadata for file {path} using more than '
                         f'{large_raster_threshold // 10**6}M pixels, iterating '
                         'over chunks'
                     )
@@ -241,7 +241,7 @@ def compute_metadata(handle: str, *,
                 raster_stats = compute_image_stats(src, max_shape)
 
     if raster_stats is None:
-        raise ValueError(f'Raster file {handle} does not contain any valid data')
+        raise ValueError(f'Raster file {path} does not contain any valid data')
 
     row_data.update(raster_stats)
 

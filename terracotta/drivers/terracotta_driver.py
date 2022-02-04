@@ -73,9 +73,9 @@ class TerracottaDriver:
             if not dataset:
                 raise exceptions.DatasetNotFoundError('No dataset found')
 
-            handle = squeeze(dataset.values())
-            metadata = self.compute_metadata(handle, max_shape=self.LAZY_LOADING_MAX_SHAPE)
-            self.insert(keys, handle, metadata=metadata)
+            path = squeeze(dataset.values())
+            metadata = self.compute_metadata(path, max_shape=self.LAZY_LOADING_MAX_SHAPE)
+            self.insert(keys, path, metadata=metadata)
 
             # ensure standardized/consistent output (types and floating point precision)
             metadata = self.meta_store.get_metadata(keys)
@@ -86,7 +86,7 @@ class TerracottaDriver:
     @requires_connection
     def insert(
         self, keys: ExtendedKeysType,
-        handle: Any, *,
+        path: Any, *,
         override_path: str = None,
         metadata: Mapping[str, Any] = None,
         skip_metadata: bool = False,
@@ -95,11 +95,11 @@ class TerracottaDriver:
         keys = self._standardize_keys(keys)
 
         if metadata is None and not skip_metadata:
-            metadata = self.compute_metadata(handle)
+            metadata = self.compute_metadata(path)
 
         self.meta_store.insert(
             keys=keys,
-            handle=override_path or handle,
+            path=override_path or path,
             metadata=metadata,
             **kwargs
         )
@@ -115,22 +115,22 @@ class TerracottaDriver:
                         tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
-        handle = squeeze(self.get_datasets(keys).values())
+        path = squeeze(self.get_datasets(keys).values())
 
         return self.raster_store.get_raster_tile(
-            handle=handle,
+            path=path,
             tile_bounds=tile_bounds,
             tile_size=tile_size,
             preserve_values=preserve_values,
             asynchronous=asynchronous,
         )
 
-    def compute_metadata(self, handle: str, *,
+    def compute_metadata(self, path: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None,
                          max_shape: Sequence[int] = None) -> Dict[str, Any]:
         return self.raster_store.compute_metadata(
-            handle=handle,
+            path=path,
             extra_metadata=extra_metadata,
             use_chunks=use_chunks,
             max_shape=max_shape,

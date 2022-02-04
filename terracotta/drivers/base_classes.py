@@ -111,7 +111,7 @@ class MetaStore(ABC):
     def get_datasets(self, where: MultiValueKeysType = None,
                      page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], Any]:
         # Get all known dataset key combinations matching the given constraints,
-        # and a handle to retrieve the data (driver dependent)
+        # and a path to retrieve the data (driver dependent)
         pass
 
     @abstractmethod
@@ -141,14 +141,14 @@ class MetaStore(ABC):
 
     @abstractmethod
     def insert(self, keys: KeysType,
-               handle: Any, **kwargs: Any) -> None:
+               path: Any, **kwargs: Any) -> None:
         """Register a new dataset. Used to populate metadata database.
 
         Arguments:
 
             keys: Keys of the dataset. Can either be given as a sequence of key values, or
                 as a mapping ``{key_name: key_value}``.
-            handle: Handle to access dataset (driver dependent).
+            path: Path to access dataset (driver dependent).
 
         """
         pass
@@ -173,16 +173,16 @@ class RasterStore(ABC):
 
     @abstractmethod
     # TODO: add accurate signature if mypy ever supports conditional return types
-    def get_raster_tile(self, handle: str, *,
+    def get_raster_tile(self, path: str, *,
                         tile_bounds: Sequence[float] = None,
                         tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
-        """Load a raster tile with given handle and bounds.
+        """Load a raster tile with given path and bounds.
 
         Arguments:
 
-            handle: Handle of the requested dataset.
+            path: Path of the requested dataset.
             tile_bounds: Physical bounds of the tile to read, in Web Mercator projection (EPSG3857).
                 Reads the whole dataset if not given.
             tile_size: Shape of the output array to return. Must be two-dimensional.
@@ -203,7 +203,7 @@ class RasterStore(ABC):
         pass
 
     @abstractmethod
-    def compute_metadata(self, handle: str, *,
+    def compute_metadata(self, path: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None,
                          max_shape: Sequence[int] = None) -> Dict[str, Any]:

@@ -87,18 +87,18 @@ class GeoTiffRasterStore(RasterStore):
         from rasterio import Env
         self._rio_env = Env(**self._RIO_ENV_OPTIONS)
 
-    def compute_metadata(self, handle: str, *,
+    def compute_metadata(self, path: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None,
                          max_shape: Sequence[int] = None) -> Dict[str, Any]:
-        return raster.compute_metadata(handle, extra_metadata=extra_metadata,
+        return raster.compute_metadata(path, extra_metadata=extra_metadata,
                                        use_chunks=use_chunks, max_shape=max_shape,
                                        large_raster_threshold=self._LARGE_RASTER_THRESHOLD,
                                        rio_env=self._rio_env)
 
     # return type has to be Any until mypy supports conditional return types
     def get_raster_tile(self,
-                        handle: str, *,
+                        path: str, *,
                         tile_bounds: Sequence[float] = None,
                         tile_size: Sequence[int] = None,
                         preserve_values: bool = False,
@@ -113,7 +113,7 @@ class GeoTiffRasterStore(RasterStore):
 
         # make sure all arguments are hashable
         kwargs = dict(
-            path=handle,
+            path=path,
             tile_bounds=tuple(tile_bounds) if tile_bounds else None,
             tile_size=tuple(tile_size),
             preserve_values=preserve_values,

@@ -240,7 +240,7 @@ class RelationalMetaStore(MetaStore, ABC):
                 sqla.Column(key, self.SQLA_STRING(self.SQL_KEY_SIZE), primary_key=True)
                 for key in keys
             ],
-            sqla.Column('handle', self.SQLA_STRING(8000))
+            sqla.Column('path', self.SQLA_STRING(8000))
         )
         _ = sqla.Table(
             'metadata', self.sqla_metadata,
@@ -321,7 +321,7 @@ class RelationalMetaStore(MetaStore, ABC):
         def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:
             return tuple(row[key] for key in self.key_names)
 
-        datasets = {keytuple(row): row['handle'] for row in result}
+        datasets = {keytuple(row): row['path'] for row in result}
         return datasets
 
     @trace('get_metadata')
@@ -354,7 +354,7 @@ class RelationalMetaStore(MetaStore, ABC):
     def insert(
         self,
         keys: KeysType,
-        handle: str, *,
+        path: str, *,
         metadata: Mapping[str, Any] = None
     ) -> None:
         datasets_table = sqla.Table('datasets', self.sqla_metadata, autoload_with=self.sqla_engine)
@@ -366,7 +366,7 @@ class RelationalMetaStore(MetaStore, ABC):
             .where(*[datasets_table.c.get(column) == value for column, value in keys.items()])
         )
         self.connection.execute(
-            datasets_table.insert().values(**keys, handle=handle)
+            datasets_table.insert().values(**keys, path=path)
         )
 
         if metadata is not None:
