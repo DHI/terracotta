@@ -77,7 +77,7 @@ class TerracottaDriver:
             metadata = self.compute_metadata(handle, max_shape=self.LAZY_LOADING_MAX_SHAPE)
             self.insert(keys, handle, metadata=metadata)
 
-            # this is necessary to make the lazy loading tests pass...
+            # ensure standardized/consistent output (types and floating point precision)
             metadata = self.meta_store.get_metadata(keys)
             assert metadata is not None
 
