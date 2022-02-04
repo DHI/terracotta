@@ -19,8 +19,6 @@ T = TypeVar('T')
 
 
 def squeeze(iterable: Collection[T]) -> T:
-    if not iterable:
-        raise exceptions.DatasetNotFoundError('No dataset found')
     assert len(iterable) == 1
     return next(iter(iterable))
 
@@ -70,7 +68,11 @@ class TerracottaDriver:
 
         if metadata is None:
             # metadata is not computed yet, trigger lazy loading
-            handle = squeeze(self.get_datasets(keys).values())
+            dataset = self.get_datasets(keys)
+            if not dataset:
+                raise exceptions.DatasetNotFoundError('No dataset found')
+
+            handle = squeeze(dataset.values())
             metadata = self.compute_metadata(handle, max_shape=self.LAZY_LOADING_MAX_SHAPE)
             self.insert(keys, handle, metadata=metadata)
 
