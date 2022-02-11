@@ -63,3 +63,17 @@ def test_colormap_consistency(use_testdb, testdb, raster_file_xyz,
     for val in values_to_test:
         rgba = cmap[val]
         assert np.all(img_data[tile_data == val] == rgba)
+
+
+@pytest.mark.parametrize('stretch_range', [[0, 0.1], [20000, 30000], [-50000, 50000]])
+def test_colormap_range(stretch_range):
+    """Ensure that all colors from colormap file are present in returned data"""
+    from terracotta.cmaps import get_cmap
+    from terracotta.handlers import colormap
+    cmap_name = 'jet'
+    cmap_in = get_cmap(cmap_name)
+    num_values = cmap_in.shape[0]
+    cmap_out = colormap.colormap(colormap=cmap_name, stretch_range=stretch_range,
+                                 num_values=num_values)
+    cmap_out_arr = np.array([val['rgba'] for val in cmap_out], dtype=cmap_in.dtype)
+    np.testing.assert_array_equal(cmap_in, cmap_out_arr)
