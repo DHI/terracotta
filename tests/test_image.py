@@ -87,7 +87,7 @@ def test_to_uint8():
     data = np.array([-50, 0, 10, 255, 256, 1000])
     np.testing.assert_array_equal(
         image.to_uint8(data, -50, 1000),
-        [1, 13, 15, 74, 75, 255]
+        [1, 13, 16, 75, 75, 255]
     )
 
 

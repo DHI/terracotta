@@ -287,7 +287,7 @@ class MySQLDriver(RasterDriver):
             binary_prefix=True, charset='utf8mb4'
         )
 
-        with connection, connection.cursor() as cursor:  # type: ignore
+        with connection, connection.cursor() as cursor:
             cursor.execute(f'CREATE DATABASE {self._db_args.db}')
 
         with self._connect(check=False):
