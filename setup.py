@@ -85,7 +85,6 @@ setup(
             'codecov',
             'colorlog',
             'crick',
-            'flake8',
             'matplotlib',
             'moto',
             'aws-xray-sdk',
