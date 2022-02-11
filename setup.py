@@ -80,7 +80,6 @@ setup(
             'pytest',
             'pytest-cov',
             'pytest-mypy',
-            'pytest-flake8',
             'pytest-benchmark',
             'attrs>=17.4.0',
             'codecov',

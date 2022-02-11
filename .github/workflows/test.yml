@@ -63,6 +63,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install cython numpy
+          pip install rasterio --no-build-isolation
 
       - name: Setup MySQL
         run: |
