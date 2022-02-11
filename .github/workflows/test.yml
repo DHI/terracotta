@@ -24,7 +24,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         # only test oldest and most recent supported Python versions
-        python-version: ["3.6", "3.9"]
+        python-version: ["3.6", "3.10"]
 
     defaults:
       run:
@@ -103,7 +103,7 @@ jobs:
       matrix:
         os: [windows-latest]
         # Python 3.6 is EOL on conda-forge, so use 3.7 instead
-        python-version: ["3.7", "3.9"]
+        python-version: ["3.7", "3.10"]
 
     defaults:
       run:
