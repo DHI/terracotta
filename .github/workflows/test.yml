@@ -24,7 +24,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         # only test oldest and most recent supported Python versions
-        python-version: ["3.6", "3.10"]
+        python-version: ["3.6", "3.9"]
 
     defaults:
       run:
@@ -53,13 +53,6 @@ jobs:
           key: ${{ matrix.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
           restore-keys: |
             ${{ matrix.os }}-pip-
-
-      # no rasterio wheels for 3.10, so we need to build from source
-      - name: Install system dependencies
-        if: contains(matrix.python-version, '3.10')
-        run: |
-          sudo apt-get update
-          sudo apt-get install libgdal-dev -y
 
       - name: Setup Python environment
         run: |
