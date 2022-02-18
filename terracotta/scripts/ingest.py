@@ -41,7 +41,7 @@ def ingest(raster_pattern: RasterPatternType,
 
     Example:
 
-        $ terracotta create-database /path/to/rasters/{name}/{date}_{band}{}.tif -o out.sqlite
+        $ terracotta ingest /path/to/rasters/{name}/{date}_{band}{}.tif -o out.sqlite
 
     The empty group {} is replaced by a wildcard matching anything (similar to * in glob patterns).
 
