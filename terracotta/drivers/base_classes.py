@@ -33,9 +33,9 @@ def requires_connection(
 
 
 class MetaStore(ABC):
-    """Abstract base class for all Terracotta data backends.
+    """Abstract base class for all Terracotta metadata backends.
 
-    Defines a common interface for all drivers.
+    Defines a common interface for all metadata backends.
     """
     _RESERVED_KEYS = ('limit', 'page')
 
@@ -170,6 +170,9 @@ class MetaStore(ABC):
 
 
 class RasterStore(ABC):
+    """Abstract base class for all Terracotta raster backends.
+
+    Defines a common interface for all raster backends."""
 
     @abstractmethod
     # TODO: add accurate signature if mypy ever supports conditional return types
