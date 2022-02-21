@@ -1,6 +1,6 @@
 """drivers/relational_meta_store.py
 
-Base class for relational database drivers, using SQLAlchemy
+Base class for relational database drivers, using SQLAlchemy.
 """
 
 import contextlib

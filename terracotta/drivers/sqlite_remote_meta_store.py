@@ -1,7 +1,6 @@
 """drivers/sqlite_remote_meta_store.py
 
-SQLite-backed raster driver. Metadata is stored in an SQLite database, raster data is assumed
-to be present on disk.
+SQLite-backed metadata driver. Metadata is stored in an SQLite database.
 """
 
 import contextlib
@@ -51,9 +50,8 @@ def _update_from_s3(remote_path: str, local_path: str) -> None:
 
 
 class RemoteSQLiteMetaStore(SQLiteMetaStore):
-    """An SQLite-backed raster driver, where the database file is stored remotely on S3.
+    """An SQLite-backed metadata driver, where the database file is stored remotely on S3.
 
-    Assumes raster data to be present in separate GDAL-readable files on disk or remotely.
     Stores metadata and paths to raster files in SQLite.
 
     See also:
@@ -61,7 +59,7 @@ class RemoteSQLiteMetaStore(SQLiteMetaStore):
         :class:`~terracotta.drivers.sqlite.SQLiteDriver` for the local version of this
         driver.
 
-    The SQLite database is simply a file that can be stored together with the actual
+    The SQLite database is simply a file that can be stored e.g. together with the actual
     raster files on S3. Before handling the first request, this driver will download a
     temporary copy of the remote database file. It is thus not feasible for large databases.
 

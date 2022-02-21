@@ -1,7 +1,6 @@
 """drivers/mysql_meta_store.py
 
-MySQL-backed raster driver. Metadata is stored in a MySQL database, raster data is assumed
-to be present on disk.
+MySQL-backed metadata driver. Metadata is stored in a MySQL database.
 """
 
 import functools
@@ -13,9 +12,8 @@ from terracotta.drivers.relational_meta_store import RelationalMetaStore
 
 
 class MySQLMetaStore(RelationalMetaStore):
-    """A MySQL-backed raster driver.
+    """A MySQL-backed metadata driver.
 
-    Assumes raster data to be present in separate GDAL-readable files on disk or remotely.
     Stores metadata and paths to raster files in MySQL.
 
     Requires a running MySQL server.
@@ -27,7 +25,7 @@ class MySQLMetaStore(RelationalMetaStore):
     - ``datasets``: Maps key values to physical raster path.
     - ``metadata``: Contains actual metadata as separate columns. Indexed via key values.
 
-    This driver caches raster data and key names, but not metadata.
+    This driver caches key names.
     """
     SQL_URL_SCHEME = 'mysql'
     SQL_DRIVER_TYPE = 'pymysql'

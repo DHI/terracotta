@@ -1,7 +1,6 @@
 """drivers/sqlite_meta_store.py
 
-SQLite-backed raster driver. Metadata is stored in an SQLite database, raster data is assumed
-to be present on disk.
+SQLite-backed metadata driver. Metadata is stored in an SQLite database.
 """
 
 import os
@@ -12,13 +11,12 @@ from terracotta.drivers.relational_meta_store import RelationalMetaStore
 
 
 class SQLiteMetaStore(RelationalMetaStore):
-    """An SQLite-backed raster driver.
+    """An SQLite-backed metadata driver.
 
-    Assumes raster data to be present in separate GDAL-readable files on disk or remotely.
     Stores metadata and paths to raster files in SQLite.
 
     This is the simplest Terracotta driver, as it requires no additional infrastructure.
-    The SQLite database is simply a file that can be stored together with the actual
+    The SQLite database is simply a file that can e.g. be stored together with the actual
     raster files.
 
     Note:
@@ -34,7 +32,7 @@ class SQLiteMetaStore(RelationalMetaStore):
     - ``datasets``: Maps key values to physical raster path.
     - ``metadata``: Contains actual metadata as separate columns. Indexed via key values.
 
-    This driver caches raster data and key names, but not metadata.
+    This driver caches key names, but not metadata.
 
     Warning:
 
