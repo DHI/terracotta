@@ -75,9 +75,9 @@ def ensure_hashable(val: Any) -> Any:
 
 
 class GeoTiffRasterStore(RasterStore):
-    """Mixin that implements methods to load raster data from disk.
-
-    get_datasets has to return path to raster file as sole dict value.
+    """Raster store that operates on GeoTiff raster files from disk.
+    
+    Path arguments are expected to be file paths.
     """
     _TARGET_CRS: str = 'epsg:3857'
     _LARGE_RASTER_THRESHOLD: int = 10980 * 10980

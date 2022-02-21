@@ -25,7 +25,10 @@ def squeeze(iterable: Collection[T]) -> T:
 
 
 class TerracottaDriver:
-
+    """Terracotta driver object used to retrieve raster tiles and metadata.
+    
+    Do not instantiate directly, use :func:`terracotta.get_driver` instead.
+    """
     def __init__(self, meta_store: MetaStore, raster_store: RasterStore) -> None:
         self.meta_store = meta_store
         self.raster_store = raster_store
@@ -37,9 +40,10 @@ class TerracottaDriver:
     def db_version(self) -> str:
         """Terracotta version used to create the meta store.
 
-        Returns
+        Returns:
 
             A str specifying the version of Terracotta that was used to create the meta store.
+
         """
         return self.meta_store.db_version
 
@@ -50,18 +54,20 @@ class TerracottaDriver:
         Returns:
 
             A tuple defining the key names and order.
+
         """
         return self.meta_store.key_names
 
     def create(self, keys: Sequence[str], *,
                key_descriptions: Mapping[str, str] = None) -> None:
-        """Create a new, empty metastore.
+        """Create a new, empty metadata store.
 
         Arguments:
 
             keys: A sequence defining the key names and order.
             key_descriptions: A mapping from key name to a human-readable
                 description of what the key encodes.
+
         """
         self.meta_store.create(keys=keys, key_descriptions=key_descriptions)
 
@@ -189,8 +195,10 @@ class TerracottaDriver:
             path: Path to access dataset (driver dependent).
             override_path: If given, this path will be inserted into the meta store
                 instead of the one used to load the dataset.
-            metadata: Metadata for the dataset. If not given, metadata will be computed.
-            skip_metadata: If True, will skip metadata computation, even if metadata is not given.
+            metadata: Metadata dict for the dataset. If not given, metadata will be computed 
+                via :meth:`compute_metadata`.
+            skip_metadata: If True, will skip metadata computation (will be computed 
+                during first request instead). Has no effect if ``metadata`` argument is given.
 
         """
         keys = self._standardize_keys(keys)
@@ -286,6 +294,7 @@ class TerracottaDriver:
             - ``mean``: global mean
             - ``stdev``: global standard deviation
             - ``metadata``: any additional client-relevant metadata
+
         """
         return self.raster_store.compute_metadata(
             path=path,
