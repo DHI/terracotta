@@ -22,8 +22,9 @@ jobs:
       fail-fast: false
 
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         # only test oldest and most recent supported Python versions
+        # no rasterio wheels on 3.10 yet, so we use 3.9 for now
         python-version: ["3.6", "3.9"]
 
     defaults:
@@ -60,7 +61,6 @@ jobs:
           pip install cython numpy
 
       - name: Setup MySQL
-        if: contains(matrix.os, 'ubuntu')
         run: |
           sudo /etc/init.d/mysql start
           mysql -e 'SHOW DATABASES;' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
@@ -77,12 +77,8 @@ jobs:
 
       - name: Run tests
         run: |
-          if [ ${{ runner.os }} == "Linux" ]; then
-            MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.DB_PORT }}"
-            python -m pytest . --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV
-          else
-            python -m pytest . --color=yes --cov=terracotta
-          fi
+          MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.DB_PORT }}"
+          python -m pytest . --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV
 
       - name: Run benchmarks
         run: |
@@ -101,9 +97,9 @@ jobs:
       fail-fast: false
 
       matrix:
-        os: [windows-latest]
+        os: [macos-latest, windows-latest]
         # Python 3.6 is EOL on conda-forge, so use 3.7 instead
-        python-version: ["3.7", "3.9"]
+        python-version: ["3.7", "3.10"]
 
     defaults:
       run:

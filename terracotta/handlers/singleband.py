@@ -30,7 +30,7 @@ def singleband(keys: Union[Sequence[str], Mapping[str, str]],
     else:
         stretch_min, stretch_max = stretch_range
 
-    preserve_values = isinstance(colormap, collections.Mapping)
+    preserve_values = isinstance(colormap, collections.abc.Mapping)
 
     settings = get_settings()
     if tile_size is None:
