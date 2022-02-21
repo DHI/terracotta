@@ -1,4 +1,4 @@
-"""drivers/sqlite_remote.py
+"""drivers/sqlite_remote_meta_store.py
 
 SQLite-backed raster driver. Metadata is stored in an SQLite database, raster data is assumed
 to be present on disk.

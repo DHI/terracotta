@@ -26,7 +26,7 @@ def squeeze(iterable: Collection[T]) -> T:
 
 class TerracottaDriver:
     """Terracotta driver object used to retrieve raster tiles and metadata.
-    
+
     Do not instantiate directly, use :func:`terracotta.get_driver` instead.
     """
     def __init__(self, meta_store: MetaStore, raster_store: RasterStore) -> None:
@@ -195,9 +195,9 @@ class TerracottaDriver:
             path: Path to access dataset (driver dependent).
             override_path: If given, this path will be inserted into the meta store
                 instead of the one used to load the dataset.
-            metadata: Metadata dict for the dataset. If not given, metadata will be computed 
+            metadata: Metadata dict for the dataset. If not given, metadata will be computed
                 via :meth:`compute_metadata`.
-            skip_metadata: If True, will skip metadata computation (will be computed 
+            skip_metadata: If True, will skip metadata computation (will be computed
                 during first request instead). Has no effect if ``metadata`` argument is given.
 
         """

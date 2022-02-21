@@ -1,4 +1,4 @@
-"""drivers/mysql.py
+"""drivers/mysql_meta_store.py
 
 MySQL-backed raster driver. Metadata is stored in a MySQL database, raster data is assumed
 to be present on disk.
