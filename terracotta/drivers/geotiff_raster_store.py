@@ -64,6 +64,16 @@ def submit_to_executor(task: Callable[..., Any]) -> Future:
     return future
 
 
+def ensure_hashable(val: Any) -> Any:
+    if isinstance(val, list):
+        return tuple(val)
+
+    if isinstance(val, dict):
+        return tuple((k, ensure_hashable(v)) for k, v in val.items())
+
+    return val
+
+
 class GeoTiffRasterStore(RasterStore):
     """Mixin that implements methods to load raster data from disk.
 
@@ -84,9 +94,6 @@ class GeoTiffRasterStore(RasterStore):
         )
         self._cache_lock = threading.RLock()
 
-        from rasterio import Env
-        self._rio_env = Env(**self._RIO_ENV_OPTIONS)
-
     def compute_metadata(self, path: str, *,
                          extra_metadata: Any = None,
                          use_chunks: bool = None,
@@ -94,7 +101,7 @@ class GeoTiffRasterStore(RasterStore):
         return raster.compute_metadata(path, extra_metadata=extra_metadata,
                                        use_chunks=use_chunks, max_shape=max_shape,
                                        large_raster_threshold=self._LARGE_RASTER_THRESHOLD,
-                                       rio_env=self._rio_env)
+                                       rio_env_options=self._RIO_ENV_OPTIONS)
 
     # return type has to be Any until mypy supports conditional return types
     def get_raster_tile(self,
@@ -111,19 +118,18 @@ class GeoTiffRasterStore(RasterStore):
         if tile_size is None:
             tile_size = settings.DEFAULT_TILE_SIZE
 
-        # make sure all arguments are hashable
         kwargs = dict(
             path=path,
-            tile_bounds=tuple(tile_bounds) if tile_bounds else None,
+            tile_bounds=tile_bounds,
             tile_size=tuple(tile_size),
             preserve_values=preserve_values,
             reprojection_method=settings.REPROJECTION_METHOD,
             resampling_method=settings.RESAMPLING_METHOD,
             target_crs=self._TARGET_CRS,
-            rio_env=self._rio_env,
+            rio_env_options=self._RIO_ENV_OPTIONS,
         )
 
-        cache_key = hash(tuple(kwargs.items()))
+        cache_key = hash(ensure_hashable(kwargs))
 
         try:
             with self._cache_lock:

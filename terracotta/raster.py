@@ -12,7 +12,6 @@ import numpy as np
 
 if TYPE_CHECKING:  # pragma: no cover
     from rasterio.io import DatasetReader  # noqa: F401
-    from rasterio import Env
 
 try:
     from crick import TDigest, SummaryStats
@@ -181,7 +180,7 @@ def compute_metadata(path: str, *,
                      use_chunks: bool = None,
                      max_shape: Sequence[int] = None,
                      large_raster_threshold: int = None,
-                     rio_env: 'Env' = None) -> Dict[str, Any]:
+                     rio_env_options: Dict[str, Any] = None) -> Dict[str, Any]:
     import rasterio
     from rasterio import warp
     from terracotta.cog import validate
@@ -195,10 +194,10 @@ def compute_metadata(path: str, *,
     if use_chunks and max_shape is not None:
         raise ValueError('Cannot use both use_chunks and max_shape arguments')
 
-    if rio_env is None:
-        rio_env = rasterio.Env()
+    if rio_env_options is None:
+        rio_env_options = {}
 
-    with rio_env:
+    with rasterio.Env(**rio_env_options):
         if not validate(path):
             warnings.warn(
                 f'Raster file {path} is not a valid cloud-optimized GeoTIFF. '
@@ -284,7 +283,7 @@ def get_raster_tile(path: str, *,
                     tile_size: Tuple[int, int] = (256, 256),
                     preserve_values: bool = False,
                     target_crs: str = 'epsg:3857',
-                    rio_env: 'Env' = None) -> np.ma.MaskedArray:
+                    rio_env_options: Dict[str, Any] = None) -> np.ma.MaskedArray:
     """Load a raster dataset from a file through rasterio.
 
     Heavily inspired by mapbox/rio-tiler
@@ -296,8 +295,8 @@ def get_raster_tile(path: str, *,
 
     dst_bounds: Tuple[float, float, float, float]
 
-    if rio_env is None:
-        rio_env = rasterio.Env()
+    if rio_env_options is None:
+        rio_env_options = {}
 
     if preserve_values:
         reproject_enum = resampling_enum = get_resampling_enum('nearest')
@@ -306,7 +305,7 @@ def get_raster_tile(path: str, *,
         resampling_enum = get_resampling_enum(resampling_method)
 
     with contextlib.ExitStack() as es:
-        es.enter_context(rio_env)
+        es.enter_context(rasterio.Env(**rio_env_options))
         try:
             with trace('open_dataset'):
                 src = es.enter_context(rasterio.open(path))
