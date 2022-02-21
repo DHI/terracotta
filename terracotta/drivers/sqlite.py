@@ -230,6 +230,35 @@ class SQLiteDriver(RasterDriver):
             out[row['key']] = row['description']
         return out
 
+    @requires_connection
+    @convert_exceptions('Could not retrieve valid key values')
+    def get_valid_values(self, where: Mapping[str, Union[str, List[str]]]) -> Dict[str, List[str]]:
+        conn = self._connection
+
+        if not all(key in self.key_names for key in where.keys()):
+            raise exceptions.InvalidKeyError('Encountered unrecognized keys in where clause')
+
+        conditions = []
+        values = []
+        for key, value in where.items():
+            if isinstance(value, str):
+                value = [value]
+            values.extend(value)
+            conditions.append(' OR '.join([f'{key}=?'] * len(value)))
+        where_fragment = ' AND '.join([f'({condition})' for condition in conditions])
+        where_fragment = ' WHERE ' + where_fragment if where_fragment else ''
+
+        valid_values = {key: [val] if isinstance(val, str) else val for key, val in where.items()}
+
+        for key in set(self.key_names) - set(where.keys()):
+            rows = conn.execute(
+                f'SELECT DISTINCT {key} FROM datasets {where_fragment}',
+                values
+            )
+            valid_values[key] = list([row[key] for row in rows])
+
+        return valid_values
+
     @trace('get_datasets')
     @requires_connection
     @convert_exceptions('Could not retrieve datasets')

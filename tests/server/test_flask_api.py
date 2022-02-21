@@ -44,6 +44,45 @@ def test_get_metadata_nonexisting(client, use_testdb):
     assert rv.status_code == 404
 
 
+def test_get_valid_values(client, use_testdb):
+    rv = client.get('/valid_values')
+    assert rv.status_code == 200
+    valid_values = json.loads(rv.data, object_pairs_hook=OrderedDict)['valid_values']
+    assert len(valid_values) == 3
+    assert len(valid_values['key1']) == 2
+    assert 'val11' in valid_values['key1'] and 'val21' in valid_values['key1']
+    assert valid_values['akey'] == ['x']
+
+
+def test_get_valid_values_selective(client, use_testdb):
+    rv = client.get('/valid_values?key1=val21')
+    assert rv.status_code == 200
+    valid_values = json.loads(rv.data, object_pairs_hook=OrderedDict)['valid_values']
+    assert len(valid_values) == 3
+    assert valid_values['key1'] == ['val21']
+    assert len(valid_values['key2']) == 3
+    assert 'val22' in valid_values['key2'] and 'val23' in valid_values['key2']
+    assert valid_values['akey'] == ['x']
+
+    rv = client.get('/valid_values?key1=[val21]')
+    assert rv.status_code == 200
+    valid_values = json.loads(rv.data, object_pairs_hook=OrderedDict)['valid_values']
+    assert len(valid_values) == 3
+    assert valid_values['key1'] == ['val21']
+    assert len(valid_values['key2']) == 3
+    assert 'val22' in valid_values['key2'] and 'val23' in valid_values['key2']
+    assert valid_values['akey'] == ['x']
+
+    rv = client.get('/valid_values?key1=val21&key2=[val23,val24]')
+    assert rv.status_code == 200
+    valid_values = json.loads(rv.data, object_pairs_hook=OrderedDict)['valid_values']
+    assert len(valid_values) == 3
+    assert valid_values['key1'] == ['val21']
+    assert len(valid_values['key2']) == 2
+    assert 'val23' in valid_values['key2'] and 'val24' in valid_values['key2']
+    assert valid_values['akey'] == ['x']
+
+
 def test_get_datasets(client, use_testdb):
     rv = client.get('/datasets')
     assert rv.status_code == 200

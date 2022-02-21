@@ -48,6 +48,40 @@ def test_path_override(driver_path, provider, raster_file):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
+def test_valid_values(driver_path, provider, raster_file):
+    from terracotta import drivers, exceptions
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('some', 'keynames')
+
+    db.create(keys)
+    db.insert(['some', 'value'], str(raster_file))
+    db.insert(['some', 'other_value'], str(raster_file))
+    db.insert({'some': 'a', 'keynames': 'third_value'}, str(raster_file))
+
+    data = db.get_valid_values({})
+    assert len(data) == 2
+    assert len(data['some']) == 2
+    assert len(data['keynames']) == 3
+
+    data = db.get_valid_values(where=dict(some='some'))
+    assert len(data) == 2
+    assert data['some'] == ['some']
+    assert set(data['keynames']) == set(['value', 'other_value'])
+
+    data = db.get_valid_values(where=dict(some='some', keynames='value'))
+    assert set(data.keys()) == set(['some', 'keynames'])
+    assert data['some'] == ['some']
+    assert data['keynames'] == ['value']
+
+    data = db.get_valid_values(where=dict(some='unknown'))
+    assert data == {'some': ['unknown'], 'keynames': []}
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.get_valid_values(where=dict(unknown='foo'))
+    assert 'unrecognized keys' in str(exc.value)
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
 def test_where(driver_path, provider, raster_file):
     from terracotta import drivers, exceptions
     db = drivers.get_driver(driver_path, provider=provider)
