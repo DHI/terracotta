@@ -12,7 +12,7 @@ from sqlalchemy.dialects.mysql import TEXT, VARCHAR
 from terracotta.drivers.relational_meta_store import RelationalMetaStore
 
 
-class MySQLDriver(RelationalMetaStore):
+class MySQLMetaStore(RelationalMetaStore):
     """A MySQL-backed raster driver.
 
     Assumes raster data to be present in separate GDAL-readable files on disk or remotely.

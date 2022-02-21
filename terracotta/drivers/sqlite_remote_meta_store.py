@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Iterator, Union
 
 from terracotta import exceptions, get_settings
-from terracotta.drivers.sqlite_meta_store import SQLiteDriver
+from terracotta.drivers.sqlite_meta_store import SQLiteMetaStore
 from terracotta.profile import trace
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ def _update_from_s3(remote_path: str, local_path: str) -> None:
         shutil.copyfileobj(obj_bytes, f)
 
 
-class RemoteSQLiteDriver(SQLiteDriver):
+class RemoteSQLiteMetaStore(SQLiteMetaStore):
     """An SQLite-backed raster driver, where the database file is stored remotely on S3.
 
     Assumes raster data to be present in separate GDAL-readable files on disk or remotely.

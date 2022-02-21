@@ -17,16 +17,16 @@ URLOrPathType = Union[str, Path]
 
 def load_driver(provider: str) -> Type[MetaStore]:
     if provider == 'sqlite-remote':
-        from terracotta.drivers.sqlite_remote_meta_store import RemoteSQLiteDriver
-        return RemoteSQLiteDriver
+        from terracotta.drivers.sqlite_remote_meta_store import RemoteSQLiteMetaStore
+        return RemoteSQLiteMetaStore
 
     if provider == 'mysql':
-        from terracotta.drivers.mysql_meta_store import MySQLDriver
-        return MySQLDriver
+        from terracotta.drivers.mysql_meta_store import MySQLMetaStore
+        return MySQLMetaStore
 
     if provider == 'sqlite':
-        from terracotta.drivers.sqlite_meta_store import SQLiteDriver
-        return SQLiteDriver
+        from terracotta.drivers.sqlite_meta_store import SQLiteMetaStore
+        return SQLiteMetaStore
 
     raise ValueError(f'Unknown database provider {provider}')
 

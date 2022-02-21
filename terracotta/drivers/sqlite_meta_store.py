@@ -11,7 +11,7 @@ from typing import Union
 from terracotta.drivers.relational_meta_store import RelationalMetaStore
 
 
-class SQLiteDriver(RelationalMetaStore):
+class SQLiteMetaStore(RelationalMetaStore):
     """An SQLite-backed raster driver.
 
     Assumes raster data to be present in separate GDAL-readable files on disk or remotely.
