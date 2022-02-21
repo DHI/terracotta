@@ -183,8 +183,7 @@ class TerracottaDriver:
         path: Any, *,
         override_path: str = None,
         metadata: Mapping[str, Any] = None,
-        skip_metadata: bool = False,
-        **kwargs: Any
+        skip_metadata: bool = False
     ) -> None:
         """Register a new dataset. Used to populate meta store.
 
@@ -209,8 +208,7 @@ class TerracottaDriver:
         self.meta_store.insert(
             keys=keys,
             path=override_path or path,
-            metadata=metadata,
-            **kwargs
+            metadata=metadata
         )
 
     @requires_connection
