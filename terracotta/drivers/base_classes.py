@@ -212,3 +212,6 @@ class RasterStore(ABC):
                          max_shape: Sequence[int] = None) -> Dict[str, Any]:
         # Compute metadata for a given input file (driver dependent)
         pass
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}()'

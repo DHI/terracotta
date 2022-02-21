@@ -76,7 +76,7 @@ def ensure_hashable(val: Any) -> Any:
 
 class GeoTiffRasterStore(RasterStore):
     """Raster store that operates on GeoTiff raster files from disk.
-    
+
     Path arguments are expected to be file paths.
     """
     _TARGET_CRS: str = 'epsg:3857'

@@ -345,7 +345,7 @@ class TerracottaDriver:
     def __repr__(self) -> str:
         return (
             f'{self.__class__.__name__}(\n'
-            f'\tmeta_store={self.meta_store.__class__.__name__}(path="{self.meta_store.path}"),\n'
-            f'\traster_store={self.raster_store.__class__.__name__}()\n'
+            f'    meta_store={self.meta_store!r},\n'
+            f'    raster_store={self.raster_store!r}\n'
             ')'
         )
