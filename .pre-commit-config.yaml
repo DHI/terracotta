@@ -1,0 +1,12 @@
+repos:
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: 3.8.3
+    hooks:
+    - id: flake8
+      args: ['--config=setup.cfg']
+
+exclude: "
+  ^$\
+  |terracotta/_version.py\
+  |docs\
+  "
