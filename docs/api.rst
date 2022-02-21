@@ -15,30 +15,27 @@ Get a driver instance
 
 .. autofunction:: terracotta.get_driver
 
-SQLite driver
--------------
+TerracottaDriver
+----------------
 
-.. autoclass:: terracotta.drivers.sqlite.SQLiteDriver
+.. autoclass:: terracotta.drivers.TerracottaDriver
    :members:
-   :undoc-members:
-   :special-members: __init__
-   :inherited-members:
 
-Remote SQLite driver
---------------------
 
-.. autoclass:: terracotta.drivers.sqlite_remote.RemoteSQLiteDriver
-   :members:
-   :undoc-members:
-   :special-members: __init__
-   :inherited-members:
-   :exclude-members: delete, insert, create
+Supported metadata stores
+-------------------------
 
-MySQL driver
-------------
+SQLite metadata store
++++++++++++++++++++++
 
-.. autoclass:: terracotta.drivers.mysql.MySQLDriver
-   :members:
-   :undoc-members:
-   :special-members: __init__
-   :inherited-members:
+.. autoclass:: terracotta.drivers.sqlite_meta_store.SQLiteMetaStore
+
+Remote SQLite metadata store
+++++++++++++++++++++++++++++
+
+.. autoclass:: terracotta.drivers.sqlite_remote_meta_store.RemoteSQLiteMetaStore
+
+MySQL metadata store
+++++++++++++++++++++
+
+.. autoclass:: terracotta.drivers.mysql_meta_store.MySQLMetaStore

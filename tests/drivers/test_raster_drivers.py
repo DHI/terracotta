@@ -3,9 +3,6 @@ import pytest
 import platform
 import time
 
-import rasterio
-import rasterio.features
-from shapely.geometry import shape, MultiPolygon
 import numpy as np
 
 DRIVERS = ['sqlite', 'mysql']
@@ -143,7 +140,7 @@ def test_lazy_loading(driver_path, provider, raster_file):
 
     data1 = db.get_metadata(['some', 'value'])
     data2 = db.get_metadata({'some': 'some', 'keynames': 'other_value'})
-    assert list(data1.keys()) == list(data2.keys())
+    assert set(data1.keys()) == set(data2.keys())
     assert all(np.all(data1[k] == data2[k]) for k in data1.keys())
 
 
@@ -208,7 +205,7 @@ def test_wrong_key_number(driver_path, provider, raster_file):
     assert 'wrong number of keys' in str(exc.value)
 
     with pytest.raises(exceptions.InvalidKeyError) as exc:
-        db.insert(['a', 'b'], '')
+        db.insert(['a', 'b'], '', skip_metadata=True)
     assert 'wrong number of keys' in str(exc.value)
 
     with pytest.raises(exceptions.InvalidKeyError) as exc:
@@ -302,7 +299,11 @@ def test_insertion_invalid_raster(driver_path, provider, invalid_raster_file):
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_raster_retrieval(driver_path, provider, raster_file):
+@pytest.mark.parametrize('resampling_method', ['nearest', 'linear', 'cubic', 'average'])
+def test_raster_retrieval(driver_path, provider, raster_file, resampling_method):
+    import terracotta
+    terracotta.update_settings(RESAMPLING_METHOD=resampling_method)
+
     from terracotta import drivers
     db = drivers.get_driver(driver_path, provider=provider)
     keys = ('some', 'keynames')
@@ -331,7 +332,7 @@ def test_raster_cache(driver_path, provider, raster_file, asynchronous):
     db.insert(['some', 'value'], str(raster_file))
     db.insert(['some', 'other_value'], str(raster_file))
 
-    assert len(db._raster_cache) == 0
+    assert len(db.raster_store._raster_cache) == 0
 
     data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
 
@@ -339,7 +340,7 @@ def test_raster_cache(driver_path, provider, raster_file, asynchronous):
         data1 = data1.result()
         time.sleep(1)  # allow callback to finish
 
-    assert len(db._raster_cache) == 1
+    assert len(db.raster_store._raster_cache) == 1
 
     data2 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
 
@@ -347,7 +348,7 @@ def test_raster_cache(driver_path, provider, raster_file, asynchronous):
         data2 = data2.result()
 
     np.testing.assert_array_equal(data1, data2)
-    assert len(db._raster_cache) == 1
+    assert len(db.raster_store._raster_cache) == 1
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -363,7 +364,7 @@ def test_raster_cache_fail(driver_path, provider, raster_file, asynchronous):
     db.create(keys)
     db.insert(['some', 'value'], str(raster_file))
 
-    assert len(db._raster_cache) == 0
+    assert len(db.raster_store._raster_cache) == 0
 
     data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256), asynchronous=asynchronous)
 
@@ -371,7 +372,7 @@ def test_raster_cache_fail(driver_path, provider, raster_file, asynchronous):
         data1 = data1.result()
         time.sleep(1)  # allow callback to finish
 
-    assert len(db._raster_cache) == 0
+    assert len(db.raster_store._raster_cache) == 0
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -379,7 +380,7 @@ def test_multiprocessing_fallback(driver_path, provider, raster_file, monkeypatc
     import concurrent.futures
     from importlib import reload
     from terracotta import drivers
-    import terracotta.drivers.raster_base
+    import terracotta.drivers.geotiff_raster_store
 
     def dummy(*args, **kwargs):
         raise OSError('monkeypatched')
@@ -388,7 +389,7 @@ def test_multiprocessing_fallback(driver_path, provider, raster_file, monkeypatc
         with monkeypatch.context() as m, pytest.warns(UserWarning):
             m.setattr(concurrent.futures, 'ProcessPoolExecutor', dummy)
 
-            reload(terracotta.drivers.raster_base)
+            reload(terracotta.drivers.geotiff_raster_store)
             db = drivers.get_driver(driver_path, provider=provider)
             keys = ('some', 'keynames')
 
@@ -404,7 +405,7 @@ def test_multiprocessing_fallback(driver_path, provider, raster_file, monkeypatc
 
             np.testing.assert_array_equal(data1, data2)
     finally:
-        reload(terracotta.drivers.raster_base)
+        reload(terracotta.drivers.geotiff_raster_store)
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
@@ -475,206 +476,11 @@ def test_nodata_consistency(driver_path, provider, big_raster_file_mask, big_ras
     np.testing.assert_array_equal(data_mask.mask, data_nodata.mask)
 
 
-def geometry_mismatch(shape1, shape2):
-    """Compute relative mismatch of two shapes"""
-    return shape1.symmetric_difference(shape2).area / shape1.union(shape2).area
-
-
-def convex_hull_exact(src):
-    kwargs = dict(bidx=1, band=False, as_mask=True, geographic=True)
-
-    data = src.read()
-    if np.any(np.isnan(data)) and src.nodata is not None:
-        # hack: replace NaNs with nodata to make sure they are excluded
-        with rasterio.MemoryFile() as memfile, memfile.open(**src.profile) as tmpsrc:
-            data[np.isnan(data)] = src.nodata
-            tmpsrc.write(data)
-            dataset_shape = list(rasterio.features.dataset_features(tmpsrc, **kwargs))
-    else:
-        dataset_shape = list(rasterio.features.dataset_features(src, **kwargs))
-
-    convex_hull = MultiPolygon([shape(s['geometry']) for s in dataset_shape]).convex_hull
-    return convex_hull
-
-
-@pytest.mark.parametrize('use_chunks', [True, False])
-@pytest.mark.parametrize('nodata_type', ['nodata', 'masked', 'none', 'nan'])
-def test_compute_metadata(big_raster_file_nodata, big_raster_file_nomask,
-                          big_raster_file_mask, raster_file_float, nodata_type, use_chunks):
-    from terracotta.drivers.raster_base import RasterDriver
-
-    if nodata_type == 'nodata':
-        raster_file = big_raster_file_nodata
-    elif nodata_type == 'masked':
-        raster_file = big_raster_file_mask
-    elif nodata_type == 'none':
-        raster_file = big_raster_file_nomask
-    elif nodata_type == 'nan':
-        raster_file = raster_file_float
-
-    if use_chunks:
-        pytest.importorskip('crick')
-
-    with rasterio.open(str(raster_file)) as src:
-        data = src.read(1, masked=True)
-        valid_data = np.ma.masked_invalid(data).compressed()
-        convex_hull = convex_hull_exact(src)
-
-    # compare
-    if nodata_type == 'none':
-        with pytest.warns(UserWarning) as record:
-            mtd = RasterDriver.compute_metadata(str(raster_file), use_chunks=use_chunks)
-            assert 'does not have a valid nodata value' in str(record[0].message)
-    else:
-        mtd = RasterDriver.compute_metadata(str(raster_file), use_chunks=use_chunks)
-
-    np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)
-    np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()))
-    np.testing.assert_allclose(mtd['mean'], valid_data.mean())
-    np.testing.assert_allclose(mtd['stdev'], valid_data.std())
-
-    # allow some error margin since we only compute approximate quantiles
-    np.testing.assert_allclose(
-        mtd['percentiles'],
-        np.percentile(valid_data, np.arange(1, 100)),
-        rtol=2e-2, atol=valid_data.max() / 100
-    )
-
-    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-6
-
-
-@pytest.mark.parametrize('nodata_type', ['nodata', 'masked', 'none', 'nan'])
-def test_compute_metadata_approximate(nodata_type, big_raster_file_nodata, big_raster_file_mask,
-                                      big_raster_file_nomask, raster_file_float):
-    from terracotta.drivers.raster_base import RasterDriver
-
-    if nodata_type == 'nodata':
-        raster_file = big_raster_file_nodata
-    elif nodata_type == 'masked':
-        raster_file = big_raster_file_mask
-    elif nodata_type == 'none':
-        raster_file = big_raster_file_nomask
-    elif nodata_type == 'nan':
-        raster_file = raster_file_float
-
-    with rasterio.open(str(raster_file)) as src:
-        data = src.read(1, masked=True)
-        valid_data = np.ma.masked_invalid(data).compressed()
-        convex_hull = convex_hull_exact(src)
-
-    # compare
-    if nodata_type == 'none':
-        with pytest.warns(UserWarning) as record:
-            mtd = RasterDriver.compute_metadata(str(raster_file), max_shape=(512, 512))
-            assert 'does not have a valid nodata value' in str(record[0].message)
-    else:
-        mtd = RasterDriver.compute_metadata(str(raster_file), max_shape=(512, 512))
-
-    np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size, atol=1)
-    np.testing.assert_allclose(
-        mtd['range'], (valid_data.min(), valid_data.max()), atol=valid_data.max() / 100
-    )
-    np.testing.assert_allclose(mtd['mean'], valid_data.mean(), rtol=0.02)
-    np.testing.assert_allclose(mtd['stdev'], valid_data.std(), rtol=0.02)
-
-    np.testing.assert_allclose(
-        mtd['percentiles'],
-        np.percentile(valid_data, np.arange(1, 100)),
-        atol=valid_data.max() / 100, rtol=0.02
-    )
-
-    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 0.05
-
-
-def test_compute_metadata_invalid_options(big_raster_file_nodata):
-    from terracotta.drivers.raster_base import RasterDriver
-
-    with pytest.raises(ValueError):
-        RasterDriver.compute_metadata(
-            str(big_raster_file_nodata), max_shape=(256, 256), use_chunks=True
-        )
-
-    with pytest.raises(ValueError):
-        RasterDriver.compute_metadata(str(big_raster_file_nodata), max_shape=(256, 256, 1))
-
-
-@pytest.mark.parametrize('use_chunks', [True, False])
-def test_compute_metadata_invalid_raster(invalid_raster_file, use_chunks):
-    from terracotta.drivers.raster_base import RasterDriver
-
-    if use_chunks:
-        pytest.importorskip('crick')
-
-    with pytest.raises(ValueError):
-        RasterDriver.compute_metadata(str(invalid_raster_file), use_chunks=use_chunks)
-
-
-def test_compute_metadata_nocrick(big_raster_file_nodata, monkeypatch):
-    with rasterio.open(str(big_raster_file_nodata)) as src:
-        data = src.read(1, masked=True)
-        valid_data = np.ma.masked_invalid(data).compressed()
-        convex_hull = convex_hull_exact(src)
-
-    from terracotta import exceptions
-    import terracotta.drivers.raster_base
-
-    with monkeypatch.context() as m:
-        m.setattr(terracotta.drivers.raster_base, 'has_crick', False)
-
-        with pytest.warns(exceptions.PerformanceWarning):
-            mtd = terracotta.drivers.raster_base.RasterDriver.compute_metadata(
-                str(big_raster_file_nodata), use_chunks=True
-            )
-
-    # compare
-    np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)
-    np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()))
-    np.testing.assert_allclose(mtd['mean'], valid_data.mean())
-    np.testing.assert_allclose(mtd['stdev'], valid_data.std())
-
-    # allow error of 1%, since we only compute approximate quantiles
-    np.testing.assert_allclose(
-        mtd['percentiles'],
-        np.percentile(valid_data, np.arange(1, 100)),
-        rtol=2e-2
-    )
-
-    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-6
-
-
-def test_compute_metadata_unoptimized(unoptimized_raster_file):
-    from terracotta import exceptions
-    from terracotta.drivers.raster_base import RasterDriver
-
-    with rasterio.open(str(unoptimized_raster_file)) as src:
-        data = src.read(1, masked=True)
-        valid_data = np.ma.masked_invalid(data).compressed()
-        convex_hull = convex_hull_exact(src)
-
-    # compare
-    with pytest.warns(exceptions.PerformanceWarning):
-        mtd = RasterDriver.compute_metadata(str(unoptimized_raster_file), use_chunks=False)
-
-    np.testing.assert_allclose(mtd['valid_percentage'], 100 * valid_data.size / data.size)
-    np.testing.assert_allclose(mtd['range'], (valid_data.min(), valid_data.max()))
-    np.testing.assert_allclose(mtd['mean'], valid_data.mean())
-    np.testing.assert_allclose(mtd['stdev'], valid_data.std())
-
-    # allow some error margin since we only compute approximate quantiles
-    np.testing.assert_allclose(
-        mtd['percentiles'],
-        np.percentile(valid_data, np.arange(1, 100)),
-        rtol=2e-2
-    )
-
-    assert geometry_mismatch(shape(mtd['convex_hull']), convex_hull) < 1e-6
-
-
 @pytest.mark.parametrize('provider', DRIVERS)
 def test_broken_process_pool(driver_path, provider, raster_file):
     import concurrent.futures
     from terracotta import drivers
-    from terracotta.drivers.raster_base import context
+    from terracotta.drivers.geotiff_raster_store import context
 
     class BrokenPool:
         def submit(self, *args, **kwargs):
@@ -701,7 +507,7 @@ def test_broken_process_pool(driver_path, provider, raster_file):
 def test_no_multiprocessing():
     import concurrent.futures
     from terracotta import update_settings
-    from terracotta.drivers.raster_base import create_executor
+    from terracotta.drivers.geotiff_raster_store import create_executor
 
     update_settings(USE_MULTIPROCESSING=False)
 

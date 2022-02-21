@@ -1,20 +1,20 @@
-"""drivers/sqlite.py
+"""drivers/sqlite_remote_meta_store.py
 
-SQLite-backed raster driver. Metadata is stored in an SQLite database, raster data is assumed
-to be present on disk.
+SQLite-backed metadata driver. Metadata is stored in an SQLite database.
 """
 
-from typing import Any, Iterator
-import os
-import time
-import tempfile
-import shutil
-import logging
 import contextlib
+import logging
+import os
+import shutil
+import tempfile
+import time
 import urllib.parse as urlparse
+from pathlib import Path
+from typing import Any, Iterator, Union
 
-from terracotta import get_settings, exceptions
-from terracotta.drivers.sqlite import SQLiteDriver
+from terracotta import exceptions, get_settings
+from terracotta.drivers.sqlite_meta_store import SQLiteMetaStore
 from terracotta.profile import trace
 
 logger = logging.getLogger(__name__)
@@ -22,12 +22,11 @@ logger = logging.getLogger(__name__)
 
 @contextlib.contextmanager
 def convert_exceptions(msg: str) -> Iterator:
-    """Convert internal sqlite and boto exceptions to our InvalidDatabaseError"""
-    import sqlite3
+    """Convert internal boto exceptions to our InvalidDatabaseError"""
     import botocore.exceptions
     try:
         yield
-    except (sqlite3.OperationalError, botocore.exceptions.ClientError) as exc:
+    except botocore.exceptions.ClientError as exc:
         raise exceptions.InvalidDatabaseError(msg) from exc
 
 
@@ -50,10 +49,9 @@ def _update_from_s3(remote_path: str, local_path: str) -> None:
         shutil.copyfileobj(obj_bytes, f)
 
 
-class RemoteSQLiteDriver(SQLiteDriver):
-    """An SQLite-backed raster driver, where the database file is stored remotely on S3.
+class RemoteSQLiteMetaStore(SQLiteMetaStore):
+    """An SQLite-backed metadata driver, where the database file is stored remotely on S3.
 
-    Assumes raster data to be present in separate GDAL-readable files on disk or remotely.
     Stores metadata and paths to raster files in SQLite.
 
     See also:
@@ -61,7 +59,7 @@ class RemoteSQLiteDriver(SQLiteDriver):
         :class:`~terracotta.drivers.sqlite.SQLiteDriver` for the local version of this
         driver.
 
-    The SQLite database is simply a file that can be stored together with the actual
+    The SQLite database is simply a file that can be stored e.g. together with the actual
     raster files on S3. Before handling the first request, this driver will download a
     temporary copy of the remote database file. It is thus not feasible for large databases.
 
@@ -75,7 +73,7 @@ class RemoteSQLiteDriver(SQLiteDriver):
 
     """
 
-    def __init__(self, remote_path: str) -> None:
+    def __init__(self, remote_path: Union[str, Path]) -> None:
         """Initialize the RemoteSQLiteDriver.
 
         This should not be called directly, use :func:`~terracotta.get_driver` instead.
@@ -99,6 +97,7 @@ class RemoteSQLiteDriver(SQLiteDriver):
         )
         local_db_file.close()
 
+        self._local_path = local_db_file.name
         self._remote_path = str(remote_path)
         self._last_updated = -float('inf')
 
@@ -130,7 +129,7 @@ class RemoteSQLiteDriver(SQLiteDriver):
             self._last_updated = time.time()
 
     def _connection_callback(self) -> None:
-        self._update_db(self._remote_path, self.path)
+        self._update_db(self._remote_path, self._local_path)
         super()._connection_callback()
 
     def create(self, *args: Any, **kwargs: Any) -> None:
@@ -144,4 +143,4 @@ class RemoteSQLiteDriver(SQLiteDriver):
 
     def __del__(self) -> None:
         """Clean up temporary database upon exit"""
-        self.__rm(self.path)
+        self.__rm(self._local_path)

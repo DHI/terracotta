@@ -35,6 +35,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Framework :: Flask',
         'Operating System :: Microsoft :: Windows :: Windows 10',
         'Operating System :: MacOS :: MacOS X',
@@ -72,6 +73,7 @@ setup(
         'shapely',
         'rasterio>=1.0',
         'shapely',
+        'sqlalchemy',
         'toml',
         'tqdm'
     ],

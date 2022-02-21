@@ -2,9 +2,9 @@ import pytest
 
 TESTABLE_DRIVERS = ['sqlite', 'mysql']
 DRIVER_CLASSES = {
-    'sqlite': 'SQLiteDriver',
-    'sqlite-remote': 'SQLiteRemoteDriver',
-    'mysql': 'MySQLDriver'
+    'sqlite': 'SQLiteMetaStore',
+    'sqlite-remote': 'SQLiteRemoteMetaStore',
+    'mysql': 'MySQLMetaStore'
 }
 
 
@@ -12,14 +12,14 @@ DRIVER_CLASSES = {
 def test_auto_detect(driver_path, provider):
     from terracotta import drivers
     db = drivers.get_driver(driver_path)
-    assert db.__class__.__name__ == DRIVER_CLASSES[provider]
+    assert db.meta_store.__class__.__name__ == DRIVER_CLASSES[provider]
     assert drivers.get_driver(driver_path, provider=provider) is db
 
 
 def test_normalize_base(tmpdir):
-    from terracotta.drivers import Driver
+    from terracotta.drivers import MetaStore
     # base class normalize is noop
-    assert Driver._normalize_path(str(tmpdir)) == str(tmpdir)
+    assert MetaStore._normalize_path(str(tmpdir)) == str(tmpdir)
 
 
 @pytest.mark.parametrize('provider', ['sqlite'])
@@ -63,6 +63,22 @@ def test_normalize_url(provider):
 
     for p in equivalent_urls[1:]:
         assert driver._normalize_path(p) == first_path
+
+
+@pytest.mark.parametrize('provider', ['mysql'])
+def test_parse_connection_string_with_invalid_schemes(provider):
+    from terracotta import drivers
+
+    invalid_schemes = (
+        'fakescheme://test.example.com/foo',
+        'fakescheme://test.example.com:80/foo',
+    )
+
+    for invalid_scheme in invalid_schemes:
+        with pytest.raises(ValueError) as exc:
+            driver = drivers.get_driver(invalid_scheme, provider)
+            print(type(driver))
+        assert 'unsupported URL scheme' in str(exc.value)
 
 
 def test_get_driver_invalid():
@@ -161,10 +177,10 @@ def test_broken_connection(driver_path, provider):
 
     with pytest.raises(RuntimeError):
         with db.connect():
-            db._connection = Evanescence()
+            db.meta_store.connection = Evanescence()
             db.get_keys()
 
-    assert not db._connected
+    assert not db.meta_store.connected
 
     with db.connect():
         db.get_keys()
@@ -174,7 +190,7 @@ def test_broken_connection(driver_path, provider):
 def test_repr(driver_path, provider):
     from terracotta import drivers
     db = drivers.get_driver(driver_path, provider=provider)
-    assert repr(db).startswith(DRIVER_CLASSES[provider])
+    assert f'meta_store={DRIVER_CLASSES[provider]}' in repr(db)
 
 
 @pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
@@ -205,11 +221,42 @@ def test_version_conflict(driver_path, provider, raster_file, monkeypatch):
 
     with monkeypatch.context() as m:
         fake_version = '0.0.0'
-        m.setattr(f'{db.__module__}.__version__', fake_version)
-        db._version_checked = False
+        m.setattr('terracotta.__version__', fake_version)
+        db.meta_store.db_version_verified = False
 
         with pytest.raises(exceptions.InvalidDatabaseError) as exc:
             with db.connect():
                 pass
 
         assert fake_version in str(exc.value)
+
+
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
+def test_invalid_key_types(driver_path, provider):
+    from terracotta import drivers, exceptions
+
+    db = drivers.get_driver(driver_path, provider)
+    keys = ('some', 'keys')
+
+    db.create(keys)
+
+    db.get_datasets()
+    db.get_datasets(['a', 'b'])
+    db.get_datasets({'some': 'a', 'keys': 'b'})
+    db.get_datasets(None)
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.get_datasets(45)
+    assert 'unknown key type' in str(exc)
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.delete(['a'])
+    assert 'wrong number of keys' in str(exc)
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.delete(None)
+    assert 'wrong number of keys' in str(exc)
+
+    with pytest.raises(exceptions.InvalidKeyError) as exc:
+        db.get_datasets({'not-a-key': 'val'})
+    assert 'unrecognized keys' in str(exc)
