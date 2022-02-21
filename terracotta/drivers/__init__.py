@@ -31,8 +31,8 @@ def load_driver(provider: str) -> Type[MetaStore]:
     raise ValueError(f'Unknown database provider {provider}')
 
 
-def auto_detect_provider(url_or_path: Union[str, Path]) -> str:
-    parsed_path = urlparse.urlparse(str(url_or_path))
+def auto_detect_provider(url_or_path: str) -> str:
+    parsed_path = urlparse.urlparse(url_or_path)
 
     scheme = parsed_path.scheme
     if scheme == 's3':
@@ -85,11 +85,10 @@ def get_driver(url_or_path: URLOrPathType, provider: str = None) -> TerracottaDr
         )
 
     """
+    url_or_path = str(url_or_path)
+
     if provider is None:  # try and auto-detect
         provider = auto_detect_provider(url_or_path)
-
-    if isinstance(url_or_path, Path):
-        url_or_path = str(url_or_path)
 
     DriverClass = load_driver(provider)
     normalized_path = DriverClass._normalize_path(url_or_path)
