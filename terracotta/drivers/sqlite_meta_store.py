@@ -1,24 +1,22 @@
-"""drivers/sqlite.py
+"""drivers/sqlite_meta_store.py
 
-SQLite-backed raster driver. Metadata is stored in an SQLite database, raster data is assumed
-to be present on disk.
+SQLite-backed metadata driver. Metadata is stored in an SQLite database.
 """
 
 import os
 from pathlib import Path
 from typing import Union
 
-from terracotta.drivers.relational_base import RelationalDriver
+from terracotta.drivers.relational_meta_store import RelationalMetaStore
 
 
-class SQLiteDriver(RelationalDriver):
-    """An SQLite-backed raster driver.
+class SQLiteMetaStore(RelationalMetaStore):
+    """An SQLite-backed metadata driver.
 
-    Assumes raster data to be present in separate GDAL-readable files on disk or remotely.
     Stores metadata and paths to raster files in SQLite.
 
     This is the simplest Terracotta driver, as it requires no additional infrastructure.
-    The SQLite database is simply a file that can be stored together with the actual
+    The SQLite database is simply a file that can e.g. be stored together with the actual
     raster files.
 
     Note:
@@ -34,7 +32,7 @@ class SQLiteDriver(RelationalDriver):
     - ``datasets``: Maps key values to physical raster path.
     - ``metadata``: Contains actual metadata as separate columns. Indexed via key values.
 
-    This driver caches raster data and key names, but not metadata.
+    This driver caches key names, but not metadata.
 
     Warning:
 
@@ -42,8 +40,8 @@ class SQLiteDriver(RelationalDriver):
         outside the main thread.
 
     """
-    SQL_URL_SCHEME = 'sqlite'
-    SQL_DRIVER_TYPE = 'pysqlite'
+    SQL_DIALECT = 'sqlite'
+    SQL_DRIVER = 'pysqlite'
     SQL_KEY_SIZE = 256
     SQL_TIMEOUT_KEY = 'timeout'
 
@@ -57,10 +55,13 @@ class SQLiteDriver(RelationalDriver):
             path: File path to target SQLite database (may or may not exist yet)
 
         """
-        super().__init__(f'{self.SQL_URL_SCHEME}:///{path}')
+        super().__init__(f'{self.SQL_DIALECT}:///{path}')
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:
+        if path.startswith(f'{cls.SQL_DIALECT}:///'):
+            path = path.replace(f'{cls.SQL_DIALECT}:///', '')
+
         return os.path.normpath(os.path.realpath(path))
 
     def _create_database(self) -> None:

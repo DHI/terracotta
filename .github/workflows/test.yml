@@ -72,8 +72,7 @@ jobs:
 
       - name: Initialize mypy
         run: |
-          mypy . > /dev/null || true
-          mypy --install-types --non-interactive
+          mypy --install-types --non-interactive . || true
 
       - name: Run tests
         run: |
