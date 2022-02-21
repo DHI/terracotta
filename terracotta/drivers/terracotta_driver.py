@@ -180,7 +180,7 @@ class TerracottaDriver:
     @requires_connection
     def insert(
         self, keys: ExtendedKeysType,
-        path: Any, *,
+        path: str, *,
         override_path: str = None,
         metadata: Mapping[str, Any] = None,
         skip_metadata: bool = False

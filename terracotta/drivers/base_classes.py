@@ -94,7 +94,7 @@ class MetaStore(ABC):
         pass
 
     @abstractmethod
-    def insert(self, keys: KeysType, path: Any, *, metadata: Mapping[str, Any] = None) -> None:
+    def insert(self, keys: KeysType, path: str, *, metadata: Mapping[str, Any] = None) -> None:
         """Register a new dataset. This also populates the metadata database,
         if metadata is specified and not `None`."""
         pass
