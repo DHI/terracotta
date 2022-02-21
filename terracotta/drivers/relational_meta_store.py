@@ -51,8 +51,8 @@ def convert_exceptions(
 
 
 class RelationalMetaStore(MetaStore, ABC):
-    SQL_URL_SCHEME: str  # The database flavour, eg mysql, sqlite, etc
-    SQL_DRIVER_TYPE: str  # The actual database driver, eg pymysql, sqlite3, etc
+    SQL_DIALECT: str  # The database flavour, eg mysql, sqlite, etc
+    SQL_DRIVER: str  # The actual database driver, eg pymysql, sqlite3, etc
     SQL_KEY_SIZE: int
     SQL_TIMEOUT_KEY: str
 
@@ -108,13 +108,13 @@ class RelationalMetaStore(MetaStore, ABC):
         con_params = urlparse.urlparse(connection_string)
 
         if not con_params.scheme:
-            con_params = urlparse.urlparse(f'{cls.SQL_URL_SCHEME}:{connection_string}')
+            con_params = urlparse.urlparse(f'{cls.SQL_DIALECT}:{connection_string}')
 
-        if con_params.scheme != cls.SQL_URL_SCHEME:
+        if con_params.scheme != cls.SQL_DIALECT:
             raise ValueError(f'unsupported URL scheme "{con_params.scheme}"')
 
         url = URL.create(
-            drivername=f'{cls.SQL_URL_SCHEME}+{cls.SQL_DRIVER_TYPE}',
+            drivername=f'{cls.SQL_DIALECT}+{cls.SQL_DRIVER}',
             username=con_params.username,
             password=con_params.password,
             host=con_params.hostname,

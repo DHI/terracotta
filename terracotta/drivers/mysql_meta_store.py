@@ -27,8 +27,8 @@ class MySQLMetaStore(RelationalMetaStore):
 
     This driver caches key names.
     """
-    SQL_URL_SCHEME = 'mysql'
-    SQL_DRIVER_TYPE = 'pymysql'
+    SQL_DIALECT = 'mysql'
+    SQL_DRIVER = 'pymysql'
     SQL_TIMEOUT_KEY = 'connect_timeout'
 
     _CHARSET = 'utf8mb4'
