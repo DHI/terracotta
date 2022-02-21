@@ -1,4 +1,4 @@
-"""drivers/raster_base.py
+"""drivers/geotiff_raster_store.py
 
 Base class for drivers operating on physical raster files.
 """
