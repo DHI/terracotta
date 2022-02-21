@@ -35,6 +35,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Framework :: Flask',
         'Operating System :: Microsoft :: Windows :: Windows 10',
         'Operating System :: MacOS :: MacOS X',
@@ -78,7 +79,7 @@ setup(
     ],
     extras_require={
         'test': [
-            'pytest<7.0',
+            'pytest',
             'pytest-cov',
             'pytest-mypy',
             'pytest-benchmark',
