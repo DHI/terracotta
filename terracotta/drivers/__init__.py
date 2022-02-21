@@ -68,12 +68,21 @@ def get_driver(url_or_path: URLOrPathType, provider: str = None) -> TerracottaDr
 
         >>> import terracotta as tc
         >>> tc.get_driver('tc.sqlite')
-        TerracottaDriver(meta_store=SQLiteDriver('/home/terracotta/tc.sqlite'))
+        TerracottaDriver(
+            meta_store=SQLiteDriver('/home/terracotta/tc.sqlite'),
+            raster_store=GeoTiffRasterStore()
+        )
         >>> tc.get_driver('mysql://root@localhost/tc')
-        TerracottaDriver(meta_store=MySQLDriver('mysql://root@localhost:3306/tc'))
+        TerracottaDriver(
+            meta_store=MySQLDriver('mysql+pymysql://localhost:3306/tc'),
+            raster_store=GeoTiffRasterStore()
+        )
         >>> # pass provider if path is given in a non-standard way
         >>> tc.get_driver('root@localhost/tc', provider='mysql')
-        TerracottaDriver(meta_store=MySQLDriver('mysql://root@localhost:3306/tc'))
+        TerracottaDriver(
+            meta_store=MySQLDriver('mysql+pymysql://localhost:3306/tc'),
+            raster_store=GeoTiffRasterStore()
+        )
 
     """
     if provider is None:  # try and auto-detect

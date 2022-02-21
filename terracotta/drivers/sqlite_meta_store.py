@@ -61,7 +61,8 @@ class SQLiteDriver(RelationalMetaStore):
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:
-        return os.path.normpath(os.path.realpath(path))
+        url = cls._parse_path(path)
+        return os.path.normpath(os.path.realpath(url.database))
 
     def _create_database(self) -> None:
         """The database is automatically created by the sqlite driver on connection,
