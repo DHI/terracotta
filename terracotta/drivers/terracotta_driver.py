@@ -184,13 +184,14 @@ class TerracottaDriver:
                 raise exceptions.DatasetNotFoundError('No dataset found')
 
             path = squeeze(dataset.values())
+            metadata = self.compute_metadata(path, max_shape=self.LAZY_LOADING_MAX_SHAPE)
+
             if self.meta_store.WRITABLE:
-                metadata = self.compute_metadata(path, max_shape=self.LAZY_LOADING_MAX_SHAPE)
                 self.insert(keys, path, metadata=metadata)
 
                 # ensure standardized/consistent output (types and floating point precision)
                 metadata = self.meta_store.get_metadata(keys)
-            assert metadata is not None
+                assert metadata is not None
 
         return metadata
 
