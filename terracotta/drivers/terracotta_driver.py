@@ -20,12 +20,9 @@ ExtendedMultiValueKeysType = Union[Sequence[str], Mapping[str, Union[str, List[s
 T = TypeVar('T')
 
 
-def requires_writable(
-    fun: Callable[..., T]
-) -> Callable[..., T]:
+def requires_writable(fun: Callable[..., T]) -> Callable[..., T]:
     @functools.wraps(fun)
     def inner(self: "TerracottaDriver", *args: Any, **kwargs: Any) -> T:
-        assert fun is not None
         if self.meta_store.WRITABLE:
             return fun(self, *args, **kwargs)
         else:
