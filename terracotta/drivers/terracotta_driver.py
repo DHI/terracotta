@@ -5,7 +5,8 @@ The driver to interact with.
 
 import contextlib
 from collections import OrderedDict
-from typing import (Any, Collection, Dict, List, Mapping, Optional, Sequence, Tuple, TypeVar,
+import functools
+from typing import (Any, Callable, Collection, Dict, List, Mapping, Optional, Sequence, Tuple, TypeVar,
                     Union)
 
 import terracotta
@@ -17,6 +18,20 @@ from terracotta.drivers.base_classes import (KeysType, MetaStore,
 ExtendedKeysType = Union[Sequence[str], Mapping[str, str]]
 ExtendedMultiValueKeysType = Union[Sequence[str], Mapping[str, Union[str, List[str]]]]
 T = TypeVar('T')
+
+
+def requires_writable(
+    fun: Callable[..., T] = None
+) -> Callable[..., T]:
+    @functools.wraps(fun)
+    def inner(self: "TerracottaDriver", *args: Any, **kwargs: Any) -> T:
+        assert fun is not None
+        if self.meta_store.WRITABLE:
+            return fun(self, *args, **kwargs)
+        else:
+            raise exceptions.DatabaseNotWritable("Database not writable")
+
+    return inner
 
 
 def squeeze(iterable: Collection[T]) -> T:
@@ -58,6 +73,7 @@ class TerracottaDriver:
         """
         return self.meta_store.key_names
 
+    @requires_writable
     def create(self, keys: Sequence[str], *,
                key_descriptions: Mapping[str, str] = None) -> None:
         """Create a new, empty metadata store.
@@ -168,15 +184,17 @@ class TerracottaDriver:
                 raise exceptions.DatasetNotFoundError('No dataset found')
 
             path = squeeze(dataset.values())
-            metadata = self.compute_metadata(path, max_shape=self.LAZY_LOADING_MAX_SHAPE)
-            self.insert(keys, path, metadata=metadata)
+            if self.meta_store.WRITABLE:
+                metadata = self.compute_metadata(path, max_shape=self.LAZY_LOADING_MAX_SHAPE)
+                self.insert(keys, path, metadata=metadata)
 
-            # ensure standardized/consistent output (types and floating point precision)
-            metadata = self.meta_store.get_metadata(keys)
+                # ensure standardized/consistent output (types and floating point precision)
+                metadata = self.meta_store.get_metadata(keys)
             assert metadata is not None
 
         return metadata
 
+    @requires_writable
     @requires_connection
     def insert(
         self, keys: ExtendedKeysType,
@@ -211,6 +229,7 @@ class TerracottaDriver:
             metadata=metadata
         )
 
+    @requires_writable
     @requires_connection
     def delete(self, keys: ExtendedKeysType) -> None:
         """Remove a dataset from the meta store.

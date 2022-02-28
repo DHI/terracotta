@@ -24,5 +24,9 @@ class InvalidDatabaseError(Exception):
     pass
 
 
+class DatabaseNotWritable(Exception):
+    pass
+
+
 class PerformanceWarning(UserWarning):
     pass

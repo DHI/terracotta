@@ -38,6 +38,7 @@ class MetaStore(ABC):
     Defines a common interface for all metadata backends.
     """
     _RESERVED_KEYS = ('limit', 'page')
+    WRITABLE: bool = True
 
     @property
     @abstractmethod

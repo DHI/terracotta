@@ -73,6 +73,8 @@ class RemoteSQLiteMetaStore(SQLiteMetaStore):
 
     """
 
+    WRITEABLE: bool = False
+
     def __init__(self, remote_path: Union[str, Path]) -> None:
         """Initialize the RemoteSQLiteDriver.
 
