@@ -6,8 +6,8 @@ The driver to interact with.
 import contextlib
 from collections import OrderedDict
 import functools
-from typing import (Any, Callable, Collection, Dict, List, Mapping, Optional, Sequence, Tuple, TypeVar,
-                    Union)
+from typing import (Any, Callable, Collection, Dict, List, Mapping,
+                    Optional, Sequence, Tuple, TypeVar, Union)
 
 import terracotta
 from terracotta import exceptions
@@ -21,7 +21,7 @@ T = TypeVar('T')
 
 
 def requires_writable(
-    fun: Callable[..., T] = None
+    fun: Callable[..., T]
 ) -> Callable[..., T]:
     @functools.wraps(fun)
     def inner(self: "TerracottaDriver", *args: Any, **kwargs: Any) -> T:
