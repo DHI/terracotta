@@ -28,7 +28,7 @@ class SQLiteMetaStore(RelationalMetaStore):
     The SQLite database consists of 4 different tables:
 
     - ``terracotta``: Metadata about the database itself.
-    - ``keys``: Contains two columns holding all available keys and their description.
+    - ``key_names``: Contains two columns holding all available keys and their description.
     - ``datasets``: Maps key values to physical raster path.
     - ``metadata``: Contains actual metadata as separate columns. Indexed via key values.
 
