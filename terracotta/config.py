@@ -16,7 +16,7 @@ class TerracottaSettings(NamedTuple):
     #: Path to database
     DRIVER_PATH: str = ''
 
-    #: Driver provider to use (sqlite, sqlite-remote, mysql; auto-detected by default)
+    #: Driver provider to use (sqlite, sqlite-remote, mysql, postgresql; auto-detected by default)
     DRIVER_PROVIDER: Optional[str] = None
 
     #: Activate debug mode in Flask app
@@ -73,6 +73,12 @@ class TerracottaSettings(NamedTuple):
     #: MySQL database password (if not given in driver path)
     MYSQL_PASSWORD: Optional[str] = None
 
+    #: PostgreSQL database username (if not given in driver path)
+    POSTGRESQL_USER: Optional[str] = None
+
+    #: PostgreSQL database password (if not given in driver path)
+    POSTGRESQL_PASSWORD: Optional[str] = None
+
     #: Use a process pool for band retrieval in parallel
     USE_MULTIPROCESSING: bool = True
 
@@ -125,6 +131,8 @@ class SettingSchema(Schema):
 
     MYSQL_USER = fields.String()
     MYSQL_PASSWORD = fields.String()
+    POSTGRESQL_USER = fields.String()
+    POSTGRESQL_PASSWORD = fields.String()
 
     USE_MULTIPROCESSING = fields.Boolean()
 
