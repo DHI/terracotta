@@ -1,10 +1,11 @@
 import pytest
 
-TESTABLE_DRIVERS = ['sqlite', 'mysql']
+TESTABLE_DRIVERS = ['sqlite', 'mysql', 'postgresql']
 DRIVER_CLASSES = {
     'sqlite': 'SQLiteMetaStore',
     'sqlite-remote': 'SQLiteRemoteMetaStore',
-    'mysql': 'MySQLMetaStore'
+    'mysql': 'MySQLMetaStore',
+    'postgresql': 'PostgreSQLMetaStore'
 }
 
 
