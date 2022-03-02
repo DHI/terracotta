@@ -43,6 +43,8 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
       - uses: actions/checkout@v2
@@ -90,7 +92,7 @@ jobs:
       - name: Run tests
         run: |
           MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.MYSQL_PORT }}"
-          POSTGRESQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@postgres:${{ env.POSTGRESQL_PORT }}"
+          POSTGRESQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@localhost:${{ env.POSTGRESQL_PORT }}"
           python -m pytest . --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV --postgresql-server=$POSTGRESQL_SRV
 
       - name: Run benchmarks
