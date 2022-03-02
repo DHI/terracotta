@@ -39,11 +39,20 @@ def pytest_addoption(parser):
         '--mysql-server',
         help='MySQL server to use for testing in the form of user:password@host:port'
     )
+    parser.addoption(
+        '--postgresql-server',
+        help='PostgreSQL server to use for testing in the form of user:password@host:port'
+    )
 
 
 @pytest.fixture()
 def mysql_server(request):
     return request.config.getoption('mysql_server')
+
+
+@pytest.fixture()
+def postgresql_server(request):
+    return request.config.getoption('postgresql_server')
 
 
 def cloud_optimize(raster_file, outfile, create_mask=False, remove_nodata=False):
@@ -372,58 +381,80 @@ def test_server(testdb):
 
 
 @pytest.fixture()
-def driver_path(provider, tmpdir, mysql_server):
+def driver_path(provider, tmpdir, mysql_server, postgresql_server):
     """Get a valid, uninitialized driver path for given provider"""
     import random
     import string
 
     from urllib.parse import urlparse
 
-    def validate_con_info(con_info):
-        return (con_info.scheme == 'mysql'
+    def validate_con_info(con_info, db_scheme):
+        return (con_info.scheme == db_scheme
                 and con_info.hostname
                 and con_info.username
                 and not con_info.path)
 
     def random_string(length):
-        return ''.join(random.choices(string.ascii_uppercase, k=length))
+        return ''.join(random.choices(string.ascii_lowercase, k=length))
 
     if provider == 'sqlite':
         dbfile = tmpdir.join('test.sqlite')
         yield str(dbfile)
 
-    elif provider == 'mysql':
-        if not mysql_server:
-            return pytest.skip('mysql_server argument not given')
+    elif provider == 'mysql' or provider == 'postgresql':
+        if provider == 'mysql':
+            db_server = mysql_server
+            con_db = ''
+        else:
+            db_server = postgresql_server
+            con_db = 'postgres'
 
-        if not mysql_server.startswith('mysql://'):
-            mysql_server = f'mysql://{mysql_server}'
+        if not db_server:
+            return pytest.skip(f'{provider}_server argument not given')
 
-        con_info = urlparse(mysql_server)
-        if not validate_con_info(con_info):
-            raise ValueError('invalid value for mysql_server')
+        if not db_server.startswith(f'{provider}://'):
+            db_server = f'{provider}://{db_server}'
+
+        con_info = urlparse(db_server)
+        if not validate_con_info(con_info, provider):
+            raise ValueError(f'invalid value for {provider}_server')
 
         dbpath = random_string(24)
 
-        import pymysql
-        try:
-            with pymysql.connect(host=con_info.hostname, user=con_info.username,
-                                 password=con_info.password):
-                pass
-        except pymysql.OperationalError as exc:
-            raise RuntimeError('error connecting to MySQL server') from exc
+        if provider == 'mysql':
+            import pymysql as driver
+        elif provider == 'postgresql':
+            import psycopg2 as driver
 
         try:
-            yield f'{mysql_server}/{dbpath}'
+            with driver.connect(host=con_info.hostname, user=con_info.username,
+                                password=con_info.password, database=con_db):
+                pass
+        except driver.OperationalError as exc:
+            raise RuntimeError(f'error connecting to {provider} server') from exc
+
+        try:
+            yield f'{db_server}/{dbpath}'
 
         finally:  # cleanup
-            with pymysql.connect(host=con_info.hostname, user=con_info.username,
-                                 password=con_info.password) as connection:
-                with connection.cursor() as cursor:
-                    try:
-                        cursor.execute(f'DROP DATABASE IF EXISTS {dbpath}')
-                    except pymysql.Warning:
-                        pass
+            connection = driver.connect(
+                host=con_info.hostname,
+                user=con_info.username,
+                password=con_info.password,
+                database=con_db
+            )
+            connection.autocommit = True
+            with connection.cursor() as cursor:
+                try:
+                    if provider == 'postgresql':
+                        # Postgres refuses to drop DB if any sessions are hanging around
+                        cursor.execute("SELECT pg_terminate_backend(pg_stat_activity.pid) "
+                                       "FROM pg_stat_activity "
+                                       f"WHERE pg_stat_activity.datname = '{dbpath}'")
+                    cursor.execute(f'DROP DATABASE IF EXISTS {dbpath}')
+                except driver.Warning:
+                    pass
+            connection.close()
 
     else:
         return NotImplementedError(f'unknown provider {provider}')
