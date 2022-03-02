@@ -405,7 +405,7 @@ def driver_path(provider, tmpdir, mysql_server, postgresql_server):
         if provider == 'mysql':
             db_server = mysql_server
             con_db = ''
-        else:
+        elif provider == 'postgresql':
             db_server = postgresql_server
             con_db = 'postgres'
 
