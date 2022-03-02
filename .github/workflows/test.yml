@@ -8,7 +8,8 @@ on:
       - main
 
 env:
-  DB_PORT: 3306
+  MYSQL_PORT: 3306
+  POSTGRESQL_PORT: 5432
   DB_USER: root
   DB_PASSWORD: root
 
@@ -30,6 +31,18 @@ jobs:
     defaults:
       run:
         shell: bash
+    
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: ${{ env.DB_USER }}
+          POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v2
@@ -76,8 +89,9 @@ jobs:
 
       - name: Run tests
         run: |
-          MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.DB_PORT }}"
-          python -m pytest . --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV
+          MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.MYSQL_PORT }}"
+          POSTGRESQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.POSTGRESQL_PORT }}"
+          python -m pytest . --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV --postgresql-server=$POSTGRESQL_SRV
 
       - name: Run benchmarks
         run: |
