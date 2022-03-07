@@ -10,10 +10,23 @@ from collections import OrderedDict
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Sequence,
                     Tuple, TypeVar, Union)
 
+from terracotta import exceptions
+
 KeysType = Mapping[str, str]
 MultiValueKeysType = Mapping[str, Union[str, List[str]]]
 Number = TypeVar('Number', int, float)
 T = TypeVar('T')
+
+
+def requires_writable(fun: Callable[..., T]) -> Callable[..., T]:
+    @functools.wraps(fun)
+    def inner(self: MetaStore, *args: Any, **kwargs: Any) -> T:
+        if self._WRITABLE:
+            return fun(self, *args, **kwargs)
+        else:
+            raise exceptions.DatabaseNotWritable("Database not writable")
+
+    return inner
 
 
 def requires_connection(
@@ -38,7 +51,7 @@ class MetaStore(ABC):
     Defines a common interface for all metadata backends.
     """
     _RESERVED_KEYS = ('limit', 'page')
-    WRITABLE: bool = True
+    _WRITABLE: bool = True
 
     @property
     @abstractmethod

@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pytest
 
+from terracotta import exceptions
+
 boto3 = pytest.importorskip('boto3')
 moto = pytest.importorskip('moto')
 
@@ -142,13 +144,13 @@ def test_immutability(s3_db_factory, raster_file):
 
     driver = get_driver(dbpath)
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(exceptions.DatabaseNotWritable):
         driver.create(keys)
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(exceptions.DatabaseNotWritable):
         driver.insert(('some', 'value'), str(raster_file))
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(exceptions.DatabaseNotWritable):
         driver.delete(('some', 'value'))
 
 
