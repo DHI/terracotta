@@ -172,14 +172,14 @@ class TerracottaDriver:
 
             try:
                 self.insert(keys, path, metadata=metadata)
-
-                # ensure standardized/consistent output (types and floating point precision)
-                metadata = self.meta_store.get_metadata(keys)
-                assert metadata is not None
-            except exceptions.DatabaseNotWritable as exc:
-                raise exceptions.DatabaseNotWritable(
+            except exceptions.DatabaseNotWritableError as exc:
+                raise exceptions.DatabaseNotWritableError(
                     "Lazy loading requires a writable database"
                 ) from exc
+
+            # ensure standardized/consistent output (types and floating point precision)
+            metadata = self.meta_store.get_metadata(keys)
+            assert metadata is not None
 
         return metadata
 

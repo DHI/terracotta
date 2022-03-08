@@ -24,7 +24,7 @@ def requires_writable(fun: Callable[..., T]) -> Callable[..., T]:
         if self._WRITABLE:
             return fun(self, *args, **kwargs)
         else:
-            raise exceptions.DatabaseNotWritable("Database not writable")
+            raise exceptions.DatabaseNotWritableError("Database not writable")
 
     return inner
 

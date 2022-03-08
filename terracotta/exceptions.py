@@ -24,7 +24,7 @@ class InvalidDatabaseError(Exception):
     pass
 
 
-class DatabaseNotWritable(Exception):
+class DatabaseNotWritableError(Exception):
     pass
 
 

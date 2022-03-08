@@ -144,13 +144,13 @@ def test_immutability(s3_db_factory, raster_file):
 
     driver = get_driver(dbpath)
 
-    with pytest.raises(exceptions.DatabaseNotWritable):
+    with pytest.raises(exceptions.DatabaseNotWritableError):
         driver.create(keys)
 
-    with pytest.raises(exceptions.DatabaseNotWritable):
+    with pytest.raises(exceptions.DatabaseNotWritableError):
         driver.insert(('some', 'value'), str(raster_file))
 
-    with pytest.raises(exceptions.DatabaseNotWritable):
+    with pytest.raises(exceptions.DatabaseNotWritableError):
         driver.delete(('some', 'value'))
 
 

@@ -70,7 +70,7 @@ class RemoteSQLiteMetaStore(SQLiteMetaStore):
     Warning:
 
         This driver is read-only. Any attempts to use the create, insert, or delete methods
-        will throw a DatabaseNotWritable.
+        will throw a DatabaseNotWritableError.
 
     """
 
@@ -135,6 +135,7 @@ class RemoteSQLiteMetaStore(SQLiteMetaStore):
         self._update_db(self._remote_path, self._local_path)
         super()._connection_callback()
 
+    # Always raises DatabaseNotWritableError
     @requires_writable
     def create(self, *args: Any, **kwargs: Any) -> None:
         pass
