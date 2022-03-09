@@ -115,8 +115,8 @@ class RelationalMetaStore(MetaStore, ABC):
 
         url = URL.create(
             drivername=f'{cls.SQL_DIALECT}+{cls.SQL_DRIVER}',
-            username=con_params.username,
-            password=con_params.password,
+            username=con_params.username or terracotta.get_settings().SQL_USER,
+            password=con_params.password or terracotta.get_settings().SQL_PASSWORD,
             host=con_params.hostname,
             port=con_params.port,
             database=con_params.path[1:],  # remove leading '/' from urlparse
