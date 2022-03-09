@@ -5,6 +5,8 @@ import time
 
 import numpy as np
 
+from terracotta import exceptions
+
 DRIVERS = ['sqlite', 'mysql']
 METADATA_KEYS = ('bounds', 'range', 'mean', 'stdev', 'percentiles', 'metadata')
 
@@ -142,6 +144,22 @@ def test_lazy_loading(driver_path, provider, raster_file):
     data2 = db.get_metadata({'some': 'some', 'keynames': 'other_value'})
     assert set(data1.keys()) == set(data2.keys())
     assert all(np.all(data1[k] == data2[k]) for k in data1.keys())
+
+
+@pytest.mark.parametrize('provider', DRIVERS)
+def test_non_writable_lazy_loading(driver_path, provider, raster_file):
+    from terracotta import drivers
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ('some', 'keynames')
+
+    db.create(keys)
+    db.insert(['some', 'value'], str(raster_file), skip_metadata=True)
+
+    # Manually set the meta store to un-writable
+    db.meta_store._WRITABLE = False
+
+    with pytest.raises(exceptions.DatabaseNotWritableError):
+        db.get_metadata(['some', 'value'])
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
