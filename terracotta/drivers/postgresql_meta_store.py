@@ -31,6 +31,8 @@ class PostgreSQLMetaStore(RelationalMetaStore):
 
     MAX_PRIMARY_KEY_SIZE = 2730 // 4  # Max B-tree index size in bytes
     DEFAULT_PORT = 5432
+    # Will connect to this db before creatting the 'terracotta' db
+    DEFAULT_CONNECT_DB = 'postgres'
 
     def __init__(self, postgresql_path: str) -> None:
         """Initialize the PostgreSQLDriver.
@@ -61,7 +63,8 @@ class PostgreSQLMetaStore(RelationalMetaStore):
 
     def _create_database(self) -> None:
         engine = sqla.create_engine(
-            self.url.set(database='postgres'),  # `.set()` returns a copy with changed parameters
+            # `.set()` returns a copy with changed parameters
+            self.url.set(database=self.DEFAULT_CONNECT_DB),
             echo=False,
             future=True,
             isolation_level='AUTOCOMMIT'
