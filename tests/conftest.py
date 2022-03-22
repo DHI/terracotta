@@ -385,6 +385,9 @@ def driver_path(provider, tmpdir, mysql_server, postgresql_server):
     """Get a valid, uninitialized driver path for given provider"""
     import random
     import string
+    from terracotta import drivers
+    from terracotta.exceptions import InvalidDatabaseError
+    import sqlalchemy as sqla
 
     from urllib.parse import urlparse
 
@@ -402,9 +405,11 @@ def driver_path(provider, tmpdir, mysql_server, postgresql_server):
         yield str(dbfile)
 
     elif provider == 'mysql' or provider == 'postgresql':
+        dbpath = random_string(24)
+
         if provider == 'mysql':
             db_server = mysql_server
-            con_db = ''
+            con_db = 'terracotta'
         elif provider == 'postgresql':
             db_server = postgresql_server
             con_db = 'postgres'
@@ -419,42 +424,27 @@ def driver_path(provider, tmpdir, mysql_server, postgresql_server):
         if not validate_con_info(con_info, provider):
             raise ValueError(f'invalid value for {provider}_server')
 
-        dbpath = random_string(24)
-
-        if provider == 'mysql':
-            import pymysql as driver
-        elif provider == 'postgresql':
-            import psycopg2 as driver
-
+        driver = drivers.get_driver(f'{db_server}/{con_db}', provider=provider)
         try:
-            with driver.connect(host=con_info.hostname, user=con_info.username,
-                                password=con_info.password, database=con_db):
+            with driver.connect(verify=False):
                 pass
-        except driver.OperationalError as exc:
+        except InvalidDatabaseError as exc:
             raise RuntimeError(f'error connecting to {provider} server') from exc
 
         try:
             yield f'{db_server}/{dbpath}'
 
         finally:  # cleanup
-            connection = driver.connect(
-                host=con_info.hostname,
-                user=con_info.username,
-                password=con_info.password,
-                database=con_db
-            )
-            connection.autocommit = True
-            with connection.cursor() as cursor:
-                try:
-                    if provider == 'postgresql':
-                        # Postgres refuses to drop DB if any sessions are hanging around
-                        cursor.execute("SELECT pg_terminate_backend(pg_stat_activity.pid) "
-                                       "FROM pg_stat_activity "
-                                       f"WHERE pg_stat_activity.datname = '{dbpath}'")
-                    cursor.execute(f'DROP DATABASE IF EXISTS {dbpath}')
-                except driver.Warning:
-                    pass
-            connection.close()
+            with driver.meta_store.sqla_engine.connect().execution_options(
+                isolation_level='AUTOCOMMIT'
+            ) as conn:
+                if provider == 'postgresql':
+                    # Postgres refuses to drop DB if any sessions are hanging around
+                    conn.execute(sqla.text(
+                        "SELECT pg_terminate_backend(pg_stat_activity.pid) "
+                        "FROM pg_stat_activity "
+                        f"WHERE pg_stat_activity.datname = '{dbpath}'"))
+                conn.execute(sqla.text(f'DROP DATABASE IF EXISTS {dbpath}'))
 
     else:
         return NotImplementedError(f'unknown provider {provider}')
