@@ -380,6 +380,7 @@ def test_server(testdb):
         assert not server_proc.is_alive()
 
 
+
 @pytest.fixture()
 def driver_path(provider, tmpdir, mysql_server, postgresql_server):
     """Get a valid, uninitialized driver path for given provider"""
