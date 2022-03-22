@@ -405,11 +405,10 @@ def driver_path(provider, tmpdir, mysql_server, postgresql_server):
         yield str(dbfile)
 
     elif provider == 'mysql' or provider == 'postgresql':
-        dbpath = random_string(24)
 
         if provider == 'mysql':
             db_server = mysql_server
-            con_db = 'terracotta'
+            con_db = 'mysql'
         elif provider == 'postgresql':
             db_server = postgresql_server
             con_db = 'postgres'
@@ -431,6 +430,7 @@ def driver_path(provider, tmpdir, mysql_server, postgresql_server):
         except InvalidDatabaseError as exc:
             raise RuntimeError(f'error connecting to {provider} server') from exc
 
+        dbpath = random_string(24)
         try:
             yield f'{db_server}/{dbpath}'
 
