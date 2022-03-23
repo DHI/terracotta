@@ -24,6 +24,10 @@ def load_driver(provider: str) -> Type[MetaStore]:
         from terracotta.drivers.mysql_meta_store import MySQLMetaStore
         return MySQLMetaStore
 
+    if provider == 'postgresql':
+        from terracotta.drivers.postgresql_meta_store import PostgreSQLMetaStore
+        return PostgreSQLMetaStore
+
     if provider == 'sqlite':
         from terracotta.drivers.sqlite_meta_store import SQLiteMetaStore
         return SQLiteMetaStore
@@ -40,6 +44,9 @@ def auto_detect_provider(url_or_path: str) -> str:
 
     if scheme == 'mysql':
         return 'mysql'
+
+    if scheme == 'postgresql':
+        return 'postgresql'
 
     return 'sqlite'
 
@@ -61,7 +68,7 @@ def get_driver(url_or_path: URLOrPathType, provider: str = None) -> TerracottaDr
 
         url_or_path: A path identifying the database to connect to.
             The expected format depends on the driver provider.
-        provider: Driver provider to use (one of sqlite, sqlite-remote, mysql;
+        provider: Driver provider to use (one of sqlite, sqlite-remote, mysql, postgresql;
             default: auto-detect).
 
     Example:

@@ -90,18 +90,21 @@ setup(
             'matplotlib',
             'moto',
             'aws-xray-sdk',
-            'pymysql>=1.0.0'
+            'pymysql>=1.0.0',
+            'psycopg2'
         ],
         'docs': [
             'sphinx',
             'sphinx_autodoc_typehints',
             'sphinx-click',
-            'pymysql>=1.0.0'
+            'pymysql>=1.0.0',
+            'psycopg2'
         ],
         'recommended': [
             'colorlog',
             'crick',
-            'pymysql>=1.0.0'
+            'pymysql>=1.0.0',
+            'psycopg2'
         ]
     },
     # CLI
