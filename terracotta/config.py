@@ -17,7 +17,7 @@ class TerracottaSettings(NamedTuple):
     #: Path to database
     DRIVER_PATH: str = ''
 
-    #: Driver provider to use (sqlite, sqlite-remote, mysql; auto-detected by default)
+    #: Driver provider to use (sqlite, sqlite-remote, mysql, postgresql; auto-detected by default)
     DRIVER_PROVIDER: Optional[str] = None
 
     #: Activate debug mode in Flask app
@@ -138,8 +138,15 @@ class SettingSchema(Schema):
     ALLOWED_ORIGINS_METADATA = fields.List(fields.String())
     ALLOWED_ORIGINS_TILES = fields.List(fields.String())
 
+<<<<<<< HEAD
     SQL_USER = fields.String()
     SQL_PASSWORD = fields.String()
+=======
+    MYSQL_USER = fields.String()
+    MYSQL_PASSWORD = fields.String()
+    POSTGRESQL_USER = fields.String()
+    POSTGRESQL_PASSWORD = fields.String()
+>>>>>>> main
 
     USE_MULTIPROCESSING = fields.Boolean()
 
