@@ -7,12 +7,13 @@ from typing import Mapping, Any, Tuple, NamedTuple, Dict, List, Optional
 import os
 import json
 import tempfile
+import warnings
 
 from marshmallow import Schema, fields, validate, pre_load, post_load, ValidationError
 
 
 class TerracottaSettings(NamedTuple):
-    """Contains all settings for the current Terracotta instance."""
+    """Contains all non-deprecated settings for the current Terracotta instance."""
     #: Path to database
     DRIVER_PATH: str = ''
 
@@ -77,7 +78,21 @@ class TerracottaSettings(NamedTuple):
     USE_MULTIPROCESSING: bool = True
 
 
-AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._fields)
+class DeprecatedTerracottaSettings(NamedTuple):
+    """Contains all deprecated, but still existing, settings."""
+    #: MySQL database username (if not given in driver path)
+    MYSQL_USER: Optional[str] = None
+
+    #: MySQL database password (if not given in driver path)
+    MYSQL_PASSWORD: Optional[str] = None
+
+
+DEPRECATION_MAP: Dict[str, str] = {
+    'MYSQL_USER': 'SQL_USER',
+    # 'MYSQL_PASSWORD': 'SQL_PASSWORD',
+}
+
+AVAILABLE_SETTINGS: Tuple[str, ...] = (*TerracottaSettings._fields, *DeprecatedTerracottaSettings._fields)
 
 
 def _is_writable(path: str) -> bool:
@@ -160,6 +175,22 @@ def parse_config(config: Mapping[str, Any] = None) -> TerracottaSettings:
 
     for setting in AVAILABLE_SETTINGS:
         env_setting = f'TC_{setting}'
+
+        if setting in DeprecatedTerracottaSettings._fields:
+            if setting in DEPRECATION_MAP:
+                warnings.warn(
+                    f'Setting TC_{setting} is being deprecated. '
+                    f'Please use TC_{DEPRECATION_MAP[setting]} instead.',
+                    PendingDeprecationWarning
+                )
+                setting = DEPRECATION_MAP[setting]
+            else:
+                warnings.warn(
+                    f'Setting TC_{setting} is deprecated and no longer has any effect.',
+                    DeprecationWarning
+                )
+                continue
+
         if setting not in config_dict and env_setting in os.environ:
             config_dict[setting] = os.environ[env_setting]
 
