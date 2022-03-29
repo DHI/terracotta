@@ -100,7 +100,10 @@ DEPRECATION_MAP: Dict[str, str] = {
     'POSTGRESQL_PASSWORD': 'SQL_PASSWORD',
 }
 
-AVAILABLE_SETTINGS: Tuple[str, ...] = (*TerracottaSettings._fields, *DeprecatedTerracottaSettings._fields)
+AVAILABLE_SETTINGS: Tuple[str, ...] = (
+    *TerracottaSettings._fields,
+    *DeprecatedTerracottaSettings._fields
+)
 
 
 def _is_writable(path: str) -> bool:
