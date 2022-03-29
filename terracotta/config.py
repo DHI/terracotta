@@ -86,10 +86,18 @@ class DeprecatedTerracottaSettings(NamedTuple):
     #: MySQL database password (if not given in driver path)
     MYSQL_PASSWORD: Optional[str] = None
 
+    #: PostgreSQL database username (if not given in driver path)
+    POSTGRESQL_USER: Optional[str] = None
+
+    #: PostgreSQL database password (if not given in driver path)
+    POSTGRESQL_PASSWORD: Optional[str] = None
+
 
 DEPRECATION_MAP: Dict[str, str] = {
     'MYSQL_USER': 'SQL_USER',
     'MYSQL_PASSWORD': 'SQL_PASSWORD',
+    'POSTGRESQL_USER': 'SQL_USER',
+    'POSTGRESQL_PASSWORD': 'SQL_PASSWORD',
 }
 
 AVAILABLE_SETTINGS: Tuple[str, ...] = (*TerracottaSettings._fields, *DeprecatedTerracottaSettings._fields)
