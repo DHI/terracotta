@@ -182,6 +182,7 @@ class RelationalMetaStore(MetaStore, ABC):
         version = self.connection.execute(stmt).scalar()
         return version
 
+    @requires_writable
     @convert_exceptions('Could not create database')
     def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> None:
         """Create and initialize database with empty tables.
