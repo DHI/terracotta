@@ -5,7 +5,7 @@ import time
 
 import numpy as np
 
-DRIVERS = ['sqlite', 'mysql']
+DRIVERS = ['sqlite', 'mysql', 'postgresql']
 METADATA_KEYS = ('bounds', 'range', 'mean', 'stdev', 'percentiles', 'metadata')
 
 
