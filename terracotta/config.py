@@ -89,7 +89,7 @@ class DeprecatedTerracottaSettings(NamedTuple):
 
 DEPRECATION_MAP: Dict[str, str] = {
     'MYSQL_USER': 'SQL_USER',
-    # 'MYSQL_PASSWORD': 'SQL_PASSWORD',
+    'MYSQL_PASSWORD': 'SQL_PASSWORD',
 }
 
 AVAILABLE_SETTINGS: Tuple[str, ...] = (*TerracottaSettings._fields, *DeprecatedTerracottaSettings._fields)
