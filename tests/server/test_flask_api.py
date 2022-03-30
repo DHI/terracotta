@@ -87,7 +87,7 @@ def test_debug_errors(debug_client, s3_db_factory, mock_aws_env, raster_file, ra
 
     with pytest.raises(exceptions.InvalidKeyError):
         debug_client.get('/metadata/ONLYONEKEY')
-    
+
     x, y, z = raster_file_xyz
 
     with pytest.raises(exceptions.InvalidArgumentsError):
