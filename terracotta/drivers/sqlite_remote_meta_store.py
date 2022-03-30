@@ -11,11 +11,10 @@ import tempfile
 import time
 import urllib.parse as urlparse
 from pathlib import Path
-from typing import Any, Iterator, Union
+from typing import Iterator, Union
 
 from terracotta import exceptions, get_settings
 from terracotta.drivers.sqlite_meta_store import SQLiteMetaStore
-from terracotta.drivers.base_classes import requires_writable
 from terracotta.profile import trace
 
 logger = logging.getLogger(__name__)
@@ -134,19 +133,6 @@ class RemoteSQLiteMetaStore(SQLiteMetaStore):
     def _connection_callback(self) -> None:
         self._update_db(self._remote_path, self._local_path)
         super()._connection_callback()
-
-    # Always raises DatabaseNotWritableError
-    @requires_writable
-    def create(self, *args: Any, **kwargs: Any) -> None:
-        pass
-
-    @requires_writable
-    def insert(self, *args: Any, **kwargs: Any) -> None:
-        pass
-
-    @requires_writable
-    def delete(self, *args: Any, **kwargs: Any) -> None:
-        pass
 
     def __del__(self) -> None:
         """Clean up temporary database upon exit"""

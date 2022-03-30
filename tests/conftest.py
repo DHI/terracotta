@@ -3,6 +3,9 @@
 import shapely.geometry  # noqa: F401
 
 import os
+from pathlib import Path
+import tempfile
+import uuid
 import multiprocessing
 import time
 from functools import partial
@@ -11,6 +14,8 @@ import pytest
 
 import numpy as np
 import rasterio
+
+boto3 = pytest.importorskip('boto3')
 
 
 def pytest_configure(config):
@@ -342,6 +347,46 @@ def testdb(raster_file, tmpdir_factory):
 def use_testdb(testdb, monkeypatch):
     import terracotta
     terracotta.update_settings(DRIVER_PATH=str(testdb))
+
+
+@pytest.fixture()
+def s3_db_factory(tmpdir):
+    bucketname = str(uuid.uuid4())
+
+    def _s3_db_factory(keys, datasets=None, skip_metadata=False):
+        from terracotta import get_driver
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dbfile = Path(tmpdir) / 'tc.sqlite'
+            driver = get_driver(dbfile)
+            driver.create(keys)
+
+            if datasets:
+                for keys, path in datasets.items():
+                    driver.insert(keys, path, skip_metadata=skip_metadata)
+
+            with open(dbfile, 'rb') as f:
+                db_bytes = f.read()
+
+        conn = boto3.resource('s3')
+        conn.create_bucket(Bucket=bucketname)
+
+        s3 = boto3.client('s3')
+        s3.put_object(Bucket=bucketname, Key='tc.sqlite', Body=db_bytes)
+
+        return f's3://{bucketname}/tc.sqlite'
+
+    return _s3_db_factory
+
+
+@pytest.fixture()
+def mock_aws_env(monkeypatch):
+    with monkeypatch.context() as m:
+        m.setenv('AWS_DEFAULT_REGION', 'us-east-1')
+        m.setenv('AWS_ACCESS_KEY_ID', 'FakeKey')
+        m.setenv('AWS_SECRET_ACCESS_KEY', 'FakeSecretKey')
+        m.setenv('AWS_SESSION_TOKEN', 'FakeSessionToken')
+        yield
 
 
 def run_test_server(driver_path, port):

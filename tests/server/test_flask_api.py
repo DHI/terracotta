@@ -8,6 +8,8 @@ import numpy as np
 
 import pytest
 
+moto = pytest.importorskip('moto')
+
 
 @pytest.fixture(scope='module')
 def flask_app():
@@ -37,6 +39,20 @@ def test_get_metadata(client, use_testdb):
     rv = client.get('/metadata/val11/x/val12/')
     assert rv.status_code == 200
     assert ['extra_data'] == json.loads(rv.data)['metadata']
+
+
+@moto.mock_s3
+def test_get_metadata_lazily_nonwritable_db(client, s3_db_factory, mock_aws_env, raster_file):
+    import terracotta
+
+    keys = ('some', 'keys')
+    dbpath = s3_db_factory(
+        keys, datasets={("some", "value"): str(raster_file)}, skip_metadata=True
+    )
+    terracotta.update_settings(DRIVER_PATH=str(dbpath), DRIVER_PROVIDER="sqlite-remote")
+
+    rv = client.get('/metadata/some/value')
+    assert rv.status_code == 403
 
 
 def test_get_metadata_nonexisting(client, use_testdb):

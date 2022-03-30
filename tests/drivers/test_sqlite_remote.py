@@ -4,27 +4,13 @@ Tests that apply to all drivers go to test_drivers.py.
 """
 
 import os
-import tempfile
 import time
-import uuid
-from pathlib import Path
 
 import pytest
 
 from terracotta import exceptions
 
-boto3 = pytest.importorskip('boto3')
 moto = pytest.importorskip('moto')
-
-
-@pytest.fixture(autouse=True)
-def mock_aws_env(monkeypatch):
-    with monkeypatch.context() as m:
-        m.setenv('AWS_DEFAULT_REGION', 'us-east-1')
-        m.setenv('AWS_ACCESS_KEY_ID', 'FakeKey')
-        m.setenv('AWS_SECRET_ACCESS_KEY', 'FakeSecretKey')
-        m.setenv('AWS_SESSION_TOKEN', 'FakeSessionToken')
-        yield
 
 
 class Timer:
@@ -41,38 +27,8 @@ class Timer:
         self.time += 1
 
 
-@pytest.fixture()
-def s3_db_factory(tmpdir):
-    bucketname = str(uuid.uuid4())
-
-    def _s3_db_factory(keys, datasets=None):
-        from terracotta import get_driver
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            dbfile = Path(tmpdir) / 'tc.sqlite'
-            driver = get_driver(dbfile)
-            driver.create(keys)
-
-            if datasets:
-                for keys, path in datasets.items():
-                    driver.insert(keys, path)
-
-            with open(dbfile, 'rb') as f:
-                db_bytes = f.read()
-
-        conn = boto3.resource('s3')
-        conn.create_bucket(Bucket=bucketname)
-
-        s3 = boto3.client('s3')
-        s3.put_object(Bucket=bucketname, Key='tc.sqlite', Body=db_bytes)
-
-        return f's3://{bucketname}/tc.sqlite'
-
-    return _s3_db_factory
-
-
 @moto.mock_s3
-def test_remote_database(s3_db_factory):
+def test_remote_database(s3_db_factory, mock_aws_env):
     keys = ('some', 'keys')
     dbpath = s3_db_factory(keys)
 
@@ -91,7 +47,7 @@ def test_invalid_url():
 
 
 @moto.mock_s3
-def test_nonexisting_url():
+def test_nonexisting_url(mock_aws_env):
     from terracotta import exceptions, get_driver
     driver = get_driver('s3://foo/db.sqlite')
     with pytest.raises(exceptions.InvalidDatabaseError):
@@ -100,7 +56,7 @@ def test_nonexisting_url():
 
 
 @moto.mock_s3
-def test_remote_database_cache(s3_db_factory, raster_file, monkeypatch):
+def test_remote_database_cache(s3_db_factory, raster_file, mock_aws_env):
     keys = ('some', 'keys')
     dbpath = s3_db_factory(keys)
 
@@ -136,7 +92,7 @@ def test_remote_database_cache(s3_db_factory, raster_file, monkeypatch):
 
 
 @moto.mock_s3
-def test_immutability(s3_db_factory, raster_file):
+def test_immutability(s3_db_factory, raster_file, mock_aws_env):
     keys = ('some', 'keys')
     dbpath = s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
 
@@ -155,7 +111,7 @@ def test_immutability(s3_db_factory, raster_file):
 
 
 @moto.mock_s3
-def test_destructor(s3_db_factory, raster_file, capsys):
+def test_destructor(s3_db_factory, raster_file, capsys, mock_aws_env):
     keys = ('some', 'keys')
     dbpath = s3_db_factory(keys, datasets={('some', 'value'): str(raster_file)})
 
