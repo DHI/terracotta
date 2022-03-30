@@ -23,6 +23,18 @@ def client(flask_app):
         yield client
 
 
+@pytest.fixture(scope='module')
+def debug_flask_app():
+    from terracotta.server import create_app
+    return create_app(debug=True)
+
+
+@pytest.fixture(scope='module')
+def debug_client(debug_flask_app):
+    with debug_flask_app.test_client() as client:
+        yield client
+
+
 def test_get_keys(client, use_testdb):
     rv = client.get('/keys')
 
@@ -53,6 +65,43 @@ def test_get_metadata_lazily_nonwritable_db(client, s3_db_factory, mock_aws_env,
 
     rv = client.get('/metadata/some/value')
     assert rv.status_code == 403
+
+
+@moto.mock_s3
+def test_debug_errors(debug_client, s3_db_factory, mock_aws_env, raster_file, raster_file_xyz):
+    import terracotta
+    from terracotta import exceptions
+    import marshmallow
+
+    keys = ('some', 'keys')
+    dbpath = s3_db_factory(
+        keys, datasets={("some", "value"): str(raster_file)}, skip_metadata=True
+    )
+    terracotta.update_settings(DRIVER_PATH=str(dbpath), DRIVER_PROVIDER="sqlite-remote")
+
+    with pytest.raises(exceptions.DatabaseNotWritableError):
+        debug_client.get('/metadata/some/value')
+
+    with pytest.raises(exceptions.DatasetNotFoundError):
+        debug_client.get('/metadata/NONEXISTING/KEYS')
+
+    with pytest.raises(exceptions.InvalidKeyError):
+        debug_client.get('/metadata/ONLYONEKEY')
+    
+    x, y, z = raster_file_xyz
+
+    with pytest.raises(exceptions.InvalidArgumentsError):
+        debug_client.get(
+            f'/compute/some/value/{z}/{x}/{y}.png'
+            '?expression=v1*v2&v1=val22&v2=val23'
+            '&stretch_range=[10000,0]'
+        )
+
+    with pytest.raises(marshmallow.ValidationError):
+        debug_client.get(
+            f'/compute/some/value/{z}/{x}/{y}.png'
+            '?stretch_range=[10000,0]'
+        )
 
 
 def test_get_metadata_nonexisting(client, use_testdb):
