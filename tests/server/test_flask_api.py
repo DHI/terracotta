@@ -8,8 +8,6 @@ import numpy as np
 
 import pytest
 
-moto = pytest.importorskip('moto')
-
 
 @pytest.fixture(scope='module')
 def flask_app():
@@ -53,37 +51,20 @@ def test_get_metadata(client, use_testdb):
     assert ['extra_data'] == json.loads(rv.data)['metadata']
 
 
-@moto.mock_s3
-def test_get_metadata_lazily_nonwritable_db(client, s3_db_factory, mock_aws_env, raster_file):
-    import terracotta
-
-    keys = ('some', 'keys')
-    dbpath = s3_db_factory(
-        keys, datasets={("some", "value"): str(raster_file)}, skip_metadata=True
-    )
-    terracotta.update_settings(DRIVER_PATH=str(dbpath), DRIVER_PROVIDER="sqlite-remote")
-
-    rv = client.get('/metadata/some/value')
+def test_get_metadata_lazily_nonwritable_db(client, use_non_writable_testdb):
+    rv = client.get('/metadata/first/second/third')
     assert rv.status_code == 403
 
 
-@moto.mock_s3
-def test_debug_errors(debug_client, s3_db_factory, mock_aws_env, raster_file, raster_file_xyz):
-    import terracotta
+def test_debug_errors(debug_client, use_non_writable_testdb, raster_file_xyz):
     from terracotta import exceptions
     import marshmallow
 
-    keys = ('some', 'keys')
-    dbpath = s3_db_factory(
-        keys, datasets={("some", "value"): str(raster_file)}, skip_metadata=True
-    )
-    terracotta.update_settings(DRIVER_PATH=str(dbpath), DRIVER_PROVIDER="sqlite-remote")
-
     with pytest.raises(exceptions.DatabaseNotWritableError):
-        debug_client.get('/metadata/some/value')
+        debug_client.get('/metadata/first/second/third')
 
     with pytest.raises(exceptions.DatasetNotFoundError):
-        debug_client.get('/metadata/NONEXISTING/KEYS')
+        debug_client.get('/metadata/NONEXISTING/KEYS/YO')
 
     with pytest.raises(exceptions.InvalidKeyError):
         debug_client.get('/metadata/ONLYONEKEY')
@@ -92,14 +73,14 @@ def test_debug_errors(debug_client, s3_db_factory, mock_aws_env, raster_file, ra
 
     with pytest.raises(exceptions.InvalidArgumentsError):
         debug_client.get(
-            f'/compute/some/value/{z}/{x}/{y}.png'
+            f'/compute/first/second/third/{z}/{x}/{y}.png'
             '?expression=v1*v2&v1=val22&v2=val23'
             '&stretch_range=[10000,0]'
         )
 
     with pytest.raises(marshmallow.ValidationError):
         debug_client.get(
-            f'/compute/some/value/{z}/{x}/{y}.png'
+            f'/compute/first/second/third/{z}/{x}/{y}.png'
             '?stretch_range=[10000,0]'
         )
 
