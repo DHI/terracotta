@@ -353,9 +353,9 @@ def use_non_writable_testdb(testdb, monkeypatch, raster_file):
     with driver.connect():
         driver.insert(('first', 'second', 'third'), str(raster_file), skip_metadata=True)
 
-    driver.meta_store._WRITABLE = False
-    yield
-    driver.meta_store._WRITABLE = True
+    with monkeypatch.context() as m:
+        m.setattr(driver.meta_store, "_WRITABLE", False)
+        yield
 
     driver.delete(('first', 'second', 'third'))
 
