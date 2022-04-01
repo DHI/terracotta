@@ -21,6 +21,18 @@ def client(flask_app):
         yield client
 
 
+@pytest.fixture(scope='module')
+def debug_flask_app():
+    from terracotta.server import create_app
+    return create_app(debug=True)
+
+
+@pytest.fixture(scope='module')
+def debug_client(debug_flask_app):
+    with debug_flask_app.test_client() as client:
+        yield client
+
+
 def test_get_keys(client, use_testdb):
     rv = client.get('/keys')
 
@@ -37,6 +49,40 @@ def test_get_metadata(client, use_testdb):
     rv = client.get('/metadata/val11/x/val12/')
     assert rv.status_code == 200
     assert ['extra_data'] == json.loads(rv.data)['metadata']
+
+
+def test_get_metadata_lazily_nonwritable_db(client, use_non_writable_testdb):
+    rv = client.get('/metadata/first/second/third')
+    assert rv.status_code == 403
+
+
+def test_debug_errors(debug_client, use_non_writable_testdb, raster_file_xyz):
+    from terracotta import exceptions
+    import marshmallow
+
+    with pytest.raises(exceptions.DatabaseNotWritableError):
+        debug_client.get('/metadata/first/second/third')
+
+    with pytest.raises(exceptions.DatasetNotFoundError):
+        debug_client.get('/metadata/NONEXISTING/KEYS/YO')
+
+    with pytest.raises(exceptions.InvalidKeyError):
+        debug_client.get('/metadata/ONLYONEKEY')
+
+    x, y, z = raster_file_xyz
+
+    with pytest.raises(exceptions.InvalidArgumentsError):
+        debug_client.get(
+            f'/compute/first/second/third/{z}/{x}/{y}.png'
+            '?expression=v1*v2&v1=val22&v2=val23'
+            '&stretch_range=[10000,0]'
+        )
+
+    with pytest.raises(marshmallow.ValidationError):
+        debug_client.get(
+            f'/compute/first/second/third/{z}/{x}/{y}.png'
+            '?stretch_range=[10000,0]'
+        )
 
 
 def test_get_metadata_nonexisting(client, use_testdb):
