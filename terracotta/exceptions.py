@@ -26,3 +26,6 @@ class InvalidDatabaseError(Exception):
 
 class PerformanceWarning(UserWarning):
     pass
+
+class DeprecationWarning(UserWarning):
+    pass
