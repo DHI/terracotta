@@ -11,7 +11,7 @@ import tempfile
 import time
 import urllib.parse as urlparse
 from pathlib import Path
-from typing import Any, Iterator, Union
+from typing import Iterator, Union
 
 from terracotta import exceptions, get_settings
 from terracotta.drivers.sqlite_meta_store import SQLiteMetaStore
@@ -69,9 +69,11 @@ class RemoteSQLiteMetaStore(SQLiteMetaStore):
     Warning:
 
         This driver is read-only. Any attempts to use the create, insert, or delete methods
-        will throw a NotImplementedError.
+        will throw a DatabaseNotWritableError.
 
     """
+
+    _WRITABLE: bool = False
 
     def __init__(self, remote_path: Union[str, Path]) -> None:
         """Initialize the RemoteSQLiteDriver.
@@ -131,15 +133,6 @@ class RemoteSQLiteMetaStore(SQLiteMetaStore):
     def _connection_callback(self) -> None:
         self._update_db(self._remote_path, self._local_path)
         super()._connection_callback()
-
-    def create(self, *args: Any, **kwargs: Any) -> None:
-        raise NotImplementedError('Remote SQLite databases are read-only')
-
-    def insert(self, *args: Any, **kwargs: Any) -> None:
-        raise NotImplementedError('Remote SQLite databases are read-only')
-
-    def delete(self, *args: Any, **kwargs: Any) -> None:
-        raise NotImplementedError('Remote SQLite databases are read-only')
 
     def __del__(self) -> None:
         """Clean up temporary database upon exit"""

@@ -353,6 +353,22 @@ def use_testdb(testdb, monkeypatch):
     terracotta.update_settings(DRIVER_PATH=str(testdb))
 
 
+@pytest.fixture()
+def use_non_writable_testdb(testdb, monkeypatch, raster_file):
+    import terracotta
+    terracotta.update_settings(DRIVER_PATH=str(testdb))
+
+    driver = terracotta.get_driver(testdb)
+    with driver.connect():
+        driver.insert(('first', 'second', 'third'), str(raster_file), skip_metadata=True)
+
+    with monkeypatch.context() as m:
+        m.setattr(driver.meta_store, "_WRITABLE", False)
+        yield
+
+    driver.delete(('first', 'second', 'third'))
+
+
 def run_test_server(driver_path, port):
     from terracotta import update_settings
     update_settings(DRIVER_PATH=driver_path)

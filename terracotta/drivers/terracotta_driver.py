@@ -5,8 +5,8 @@ The driver to interact with.
 
 import contextlib
 from collections import OrderedDict
-from typing import (Any, Collection, Dict, List, Mapping, Optional, Sequence, Tuple, TypeVar,
-                    Union)
+from typing import (Any, Collection, Dict, List, Mapping,
+                    Optional, Sequence, Tuple, TypeVar, Union)
 
 import terracotta
 from terracotta import exceptions
@@ -169,7 +169,13 @@ class TerracottaDriver:
 
             path = squeeze(dataset.values())
             metadata = self.compute_metadata(path, max_shape=self.LAZY_LOADING_MAX_SHAPE)
-            self.insert(keys, path, metadata=metadata)
+
+            try:
+                self.insert(keys, path, metadata=metadata)
+            except exceptions.DatabaseNotWritableError as exc:
+                raise exceptions.DatabaseNotWritableError(
+                    "Lazy loading requires a writable database"
+                ) from exc
 
             # ensure standardized/consistent output (types and floating point precision)
             metadata = self.meta_store.get_metadata(keys)

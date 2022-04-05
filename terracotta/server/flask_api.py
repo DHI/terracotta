@@ -63,6 +63,14 @@ def _setup_error_handlers(app: Flask) -> None:
 
     register_error_handler(exceptions.DatasetNotFoundError, handle_dataset_not_found_error)
 
+    def handle_database_not_writable_error(exc: Exception) -> Any:
+        # database not writable -> 403
+        if current_app.debug:
+            raise exc
+        return _abort(403, str(exc))
+
+    register_error_handler(exceptions.DatabaseNotWritableError, handle_database_not_writable_error)
+
     def handle_marshmallow_validation_error(exc: Exception) -> Any:
         # wrong query arguments -> 400
         if current_app.debug:

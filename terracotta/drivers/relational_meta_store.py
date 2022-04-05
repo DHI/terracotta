@@ -21,7 +21,8 @@ from sqlalchemy.engine.url import URL
 from terracotta import exceptions
 from terracotta.drivers.base_classes import (KeysType, MetaStore,
                                              MultiValueKeysType,
-                                             requires_connection)
+                                             requires_connection,
+                                             requires_writable)
 from terracotta.profile import trace
 
 _ERROR_ON_CONNECT = (
@@ -181,6 +182,7 @@ class RelationalMetaStore(MetaStore, ABC):
         version = self.connection.execute(stmt).scalar()
         return version
 
+    @requires_writable
     @convert_exceptions('Could not create database')
     def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> None:
         """Create and initialize database with empty tables.
@@ -349,6 +351,7 @@ class RelationalMetaStore(MetaStore, ABC):
         return self._decode_data(encoded_data)
 
     @trace('insert')
+    @requires_writable
     @requires_connection
     @convert_exceptions('Could not write to database')
     def insert(
@@ -383,6 +386,7 @@ class RelationalMetaStore(MetaStore, ABC):
             )
 
     @trace('delete')
+    @requires_writable
     @requires_connection
     @convert_exceptions('Could not write to database')
     def delete(self, keys: KeysType) -> None:
