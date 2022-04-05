@@ -76,3 +76,26 @@ def test_update_config():
     update_settings(DEFAULT_TILE_SIZE=[50, 50])
     new_settings = get_settings()
     assert new_settings.DRIVER_PATH == 'test' and new_settings.DEFAULT_TILE_SIZE == (50, 50)
+
+
+def test_deprecation_behaviour(monkeypatch):
+    from terracotta import config, exceptions, get_settings, update_settings
+    for deprecated_field, new_field in config.DEPRECATION_MAP.items():
+        with monkeypatch.context() as m:
+            m.setenv(f'TC_{deprecated_field}', 'foo')
+
+            with pytest.warns(exceptions.DeprecationWarning) as warning:
+                update_settings()
+            assert f'TC_{deprecated_field} is being deprecated' in str(warning[0])
+
+            assert getattr(get_settings(), deprecated_field) == 'foo'
+            assert getattr(get_settings(), new_field) == 'foo'
+
+            m.setenv(f'TC_{new_field}', 'bar')
+
+            with pytest.warns(exceptions.DeprecationWarning) as warning:
+                update_settings()
+            assert f'and its replacement TC_{new_field} is set' in str(warning[0])
+
+            assert getattr(get_settings(), deprecated_field) == 'foo'
+            assert getattr(get_settings(), new_field) == 'bar'
