@@ -7,7 +7,7 @@ import numpy as np
 
 from terracotta import exceptions
 
-DRIVERS = ['sqlite', 'mysql']
+DRIVERS = ['sqlite']  # A single MetaStore suffices for testing the RasterStore
 METADATA_KEYS = ('bounds', 'range', 'mean', 'stdev', 'percentiles', 'metadata')
 
 
