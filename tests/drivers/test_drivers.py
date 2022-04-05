@@ -277,7 +277,7 @@ def test_use_credentials_from_settings(driver_path, provider, monkeypatch):
             assert meta_store_class._parse_path('').username == 'foo'
             assert meta_store_class._parse_path('').password == 'bar'
 
-            driver_path_without_credentials = driver_path[driver_path.find('@')+1:]
+            driver_path_without_credentials = driver_path[driver_path.find('@') + 1:]
             db = drivers.get_driver(driver_path_without_credentials, provider)
             assert db.meta_store.url.username == 'foo'
             assert db.meta_store.url.password == 'bar'
