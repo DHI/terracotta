@@ -168,7 +168,7 @@ class SettingSchema(Schema):
                         f'Could not parse value for key {var} as JSON: "{val}"'
                     ) from exc
         return data
-    
+
     @pre_load
     def handle_deprecated_fields(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         for deprecated_field, new_field in DEPRECATION_MAP.items():
