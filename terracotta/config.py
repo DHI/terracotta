@@ -15,7 +15,7 @@ from terracotta import exceptions
 
 
 class TerracottaSettings(NamedTuple):
-    """Contains all non-deprecated settings for the current Terracotta instance."""
+    """Contains all settings for the current Terracotta instance."""
     #: Path to database
     DRIVER_PATH: str = ''
 
