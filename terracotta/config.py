@@ -11,6 +11,8 @@ import warnings
 
 from marshmallow import Schema, fields, validate, pre_load, post_load, ValidationError
 
+from terracotta import exceptions
+
 
 class TerracottaSettings(NamedTuple):
     """Contains all non-deprecated settings for the current Terracotta instance."""
@@ -74,24 +76,23 @@ class TerracottaSettings(NamedTuple):
     #: SQL database password (if not given in driver path)
     SQL_PASSWORD: Optional[str] = None
 
+    #: Deprecated, use SQL_USER. MySQL database username (if not given in driver path)
+    MYSQL_USER: Optional[str] = None
+
+    #: Deprecated, use SQL_PASSWORD. MySQL database password (if not given in driver path)
+    MYSQL_PASSWORD: Optional[str] = None
+
+    #: Deprecated, use SQL_USER. PostgreSQL database username (if not given in driver path)
+    POSTGRESQL_USER: Optional[str] = None
+
+    #: Deprecated, use SQL_PASSWORD. PostgreSQL database password (if not given in driver path)
+    POSTGRESQL_PASSWORD: Optional[str] = None
+
     #: Use a process pool for band retrieval in parallel
     USE_MULTIPROCESSING: bool = True
 
 
-class DeprecatedTerracottaSettings(NamedTuple):
-    """Contains all deprecated, but still existing, settings."""
-    #: MySQL database username (if not given in driver path)
-    MYSQL_USER: Optional[str] = None
-
-    #: MySQL database password (if not given in driver path)
-    MYSQL_PASSWORD: Optional[str] = None
-
-    #: PostgreSQL database username (if not given in driver path)
-    POSTGRESQL_USER: Optional[str] = None
-
-    #: PostgreSQL database password (if not given in driver path)
-    POSTGRESQL_PASSWORD: Optional[str] = None
-
+AVAILABLE_SETTINGS: Tuple[str, ...] = TerracottaSettings._fields
 
 DEPRECATION_MAP: Dict[str, str] = {
     'MYSQL_USER': 'SQL_USER',
@@ -99,11 +100,6 @@ DEPRECATION_MAP: Dict[str, str] = {
     'POSTGRESQL_USER': 'SQL_USER',
     'POSTGRESQL_PASSWORD': 'SQL_PASSWORD',
 }
-
-AVAILABLE_SETTINGS: Tuple[str, ...] = (
-    *TerracottaSettings._fields,
-    *DeprecatedTerracottaSettings._fields
-)
 
 
 def _is_writable(path: str) -> bool:
@@ -149,8 +145,13 @@ class SettingSchema(Schema):
     ALLOWED_ORIGINS_METADATA = fields.List(fields.String())
     ALLOWED_ORIGINS_TILES = fields.List(fields.String())
 
-    SQL_USER = fields.String()
-    SQL_PASSWORD = fields.String()
+    SQL_USER = fields.String(allow_none=True)
+    SQL_PASSWORD = fields.String(allow_none=True)
+
+    MYSQL_USER = fields.String(allow_none=True)
+    MYSQL_PASSWORD = fields.String(allow_none=True)
+    POSTGRESQL_USER = fields.String(allow_none=True)
+    POSTGRESQL_PASSWORD = fields.String(allow_none=True)
 
     USE_MULTIPROCESSING = fields.Boolean()
 
@@ -166,6 +167,26 @@ class SettingSchema(Schema):
                     raise ValidationError(
                         f'Could not parse value for key {var} as JSON: "{val}"'
                     ) from exc
+        return data
+    
+    @pre_load
+    def handle_deprecated_fields(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+        for deprecated_field, new_field in DEPRECATION_MAP.items():
+            if data.get(deprecated_field):
+                if not data.get(new_field):
+                    warnings.warn(
+                        f'Setting TC_{deprecated_field} is being deprecated. '
+                        f'Please use TC_{new_field} instead.',
+                        exceptions.DeprecationWarning
+                    )
+                    data[new_field] = data[deprecated_field]
+                else:
+                    warnings.warn(
+                        f'Both the deprecated TC_{deprecated_field} setting '
+                        f'and its replacement TC_{new_field} is set: '
+                        'This may result in unexpected behaviour.',
+                        exceptions.DeprecationWarning
+                    )
         return data
 
     @post_load
@@ -186,22 +207,6 @@ def parse_config(config: Mapping[str, Any] = None) -> TerracottaSettings:
 
     for setting in AVAILABLE_SETTINGS:
         env_setting = f'TC_{setting}'
-
-        if setting in DeprecatedTerracottaSettings._fields:
-            if setting in DEPRECATION_MAP:
-                warnings.warn(
-                    f'Setting TC_{setting} is being deprecated. '
-                    f'Please use TC_{DEPRECATION_MAP[setting]} instead.',
-                    PendingDeprecationWarning
-                )
-                setting = DEPRECATION_MAP[setting]
-            else:
-                warnings.warn(
-                    f'Setting TC_{setting} is deprecated and no longer has any effect.',
-                    DeprecationWarning
-                )
-                continue
-
         if setting not in config_dict and env_setting in os.environ:
             config_dict[setting] = os.environ[env_setting]
 
