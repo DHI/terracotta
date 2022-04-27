@@ -95,6 +95,7 @@ class TerracottaSettings(NamedTuple):
 AVAILABLE_SETTINGS: Tuple[str, ...] = TerracottaSettings._fields
 
 DEPRECATION_MAP: Dict[str, str] = {
+    # TODO: Remove in v0.8.0
     'MYSQL_USER': 'SQL_USER',
     'MYSQL_PASSWORD': 'SQL_PASSWORD',
     'POSTGRESQL_USER': 'SQL_USER',
