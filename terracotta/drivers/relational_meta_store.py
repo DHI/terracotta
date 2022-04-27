@@ -113,10 +113,11 @@ class RelationalMetaStore(MetaStore, ABC):
         if con_params.scheme != cls.SQL_DIALECT:
             raise ValueError(f'unsupported URL scheme "{con_params.scheme}"')
 
+        settings = terracotta.get_settings()
         url = URL.create(
             drivername=f'{cls.SQL_DIALECT}+{cls.SQL_DRIVER}',
-            username=con_params.username or terracotta.get_settings().SQL_USER,
-            password=con_params.password or terracotta.get_settings().SQL_PASSWORD,
+            username=con_params.username or settings.SQL_USER,
+            password=con_params.password or settings.SQL_PASSWORD,
             host=con_params.hostname,
             port=con_params.port,
             database=con_params.path[1:],  # remove leading '/' from urlparse
