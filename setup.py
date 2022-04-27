@@ -91,7 +91,7 @@ setup(
             'moto',
             'aws-xray-sdk',
             'pymysql>=1.0.0',
-            'psycopg2-binary'
+            'psycopg2'
         ],
         'docs': [
             'sphinx',
