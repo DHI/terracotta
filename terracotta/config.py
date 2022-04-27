@@ -174,21 +174,17 @@ class SettingSchema(Schema):
     def handle_deprecated_fields(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         for deprecated_field, new_field in DEPRECATION_MAP.items():
             if data.get(deprecated_field):
+                warnings.warn(
+                    f'Setting TC_{deprecated_field} is deprecated '
+                    'and will be removed in the next major release. '
+                    f'Please use TC_{new_field} instead.',
+                    exceptions.DeprecationWarning
+                )
+
+                # Only use the mapping if the new field has not been set
                 if not data.get(new_field):
-                    warnings.warn(
-                        f'Setting TC_{deprecated_field} is deprecated '
-                        'and will be removed in the next major release. '
-                        f'Please use TC_{new_field} instead.',
-                        exceptions.DeprecationWarning
-                    )
                     data[new_field] = data[deprecated_field]
-                else:
-                    warnings.warn(
-                        f'Both the deprecated TC_{deprecated_field} setting '
-                        f'and its replacement TC_{new_field} is set: '
-                        'This may result in unexpected behaviour.',
-                        exceptions.DeprecationWarning
-                    )
+
         return data
 
     @post_load
