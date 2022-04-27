@@ -95,7 +95,7 @@ def test_deprecation_behaviour(monkeypatch):
 
             with pytest.warns(exceptions.DeprecationWarning) as warning:
                 update_settings()
-            assert f'and its replacement TC_{new_field} is set' in str(warning[0])
+            assert f'TC_{deprecated_field} is being deprecated' in str(warning[0])
 
             assert getattr(get_settings(), deprecated_field) == 'foo'
             assert getattr(get_settings(), new_field) == 'bar'
