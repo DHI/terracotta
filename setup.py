@@ -73,7 +73,7 @@ setup(
         'shapely',
         'rasterio>=1.0',
         'shapely',
-        'sqlalchemy',
+        'sqlalchemy>=1.4.1',
         'toml',
         'tqdm'
     ],
@@ -91,7 +91,7 @@ setup(
             'moto',
             'aws-xray-sdk',
             'pymysql>=1.0.0',
-            'psycopg2'
+            'psycopg2-binary'
         ],
         'docs': [
             'sphinx',
