@@ -176,7 +176,8 @@ class SettingSchema(Schema):
             if data.get(deprecated_field):
                 if not data.get(new_field):
                     warnings.warn(
-                        f'Setting TC_{deprecated_field} is deprecated and will be removed in the next major release. '
+                        f'Setting TC_{deprecated_field} is deprecated '
+                        'and will be removed in the next major release. '
                         f'Please use TC_{new_field} instead.',
                         exceptions.DeprecationWarning
                     )
