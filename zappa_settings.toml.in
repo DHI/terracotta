@@ -3,7 +3,7 @@ app_function = "terracotta.server.app.app"
 aws_region = "eu-central-1"
 profile_name = "default"
 project_name = "tc-test"
-runtime = "python3.6"
+runtime = "python3.7"
 s3_bucket = "zappa-teracotta-dev"
 exclude = [
     "*.gz",

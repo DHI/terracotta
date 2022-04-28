@@ -26,12 +26,12 @@ jobs:
         os: [ubuntu-latest]
         # only test oldest and most recent supported Python versions
         # no rasterio wheels on 3.10 yet, so we use 3.9 for now
-        python-version: ["3.6", "3.9"]
+        python-version: ["3.7", "3.9"]
 
     defaults:
       run:
         shell: bash
-    
+
     services:
       postgres:
         image: postgres
@@ -113,7 +113,6 @@ jobs:
 
       matrix:
         os: [macos-latest, windows-latest]
-        # Python 3.6 is EOL on conda-forge, so use 3.7 instead
         python-version: ["3.7", "3.10"]
 
     defaults:

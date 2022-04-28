@@ -20,7 +20,7 @@ Set up conda and install Terracotta
 
       $ git clone https://github.com/DHI-GRAS/terracotta.git
 
-   Alternatively, 
+   Alternatively,
    `you can choose and download a release version <https://github.com/DHI-GRAS/terracotta/releases>`__.
 
 4. Go to the Terracotta folder, and run
@@ -54,7 +54,7 @@ support raster files located on AWS S3, and databases on S3 (through the
 :class:`~terracotta.drivers.mysql.MySQLDriver`). To use these features, you need
 to create an account and authenticate with it.
 
-1. If you do not have an account on AWS yet, 
+1. If you do not have an account on AWS yet,
    `just head over and create one <https://aws.amazon.com>`__.
 
 2. You will need to create an IAM user that has programmatic access to your account.
@@ -63,7 +63,7 @@ to create an account and authenticate with it.
 
    In the easiest setup, you can give it full permission to your account
    (but make sure to keep the key secret). For that, enter a username (such as
-   ``awscli``), check the box ``Programmatic access``, and attach the 
+   ``awscli``), check the box ``Programmatic access``, and attach the
    ``AdministratorAccess`` policy.
 
 3. After you have created the IAM user, AWS will show you the corresponding ID and
@@ -116,20 +116,20 @@ for deployment. This is why we rely on the Windows subsystem for Linux (WSL).
 2. This and all further steps should be executed in a WSL shell. We will have to re-install
    Terracotta and its dependencies inside Linux.
 
-   We will start by installing Python 3.6 and some libraries:
+   We will start by installing Python 3.7 and some libraries:
 
    .. code-block:: bash
 
       $ sudo add-apt-repository ppa:deadsnakes/ppa
       $ sudo apt update
-      $ sudo apt install build-essential gdal-bin git libgdal-dev python3.6-dev
+      $ sudo apt install build-essential gdal-bin git libgdal-dev python3.7-dev
 
 3. Create a new virtual Python environment that we will use to deploy Terracotta:
 
    .. code-block:: bash
 
       $ pip install virtualenv --user
-      $ virtualenv --python=python3.6 ~/envs/tc-deploy
+      $ virtualenv --python=python3.7 ~/envs/tc-deploy
 
    Activate the new environment by running
 
@@ -142,7 +142,7 @@ for deployment. This is why we rely on the Windows subsystem for Linux (WSL).
    .. code-block:: bash
 
       $ git clone https://github.com/DHI-GRAS/terracotta.git
-    
+
 5. Switch to the Terracotta folder and install the Zappa requirements and Terracotta:
 
    .. code-block:: bash
