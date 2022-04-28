@@ -7,8 +7,11 @@ from typing import Mapping, Any, Tuple, NamedTuple, Dict, List, Optional
 import os
 import json
 import tempfile
+import warnings
 
 from marshmallow import Schema, fields, validate, pre_load, post_load, ValidationError
+
+from terracotta import exceptions
 
 
 class TerracottaSettings(NamedTuple):
@@ -67,23 +70,37 @@ class TerracottaSettings(NamedTuple):
     #: CORS allowed origins for tiles endpoints
     ALLOWED_ORIGINS_TILES: List[str] = [r'http[s]?://(localhost|127\.0\.0\.1):*']
 
-    #: MySQL database username (if not given in driver path)
+    #: SQL database username (if not given in driver path)
+    SQL_USER: Optional[str] = None
+
+    #: SQL database password (if not given in driver path)
+    SQL_PASSWORD: Optional[str] = None
+
+    #: Deprecated, use SQL_USER. MySQL database username (if not given in driver path)
     MYSQL_USER: Optional[str] = None
 
-    #: MySQL database password (if not given in driver path)
+    #: Deprecated, use SQL_PASSWORD. MySQL database password (if not given in driver path)
     MYSQL_PASSWORD: Optional[str] = None
 
-    #: PostgreSQL database username (if not given in driver path)
+    #: Deprecated, use SQL_USER. PostgreSQL database username (if not given in driver path)
     POSTGRESQL_USER: Optional[str] = None
 
-    #: PostgreSQL database password (if not given in driver path)
+    #: Deprecated, use SQL_PASSWORD. PostgreSQL database password (if not given in driver path)
     POSTGRESQL_PASSWORD: Optional[str] = None
 
     #: Use a process pool for band retrieval in parallel
     USE_MULTIPROCESSING: bool = True
 
 
-AVAILABLE_SETTINGS: Tuple[str, ...] = tuple(TerracottaSettings._fields)
+AVAILABLE_SETTINGS: Tuple[str, ...] = TerracottaSettings._fields
+
+DEPRECATION_MAP: Dict[str, str] = {
+    # TODO: Remove in v0.8.0
+    'MYSQL_USER': 'SQL_USER',
+    'MYSQL_PASSWORD': 'SQL_PASSWORD',
+    'POSTGRESQL_USER': 'SQL_USER',
+    'POSTGRESQL_PASSWORD': 'SQL_PASSWORD',
+}
 
 
 def _is_writable(path: str) -> bool:
@@ -129,10 +146,13 @@ class SettingSchema(Schema):
     ALLOWED_ORIGINS_METADATA = fields.List(fields.String())
     ALLOWED_ORIGINS_TILES = fields.List(fields.String())
 
-    MYSQL_USER = fields.String()
-    MYSQL_PASSWORD = fields.String()
-    POSTGRESQL_USER = fields.String()
-    POSTGRESQL_PASSWORD = fields.String()
+    SQL_USER = fields.String(allow_none=True)
+    SQL_PASSWORD = fields.String(allow_none=True)
+
+    MYSQL_USER = fields.String(allow_none=True)
+    MYSQL_PASSWORD = fields.String(allow_none=True)
+    POSTGRESQL_USER = fields.String(allow_none=True)
+    POSTGRESQL_PASSWORD = fields.String(allow_none=True)
 
     USE_MULTIPROCESSING = fields.Boolean()
 
@@ -148,6 +168,23 @@ class SettingSchema(Schema):
                     raise ValidationError(
                         f'Could not parse value for key {var} as JSON: "{val}"'
                     ) from exc
+        return data
+
+    @pre_load
+    def handle_deprecated_fields(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+        for deprecated_field, new_field in DEPRECATION_MAP.items():
+            if data.get(deprecated_field):
+                warnings.warn(
+                    f'Setting TC_{deprecated_field} is deprecated '
+                    'and will be removed in the next major release. '
+                    f'Please use TC_{new_field} instead.',
+                    exceptions.DeprecationWarning
+                )
+
+                # Only use the mapping if the new field has not been set
+                if not data.get(new_field):
+                    data[new_field] = data[deprecated_field]
+
         return data
 
     @post_load

@@ -261,3 +261,23 @@ def test_invalid_key_types(driver_path, provider):
     with pytest.raises(exceptions.InvalidKeyError) as exc:
         db.get_datasets({'not-a-key': 'val'})
     assert 'unrecognized keys' in str(exc)
+
+
+@pytest.mark.parametrize('provider', TESTABLE_DRIVERS)
+def test_use_credentials_from_settings(driver_path, provider, monkeypatch):
+    with monkeypatch.context() as m:
+        m.setenv('TC_SQL_USER', 'foo')
+        m.setenv('TC_SQL_PASSWORD', 'bar')
+
+        from terracotta import drivers, update_settings
+        update_settings()
+
+        if 'sqlite' not in provider:
+            meta_store_class = drivers.load_driver(provider)
+            assert meta_store_class._parse_path('').username == 'foo'
+            assert meta_store_class._parse_path('').password == 'bar'
+
+            driver_path_without_credentials = driver_path[driver_path.find('@') + 1:]
+            db = drivers.get_driver(driver_path_without_credentials, provider)
+            assert db.meta_store.url.username == 'foo'
+            assert db.meta_store.url.password == 'bar'
