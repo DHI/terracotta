@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
-  - python>=3.6
+  - python>=3.7
   - numpy
   - rasterio>=1.0
   - shapely

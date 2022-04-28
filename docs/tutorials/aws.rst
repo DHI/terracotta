@@ -30,17 +30,17 @@ a deployment environment:
    .. code-block:: bash
 
       $ pip install virtualenv --user
-      $ virtualenv ~/envs/tc-deploy --python=python3.6
+      $ virtualenv ~/envs/tc-deploy --python=python3.7
       $ source ~/envs/tc-deploy/bin/activate
 
-   If you do not have Python 3.6 installed, one way to get it is via the
+   If you do not have Python 3.7 installed, one way to get it is via the
    ``deadsnakes`` PPA (on Ubuntu):
 
    .. code-block:: bash
 
       $ sudo add-apt-repository ppa:deadsnakes/ppa
       $ sudo apt update
-      $ sudo apt install python3.6-dev
+      $ sudo apt install python3.7-dev
 
    Alternatively, you can use ``pyenv`` or ``conda``.
 
