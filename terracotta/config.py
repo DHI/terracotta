@@ -50,7 +50,7 @@ class TerracottaSettings(NamedTuple):
     PNG_COMPRESS_LEVEL: int = 1
 
     #: Timeout in seconds for database connections
-    DB_CONNECTION_TIMEOUT: int = 10
+    DB_CONNECTION_TIMEOUT: int = 100
 
     #: Path where cached remote SQLite databases are stored (when using sqlite-remote provider)
     REMOTE_DB_CACHE_DIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
