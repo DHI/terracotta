@@ -88,7 +88,9 @@ class RelationalMetaStore(MetaStore, ABC):
             self.url,
             echo=False,
             future=True,
-            connect_args={self.SQL_TIMEOUT_KEY: db_connection_timeout}
+            connect_args={self.SQL_TIMEOUT_KEY: db_connection_timeout},
+            # automatically re-spawn stale connections, see terracotta#266
+            pool_pre_ping=True
         )
         self.sqla_metadata = sqla.MetaData()
 
