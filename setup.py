@@ -70,7 +70,7 @@ setup(
         'pillow',
         'pyyaml>=3.10',  # downstream dependency of apispec
         'shapely',
-        'rasterio>=1.0',
+        'rasterio>=1.3.0',
         'shapely',
         'sqlalchemy>=1.4.1',
         'toml',
