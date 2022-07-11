@@ -24,9 +24,7 @@ jobs:
 
       matrix:
         os: [ubuntu-latest]
-        # only test oldest and most recent supported Python versions
-        # no rasterio wheels on 3.10 yet, so we use 3.9 for now
-        python-version: ["3.7", "3.9"]
+        python-version: ["3.8", "3.10"]
 
     defaults:
       run:
@@ -113,7 +111,7 @@ jobs:
 
       matrix:
         os: [macos-latest, windows-latest]
-        python-version: ["3.7", "3.10"]
+        python-version: ["3.8", "3.10"]
 
     defaults:
       run:

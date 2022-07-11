@@ -19,7 +19,7 @@ Use cases
 Installation
 ------------
 
-If you are using Linux and already have Python 3.7+ installed, all you need to
+If you are using Linux and already have Python 3.8+ installed, all you need to
 do to check out Terracotta is
 
 .. code-block:: bash

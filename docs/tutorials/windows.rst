@@ -116,20 +116,20 @@ for deployment. This is why we rely on the Windows subsystem for Linux (WSL).
 2. This and all further steps should be executed in a WSL shell. We will have to re-install
    Terracotta and its dependencies inside Linux.
 
-   We will start by installing Python 3.7 and some libraries:
+   We will start by installing Python 3.10 and some libraries:
 
    .. code-block:: bash
 
       $ sudo add-apt-repository ppa:deadsnakes/ppa
       $ sudo apt update
-      $ sudo apt install build-essential gdal-bin git libgdal-dev python3.7-dev
+      $ sudo apt install build-essential gdal-bin git libgdal-dev python3.10-dev
 
 3. Create a new virtual Python environment that we will use to deploy Terracotta:
 
    .. code-block:: bash
 
       $ pip install virtualenv --user
-      $ virtualenv --python=python3.7 ~/envs/tc-deploy
+      $ virtualenv --python=python3.10 ~/envs/tc-deploy
 
    Activate the new environment by running
 
