@@ -31,7 +31,6 @@ setup(
         'Development Status :: 4 - Beta',
         'Intended Audience :: End Users/Desktop',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
@@ -46,7 +45,7 @@ setup(
     ],
     # module
     packages=find_packages(exclude=['docs', 'tests']),
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     use_scm_version={
         'write_to': 'terracotta/_version.py'
     },
@@ -70,7 +69,7 @@ setup(
         'pillow',
         'pyyaml>=3.10',  # downstream dependency of apispec
         'shapely',
-        'rasterio>=1.0',
+        'rasterio>=1.3.0',
         'shapely',
         'sqlalchemy>=1.4.1',
         'toml',

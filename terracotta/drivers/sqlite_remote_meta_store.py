@@ -44,7 +44,6 @@ def _update_from_s3(remote_path: str, local_path: str) -> None:
     obj_bytes = obj.get()['Body']
 
     # copy over existing database; this is somewhat safe since it is read-only
-    # NOTE: replace with Connection.backup after switching to Python 3.7
     with open(local_path, 'wb') as f:
         shutil.copyfileobj(obj_bytes, f)
 
