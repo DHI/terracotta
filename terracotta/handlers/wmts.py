@@ -19,8 +19,9 @@ def wmts(url_root: str, dimension: str = None) -> str:
     driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
 
     assert dimension is None or dimension in driver.key_names
-    key_indices = {key: i for i, key in enumerate(driver.key_names)}
-    dimension_index = key_indices[dimension] if dimension is not None else None
+    if dimension:
+        key_indices = {key: i for i, key in enumerate(driver.key_names)}
+        dimension_index = key_indices[dimension] if dimension is not None else None
 
     def dataset_without_dimension(dataset: Tuple[str,...]) -> Tuple[str, ...]:
         if dimension is None:
@@ -37,8 +38,11 @@ def wmts(url_root: str, dimension: str = None) -> str:
     get_capabilities_xml_tree = ET.parse(importlib.resources.open_text(package, 'wmts.xml'))
     for el in get_capabilities_xml_tree.getroot().findall('.//{http://www.opengis.net/ows/1.1}Get'):
         el.set('xlink:href', f'{url_root}wmts')
-    get_capabilities_xml_tree.find('.//{http://www.opengis.net/wmts/1.0}ServiceMetadataURL').set('xlink:href', f'{url_root}wmts')
+    service_metadata_url = get_capabilities_xml_tree.find('.//{http://www.opengis.net/wmts/1.0}ServiceMetadataURL')
+    assert service_metadata_url is not None
+    service_metadata_url.set('xlink:href', f'{url_root}wmts')
     contents_element = get_capabilities_xml_tree.find('.//{http://www.opengis.net/wmts/1.0}Contents')
+    assert contents_element is not None
 
     for dataset in summarised_datasets:
         dimension_datasets = list(filter(lambda ds: dataset_without_dimension(ds) == dataset, datasets))
