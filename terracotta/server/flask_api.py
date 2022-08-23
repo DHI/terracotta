@@ -21,7 +21,7 @@ SPEC_API = Blueprint('spec_api', 'terracotta.server')
 SPEC = APISpec(
     title='Terracotta',
     version=__version__,
-    openapi_version='2.0',
+    openapi_version='3.0',
     info=dict(
         description='A modern XYZ Tile Server in Python'
     ),
@@ -29,6 +29,9 @@ SPEC = APISpec(
         FlaskPlugin(),
         MarshmallowPlugin()
     ],
+    # ensure that endpoints are interpreted as relative paths
+    # see Redocly/redoc#1172
+    servers=[dict(url='')],
 )
 
 
