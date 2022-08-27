@@ -69,6 +69,8 @@ cli.add_command(optimize_rasters)
 from terracotta.scripts.serve import serve
 cli.add_command(serve)
 
+from terracotta.scripts.migrate import migrate
+cli.add_command(migrate)
 
 if __name__ == '__main__':
     entrypoint()
