@@ -23,8 +23,7 @@ Number = TypeVar('Number', int, float)
 
 logger = logging.getLogger(__name__)
 
-context = threading.local()
-context.executor = None
+_executor = None
 
 
 def create_executor() -> Executor:
@@ -50,16 +49,18 @@ def create_executor() -> Executor:
 
 
 def submit_to_executor(task: Callable[..., Any]) -> Future:
-    if context.executor is None:
-        context.executor = create_executor()
+    global _executor
+
+    if _executor is None:
+        _executor = create_executor()
 
     try:
-        future = context.executor.submit(task)
+        future = _executor.submit(task)
     except BrokenProcessPool:
         # re-create executor and try again
         logger.warn('Re-creating broken process pool')
-        context.executor = create_executor()
-        future = context.executor.submit(task)
+        _executor = create_executor()
+        future = _executor.submit(task)
 
     return future
 
