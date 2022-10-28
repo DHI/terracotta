@@ -504,31 +504,32 @@ def test_nodata_consistency(driver_path, provider, big_raster_file_mask, big_ras
 
 
 @pytest.mark.parametrize('provider', DRIVERS)
-def test_broken_process_pool(driver_path, provider, raster_file):
+def test_broken_process_pool(monkeypatch, driver_path, provider, raster_file):
     import concurrent.futures
+    import terracotta.drivers.geotiff_raster_store
     from terracotta import drivers
-    from terracotta.drivers.geotiff_raster_store import context
 
     class BrokenPool:
         def submit(self, *args, **kwargs):
             raise concurrent.futures.process.BrokenProcessPool('monkeypatched')
 
-    context.executor = BrokenPool()
+    with monkeypatch.context() as m:
+        m.setattr(terracotta.drivers.geotiff_raster_store, '_executor', BrokenPool())
 
-    db = drivers.get_driver(driver_path, provider=provider)
-    keys = ('some', 'keynames')
+        db = drivers.get_driver(driver_path, provider=provider)
+        keys = ('some', 'keynames')
 
-    db.create(keys)
-    db.insert(['some', 'value'], str(raster_file))
-    db.insert(['some', 'other_value'], str(raster_file))
+        db.create(keys)
+        db.insert(['some', 'value'], str(raster_file))
+        db.insert(['some', 'other_value'], str(raster_file))
 
-    data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256))
-    assert data1.shape == (256, 256)
+        data1 = db.get_raster_tile(['some', 'value'], tile_size=(256, 256))
+        assert data1.shape == (256, 256)
 
-    data2 = db.get_raster_tile(['some', 'other_value'], tile_size=(256, 256))
-    assert data2.shape == (256, 256)
+        data2 = db.get_raster_tile(['some', 'other_value'], tile_size=(256, 256))
+        assert data2.shape == (256, 256)
 
-    np.testing.assert_array_equal(data1, data2)
+        np.testing.assert_array_equal(data1, data2)
 
 
 def test_no_multiprocessing():

@@ -171,7 +171,7 @@ class RelationalMetaStore(MetaStore, ABC):
                 )
             self.db_version_verified = True
 
-    @property  # type: ignore
+    @property
     @requires_connection
     @convert_exceptions(_ERROR_ON_CONNECT)
     def db_version(self) -> str:
