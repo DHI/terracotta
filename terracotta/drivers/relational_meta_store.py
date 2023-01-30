@@ -321,12 +321,12 @@ class RelationalMetaStore(MetaStore, ABC):
             .offset(page * limit if limit is not None else None)
         )
 
-        result = self.connection.execute(stmt)
+        result = self.connection.execute(stmt).all()
 
         def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:
-            return tuple(row[key] for key in self.key_names)
+            return tuple(getattr(row, key) for key in self.key_names)
 
-        datasets = {keytuple(row): row['path'] for row in result}
+        datasets = {keytuple(row): row.path for row in result}
         return datasets
 
     @trace('get_metadata')
@@ -350,7 +350,7 @@ class RelationalMetaStore(MetaStore, ABC):
             return None
 
         data_columns, _ = zip(*self._METADATA_COLUMNS)
-        encoded_data = {col: row[col] for col in self.key_names + data_columns}
+        encoded_data = {col: getattr(row, col) for col in self.key_names + data_columns}
         return self._decode_data(encoded_data)
 
     @trace('insert')
