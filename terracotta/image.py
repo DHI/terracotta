@@ -14,15 +14,16 @@ from PIL import Image
 from terracotta.profile import trace
 from terracotta import exceptions, get_settings
 
-Number = TypeVar('Number', int, float)
+Number = TypeVar("Number", int, float)
 RGBA = Tuple[Number, Number, Number, Number]
 Palette = Sequence[RGBA]
 Array = Union[np.ndarray, np.ma.MaskedArray]
 
 
-@trace('array_to_png')
-def array_to_png(img_data: Array,
-                 colormap: Union[str, Palette, None] = None) -> BinaryIO:
+@trace("array_to_png")
+def array_to_png(
+    img_data: Array, colormap: Union[str, Palette, None] = None
+) -> BinaryIO:
     """Encode an 8bit array as PNG"""
     from terracotta.cmaps import get_cmap
 
@@ -33,17 +34,17 @@ def array_to_png(img_data: Array,
 
     if img_data.ndim == 3:  # encode RGB image
         if img_data.shape[-1] != 3:
-            raise ValueError('3D input arrays must have three bands')
+            raise ValueError("3D input arrays must have three bands")
 
         if colormap is not None:
-            raise ValueError('Colormap argument cannot be given for multi-band data')
+            raise ValueError("Colormap argument cannot be given for multi-band data")
 
-        mode = 'RGB'
+        mode = "RGB"
         transparency = (0, 0, 0)
         palette = None
 
     elif img_data.ndim == 2:  # encode paletted image
-        mode = 'L'
+        mode = "L"
 
         if colormap is None:
             palette = None
@@ -55,47 +56,50 @@ def array_to_png(img_data: Array,
                     cmap_vals = get_cmap(colormap)
                 except ValueError as exc:
                     raise exceptions.InvalidArgumentsError(
-                        f'Encountered invalid color map {colormap}') from exc
-                palette = np.concatenate((
-                    np.zeros(3, dtype='uint8'),
-                    cmap_vals[:, :-1].flatten()
-                ))
-                transparency_arr = np.concatenate((
-                    np.zeros(1, dtype='uint8'),
-                    cmap_vals[:, -1]
-                ))
+                        f"Encountered invalid color map {colormap}"
+                    ) from exc
+                palette = np.concatenate(
+                    (np.zeros(3, dtype="uint8"), cmap_vals[:, :-1].flatten())
+                )
+                transparency_arr = np.concatenate(
+                    (np.zeros(1, dtype="uint8"), cmap_vals[:, -1])
+                )
             else:
                 # explicit mapping
                 if len(colormap) > 255:
                     raise exceptions.InvalidArgumentsError(
-                        'Explicit color map must contain less than 256 values'
+                        "Explicit color map must contain less than 256 values"
                     )
 
-                colormap_array = np.asarray(colormap, dtype='uint8')
+                colormap_array = np.asarray(colormap, dtype="uint8")
                 if colormap_array.ndim != 2 or colormap_array.shape[1] != 4:
-                    raise ValueError('Explicit color mapping must have shape (n, 4)')
+                    raise ValueError("Explicit color mapping must have shape (n, 4)")
 
                 rgb, alpha = colormap_array[:, :-1], colormap_array[:, -1]
-                palette = np.concatenate((
-                    np.zeros(3, dtype='uint8'),
-                    rgb.flatten(),
-                    np.zeros(3 * (256 - len(colormap) - 1), dtype='uint8')
-                ))
+                palette = np.concatenate(
+                    (
+                        np.zeros(3, dtype="uint8"),
+                        rgb.flatten(),
+                        np.zeros(3 * (256 - len(colormap) - 1), dtype="uint8"),
+                    )
+                )
 
                 # PIL expects paletted transparency as raw bytes
-                transparency_arr = np.concatenate((
-                    np.zeros(1, dtype='uint8'),
-                    alpha,
-                    np.zeros(256 - len(colormap) - 1, dtype='uint8')
-                ))
+                transparency_arr = np.concatenate(
+                    (
+                        np.zeros(1, dtype="uint8"),
+                        alpha,
+                        np.zeros(256 - len(colormap) - 1, dtype="uint8"),
+                    )
+                )
 
             assert transparency_arr.shape == (256,)
-            assert transparency_arr.dtype == 'uint8'
+            assert transparency_arr.dtype == "uint8"
             transparency = transparency_arr.tobytes()
 
             assert palette.shape == (3 * 256,), palette.shape
     else:
-        raise ValueError('Input array must have 2 or 3 dimensions')
+        raise ValueError("Input array must have 2 or 3 dimensions")
 
     if isinstance(img_data, np.ma.MaskedArray):
         img_data = img_data.filled(0)
@@ -106,7 +110,7 @@ def array_to_png(img_data: Array,
         img.putpalette(palette)
 
     sio = BytesIO()
-    img.save(sio, 'png', compress_level=compress_level, transparency=transparency)
+    img.save(sio, "png", compress_level=compress_level, transparency=transparency)
     sio.seek(0)
     return sio
 
@@ -116,24 +120,26 @@ def empty_image(size: Tuple[int, int]) -> BinaryIO:
     settings = get_settings()
     compress_level = settings.PNG_COMPRESS_LEVEL
 
-    img = Image.new(mode='P', size=size, color=0)
+    img = Image.new(mode="P", size=size, color=0)
 
     sio = BytesIO()
-    img.save(sio, 'png', compress_level=compress_level, transparency=0)
+    img.save(sio, "png", compress_level=compress_level, transparency=0)
     sio.seek(0)
     return sio
 
 
-@trace('contrast_stretch')
-def contrast_stretch(data: Array,
-                     in_range: Sequence[Number],
-                     out_range: Sequence[Number],
-                     clip: bool = True) -> Array:
+@trace("contrast_stretch")
+def contrast_stretch(
+    data: Array,
+    in_range: Sequence[Number],
+    out_range: Sequence[Number],
+    clip: bool = True,
+) -> Array:
     """Normalize input array from in_range to out_range"""
     lower_bound_in, upper_bound_in = in_range
     lower_bound_out, upper_bound_out = out_range
 
-    out_data = data.astype('float64', copy=True)
+    out_data = data.astype("float64", copy=True)
     out_data -= lower_bound_in
     norm = upper_bound_in - lower_bound_in
     if abs(norm) > 1e-8:  # prevent division by 0
@@ -166,9 +172,9 @@ def label(data: Array, labels: Sequence[Number]) -> Array:
 
     """
     if len(labels) > 255:
-        raise ValueError('Cannot fit more than 255 labels')
+        raise ValueError("Cannot fit more than 255 labels")
 
-    out_data = np.zeros(data.shape, dtype='uint8')
+    out_data = np.zeros(data.shape, dtype="uint8")
     for i, label in enumerate(labels, 1):
         out_data[data == label] = i
 

@@ -16,45 +16,51 @@ URLOrPathType = Union[str, Path]
 
 
 def load_driver(provider: str) -> Type[MetaStore]:
-    if provider == 'sqlite-remote':
+    if provider == "sqlite-remote":
         from terracotta.drivers.sqlite_remote_meta_store import RemoteSQLiteMetaStore
+
         return RemoteSQLiteMetaStore
 
-    if provider == 'mysql':
+    if provider == "mysql":
         from terracotta.drivers.mysql_meta_store import MySQLMetaStore
+
         return MySQLMetaStore
 
-    if provider == 'postgresql':
+    if provider == "postgresql":
         from terracotta.drivers.postgresql_meta_store import PostgreSQLMetaStore
+
         return PostgreSQLMetaStore
 
-    if provider == 'sqlite':
+    if provider == "sqlite":
         from terracotta.drivers.sqlite_meta_store import SQLiteMetaStore
+
         return SQLiteMetaStore
 
-    raise ValueError(f'Unknown database provider {provider}')
+    raise ValueError(f"Unknown database provider {provider}")
 
 
 def auto_detect_provider(url_or_path: str) -> str:
     parsed_path = urlparse.urlparse(url_or_path)
 
     scheme = parsed_path.scheme
-    if scheme == 's3':
-        return 'sqlite-remote'
+    if scheme == "s3":
+        return "sqlite-remote"
 
-    if scheme == 'mysql':
-        return 'mysql'
+    if scheme == "mysql":
+        return "mysql"
 
-    if scheme == 'postgresql':
-        return 'postgresql'
+    if scheme == "postgresql":
+        return "postgresql"
 
-    return 'sqlite'
+    return "sqlite"
 
 
 _DRIVER_CACHE: Dict[Tuple[URLOrPathType, str, int], TerracottaDriver] = {}
 
 
-def get_driver(url_or_path: URLOrPathType, provider: Optional[str] = None) -> TerracottaDriver:
+def get_driver(
+    url_or_path: URLOrPathType, provider: Optional[str] = None
+) -> TerracottaDriver:
     """Retrieve Terracotta driver instance for the given path.
 
     This function always returns the same instance for identical inputs.
@@ -103,8 +109,7 @@ def get_driver(url_or_path: URLOrPathType, provider: Optional[str] = None) -> Te
 
     if cache_key not in _DRIVER_CACHE:
         driver = TerracottaDriver(
-            meta_store=DriverClass(url_or_path),
-            raster_store=GeoTiffRasterStore()
+            meta_store=DriverClass(url_or_path), raster_store=GeoTiffRasterStore()
         )
         _DRIVER_CACHE[cache_key] = driver
 

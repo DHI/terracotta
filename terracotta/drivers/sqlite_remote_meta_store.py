@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 def convert_exceptions(msg: str) -> Iterator:
     """Convert internal boto exceptions to our InvalidDatabaseError"""
     import botocore.exceptions
+
     try:
         yield
     except botocore.exceptions.ClientError as exc:
@@ -34,17 +35,17 @@ def _update_from_s3(remote_path: str, local_path: str) -> None:
     import boto3
 
     parsed_remote_path = urlparse.urlparse(remote_path)
-    bucket_name, key = parsed_remote_path.netloc, parsed_remote_path.path.strip('/')
+    bucket_name, key = parsed_remote_path.netloc, parsed_remote_path.path.strip("/")
 
-    if parsed_remote_path.scheme != 's3':
-        raise ValueError('Expected s3:// URL')
+    if parsed_remote_path.scheme != "s3":
+        raise ValueError("Expected s3:// URL")
 
-    s3 = boto3.resource('s3')
+    s3 = boto3.resource("s3")
     obj = s3.Object(bucket_name, key)
-    obj_bytes = obj.get()['Body']
+    obj_bytes = obj.get()["Body"]
 
     # copy over existing database; this is somewhat safe since it is read-only
-    with open(local_path, 'wb') as f:
+    with open(local_path, "wb") as f:
         shutil.copyfileobj(obj_bytes, f)
 
 
@@ -92,15 +93,15 @@ class RemoteSQLiteMetaStore(SQLiteMetaStore):
         os.makedirs(settings.REMOTE_DB_CACHE_DIR, exist_ok=True)
         local_db_file = tempfile.NamedTemporaryFile(
             dir=settings.REMOTE_DB_CACHE_DIR,
-            prefix='tc_s3_db_',
-            suffix='.sqlite',
-            delete=False
+            prefix="tc_s3_db_",
+            suffix=".sqlite",
+            delete=False,
         )
         local_db_file.close()
 
         self._local_path = local_db_file.name
         self._remote_path = str(remote_path)
-        self._last_updated = -float('inf')
+        self._last_updated = -float("inf")
 
         super().__init__(local_db_file.name)
 
@@ -109,23 +110,23 @@ class RemoteSQLiteMetaStore(SQLiteMetaStore):
         parts = urlparse.urlparse(path)
 
         if not parts.hostname:
-            parts = urlparse.urlparse(f'https://{path}')
+            parts = urlparse.urlparse(f"https://{path}")
 
         port = parts.port
         if port is None:
-            port = 443 if parts.scheme == 'https' else 80
+            port = 443 if parts.scheme == "https" else 80
 
-        path = f'{parts.scheme}://{parts.hostname}:{port}{parts.path}'
-        path = path.rstrip('/')
+        path = f"{parts.scheme}://{parts.hostname}:{port}{parts.path}"
+        path = path.rstrip("/")
         return path
 
-    @convert_exceptions('Could not retrieve database from S3')
-    @trace('download_db_from_s3')
+    @convert_exceptions("Could not retrieve database from S3")
+    @trace("download_db_from_s3")
     def _update_db(self, remote_path: str, local_path: str) -> None:
         settings = get_settings()
 
         if self._last_updated < time.time() - settings.REMOTE_DB_CACHE_TTL:
-            logger.debug('Remote database cache expired, re-downloading')
+            logger.debug("Remote database cache expired, re-downloading")
             _update_from_s3(remote_path, local_path)
             self._last_updated = time.time()
 

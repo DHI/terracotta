@@ -13,39 +13,37 @@ import marshmallow
 from terracotta import exceptions, __version__
 
 # define blueprints, will be populated by submodules
-TILE_API = Blueprint('tile_api', 'terracotta.server')
-METADATA_API = Blueprint('metadata_api', 'terracotta.server')
-SPEC_API = Blueprint('spec_api', 'terracotta.server')
+TILE_API = Blueprint("tile_api", "terracotta.server")
+METADATA_API = Blueprint("metadata_api", "terracotta.server")
+SPEC_API = Blueprint("spec_api", "terracotta.server")
 
 # create an APISpec
 SPEC = APISpec(
-    title='Terracotta',
+    title="Terracotta",
     version=__version__,
-    openapi_version='3.0',
-    info=dict(
-        description='A modern XYZ Tile Server in Python'
-    ),
-    plugins=[
-        FlaskPlugin(),
-        MarshmallowPlugin()
-    ],
+    openapi_version="3.0",
+    info=dict(description="A modern XYZ Tile Server in Python"),
+    plugins=[FlaskPlugin(), MarshmallowPlugin()],
     # ensure that endpoints are interpreted as relative paths
     # see Redocly/redoc#1172
-    servers=[dict(url='')],
+    servers=[dict(url="")],
 )
 
 
-def _abort(status_code: int, message: str = '') -> Any:
-    response = jsonify({'message': message})
+def _abort(status_code: int, message: str = "") -> Any:
+    response = jsonify({"message": message})
     response.status_code = status_code
     return response
 
 
 def _setup_error_handlers(app: Flask) -> None:
-    def register_error_handler(exc: Type[Exception], func: Callable[[Exception], Any]) -> None:
+    def register_error_handler(
+        exc: Type[Exception], func: Callable[[Exception], Any]
+    ) -> None:
         if TYPE_CHECKING:  # pragma: no cover
             # Flask defines this type only during type checking
             from flask.typing import ErrorHandlerCallable
+
             func = cast(ErrorHandlerCallable, func)
 
         app.register_error_handler(exc, func)
@@ -53,10 +51,15 @@ def _setup_error_handlers(app: Flask) -> None:
     def handle_tile_out_of_bounds_error(exc: Exception) -> Any:
         # send empty image
         from terracotta import get_settings, image
-        settings = get_settings()
-        return send_file(image.empty_image(settings.DEFAULT_TILE_SIZE), mimetype='image/png')
 
-    register_error_handler(exceptions.TileOutOfBoundsError, handle_tile_out_of_bounds_error)
+        settings = get_settings()
+        return send_file(
+            image.empty_image(settings.DEFAULT_TILE_SIZE), mimetype="image/png"
+        )
+
+    register_error_handler(
+        exceptions.TileOutOfBoundsError, handle_tile_out_of_bounds_error
+    )
 
     def handle_dataset_not_found_error(exc: Exception) -> Any:
         # wrong path -> 404
@@ -64,7 +67,9 @@ def _setup_error_handlers(app: Flask) -> None:
             raise exc
         return _abort(404, str(exc))
 
-    register_error_handler(exceptions.DatasetNotFoundError, handle_dataset_not_found_error)
+    register_error_handler(
+        exceptions.DatasetNotFoundError, handle_dataset_not_found_error
+    )
 
     def handle_database_not_writable_error(exc: Exception) -> Any:
         # database not writable -> 403
@@ -72,7 +77,9 @@ def _setup_error_handlers(app: Flask) -> None:
             raise exc
         return _abort(403, str(exc))
 
-    register_error_handler(exceptions.DatabaseNotWritableError, handle_database_not_writable_error)
+    register_error_handler(
+        exceptions.DatabaseNotWritableError, handle_database_not_writable_error
+    )
 
     def handle_marshmallow_validation_error(exc: Exception) -> Any:
         # wrong query arguments -> 400
@@ -83,7 +90,7 @@ def _setup_error_handlers(app: Flask) -> None:
     validation_errors = (
         exceptions.InvalidArgumentsError,
         exceptions.InvalidKeyError,
-        marshmallow.ValidationError
+        marshmallow.ValidationError,
     )
 
     for err in validation_errors:
@@ -101,7 +108,7 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
     import terracotta.server.singleband
     import terracotta.server.compute
 
-    new_app = Flask('terracotta.server')
+    new_app = Flask("terracotta.server")
     new_app.debug = debug
 
     # extensions might modify the global blueprints, so copy before use
@@ -109,15 +116,15 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
     new_metadata_api = copy.deepcopy(METADATA_API)
 
     # suppress implicit sort of JSON responses
-    new_app.config['JSON_SORT_KEYS'] = False
+    new_app.config["JSON_SORT_KEYS"] = False
 
     # CORS
     settings = get_settings()
     CORS(new_tile_api, origins=settings.ALLOWED_ORIGINS_TILES)
     CORS(new_metadata_api, origins=settings.ALLOWED_ORIGINS_METADATA)
 
-    new_app.register_blueprint(new_tile_api, url_prefix='')
-    new_app.register_blueprint(new_metadata_api, url_prefix='')
+    new_app.register_blueprint(new_tile_api, url_prefix="")
+    new_app.register_blueprint(new_metadata_api, url_prefix="")
 
     # register routes on API spec
     with new_app.test_request_context():
@@ -133,15 +140,15 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
         SPEC.path(view=terracotta.server.compute.get_compute_preview)
 
     import terracotta.server.spec
-    new_app.register_blueprint(SPEC_API, url_prefix='')
+
+    new_app.register_blueprint(SPEC_API, url_prefix="")
 
     if profile:
         from werkzeug.contrib.profiler import ProfilerMiddleware
+
         # use setattr to work around mypy false-positive (python/mypy#2427)
         setattr(
-            new_app,
-            'wsgi_app',
-            ProfilerMiddleware(new_app.wsgi_app, restrictions=[30])
+            new_app, "wsgi_app", ProfilerMiddleware(new_app.wsgi_app, restrictions=[30])
         )
 
     _setup_error_handlers(new_app)

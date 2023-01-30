@@ -10,18 +10,21 @@ from concurrent.futures import Future
 from terracotta import get_settings, get_driver, image, xyz, exceptions
 from terracotta.profile import trace
 
-Number = TypeVar('Number', int, float)
+Number = TypeVar("Number", int, float)
 RangeType = Optional[Tuple[Optional[Number], Optional[Number]]]
 
 
-@trace('compute_handler')
-def compute(expression: str,
-            some_keys: Sequence[str],
-            operand_keys: Mapping[str, str],
-            stretch_range: Tuple[Number, Number],
-            tile_xyz: Optional[Tuple[int, int, int]] = None, *,
-            colormap: Optional[str] = None,
-            tile_size: Optional[Tuple[int, int]] = None) -> BinaryIO:
+@trace("compute_handler")
+def compute(
+    expression: str,
+    some_keys: Sequence[str],
+    operand_keys: Mapping[str, str],
+    stretch_range: Tuple[Number, Number],
+    tile_xyz: Optional[Tuple[int, int, int]] = None,
+    *,
+    colormap: Optional[str] = None,
+    tile_size: Optional[Tuple[int, int]] = None,
+) -> BinaryIO:
     """Return singleband image computed from one or more images as PNG
 
     Expects a Python expression that returns a NumPy array. Operands in
@@ -44,7 +47,7 @@ def compute(expression: str,
 
     if not stretch_range[1] > stretch_range[0]:
         raise exceptions.InvalidArgumentsError(
-            'Upper stretch bounds must be larger than lower bounds'
+            "Upper stretch bounds must be larger than lower bounds"
         )
 
     settings = get_settings()
@@ -60,12 +63,19 @@ def compute(expression: str,
         key_names = driver.key_names
 
         if len(some_keys) != len(key_names) - 1:
-            raise exceptions.InvalidArgumentsError('must specify all keys except last one')
+            raise exceptions.InvalidArgumentsError(
+                "must specify all keys except last one"
+            )
 
         def get_band_future(band_key: str) -> Future:
             band_keys = (*some_keys, band_key)
-            return xyz.get_tile_data(driver, band_keys, tile_xyz=tile_xyz,
-                                     tile_size=tile_size_, asynchronous=True)
+            return xyz.get_tile_data(
+                driver,
+                band_keys,
+                tile_xyz=tile_xyz,
+                tile_size=tile_size_,
+                asynchronous=True,
+            )
 
         futures = {var: get_band_future(key) for var, key in operand_keys.items()}
         operand_data = {var: future.result() for var, future in futures.items()}
@@ -74,10 +84,9 @@ def compute(expression: str,
         out = evaluate_expression(expression, operand_data)
     except ValueError as exc:
         # make sure error message gets propagated
-        raise exceptions.InvalidArgumentsError(f'error while executing expression: {exc!s}')
+        raise exceptions.InvalidArgumentsError(
+            f"error while executing expression: {exc!s}"
+        )
 
-    out = image.to_uint8(
-        out,
-        *stretch_range
-    )
+    out = image.to_uint8(out, *stretch_range)
     return image.array_to_png(out, colormap=colormap)

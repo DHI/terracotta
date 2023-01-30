@@ -9,7 +9,7 @@ from terracotta import get_settings, get_driver
 from terracotta.profile import trace
 
 
-@trace('keys_handler')
+@trace("keys_handler")
 def keys() -> List[Dict[str, str]]:
     """List available keys, in order"""
     settings = get_settings()
@@ -17,9 +17,9 @@ def keys() -> List[Dict[str, str]]:
 
     response = []
     for key, description in driver.get_keys().items():
-        response_row = {'key': key}
+        response_row = {"key": key}
         if description:
-            response_row['description'] = description
+            response_row["description"] = description
 
         response.append(response_row)
 

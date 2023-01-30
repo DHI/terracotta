@@ -4,13 +4,14 @@ import numpy as np
 import pytest
 
 
-@pytest.mark.parametrize('resampling_method', ['nearest', 'linear', 'cubic', 'average'])
-def test_singleband_handler(use_testdb, raster_file_xyz,
-                            resampling_method):
+@pytest.mark.parametrize("resampling_method", ["nearest", "linear", "cubic", "average"])
+def test_singleband_handler(use_testdb, raster_file_xyz, resampling_method):
     import terracotta
+
     terracotta.update_settings(RESAMPLING_METHOD=resampling_method)
 
     from terracotta.handlers import datasets, singleband
+
     settings = terracotta.get_settings()
     ds = datasets.datasets()
 
@@ -22,6 +23,7 @@ def test_singleband_handler(use_testdb, raster_file_xyz,
 
 def test_singleband_tile_size(use_testdb, raster_file_xyz):
     from terracotta.handlers import datasets, singleband
+
     ds = datasets.datasets()
 
     test_tile_size = (16, 32)
@@ -35,6 +37,7 @@ def test_singleband_tile_size(use_testdb, raster_file_xyz):
 def test_singleband_out_of_bounds(use_testdb):
     import terracotta
     from terracotta.handlers import datasets, singleband
+
     ds = datasets.datasets()
 
     for keys in ds:
@@ -47,14 +50,19 @@ def test_singleband_explicit_colormap(use_testdb, testdb, raster_file_xyz):
     from terracotta.xyz import get_tile_data
     from terracotta.handlers import singleband
 
-    ds_keys = ['val21', 'x', 'val22']
+    ds_keys = ["val21", "x", "val22"]
     nodata = 10000
 
     settings = terracotta.get_settings()
     driver = terracotta.get_driver(testdb)
     with driver.connect():
-        tile_data = get_tile_data(driver, ds_keys, tile_xyz=raster_file_xyz,
-                                  preserve_values=True, tile_size=settings.DEFAULT_TILE_SIZE)
+        tile_data = get_tile_data(
+            driver,
+            ds_keys,
+            tile_xyz=raster_file_xyz,
+            preserve_values=True,
+            tile_size=settings.DEFAULT_TILE_SIZE,
+        )
 
     # Get some values from the raster to use for colormap
     classes = np.unique(tile_data)
@@ -68,12 +76,17 @@ def test_singleband_explicit_colormap(use_testdb, testdb, raster_file_xyz):
     colormap[nodata] = (100, 100, 100, 100)
 
     raw_img = singleband.singleband(ds_keys, raster_file_xyz, colormap=colormap)
-    img_data = np.asarray(Image.open(raw_img).convert('RGBA'))
+    img_data = np.asarray(Image.open(raw_img).convert("RGBA"))
 
     # get unstretched data to compare to
     with driver.connect():
-        tile_data = get_tile_data(driver, ds_keys, tile_xyz=raster_file_xyz,
-                                  preserve_values=True, tile_size=img_data.shape[:2])
+        tile_data = get_tile_data(
+            driver,
+            ds_keys,
+            tile_xyz=raster_file_xyz,
+            preserve_values=True,
+            tile_size=img_data.shape[:2],
+        )
 
     # check that labels are mapped to colors correctly
     for cmap_label, cmap_color in colormap.items():
@@ -93,7 +106,7 @@ def test_singleband_noxyz(use_testdb):
     from terracotta.handlers import singleband
 
     settings = get_settings()
-    ds_keys = ['val21', 'x', 'val22']
+    ds_keys = ["val21", "x", "val22"]
 
     raw_img = singleband.singleband(ds_keys)
     img_data = np.asarray(Image.open(raw_img))

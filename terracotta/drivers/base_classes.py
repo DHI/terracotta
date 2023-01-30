@@ -7,15 +7,25 @@ import contextlib
 import functools
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import (Any, Callable, Dict, List, Mapping, Optional, Sequence,
-                    Tuple, TypeVar, Union)
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from terracotta import exceptions
 
 KeysType = Mapping[str, str]
 MultiValueKeysType = Mapping[str, Union[str, List[str]]]
-Number = TypeVar('Number', int, float)
-T = TypeVar('T')
+Number = TypeVar("Number", int, float)
+T = TypeVar("T")
 
 
 def requires_writable(fun: Callable[..., T]) -> Callable[..., T]:
@@ -30,8 +40,7 @@ def requires_writable(fun: Callable[..., T]) -> Callable[..., T]:
 
 
 def requires_connection(
-    fun: Optional[Callable[..., T]] = None, *,
-    verify: bool = True
+    fun: Optional[Callable[..., T]] = None, *, verify: bool = True
 ) -> Union[Callable[..., T], functools.partial]:
     if fun is None:
         return functools.partial(requires_connection, verify=verify)
@@ -50,7 +59,8 @@ class MetaStore(ABC):
 
     Defines a common interface for all metadata backends.
     """
-    _RESERVED_KEYS = ('limit', 'page')
+
+    _RESERVED_KEYS = ("limit", "page")
     _WRITABLE: bool = True
 
     @property
@@ -75,8 +85,12 @@ class MetaStore(ABC):
         return path
 
     @abstractmethod
-    def create(self, keys: Sequence[str], *,
-               key_descriptions: Optional[Mapping[str, str]] = None) -> None:
+    def create(
+        self,
+        keys: Sequence[str],
+        *,
+        key_descriptions: Optional[Mapping[str, str]] = None,
+    ) -> None:
         """Create a new, empty database"""
         pass
 
@@ -95,8 +109,12 @@ class MetaStore(ABC):
         pass
 
     @abstractmethod
-    def get_datasets(self, where: Optional[MultiValueKeysType] = None,
-                     page: int = 0, limit: Optional[int] = None) -> Dict[Tuple[str, ...], Any]:
+    def get_datasets(
+        self,
+        where: Optional[MultiValueKeysType] = None,
+        page: int = 0,
+        limit: Optional[int] = None,
+    ) -> Dict[Tuple[str, ...], Any]:
         """Get all known dataset key combinations matching the given constraints,
         and a path to retrieve the data
         """
@@ -108,7 +126,9 @@ class MetaStore(ABC):
         pass
 
     @abstractmethod
-    def insert(self, keys: KeysType, path: str, *, metadata: Optional[Mapping[str, Any]] = None) -> None:
+    def insert(
+        self, keys: KeysType, path: str, *, metadata: Optional[Mapping[str, Any]] = None
+    ) -> None:
         """Register a new dataset. This also populates the metadata database,
         if metadata is specified and not `None`."""
         pass
@@ -119,7 +139,7 @@ class MetaStore(ABC):
         pass
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(\'{self.path}\')'
+        return f"{self.__class__.__name__}('{self.path}')"
 
 
 class RasterStore(ABC):
@@ -129,21 +149,29 @@ class RasterStore(ABC):
 
     @abstractmethod
     # TODO: add accurate signature if mypy ever supports conditional return types
-    def get_raster_tile(self, path: str, *,
-                        tile_bounds: Optional[Sequence[float]] = None,
-                        tile_size: Sequence[int] = (256, 256),
-                        preserve_values: bool = False,
-                        asynchronous: bool = False) -> Any:
+    def get_raster_tile(
+        self,
+        path: str,
+        *,
+        tile_bounds: Optional[Sequence[float]] = None,
+        tile_size: Sequence[int] = (256, 256),
+        preserve_values: bool = False,
+        asynchronous: bool = False,
+    ) -> Any:
         """Load a raster tile with given path and bounds."""
         pass
 
     @abstractmethod
-    def compute_metadata(self, path: str, *,
-                         extra_metadata: Optional[Any] = None,
-                         use_chunks: Optional[bool] = None,
-                         max_shape: Optional[Sequence[int]] = None) -> Dict[str, Any]:
+    def compute_metadata(
+        self,
+        path: str,
+        *,
+        extra_metadata: Optional[Any] = None,
+        use_chunks: Optional[bool] = None,
+        max_shape: Optional[Sequence[int]] = None,
+    ) -> Dict[str, Any]:
         """Compute metadata for a given input file"""
         pass
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}()'
+        return f"{self.__class__.__name__}()"

@@ -15,6 +15,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 try:
     from crick import TDigest, SummaryStats
+
     has_crick = True
 except ImportError:  # pragma: no cover
     has_crick = False
@@ -28,9 +29,9 @@ logger = logging.getLogger(__name__)
 def convex_hull_candidate_mask(mask: np.ndarray) -> np.ndarray:
     """Returns a reduced boolean mask to speed up convex hull computations.
 
-        Exploits the fact that only the first and last elements of each row and column
-        can contribute to the convex hull of a dataset.
-        """
+    Exploits the fact that only the first and last elements of each row and column
+    can contribute to the convex hull of a dataset.
+    """
     assert mask.ndim == 2
     assert mask.dtype == np.bool_
 
@@ -56,7 +57,7 @@ def convex_hull_candidate_mask(mask: np.ndarray) -> np.ndarray:
     return out
 
 
-def compute_image_stats_chunked(dataset: 'DatasetReader') -> Optional[Dict[str, Any]]:
+def compute_image_stats_chunked(dataset: "DatasetReader") -> Optional[Dict[str, Any]]:
     """Compute statistics for the given rasterio dataset by looping over chunks."""
     from rasterio import features, warp, windows
     from shapely import geometry
@@ -70,7 +71,7 @@ def compute_image_stats_chunked(dataset: 'DatasetReader') -> Optional[Dict[str, 
 
     for w in block_windows:
         with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', message='invalid value encountered.*')
+            warnings.filterwarnings("ignore", message="invalid value encountered.*")
             block_data = dataset.read(1, window=w, masked=True)
 
         # handle NaNs for float rasters
@@ -86,11 +87,14 @@ def compute_image_stats_chunked(dataset: 'DatasetReader') -> Optional[Dict[str, 
 
         if np.any(block_data.mask):
             hull_candidates = convex_hull_candidate_mask(~block_data.mask)
-            hull_shapes = [geometry.shape(s) for s, _ in features.shapes(
-                np.ones(hull_candidates.shape, 'uint8'),
-                mask=hull_candidates,
-                transform=windows.transform(w, dataset.transform)
-            )]
+            hull_shapes = [
+                geometry.shape(s)
+                for s, _ in features.shapes(
+                    np.ones(hull_candidates.shape, "uint8"),
+                    mask=hull_candidates,
+                    transform=windows.transform(w, dataset.transform),
+                )
+            ]
         else:
             w, s, e, n = windows.bounds(w, dataset.transform)
             hull_shapes = [geometry.Polygon([(w, s), (e, s), (e, n), (w, n)])]
@@ -103,21 +107,22 @@ def compute_image_stats_chunked(dataset: 'DatasetReader') -> Optional[Dict[str, 
         return None
 
     convex_hull_wgs = warp.transform_geom(
-        dataset.crs, 'epsg:4326', geometry.mapping(convex_hull)
+        dataset.crs, "epsg:4326", geometry.mapping(convex_hull)
     )
 
     return {
-        'valid_percentage': valid_data_count / total_count * 100,
-        'range': (sstats.min(), sstats.max()),
-        'mean': sstats.mean(),
-        'stdev': sstats.std(),
-        'percentiles': tdigest.quantile(np.arange(0.01, 1, 0.01)),
-        'convex_hull': convex_hull_wgs
+        "valid_percentage": valid_data_count / total_count * 100,
+        "range": (sstats.min(), sstats.max()),
+        "mean": sstats.mean(),
+        "stdev": sstats.std(),
+        "percentiles": tdigest.quantile(np.arange(0.01, 1, 0.01)),
+        "convex_hull": convex_hull_wgs,
     }
 
 
-def compute_image_stats(dataset: 'DatasetReader',
-                        max_shape: Optional[Sequence[int]] = None) -> Optional[Dict[str, Any]]:
+def compute_image_stats(
+    dataset: "DatasetReader", max_shape: Optional[Sequence[int]] = None
+) -> Optional[Dict[str, Any]]:
     """Compute statistics for the given rasterio dataset by reading it into memory."""
     from rasterio import features, warp, transform
     from shapely import geometry
@@ -125,10 +130,7 @@ def compute_image_stats(dataset: 'DatasetReader',
     out_shape = (dataset.height, dataset.width)
 
     if max_shape is not None:
-        out_shape = (
-            min(max_shape[0], out_shape[0]),
-            min(max_shape[1], out_shape[1])
-        )
+        out_shape = (min(max_shape[0], out_shape[0]), min(max_shape[1], out_shape[1]))
 
     data_transform = transform.from_bounds(
         *dataset.bounds, height=out_shape[0], width=out_shape[1]
@@ -149,11 +151,14 @@ def compute_image_stats(dataset: 'DatasetReader',
 
     if np.any(raster_data.mask):
         hull_candidates = convex_hull_candidate_mask(~raster_data.mask)
-        hull_shapes = (geometry.shape(s) for s, _ in features.shapes(
-            np.ones(hull_candidates.shape, 'uint8'),
-            mask=hull_candidates,
-            transform=data_transform
-        ))
+        hull_shapes = (
+            geometry.shape(s)
+            for s, _ in features.shapes(
+                np.ones(hull_candidates.shape, "uint8"),
+                mask=hull_candidates,
+                transform=data_transform,
+            )
+        )
         convex_hull = geometry.MultiPolygon(hull_shapes).convex_hull
     else:
         # no masked entries -> convex hull == dataset bounds
@@ -161,26 +166,29 @@ def compute_image_stats(dataset: 'DatasetReader',
         convex_hull = geometry.Polygon([(w, s), (e, s), (e, n), (w, n)])
 
     convex_hull_wgs = warp.transform_geom(
-        dataset.crs, 'epsg:4326', geometry.mapping(convex_hull)
+        dataset.crs, "epsg:4326", geometry.mapping(convex_hull)
     )
 
     return {
-        'valid_percentage': valid_data.size / raster_data.size * 100,
-        'range': (float(valid_data.min()), float(valid_data.max())),
-        'mean': float(valid_data.mean()),
-        'stdev': float(valid_data.std()),
-        'percentiles': np.percentile(valid_data, np.arange(1, 100)),
-        'convex_hull': convex_hull_wgs
+        "valid_percentage": valid_data.size / raster_data.size * 100,
+        "range": (float(valid_data.min()), float(valid_data.max())),
+        "mean": float(valid_data.mean()),
+        "stdev": float(valid_data.std()),
+        "percentiles": np.percentile(valid_data, np.arange(1, 100)),
+        "convex_hull": convex_hull_wgs,
     }
 
 
-@trace('compute_metadata')
-def compute_metadata(path: str, *,
-                     extra_metadata: Optional[Any] = None,
-                     use_chunks: Optional[bool] = None,
-                     max_shape: Optional[Sequence[int]] = None,
-                     large_raster_threshold: Optional[int] = None,
-                     rio_env_options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+@trace("compute_metadata")
+def compute_metadata(
+    path: str,
+    *,
+    extra_metadata: Optional[Any] = None,
+    use_chunks: Optional[bool] = None,
+    max_shape: Optional[Sequence[int]] = None,
+    large_raster_threshold: Optional[int] = None,
+    rio_env_options: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     import rasterio
     from rasterio import warp
     from terracotta.cog import validate
@@ -189,10 +197,10 @@ def compute_metadata(path: str, *,
     extra_metadata = extra_metadata or {}
 
     if max_shape is not None and len(max_shape) != 2:
-        raise ValueError('max_shape argument must contain 2 values')
+        raise ValueError("max_shape argument must contain 2 values")
 
     if use_chunks and max_shape is not None:
-        raise ValueError('Cannot use both use_chunks and max_shape arguments')
+        raise ValueError("Cannot use both use_chunks and max_shape arguments")
 
     if rio_env_options is None:
         rio_env_options = {}
@@ -200,37 +208,43 @@ def compute_metadata(path: str, *,
     with rasterio.Env(**rio_env_options):
         if not validate(path):
             warnings.warn(
-                f'Raster file {path} is not a valid cloud-optimized GeoTIFF. '
-                'Any interaction with it will be significantly slower. Consider optimizing '
-                'it through `terracotta optimize-rasters` before ingestion.',
-                exceptions.PerformanceWarning, stacklevel=3
+                f"Raster file {path} is not a valid cloud-optimized GeoTIFF. "
+                "Any interaction with it will be significantly slower. Consider optimizing "
+                "it through `terracotta optimize-rasters` before ingestion.",
+                exceptions.PerformanceWarning,
+                stacklevel=3,
             )
 
         with rasterio.open(path) as src:
             if src.nodata is None and not has_alpha_band(src):
                 warnings.warn(
-                    f'Raster file {path} does not have a valid nodata value, '
-                    'and does not contain an alpha band. No data will be masked.'
+                    f"Raster file {path} does not have a valid nodata value, "
+                    "and does not contain an alpha band. No data will be masked."
                 )
 
             bounds = warp.transform_bounds(
-                src.crs, 'epsg:4326', *src.bounds, densify_pts=21
+                src.crs, "epsg:4326", *src.bounds, densify_pts=21
             )
 
-            if use_chunks is None and max_shape is None and large_raster_threshold is not None:
+            if (
+                use_chunks is None
+                and max_shape is None
+                and large_raster_threshold is not None
+            ):
                 use_chunks = src.width * src.height > large_raster_threshold
 
                 if use_chunks:
                     logger.debug(
-                        f'Computing metadata for file {path} using more than '
-                        f'{large_raster_threshold // 10**6}M pixels, iterating '
-                        'over chunks'
+                        f"Computing metadata for file {path} using more than "
+                        f"{large_raster_threshold // 10**6}M pixels, iterating "
+                        "over chunks"
                     )
 
             if use_chunks and not has_crick:
                 warnings.warn(
-                    'Processing a large raster file, but crick failed to import. '
-                    'Reading whole file into memory instead.', exceptions.PerformanceWarning
+                    "Processing a large raster file, but crick failed to import. "
+                    "Reading whole file into memory instead.",
+                    exceptions.PerformanceWarning,
                 )
                 use_chunks = False
 
@@ -240,35 +254,36 @@ def compute_metadata(path: str, *,
                 raster_stats = compute_image_stats(src, max_shape)
 
     if raster_stats is None:
-        raise ValueError(f'Raster file {path} does not contain any valid data')
+        raise ValueError(f"Raster file {path} does not contain any valid data")
 
     row_data.update(raster_stats)
 
-    row_data['bounds'] = bounds
-    row_data['metadata'] = extra_metadata
+    row_data["bounds"] = bounds
+    row_data["metadata"] = extra_metadata
     return row_data
 
 
 def get_resampling_enum(method: str) -> Any:
     from rasterio.enums import Resampling
 
-    if method == 'nearest':
+    if method == "nearest":
         return Resampling.nearest
 
-    if method == 'linear':
+    if method == "linear":
         return Resampling.bilinear
 
-    if method == 'cubic':
+    if method == "cubic":
         return Resampling.cubic
 
-    if method == 'average':
+    if method == "average":
         return Resampling.average
 
-    raise ValueError(f'unknown resampling method {method}')
+    raise ValueError(f"unknown resampling method {method}")
 
 
-def has_alpha_band(src: 'DatasetReader') -> bool:
+def has_alpha_band(src: "DatasetReader") -> bool:
     from rasterio.enums import MaskFlags, ColorInterp
+
     return (
         any([MaskFlags.alpha in flags for flags in src.mask_flag_enums])
         or ColorInterp.alpha in src.colorinterp
@@ -276,14 +291,17 @@ def has_alpha_band(src: 'DatasetReader') -> bool:
 
 
 @trace("get_raster_tile")
-def get_raster_tile(path: str, *,
-                    reprojection_method: str = "nearest",
-                    resampling_method: str = "nearest",
-                    tile_bounds: Optional[Tuple[float, float, float, float]] = None,
-                    tile_size: Tuple[int, int] = (256, 256),
-                    preserve_values: bool = False,
-                    target_crs: str = 'epsg:3857',
-                    rio_env_options: Optional[Dict[str, Any]] = None) -> np.ma.MaskedArray:
+def get_raster_tile(
+    path: str,
+    *,
+    reprojection_method: str = "nearest",
+    resampling_method: str = "nearest",
+    tile_bounds: Optional[Tuple[float, float, float, float]] = None,
+    tile_size: Tuple[int, int] = (256, 256),
+    preserve_values: bool = False,
+    target_crs: str = "epsg:3857",
+    rio_env_options: Optional[Dict[str, Any]] = None,
+) -> np.ma.MaskedArray:
     """Load a raster dataset from a file through rasterio.
 
     Heavily inspired by mapbox/rio-tiler
@@ -299,7 +317,7 @@ def get_raster_tile(path: str, *,
         rio_env_options = {}
 
     if preserve_values:
-        reproject_enum = resampling_enum = get_resampling_enum('nearest')
+        reproject_enum = resampling_enum = get_resampling_enum("nearest")
     else:
         reproject_enum = get_resampling_enum(reprojection_method)
         resampling_enum = get_resampling_enum(resampling_method)
@@ -307,10 +325,10 @@ def get_raster_tile(path: str, *,
     with contextlib.ExitStack() as es:
         es.enter_context(rasterio.Env(**rio_env_options))
         try:
-            with trace('open_dataset'):
+            with trace("open_dataset"):
                 src = es.enter_context(rasterio.open(path))
         except OSError:
-            raise IOError('error while reading file {}'.format(path))
+            raise IOError("error while reading file {}".format(path))
 
         # compute buonds in target CRS
         dst_bounds = warp.transform_bounds(src.crs, target_crs, *src.bounds)
@@ -320,12 +338,14 @@ def get_raster_tile(path: str, *,
 
         # prevent loads of very sparse data
         cover_ratio = (
-            (dst_bounds[2] - dst_bounds[0]) / (tile_bounds[2] - tile_bounds[0])
-            * (dst_bounds[3] - dst_bounds[1]) / (tile_bounds[3] - tile_bounds[1])
+            (dst_bounds[2] - dst_bounds[0])
+            / (tile_bounds[2] - tile_bounds[0])
+            * (dst_bounds[3] - dst_bounds[1])
+            / (tile_bounds[3] - tile_bounds[1])
         )
 
         if cover_ratio < 0.01:
-            raise exceptions.TileOutOfBoundsError('dataset covers less than 1% of tile')
+            raise exceptions.TileOutOfBoundsError("dataset covers less than 1% of tile")
 
         # compute suggested resolution in target CRS
         dst_transform, _, _ = warp.calculate_default_transform(
@@ -340,7 +360,7 @@ def get_raster_tile(path: str, *,
 
         if tile_res[0] < dst_res[0] or tile_res[1] < dst_res[1]:
             dst_res = tile_res
-            resampling_enum = get_resampling_enum('nearest')
+            resampling_enum = get_resampling_enum("nearest")
 
         # pad tile bounds to prevent interpolation artefacts
         num_pad_pixels = 2
@@ -348,29 +368,38 @@ def get_raster_tile(path: str, *,
         # compute tile VRT shape and transform
         dst_width = max(1, round((tile_bounds[2] - tile_bounds[0]) / dst_res[0]))
         dst_height = max(1, round((tile_bounds[3] - tile_bounds[1]) / dst_res[1]))
-        vrt_transform = (
-            transform.from_bounds(*tile_bounds, width=dst_width, height=dst_height)
-            * Affine.translation(-num_pad_pixels, -num_pad_pixels)
+        vrt_transform = transform.from_bounds(
+            *tile_bounds, width=dst_width, height=dst_height
+        ) * Affine.translation(-num_pad_pixels, -num_pad_pixels)
+        vrt_height, vrt_width = (
+            dst_height + 2 * num_pad_pixels,
+            dst_width + 2 * num_pad_pixels,
         )
-        vrt_height, vrt_width = dst_height + 2 * num_pad_pixels, dst_width + 2 * num_pad_pixels
 
         # remove padding in output
         out_window = windows.Window(
-            col_off=num_pad_pixels, row_off=num_pad_pixels, width=dst_width, height=dst_height
+            col_off=num_pad_pixels,
+            row_off=num_pad_pixels,
+            width=dst_width,
+            height=dst_height,
         )
 
         # construct VRT
         vrt = es.enter_context(
             WarpedVRT(
-                src, crs=target_crs, resampling=reproject_enum,
-                transform=vrt_transform, width=vrt_width, height=vrt_height,
-                add_alpha=not has_alpha_band(src)
+                src,
+                crs=target_crs,
+                resampling=reproject_enum,
+                transform=vrt_transform,
+                width=vrt_width,
+                height=vrt_height,
+                add_alpha=not has_alpha_band(src),
             )
         )
 
         # read data
-        with warnings.catch_warnings(), trace('read_from_vrt'):
-            warnings.filterwarnings('ignore', message='invalid value encountered.*')
+        with warnings.catch_warnings(), trace("read_from_vrt"):
+            warnings.filterwarnings("ignore", message="invalid value encountered.*")
             tile_data = vrt.read(
                 1, resampling=resampling_enum, window=out_window, out_shape=tile_size
             )

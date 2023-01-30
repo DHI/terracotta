@@ -5,18 +5,32 @@ The driver to interact with.
 
 import contextlib
 from collections import OrderedDict
-from typing import (Any, Collection, Dict, List, Mapping,
-                    Optional, Sequence, Tuple, TypeVar, Union)
+from typing import (
+    Any,
+    Collection,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import terracotta
 from terracotta import exceptions
-from terracotta.drivers.base_classes import (KeysType, MetaStore,
-                                             MultiValueKeysType, RasterStore,
-                                             requires_connection)
+from terracotta.drivers.base_classes import (
+    KeysType,
+    MetaStore,
+    MultiValueKeysType,
+    RasterStore,
+    requires_connection,
+)
 
 ExtendedKeysType = Union[Sequence[str], Mapping[str, str]]
 ExtendedMultiValueKeysType = Union[Sequence[str], Mapping[str, Union[str, List[str]]]]
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def squeeze(iterable: Collection[T]) -> T:
@@ -29,6 +43,7 @@ class TerracottaDriver:
 
     Do not instantiate directly, use :func:`terracotta.get_driver` instead.
     """
+
     def __init__(self, meta_store: MetaStore, raster_store: RasterStore) -> None:
         self.meta_store = meta_store
         self.raster_store = raster_store
@@ -58,8 +73,12 @@ class TerracottaDriver:
         """
         return self.meta_store.key_names
 
-    def create(self, keys: Sequence[str], *,
-               key_descriptions: Optional[Mapping[str, str]] = None) -> None:
+    def create(
+        self,
+        keys: Sequence[str],
+        *,
+        key_descriptions: Optional[Mapping[str, str]] = None,
+    ) -> None:
         """Create a new, empty metadata store.
 
         Arguments:
@@ -112,8 +131,12 @@ class TerracottaDriver:
         return self.meta_store.get_keys()
 
     @requires_connection
-    def get_datasets(self, where: Optional[MultiValueKeysType] = None,
-                     page: int = 0, limit: Optional[int] = None) -> Dict[Tuple[str, ...], Any]:
+    def get_datasets(
+        self,
+        where: Optional[MultiValueKeysType] = None,
+        page: int = 0,
+        limit: Optional[int] = None,
+    ) -> Dict[Tuple[str, ...], Any]:
         """Get all known dataset key combinations matching the given constraints,
         and a path to retrieve the data (dependent on the raster store).
 
@@ -131,7 +154,7 @@ class TerracottaDriver:
         return self.meta_store.get_datasets(
             where=self._standardize_multi_value_keys(where, requires_all_keys=False),
             page=page,
-            limit=limit
+            limit=limit,
         )
 
     @requires_connection
@@ -165,10 +188,12 @@ class TerracottaDriver:
             # metadata is not computed yet, trigger lazy loading
             dataset = self.get_datasets(keys)
             if not dataset:
-                raise exceptions.DatasetNotFoundError('No dataset found')
+                raise exceptions.DatasetNotFoundError("No dataset found")
 
             path = squeeze(dataset.values())
-            metadata = self.compute_metadata(path, max_shape=self.LAZY_LOADING_MAX_SHAPE)
+            metadata = self.compute_metadata(
+                path, max_shape=self.LAZY_LOADING_MAX_SHAPE
+            )
 
             try:
                 self.insert(keys, path, metadata=metadata)
@@ -185,11 +210,13 @@ class TerracottaDriver:
 
     @requires_connection
     def insert(
-        self, keys: ExtendedKeysType,
-        path: str, *,
+        self,
+        keys: ExtendedKeysType,
+        path: str,
+        *,
         override_path: Optional[str] = None,
         metadata: Optional[Mapping[str, Any]] = None,
-        skip_metadata: bool = False
+        skip_metadata: bool = False,
     ) -> None:
         """Register a new dataset. Used to populate meta store.
 
@@ -211,11 +238,7 @@ class TerracottaDriver:
         if metadata is None and not skip_metadata:
             metadata = self.compute_metadata(path)
 
-        self.meta_store.insert(
-            keys=keys,
-            path=override_path or path,
-            metadata=metadata
-        )
+        self.meta_store.insert(keys=keys, path=override_path or path, metadata=metadata)
 
     @requires_connection
     def delete(self, keys: ExtendedKeysType) -> None:
@@ -231,11 +254,15 @@ class TerracottaDriver:
 
         self.meta_store.delete(keys)
 
-    def get_raster_tile(self, keys: ExtendedKeysType, *,
-                        tile_bounds: Optional[Sequence[float]] = None,
-                        tile_size: Sequence[int] = (256, 256),
-                        preserve_values: bool = False,
-                        asynchronous: bool = False) -> Any:
+    def get_raster_tile(
+        self,
+        keys: ExtendedKeysType,
+        *,
+        tile_bounds: Optional[Sequence[float]] = None,
+        tile_size: Sequence[int] = (256, 256),
+        preserve_values: bool = False,
+        asynchronous: bool = False,
+    ) -> Any:
         """Load a raster tile with given keys and bounds.
 
         Arguments:
@@ -268,10 +295,14 @@ class TerracottaDriver:
             asynchronous=asynchronous,
         )
 
-    def compute_metadata(self, path: str, *,
-                         extra_metadata: Optional[Any] = None,
-                         use_chunks: Optional[bool] = None,
-                         max_shape: Optional[Sequence[int]] = None) -> Dict[str, Any]:
+    def compute_metadata(
+        self,
+        path: str,
+        *,
+        extra_metadata: Optional[Any] = None,
+        use_chunks: Optional[bool] = None,
+        max_shape: Optional[Sequence[int]] = None,
+    ) -> Dict[str, Any]:
         """Compute metadata for a dataset.
 
         Arguments:
@@ -320,11 +351,11 @@ class TerracottaDriver:
     def _ensure_keys_as_dict(
         self,
         keys: Union[ExtendedKeysType, Optional[MultiValueKeysType]],
-        requires_all_keys: bool = True
+        requires_all_keys: bool = True,
     ) -> Dict[str, Any]:
         if requires_all_keys and (keys is None or len(keys) != len(self.key_names)):
             raise exceptions.InvalidKeyError(
-                f'Got wrong number of keys (available keys: {self.key_names})'
+                f"Got wrong number of keys (available keys: {self.key_names})"
             )
 
         if isinstance(keys, Mapping):
@@ -335,21 +366,21 @@ class TerracottaDriver:
             keys = {}
         else:
             raise exceptions.InvalidKeyError(
-                'Encountered unknown key type, expected Mapping or Sequence'
+                "Encountered unknown key type, expected Mapping or Sequence"
             )
 
         unknown_keys = set(keys) - set(self.key_names)
         if unknown_keys:
             raise exceptions.InvalidKeyError(
-                f'Encountered unrecognized keys {unknown_keys} (available keys: {self.key_names})'
+                f"Encountered unrecognized keys {unknown_keys} (available keys: {self.key_names})"
             )
 
         return keys
 
     def __repr__(self) -> str:
         return (
-            f'{self.__class__.__name__}(\n'
-            f'    meta_store={self.meta_store!r},\n'
-            f'    raster_store={self.raster_store!r}\n'
-            ')'
+            f"{self.__class__.__name__}(\n"
+            f"    meta_store={self.meta_store!r},\n"
+            f"    raster_store={self.raster_store!r}\n"
+            ")"
         )
