@@ -59,7 +59,7 @@ class TerracottaDriver:
         return self.meta_store.key_names
 
     def create(self, keys: Sequence[str], *,
-               key_descriptions: Mapping[str, str] = None) -> None:
+               key_descriptions: Optional[Mapping[str, str]] = None) -> None:
         """Create a new, empty metadata store.
 
         Arguments:
@@ -112,8 +112,8 @@ class TerracottaDriver:
         return self.meta_store.get_keys()
 
     @requires_connection
-    def get_datasets(self, where: MultiValueKeysType = None,
-                     page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], Any]:
+    def get_datasets(self, where: Optional[MultiValueKeysType] = None,
+                     page: int = 0, limit: Optional[int] = None) -> Dict[Tuple[str, ...], Any]:
         """Get all known dataset key combinations matching the given constraints,
         and a path to retrieve the data (dependent on the raster store).
 
@@ -187,8 +187,8 @@ class TerracottaDriver:
     def insert(
         self, keys: ExtendedKeysType,
         path: str, *,
-        override_path: str = None,
-        metadata: Mapping[str, Any] = None,
+        override_path: Optional[str] = None,
+        metadata: Optional[Mapping[str, Any]] = None,
         skip_metadata: bool = False
     ) -> None:
         """Register a new dataset. Used to populate meta store.
@@ -232,7 +232,7 @@ class TerracottaDriver:
         self.meta_store.delete(keys)
 
     def get_raster_tile(self, keys: ExtendedKeysType, *,
-                        tile_bounds: Sequence[float] = None,
+                        tile_bounds: Optional[Sequence[float]] = None,
                         tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
@@ -269,9 +269,9 @@ class TerracottaDriver:
         )
 
     def compute_metadata(self, path: str, *,
-                         extra_metadata: Any = None,
-                         use_chunks: bool = None,
-                         max_shape: Sequence[int] = None) -> Dict[str, Any]:
+                         extra_metadata: Optional[Any] = None,
+                         use_chunks: Optional[bool] = None,
+                         max_shape: Optional[Sequence[int]] = None) -> Dict[str, Any]:
         """Compute metadata for a dataset.
 
         Arguments:

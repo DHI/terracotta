@@ -3,7 +3,7 @@
 Base class for drivers operating on physical raster files.
 """
 
-from typing import Any, Callable, Sequence, Dict, TypeVar
+from typing import Optional, Any, Callable, Sequence, Dict, TypeVar
 from concurrent.futures import Future, Executor, ProcessPoolExecutor, ThreadPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 
@@ -96,9 +96,9 @@ class GeoTiffRasterStore(RasterStore):
         self._cache_lock = threading.RLock()
 
     def compute_metadata(self, path: str, *,
-                         extra_metadata: Any = None,
-                         use_chunks: bool = None,
-                         max_shape: Sequence[int] = None) -> Dict[str, Any]:
+                         extra_metadata: Optional[Any] = None,
+                         use_chunks: Optional[bool] = None,
+                         max_shape: Optional[Sequence[int]] = None) -> Dict[str, Any]:
         return raster.compute_metadata(path, extra_metadata=extra_metadata,
                                        use_chunks=use_chunks, max_shape=max_shape,
                                        large_raster_threshold=self._LARGE_RASTER_THRESHOLD,
@@ -107,8 +107,8 @@ class GeoTiffRasterStore(RasterStore):
     # return type has to be Any until mypy supports conditional return types
     def get_raster_tile(self,
                         path: str, *,
-                        tile_bounds: Sequence[float] = None,
-                        tile_size: Sequence[int] = None,
+                        tile_bounds: Optional[Sequence[float]] = None,
+                        tile_size: Optional[Sequence[int]] = None,
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
         future: Future[np.ma.MaskedArray]

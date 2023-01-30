@@ -3,7 +3,7 @@
 Use Flask development server to serve Terracotta client app.
 """
 
-from typing import Sequence
+from typing import Optional, Sequence
 
 import os
 import json
@@ -29,7 +29,7 @@ from terracotta.scripts.http_utils import find_open_port
 @click.option('--no-browser', is_flag=True, default=False, help='Do not open browser')
 @click.option('--port', type=click.INT, default=None,
               help='Port to use [default: first free port between 5100 and 5199].')
-def connect(terracotta_hostname: str, no_browser: bool = False, port: int = None) -> None:
+def connect(terracotta_hostname: str, no_browser: bool = False, port: Optional[int] = None) -> None:
     """Connect to a running Terracotta and interactively explore data in it.
 
     First argument is hostname and port to connect to.

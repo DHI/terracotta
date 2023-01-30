@@ -199,7 +199,7 @@ class SettingSchema(Schema):
         return TerracottaSettings(**data)
 
 
-def parse_config(config: Mapping[str, Any] = None) -> TerracottaSettings:
+def parse_config(config: Optional[Mapping[str, Any]] = None) -> TerracottaSettings:
     """Parse given config dict and return new TerracottaSettings object"""
     config_dict = dict(config or {})
 

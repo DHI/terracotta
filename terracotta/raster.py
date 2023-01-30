@@ -117,7 +117,7 @@ def compute_image_stats_chunked(dataset: 'DatasetReader') -> Optional[Dict[str, 
 
 
 def compute_image_stats(dataset: 'DatasetReader',
-                        max_shape: Sequence[int] = None) -> Optional[Dict[str, Any]]:
+                        max_shape: Optional[Sequence[int]] = None) -> Optional[Dict[str, Any]]:
     """Compute statistics for the given rasterio dataset by reading it into memory."""
     from rasterio import features, warp, transform
     from shapely import geometry
@@ -176,11 +176,11 @@ def compute_image_stats(dataset: 'DatasetReader',
 
 @trace('compute_metadata')
 def compute_metadata(path: str, *,
-                     extra_metadata: Any = None,
-                     use_chunks: bool = None,
-                     max_shape: Sequence[int] = None,
-                     large_raster_threshold: int = None,
-                     rio_env_options: Dict[str, Any] = None) -> Dict[str, Any]:
+                     extra_metadata: Optional[Any] = None,
+                     use_chunks: Optional[bool] = None,
+                     max_shape: Optional[Sequence[int]] = None,
+                     large_raster_threshold: Optional[int] = None,
+                     rio_env_options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     import rasterio
     from rasterio import warp
     from terracotta.cog import validate
@@ -279,11 +279,11 @@ def has_alpha_band(src: 'DatasetReader') -> bool:
 def get_raster_tile(path: str, *,
                     reprojection_method: str = "nearest",
                     resampling_method: str = "nearest",
-                    tile_bounds: Tuple[float, float, float, float] = None,
+                    tile_bounds: Optional[Tuple[float, float, float, float]] = None,
                     tile_size: Tuple[int, int] = (256, 256),
                     preserve_values: bool = False,
                     target_crs: str = 'epsg:3857',
-                    rio_env_options: Dict[str, Any] = None) -> np.ma.MaskedArray:
+                    rio_env_options: Optional[Dict[str, Any]] = None) -> np.ma.MaskedArray:
     """Load a raster dataset from a file through rasterio.
 
     Heavily inspired by mapbox/rio-tiler

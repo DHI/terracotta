@@ -187,7 +187,7 @@ class RelationalMetaStore(MetaStore, ABC):
 
     @requires_writable
     @convert_exceptions('Could not create database')
-    def create(self, keys: Sequence[str], key_descriptions: Mapping[str, str] = None) -> None:
+    def create(self, keys: Sequence[str], key_descriptions: Optional[Mapping[str, str]] = None) -> None:
         """Create and initialize database with empty tables.
 
         This must be called before opening the first connection. The database must not
@@ -213,7 +213,7 @@ class RelationalMetaStore(MetaStore, ABC):
     def _initialize_database(
         self,
         keys: Sequence[str],
-        key_descriptions: Mapping[str, str] = None
+        key_descriptions: Optional[Mapping[str, str]] = None
     ) -> None:
         if key_descriptions is None:
             key_descriptions = {}
@@ -294,9 +294,9 @@ class RelationalMetaStore(MetaStore, ABC):
     @convert_exceptions('Could not retrieve datasets')
     def get_datasets(
         self,
-        where: MultiValueKeysType = None,
+        where: Optional[MultiValueKeysType] = None,
         page: int = 0,
-        limit: int = None
+        limit: Optional[int] = None
     ) -> Dict[Tuple[str, ...], str]:
         if where is None:
             where = {}
@@ -361,7 +361,7 @@ class RelationalMetaStore(MetaStore, ABC):
         self,
         keys: KeysType,
         path: str, *,
-        metadata: Mapping[str, Any] = None
+        metadata: Optional[Mapping[str, Any]] = None
     ) -> None:
         datasets_table = sqla.Table('datasets', self.sqla_metadata, autoload_with=self.sqla_engine)
         metadata_table = sqla.Table('metadata', self.sqla_metadata, autoload_with=self.sqla_engine)

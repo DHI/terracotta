@@ -19,9 +19,9 @@ def compute(expression: str,
             some_keys: Sequence[str],
             operand_keys: Mapping[str, str],
             stretch_range: Tuple[Number, Number],
-            tile_xyz: Tuple[int, int, int] = None, *,
-            colormap: str = None,
-            tile_size: Tuple[int, int] = None) -> BinaryIO:
+            tile_xyz: Optional[Tuple[int, int, int]] = None, *,
+            colormap: Optional[str] = None,
+            tile_size: Optional[Tuple[int, int]] = None) -> BinaryIO:
     """Return singleband image computed from one or more images as PNG
 
     Expects a Python expression that returns a NumPy array. Operands in

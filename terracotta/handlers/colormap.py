@@ -3,7 +3,7 @@
 Handle /colormap API endpoint.
 """
 
-from typing import List, Tuple, TypeVar, Dict, Any
+from typing import Optional, List, Tuple, TypeVar, Dict, Any
 
 import numpy as np
 
@@ -14,7 +14,7 @@ Number = TypeVar('Number', 'int', 'float')
 
 @trace('colormap_handler')
 def colormap(*, stretch_range: Tuple[Number, Number],
-             colormap: str = None,
+             colormap: Optional[str] = None,
              num_values: int = 255) -> List[Dict[str, Any]]:
     """Returns a list [{value=pixel value, rgba=rgba tuple}] for given stretch parameters"""
     from terracotta import image

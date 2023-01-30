@@ -4,7 +4,7 @@ Define an interface to retrieve Terracotta drivers.
 """
 
 import os
-from typing import Union, Tuple, Dict, Type
+from typing import Optional, Union, Tuple, Dict, Type
 import urllib.parse as urlparse
 from pathlib import Path
 
@@ -54,7 +54,7 @@ def auto_detect_provider(url_or_path: str) -> str:
 _DRIVER_CACHE: Dict[Tuple[URLOrPathType, str, int], TerracottaDriver] = {}
 
 
-def get_driver(url_or_path: URLOrPathType, provider: str = None) -> TerracottaDriver:
+def get_driver(url_or_path: URLOrPathType, provider: Optional[str] = None) -> TerracottaDriver:
     """Retrieve Terracotta driver instance for the given path.
 
     This function always returns the same instance for identical inputs.

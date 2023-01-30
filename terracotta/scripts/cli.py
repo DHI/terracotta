@@ -3,7 +3,7 @@
 Entry point for CLI.
 """
 
-from typing import Any, Mapping
+from typing import Optional, Any, Mapping
 import sys
 
 import click
@@ -20,8 +20,8 @@ from terracotta import get_settings, update_settings, logs, __version__
 @click.version_option(version=__version__)
 @click.pass_context
 def cli(ctx: click.Context,
-        config: Mapping[str, Any] = None,
-        loglevel: str = None) -> None:
+        config: Optional[Mapping[str, Any]] = None,
+        loglevel: Optional[str] = None) -> None:
     """The command line interface for the Terracotta tile server.
 
     All flags must be passed before specifying a subcommand.

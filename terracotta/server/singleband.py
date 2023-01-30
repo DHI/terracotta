@@ -3,7 +3,7 @@
 Flask route to handle /singleband calls.
 """
 
-from typing import Any, Mapping, Dict, Tuple
+from typing import Optional, Any, Mapping, Dict, Tuple
 import json
 
 from marshmallow import (Schema, fields, validate, validates_schema,
@@ -150,7 +150,7 @@ def get_singleband_preview(keys: str) -> Response:
     return _get_singleband_image(keys)
 
 
-def _get_singleband_image(keys: str, tile_xyz: Tuple[int, int, int] = None) -> Response:
+def _get_singleband_image(keys: str, tile_xyz: Optional[Tuple[int, int, int]] = None) -> Response:
     from terracotta.handlers.singleband import singleband
 
     parsed_keys = [key for key in keys.split('/') if key]

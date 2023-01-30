@@ -3,7 +3,7 @@
 Flask route to handle /rgb calls.
 """
 
-from typing import Any, Mapping, Dict, Tuple
+from typing import Optional, Any, Mapping, Dict, Tuple
 import json
 
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
@@ -115,7 +115,7 @@ def get_rgb_preview(keys: str = '') -> Response:
     return _get_rgb_image(keys)
 
 
-def _get_rgb_image(keys: str, tile_xyz: Tuple[int, int, int] = None) -> Response:
+def _get_rgb_image(keys: str, tile_xyz: Optional[Tuple[int, int, int]] = None) -> Response:
     from terracotta.handlers.rgb import rgb
 
     option_schema = RGBOptionSchema()

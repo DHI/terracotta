@@ -17,9 +17,9 @@ ListOfRanges = Sequence[Optional[Tuple[Optional[Number], Optional[Number]]]]
 @trace('rgb_handler')
 def rgb(some_keys: Sequence[str],
         rgb_values: Sequence[str],
-        tile_xyz: Tuple[int, int, int] = None, *,
-        stretch_ranges: ListOfRanges = None,
-        tile_size: Tuple[int, int] = None) -> BinaryIO:
+        tile_xyz: Optional[Tuple[int, int, int]] = None, *,
+        stretch_ranges: Optional[ListOfRanges] = None,
+        tile_size: Optional[Tuple[int, int]] = None) -> BinaryIO:
     """Return RGB image as PNG
 
     Red, green, and blue channels correspond to the given values `rgb_values` of the key

@@ -3,7 +3,7 @@
 Use Flask development server to serve up raster files or database locally.
 """
 
-from typing import Any, Tuple, Sequence
+from typing import Optional, Any, Tuple, Sequence
 import os
 import tempfile
 import logging
@@ -32,14 +32,14 @@ logger = logging.getLogger(__name__)
               help='Allow connections from outside IP addresses. Use with care!')
 @click.option('--port', type=click.INT, default=None,
               help='Port to use [default: first free port between 5000 and 5099].')
-def serve(database: str = None,
-          raster_pattern: RasterPatternType = None,
+def serve(database: Optional[str] = None,
+          raster_pattern: Optional[RasterPatternType] = None,
           debug: bool = False,
           profile: bool = False,
-          database_provider: str = None,
+          database_provider: Optional[str] = None,
           allow_all_ips: bool = False,
-          port: int = None,
-          rgb_key: str = None) -> None:
+          port: Optional[int] = None,
+          rgb_key: Optional[str] = None) -> None:
     """Serve rasters through a local Flask development server.
 
     Either -d/--database or -r/--raster-pattern must be given.

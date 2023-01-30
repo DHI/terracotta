@@ -30,7 +30,7 @@ def requires_writable(fun: Callable[..., T]) -> Callable[..., T]:
 
 
 def requires_connection(
-    fun: Callable[..., T] = None, *,
+    fun: Optional[Callable[..., T]] = None, *,
     verify: bool = True
 ) -> Union[Callable[..., T], functools.partial]:
     if fun is None:
@@ -76,7 +76,7 @@ class MetaStore(ABC):
 
     @abstractmethod
     def create(self, keys: Sequence[str], *,
-               key_descriptions: Mapping[str, str] = None) -> None:
+               key_descriptions: Optional[Mapping[str, str]] = None) -> None:
         """Create a new, empty database"""
         pass
 
@@ -95,8 +95,8 @@ class MetaStore(ABC):
         pass
 
     @abstractmethod
-    def get_datasets(self, where: MultiValueKeysType = None,
-                     page: int = 0, limit: int = None) -> Dict[Tuple[str, ...], Any]:
+    def get_datasets(self, where: Optional[MultiValueKeysType] = None,
+                     page: int = 0, limit: Optional[int] = None) -> Dict[Tuple[str, ...], Any]:
         """Get all known dataset key combinations matching the given constraints,
         and a path to retrieve the data
         """
@@ -108,7 +108,7 @@ class MetaStore(ABC):
         pass
 
     @abstractmethod
-    def insert(self, keys: KeysType, path: str, *, metadata: Mapping[str, Any] = None) -> None:
+    def insert(self, keys: KeysType, path: str, *, metadata: Optional[Mapping[str, Any]] = None) -> None:
         """Register a new dataset. This also populates the metadata database,
         if metadata is specified and not `None`."""
         pass
@@ -130,7 +130,7 @@ class RasterStore(ABC):
     @abstractmethod
     # TODO: add accurate signature if mypy ever supports conditional return types
     def get_raster_tile(self, path: str, *,
-                        tile_bounds: Sequence[float] = None,
+                        tile_bounds: Optional[Sequence[float]] = None,
                         tile_size: Sequence[int] = (256, 256),
                         preserve_values: bool = False,
                         asynchronous: bool = False) -> Any:
@@ -139,9 +139,9 @@ class RasterStore(ABC):
 
     @abstractmethod
     def compute_metadata(self, path: str, *,
-                         extra_metadata: Any = None,
-                         use_chunks: bool = None,
-                         max_shape: Sequence[int] = None) -> Dict[str, Any]:
+                         extra_metadata: Optional[Any] = None,
+                         use_chunks: Optional[bool] = None,
+                         max_shape: Optional[Sequence[int]] = None) -> Dict[str, Any]:
         """Compute metadata for a given input file"""
         pass
 

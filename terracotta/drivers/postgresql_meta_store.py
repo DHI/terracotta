@@ -3,7 +3,7 @@
 PostgreSQL-backed metadata driver. Metadata is stored in a PostgreSQL database.
 """
 
-from typing import Mapping, Sequence
+from typing import Optional, Mapping, Sequence
 
 import sqlalchemy as sqla
 from terracotta.drivers.relational_meta_store import RelationalMetaStore
@@ -76,7 +76,7 @@ class PostgreSQLMetaStore(RelationalMetaStore):
     def _initialize_database(
         self,
         keys: Sequence[str],
-        key_descriptions: Mapping[str, str] = None
+        key_descriptions: Optional[Mapping[str, str]] = None
     ) -> None:
         # Enforce max primary key length equal to max B-tree index size
         self.SQL_KEY_SIZE = self.MAX_PRIMARY_KEY_SIZE // len(keys)

@@ -4,7 +4,7 @@ MySQL-backed metadata driver. Metadata is stored in a MySQL database.
 """
 
 import functools
-from typing import Mapping, Sequence
+from typing import Optional, Mapping, Sequence
 
 import sqlalchemy as sqla
 from sqlalchemy.dialects.mysql import TEXT, VARCHAR
@@ -79,7 +79,7 @@ class MySQLMetaStore(RelationalMetaStore):
     def _initialize_database(
         self,
         keys: Sequence[str],
-        key_descriptions: Mapping[str, str] = None
+        key_descriptions: Optional[Mapping[str, str]] = None
     ) -> None:
         # total primary key length has an upper limit in MySQL
         self.SQL_KEY_SIZE = self.MAX_PRIMARY_KEY_SIZE // len(keys)

@@ -3,7 +3,7 @@
 Utilities to work with XYZ Mercator tiles.
 """
 
-from typing import Sequence, Union, Mapping, Tuple, Any
+from typing import Optional, Sequence, Union, Mapping, Tuple, Any
 
 import mercantile
 
@@ -14,7 +14,7 @@ from terracotta.drivers.terracotta_driver import TerracottaDriver
 # TODO: add accurate signature if mypy ever supports conditional return types
 def get_tile_data(driver: TerracottaDriver,
                   keys: Union[Sequence[str], Mapping[str, str]],
-                  tile_xyz: Tuple[int, int, int] = None,
+                  tile_xyz: Optional[Tuple[int, int, int]] = None,
                   *, tile_size: Tuple[int, int] = (256, 256),
                   preserve_values: bool = False,
                   asynchronous: bool = False) -> Any:

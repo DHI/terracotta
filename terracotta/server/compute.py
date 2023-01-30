@@ -3,7 +3,7 @@
 Flask route to handle /compute calls.
 """
 
-from typing import Any, Mapping, Dict, Tuple
+from typing import Optional, Any, Mapping, Dict, Tuple
 import json
 
 from marshmallow import (Schema, fields, validate,
@@ -134,7 +134,7 @@ def get_compute_preview(keys: str = '') -> Response:
     return _get_compute_image(keys)
 
 
-def _get_compute_image(keys: str, tile_xyz: Tuple[int, int, int] = None) -> Any:
+def _get_compute_image(keys: str, tile_xyz: Optional[Tuple[int, int, int]] = None) -> Any:
     from terracotta.handlers.compute import compute
 
     parsed_keys = [key for key in keys.split('/') if key]
