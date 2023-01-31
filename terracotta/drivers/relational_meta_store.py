@@ -22,7 +22,6 @@ from terracotta.drivers.base_classes import (
     KeysType,
     MetaStore,
     MultiValueKeysType,
-    requires_connection,
     requires_writable,
 )
 from terracotta.profile import trace
@@ -59,8 +58,8 @@ class RelationalMetaStore(MetaStore, ABC):
     SQL_KEY_SIZE: int
     SQL_TIMEOUT_KEY: str
 
-    SQLA_STRING = sqla.types.String
-    SQLA_METADATA_TYPE_LOOKUP: Dict[str, sqla.types.TypeEngine] = {
+    SQLA_STRING: Any = sqla.types.String
+    SQLA_METADATA_TYPE_LOOKUP: Dict[str, Any] = {
         "real": functools.partial(sqla.types.Float, precision=8),
         "text": sqla.types.Text,
         "blob": sqla.types.LargeBinary,
@@ -98,7 +97,7 @@ class RelationalMetaStore(MetaStore, ABC):
 
         self._db_keys: Optional[OrderedDict] = None
 
-        self.connection: Connection
+        self._connection: Optional[Connection] = None
         self.connected: bool = False
         self.db_version_verified: bool = False
 
@@ -140,24 +139,28 @@ class RelationalMetaStore(MetaStore, ABC):
             )
 
         if not self.connected:
+            # start a new connection
             try:
                 with get_connection() as connection:
-                    self.connection = connection
+                    self._connection = connection
                     self.connected = True
                     if verify:
                         self._connection_callback()
 
-                    yield
-                    self.connection.commit()
+                    try:
+                        yield self._connection
+                    except:
+                        self._connection.rollback()
+                        raise
+                    else:
+                        self._connection.commit()
             finally:
+                self._connection = None
                 self.connected = False
-                self.connection = None
         else:
-            try:
-                yield
-            except Exception as exception:
-                self.connection.rollback()
-                raise exception
+            # re-use existing connection
+            assert self._connection is not None
+            yield self._connection
 
     def _connection_callback(self) -> None:
         if not self.db_version_verified:
@@ -176,7 +179,6 @@ class RelationalMetaStore(MetaStore, ABC):
             self.db_version_verified = True
 
     @property
-    @requires_connection
     @convert_exceptions(_ERROR_ON_CONNECT)
     def db_version(self) -> str:
         """Terracotta version used to create the database"""
@@ -184,8 +186,11 @@ class RelationalMetaStore(MetaStore, ABC):
             "terracotta", self.sqla_metadata, autoload_with=self.sqla_engine
         )
         stmt = sqla.select(terracotta_table.c.version)
-        version = self.connection.execute(stmt).scalar()
-        return version
+
+        with self.connect() as conn:
+            version = conn.execute(stmt).scalar()
+
+        return str(version)
 
     @requires_writable
     @convert_exceptions("Could not create database")
@@ -213,7 +218,6 @@ class RelationalMetaStore(MetaStore, ABC):
         # it may be created automatically on connection for some database vendors
         pass
 
-    @requires_connection(verify=False)
     def _initialize_database(
         self, keys: Sequence[str], key_descriptions: Optional[Mapping[str, str]] = None
     ) -> None:
@@ -272,29 +276,31 @@ class RelationalMetaStore(MetaStore, ABC):
         )
         self.sqla_metadata.create_all(self.sqla_engine)
 
-        self.connection.execute(
-            terracotta_table.insert().values(version=terracotta.__version__)
-        )
-        self.connection.execute(
-            key_names_table.insert(),
-            [
-                dict(key_name=key, description=key_descriptions.get(key, ""), index=i)
-                for i, key in enumerate(keys)
-            ],
-        )
+        with self.connect(verify=False) as conn:
+            conn.execute(
+                terracotta_table.insert().values(version=terracotta.__version__)
+            )
+            conn.execute(
+                key_names_table.insert(),
+                [
+                    dict(key_name=key, description=key_descriptions.get(key, ""), index=i)
+                    for i, key in enumerate(keys)
+                ],
+            )
 
-    @requires_connection
     @convert_exceptions("Could not retrieve keys from database")
     def get_keys(self) -> OrderedDict:
         keys_table = sqla.Table(
             "key_names", self.sqla_metadata, autoload_with=self.sqla_engine
         )
-        result = self.connection.execute(
-            sqla.select(
-                keys_table.c.get("key_name"), keys_table.c.get("description")
-            ).order_by(keys_table.c.get("index"))
-        )
-        return OrderedDict(result.all())
+
+        with self.connect() as conn:
+            result = conn.execute(
+                sqla.select(keys_table.c["key_name"], keys_table.c["description"]).order_by(
+                    keys_table.c["index"]
+                )
+            )
+        return OrderedDict((row.key_name, row.description) for row in result.all())
 
     @property
     def key_names(self) -> Tuple[str, ...]:
@@ -304,7 +310,6 @@ class RelationalMetaStore(MetaStore, ABC):
         return tuple(self._db_keys.keys())
 
     @trace("get_datasets")
-    @requires_connection
     @convert_exceptions("Could not retrieve datasets")
     def get_datasets(
         self,
@@ -327,37 +332,37 @@ class RelationalMetaStore(MetaStore, ABC):
             datasets_table.select()
             .where(
                 *[
-                    sqla.or_(
-                        *[datasets_table.c.get(column) == value for value in values]
-                    )
+                    sqla.or_(*[datasets_table.c[column] == value for value in values])
                     for column, values in where.items()
                 ]
             )
             .order_by(*datasets_table.c.values())
-            .limit(limit)
-            .offset(page * limit if limit is not None else None)
         )
 
-        result = self.connection.execute(stmt).all()
+        if limit is not None:
+            stmt = stmt.limit(limit).offset(page * limit if limit is not None else None)
 
-        def keytuple(row: Dict[str, Any]) -> Tuple[str, ...]:
+        with self.connect() as conn:
+            result = conn.execute(stmt).all()
+
+        def keytuple(row: sqla.engine.row.Row) -> Tuple[str, ...]:
             return tuple(getattr(row, key) for key in self.key_names)
 
         datasets = {keytuple(row): row.path for row in result}
         return datasets
 
     @trace("get_metadata")
-    @requires_connection
     @convert_exceptions("Could not retrieve metadata")
     def get_metadata(self, keys: KeysType) -> Optional[Dict[str, Any]]:
         metadata_table = sqla.Table(
             "metadata", self.sqla_metadata, autoload_with=self.sqla_engine
         )
         stmt = metadata_table.select().where(
-            *[metadata_table.c.get(key) == value for key, value in keys.items()]
+            *[metadata_table.c[key] == value for key, value in keys.items()]
         )
 
-        row = self.connection.execute(stmt).first()
+        with self.connect() as conn:
+            row = conn.execute(stmt).first()
         if not row:
             return None
 
@@ -367,7 +372,6 @@ class RelationalMetaStore(MetaStore, ABC):
 
     @trace("insert")
     @requires_writable
-    @requires_connection
     @convert_exceptions("Could not write to database")
     def insert(
         self, keys: KeysType, path: str, *, metadata: Optional[Mapping[str, Any]] = None
@@ -379,33 +383,30 @@ class RelationalMetaStore(MetaStore, ABC):
             "metadata", self.sqla_metadata, autoload_with=self.sqla_engine
         )
 
-        self.connection.execute(
-            datasets_table.delete().where(
-                *[
-                    datasets_table.c.get(column) == value
-                    for column, value in keys.items()
-                ]
-            )
-        )
-        self.connection.execute(datasets_table.insert().values(**keys, path=path))
-
-        if metadata is not None:
-            encoded_data = self._encode_data(metadata)
-            self.connection.execute(
-                metadata_table.delete().where(
-                    *[
-                        metadata_table.c.get(column) == value
-                        for column, value in keys.items()
-                    ]
+        with self.connect() as conn:
+            conn.execute(
+                datasets_table.delete().where(
+                    *[datasets_table.c[column] == value for column, value in keys.items()]
                 )
             )
-            self.connection.execute(
-                metadata_table.insert().values(**keys, **encoded_data)
-            )
+            conn.execute(datasets_table.insert().values(**keys, path=path))
+
+            if metadata is not None:
+                encoded_data = self._encode_data(metadata)
+                conn.execute(
+                    metadata_table.delete().where(
+                        *[
+                            metadata_table.c[column] == value
+                            for column, value in keys.items()
+                        ]
+                    )
+                )
+                conn.execute(
+                    metadata_table.insert().values(**keys, **encoded_data)
+                )
 
     @trace("delete")
     @requires_writable
-    @requires_connection
     @convert_exceptions("Could not write to database")
     def delete(self, keys: KeysType) -> None:
         if not self.get_datasets(keys):
@@ -418,22 +419,17 @@ class RelationalMetaStore(MetaStore, ABC):
             "metadata", self.sqla_metadata, autoload_with=self.sqla_engine
         )
 
-        self.connection.execute(
-            datasets_table.delete().where(
-                *[
-                    datasets_table.c.get(column) == value
-                    for column, value in keys.items()
-                ]
+        with self.connect() as conn:
+            conn.execute(
+                datasets_table.delete().where(
+                    *[datasets_table.c[column] == value for column, value in keys.items()]
+                )
             )
-        )
-        self.connection.execute(
-            metadata_table.delete().where(
-                *[
-                    metadata_table.c.get(column) == value
-                    for column, value in keys.items()
-                ]
+            conn.execute(
+                metadata_table.delete().where(
+                    *[metadata_table.c[column] == value for column, value in keys.items()]
+                )
             )
-        )
 
     @staticmethod
     def _encode_data(decoded: Mapping[str, Any]) -> Dict[str, Any]:

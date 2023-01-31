@@ -187,7 +187,7 @@ def test_broken_connection(driver_path, provider):
 
     with pytest.raises(RuntimeError):
         with db.connect():
-            db.meta_store.connection = Evanescence()
+            db.meta_store._connection = Evanescence()
             db.get_keys()
 
     assert not db.meta_store.connected

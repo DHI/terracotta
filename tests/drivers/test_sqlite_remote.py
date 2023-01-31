@@ -53,9 +53,10 @@ def s3_db_factory(tmpdir):
             driver = get_driver(dbfile)
             driver.create(keys)
 
-            if datasets:
-                for keys, path in datasets.items():
-                    driver.insert(keys, path)
+            with driver.connect():
+                if datasets:
+                    for keys, path in datasets.items():
+                        driver.insert(keys, path)
 
             with open(dbfile, "rb") as f:
                 db_bytes = f.read()
@@ -86,20 +87,16 @@ def test_remote_database(s3_db_factory):
 def test_invalid_url():
     from terracotta import get_driver
 
-    driver = get_driver("foo", provider="sqlite-remote")
     with pytest.raises(ValueError):
-        with driver.connect():
-            pass
+        get_driver("foo", provider="sqlite-remote")
 
 
 @moto.mock_s3
 def test_nonexisting_url():
     from terracotta import exceptions, get_driver
 
-    driver = get_driver("s3://foo/db.sqlite")
     with pytest.raises(exceptions.InvalidDatabaseError):
-        with driver.connect():
-            pass
+        get_driver("s3://foo/db.sqlite")
 
 
 @moto.mock_s3

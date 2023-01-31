@@ -25,7 +25,6 @@ from terracotta.drivers.base_classes import (
     MetaStore,
     MultiValueKeysType,
     RasterStore,
-    requires_connection,
 )
 
 ExtendedKeysType = Union[Sequence[str], Mapping[str, str]]
@@ -118,7 +117,6 @@ class TerracottaDriver:
         """
         return self.meta_store.connect(verify=verify)
 
-    @requires_connection
     def get_keys(self) -> OrderedDict:
         """Get all known keys and their fulltext descriptions.
 
@@ -130,10 +128,9 @@ class TerracottaDriver:
         """
         return self.meta_store.get_keys()
 
-    @requires_connection
     def get_datasets(
         self,
-        where: Optional[MultiValueKeysType] = None,
+        where: Optional[ExtendedMultiValueKeysType] = None,
         page: int = 0,
         limit: Optional[int] = None,
     ) -> Dict[Tuple[str, ...], Any]:
@@ -157,7 +154,6 @@ class TerracottaDriver:
             limit=limit,
         )
 
-    @requires_connection
     def get_metadata(self, keys: ExtendedKeysType) -> Dict[str, Any]:
         """Return all stored metadata for given keys.
 
@@ -208,7 +204,6 @@ class TerracottaDriver:
 
         return metadata
 
-    @requires_connection
     def insert(
         self,
         keys: ExtendedKeysType,
@@ -240,7 +235,6 @@ class TerracottaDriver:
 
         self.meta_store.insert(keys=keys, path=override_path or path, metadata=metadata)
 
-    @requires_connection
     def delete(self, keys: ExtendedKeysType) -> None:
         """Remove a dataset from the meta store.
 

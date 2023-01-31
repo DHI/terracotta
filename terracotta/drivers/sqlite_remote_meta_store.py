@@ -101,7 +101,12 @@ class RemoteSQLiteMetaStore(SQLiteMetaStore):
 
         self._local_path = local_db_file.name
         self._remote_path = str(remote_path)
-        self._last_updated = -float("inf")
+
+        # download database
+        with convert_exceptions("Could not retrieve database from S3"):
+            _update_from_s3(self._remote_path, self._local_path)
+
+        self._last_updated = time.time()
 
         super().__init__(local_db_file.name)
 

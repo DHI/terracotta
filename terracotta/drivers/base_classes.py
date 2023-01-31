@@ -39,21 +39,6 @@ def requires_writable(fun: Callable[..., T]) -> Callable[..., T]:
     return inner
 
 
-def requires_connection(
-    fun: Optional[Callable[..., T]] = None, *, verify: bool = True
-) -> Union[Callable[..., T], functools.partial]:
-    if fun is None:
-        return functools.partial(requires_connection, verify=verify)
-
-    @functools.wraps(fun)
-    def inner(self: MetaStore, *args: Any, **kwargs: Any) -> T:
-        assert fun is not None
-        with self.connect(verify=verify):
-            return fun(self, *args, **kwargs)
-
-    return inner
-
-
 class MetaStore(ABC):
     """Abstract base class for all Terracotta metadata backends.
 
@@ -62,6 +47,8 @@ class MetaStore(ABC):
 
     _RESERVED_KEYS = ("limit", "page")
     _WRITABLE: bool = True
+
+    connected: bool = False
 
     @property
     @abstractmethod
