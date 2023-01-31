@@ -149,7 +149,7 @@ class RelationalMetaStore(MetaStore, ABC):
 
                     try:
                         yield self._connection
-                    except:
+                    except:  # noqa: E722
                         self._connection.rollback()
                         raise
                     else:
@@ -283,7 +283,9 @@ class RelationalMetaStore(MetaStore, ABC):
             conn.execute(
                 key_names_table.insert(),
                 [
-                    dict(key_name=key, description=key_descriptions.get(key, ""), index=i)
+                    dict(
+                        key_name=key, description=key_descriptions.get(key, ""), index=i
+                    )
                     for i, key in enumerate(keys)
                 ],
             )
@@ -296,9 +298,9 @@ class RelationalMetaStore(MetaStore, ABC):
 
         with self.connect() as conn:
             result = conn.execute(
-                sqla.select(keys_table.c["key_name"], keys_table.c["description"]).order_by(
-                    keys_table.c["index"]
-                )
+                sqla.select(
+                    keys_table.c["key_name"], keys_table.c["description"]
+                ).order_by(keys_table.c["index"])
             )
         return OrderedDict((row.key_name, row.description) for row in result.all())
 
@@ -386,7 +388,10 @@ class RelationalMetaStore(MetaStore, ABC):
         with self.connect() as conn:
             conn.execute(
                 datasets_table.delete().where(
-                    *[datasets_table.c[column] == value for column, value in keys.items()]
+                    *[
+                        datasets_table.c[column] == value
+                        for column, value in keys.items()
+                    ]
                 )
             )
             conn.execute(datasets_table.insert().values(**keys, path=path))
@@ -401,9 +406,7 @@ class RelationalMetaStore(MetaStore, ABC):
                         ]
                     )
                 )
-                conn.execute(
-                    metadata_table.insert().values(**keys, **encoded_data)
-                )
+                conn.execute(metadata_table.insert().values(**keys, **encoded_data))
 
     @trace("delete")
     @requires_writable
@@ -422,12 +425,18 @@ class RelationalMetaStore(MetaStore, ABC):
         with self.connect() as conn:
             conn.execute(
                 datasets_table.delete().where(
-                    *[datasets_table.c[column] == value for column, value in keys.items()]
+                    *[
+                        datasets_table.c[column] == value
+                        for column, value in keys.items()
+                    ]
                 )
             )
             conn.execute(
                 metadata_table.delete().where(
-                    *[metadata_table.c[column] == value for column, value in keys.items()]
+                    *[
+                        metadata_table.c[column] == value
+                        for column, value in keys.items()
+                    ]
                 )
             )
 
