@@ -52,6 +52,17 @@ def convert_exceptions(
         raise exceptions.InvalidDatabaseError(error_message) from exception
 
 
+@contextlib.contextmanager
+def try_database_operation(connection: Connection) -> Iterator:
+    try:
+        yield
+    except:  # noqa: E722
+        connection.rollback()
+        raise
+    else:
+        connection.commit()
+
+
 class RelationalMetaStore(MetaStore, ABC):
     SQL_DIALECT: str  # The database flavour, eg mysql, sqlite, etc
     SQL_DRIVER: str  # The actual database driver, eg pymysql, sqlite3, etc
@@ -147,20 +158,16 @@ class RelationalMetaStore(MetaStore, ABC):
                     if verify:
                         self._connection_callback()
 
-                    try:
+                    with try_database_operation(self._connection):
                         yield self._connection
-                    except:  # noqa: E722
-                        self._connection.rollback()
-                        raise
-                    else:
-                        self._connection.commit()
             finally:
                 self._connection = None
                 self.connected = False
         else:
             # re-use existing connection
             assert self._connection is not None
-            yield self._connection
+            with try_database_operation(self._connection):
+                yield self._connection
 
     def _connection_callback(self) -> None:
         if not self.db_version_verified:

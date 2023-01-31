@@ -48,8 +48,6 @@ class MetaStore(ABC):
     _RESERVED_KEYS = ("limit", "page")
     _WRITABLE: bool = True
 
-    connected: bool = False
-
     @property
     @abstractmethod
     def db_version(self) -> str:
