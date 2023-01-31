@@ -58,6 +58,8 @@ def s3_db_factory(tmpdir):
                     for keys, path in datasets.items():
                         driver.insert(keys, path)
 
+            del driver
+
             with open(dbfile, "rb") as f:
                 db_bytes = f.read()
 
