@@ -178,29 +178,30 @@ class TerracottaDriver:
         """
         keys = self._standardize_keys(keys)
 
-        metadata = self.meta_store.get_metadata(keys)
-
-        if metadata is None:
-            # metadata is not computed yet, trigger lazy loading
-            dataset = self.get_datasets(keys)
-            if not dataset:
-                raise exceptions.DatasetNotFoundError("No dataset found")
-
-            path = squeeze(dataset.values())
-            metadata = self.compute_metadata(
-                path, max_shape=self.LAZY_LOADING_MAX_SHAPE
-            )
-
-            try:
-                self.insert(keys, path, metadata=metadata)
-            except exceptions.DatabaseNotWritableError as exc:
-                raise exceptions.DatabaseNotWritableError(
-                    "Lazy loading requires a writable database"
-                ) from exc
-
-            # ensure standardized/consistent output (types and floating point precision)
+        with self.meta_store.connect():
             metadata = self.meta_store.get_metadata(keys)
-            assert metadata is not None
+
+            if metadata is None:
+                # metadata is not computed yet, trigger lazy loading
+                dataset = self.get_datasets(keys)
+                if not dataset:
+                    raise exceptions.DatasetNotFoundError("No dataset found")
+
+                path = squeeze(dataset.values())
+                metadata = self.compute_metadata(
+                    path, max_shape=self.LAZY_LOADING_MAX_SHAPE
+                )
+
+                try:
+                    self.insert(keys, path, metadata=metadata)
+                except exceptions.DatabaseNotWritableError as exc:
+                    raise exceptions.DatabaseNotWritableError(
+                        "Lazy loading requires a writable database"
+                    ) from exc
+
+                # ensure standardized/consistent output (types and floating point precision)
+                metadata = self.meta_store.get_metadata(keys)
+                assert metadata is not None
 
         return metadata
 
