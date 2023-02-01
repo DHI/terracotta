@@ -115,9 +115,6 @@ class RelationalMetaStore(MetaStore, ABC):
         # use normalized path to make sure username and password don't leak into __repr__
         super().__init__(self._normalize_path(path))
 
-    def __del__(self):
-        self.sqla_engine.dispose()
-
     @classmethod
     def _parse_path(cls, connection_string: str) -> URL:
         if "//" not in connection_string:

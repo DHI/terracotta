@@ -58,7 +58,8 @@ def s3_db_factory(tmpdir):
                     for keys, path in datasets.items():
                         driver.insert(keys, path)
 
-            del driver
+            # make sure that the connection is closed
+            driver.meta_store.sqla_engine.dispose()
 
             with open(dbfile, "rb") as f:
                 db_bytes = f.read()
