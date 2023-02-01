@@ -3,7 +3,7 @@
 PostgreSQL-backed metadata driver. Metadata is stored in a PostgreSQL database.
 """
 
-from typing import Mapping, Sequence
+from typing import Optional, Mapping, Sequence
 
 import sqlalchemy as sqla
 from terracotta.drivers.relational_meta_store import RelationalMetaStore
@@ -25,14 +25,15 @@ class PostgreSQLMetaStore(RelationalMetaStore):
 
     This driver caches key names.
     """
-    SQL_DIALECT = 'postgresql'
-    SQL_DRIVER = 'psycopg2'
-    SQL_TIMEOUT_KEY = 'connect_timeout'
+
+    SQL_DIALECT = "postgresql"
+    SQL_DRIVER = "psycopg2"
+    SQL_TIMEOUT_KEY = "connect_timeout"
 
     MAX_PRIMARY_KEY_SIZE = 2730 // 4  # Max B-tree index size in bytes
     DEFAULT_PORT = 5432
     # Will connect to this db before creatting the 'terracotta' db
-    DEFAULT_CONNECT_DB = 'postgres'
+    DEFAULT_CONNECT_DB = "postgres"
 
     def __init__(self, postgresql_path: str) -> None:
         """Initialize the PostgreSQLDriver.
@@ -49,16 +50,16 @@ class PostgreSQLMetaStore(RelationalMetaStore):
 
         # raise an exception if database name is invalid
         if not self.url.database:
-            raise ValueError('database must be specified in PostgreSQL path')
-        if '/' in self.url.database.strip('/'):
-            raise ValueError('invalid database path')
+            raise ValueError("database must be specified in PostgreSQL path")
+        if "/" in self.url.database.strip("/"):
+            raise ValueError("invalid database path")
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:
         url = cls._parse_path(path)
 
-        path = f'{url.drivername}://{url.host}:{url.port or cls.DEFAULT_PORT}/{url.database}'
-        path = path.rstrip('/')
+        path = f"{url.drivername}://{url.host}:{url.port or cls.DEFAULT_PORT}/{url.database}"
+        path = path.rstrip("/")
         return path
 
     def _create_database(self) -> None:
@@ -67,16 +68,14 @@ class PostgreSQLMetaStore(RelationalMetaStore):
             self.url.set(database=self.DEFAULT_CONNECT_DB),
             echo=False,
             future=True,
-            isolation_level='AUTOCOMMIT'
+            isolation_level="AUTOCOMMIT",
         )
         with engine.connect() as connection:
-            connection.execute(sqla.text(f'CREATE DATABASE {self.url.database}'))
+            connection.execute(sqla.text(f"CREATE DATABASE {self.url.database}"))
             connection.commit()
 
     def _initialize_database(
-        self,
-        keys: Sequence[str],
-        key_descriptions: Mapping[str, str] = None
+        self, keys: Sequence[str], key_descriptions: Optional[Mapping[str, str]] = None
     ) -> None:
         # Enforce max primary key length equal to max B-tree index size
         self.SQL_KEY_SIZE = self.MAX_PRIMARY_KEY_SIZE // len(keys)

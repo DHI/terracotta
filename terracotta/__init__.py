@@ -9,8 +9,8 @@ try:
 except ImportError:  # pragma: no cover
     # package is not installed
     raise RuntimeError(
-        'Terracotta has not been installed correctly. Please run `pip install -e .` or '
-        '`python setup.py develop` in the Terracotta package folder.'
+        "Terracotta has not been installed correctly. Please run `pip install -e .` or "
+        "`python setup.py develop` in the Terracotta package folder."
     ) from None
 
 
@@ -40,6 +40,7 @@ def update_settings(**new_config: Any) -> None:
 
     """
     from terracotta.config import parse_config
+
     global _settings, _overwritten_settings
     current_config = {k: getattr(_settings, k) for k in _overwritten_settings}
     _settings = parse_config({**current_config, **new_config})
@@ -67,7 +68,7 @@ del Mapping, Any, Set
 from terracotta.drivers import get_driver  # noqa: F401
 
 __all__ = (
-    'get_driver',
-    'get_settings',
-    'update_settings',
+    "get_driver",
+    "get_settings",
+    "update_settings",
 )

@@ -26,22 +26,18 @@ class CompressedLFUCache(LFUCache):
         compressed_item = super().__getitem__(key)
         return self._decompress_tuple(compressed_item)
 
-    def __setitem__(self, key: Any,
-                    value: np.ma.MaskedArray) -> None:
+    def __setitem__(self, key: Any, value: np.ma.MaskedArray) -> None:
         val_compressed = self._compress_ma(value, self.compression_level)
         super().__setitem__(key, val_compressed)
 
     @staticmethod
-    def _compress_ma(arr: np.ma.MaskedArray, compression_level: int) -> CompressionTuple:
+    def _compress_ma(
+        arr: np.ma.MaskedArray, compression_level: int
+    ) -> CompressionTuple:
         compressed_data = zlib.compress(arr.data, compression_level)
         mask_to_int = np.packbits(arr.mask.astype(np.uint8))
         compressed_mask = zlib.compress(mask_to_int.data, compression_level)
-        out = (
-            compressed_data,
-            compressed_mask,
-            arr.dtype.name,
-            arr.shape
-        )
+        out = (compressed_data, compressed_mask, arr.dtype.name, arr.shape)
         return out
 
     @staticmethod
@@ -49,7 +45,7 @@ class CompressedLFUCache(LFUCache):
         data_b, mask_b, dt, ds = compressed_data
         data = np.frombuffer(zlib.decompress(data_b), dtype=dt).reshape(ds)
         mask = np.frombuffer(zlib.decompress(mask_b), dtype=np.uint8)
-        mask = np.unpackbits(mask)[:int(np.prod(ds))]
+        mask = np.unpackbits(mask)[: int(np.prod(ds))]
         mask = mask.reshape(ds)
         return np.ma.masked_array(data, mask=mask)
 

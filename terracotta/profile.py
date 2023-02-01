@@ -16,6 +16,7 @@ def trace(description: str) -> Iterator:
     settings = get_settings()
     if settings.XRAY_PROFILE:
         from aws_xray_sdk.core import xray_recorder
+
         try:
             subsegment = xray_recorder.begin_subsegment(description)
             yield subsegment
