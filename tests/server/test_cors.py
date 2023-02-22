@@ -19,51 +19,46 @@ def get_client(metadata_origins=None, tile_origins=None):
 
 @pytest.fixture
 def valid_metadata_path():
-    return "/metadata/val11/x/val12/"
+    return '/metadata/val11/x/val12/'
 
 
 @pytest.fixture
 def valid_singleband_path(raster_file_xyz):
     x, y, z = raster_file_xyz
-    return f"/singleband/val11/x/val12/{z}/{x}/{y}.png"
+    return f'/singleband/val11/x/val12/{z}/{x}/{y}.png'
 
 
-@pytest.mark.parametrize("tile_origins", (None, '["*"]', "[]", '["example.org"]'))
-@pytest.mark.parametrize("metadata_origins", (None, '["*"]', "[]", '["example.org"]'))
-def test_cors(
-    use_testdb,
-    valid_metadata_path,
-    valid_singleband_path,
-    metadata_origins,
-    tile_origins,
-):
+@pytest.mark.parametrize('tile_origins', (None, '["*"]', '[]', '["example.org"]'))
+@pytest.mark.parametrize('metadata_origins', (None, '["*"]', '[]', '["example.org"]'))
+def test_cors(use_testdb, valid_metadata_path, valid_singleband_path,
+              metadata_origins, tile_origins):
     with get_client(metadata_origins, tile_origins) as client:
         # metadata
         rv = client.get(valid_metadata_path)
         assert rv.status_code == 200
 
-        if metadata_origins == "[]":
-            assert "Access-Control-Allow-Origin" not in rv.headers
+        if metadata_origins == '[]':
+            assert 'Access-Control-Allow-Origin' not in rv.headers
         elif metadata_origins is None:
             # default for metadata is allow all
-            assert rv.headers["Access-Control-Allow-Origin"] == "*"
+            assert rv.headers['Access-Control-Allow-Origin'] == '*'
         else:
             expected = json.loads(metadata_origins)
             if len(expected) == 1:
                 expected = expected[0]
-            assert rv.headers["Access-Control-Allow-Origin"] == expected
+            assert rv.headers['Access-Control-Allow-Origin'] == expected
 
         # tiles
         rv = client.get(valid_singleband_path)
         assert rv.status_code == 200
 
-        if tile_origins == "[]":
-            assert "Access-Control-Allow-Origin" not in rv.headers
+        if tile_origins == '[]':
+            assert 'Access-Control-Allow-Origin' not in rv.headers
         elif tile_origins is None:
             # default for tiles is disallow all
-            assert "Access-Control-Allow-Origin" not in rv.headers
+            assert 'Access-Control-Allow-Origin' not in rv.headers
         else:
             expected = json.loads(tile_origins)
             if len(expected) == 1:
                 expected = expected[0]
-            assert rv.headers["Access-Control-Allow-Origin"] == expected
+            assert rv.headers['Access-Control-Allow-Origin'] == expected

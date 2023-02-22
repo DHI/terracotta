@@ -24,13 +24,5 @@ class InvalidDatabaseError(Exception):
     pass
 
 
-class DatabaseNotWritableError(Exception):
-    pass
-
-
 class PerformanceWarning(UserWarning):
-    pass
-
-
-class DeprecationWarning(UserWarning):
     pass

@@ -8,8 +8,7 @@ on:
       - main
 
 env:
-  MYSQL_PORT: 3306
-  POSTGRESQL_PORT: 5432
+  DB_PORT: 3306
   DB_USER: root
   DB_PASSWORD: root
 
@@ -24,25 +23,13 @@ jobs:
 
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.8", "3.10"]
+        # only test oldest and most recent supported Python versions
+        # no rasterio wheels on 3.10 yet, so we use 3.9 for now
+        python-version: ["3.6", "3.9"]
 
     defaults:
       run:
         shell: bash
-
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_USER: ${{ env.DB_USER }}
-          POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
 
     steps:
       - uses: actions/checkout@v2
@@ -85,13 +72,13 @@ jobs:
 
       - name: Initialize mypy
         run: |
-          mypy --install-types --non-interactive . || true
+          mypy . > /dev/null || true
+          mypy --install-types --non-interactive
 
       - name: Run tests
         run: |
-          MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.MYSQL_PORT }}"
-          POSTGRESQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@localhost:${{ env.POSTGRESQL_PORT }}"
-          python -m pytest . --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV --postgresql-server=$POSTGRESQL_SRV
+          MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.DB_PORT }}"
+          python -m pytest . --color=yes --cov=terracotta --mysql-server=$MYSQL_SRV
 
       - name: Run benchmarks
         run: |
@@ -111,7 +98,8 @@ jobs:
 
       matrix:
         os: [macos-latest, windows-latest]
-        python-version: ["3.8", "3.10"]
+        # Python 3.6 is EOL on conda-forge, so use 3.7 instead
+        python-version: ["3.7", "3.10"]
 
     defaults:
       run:

@@ -10,7 +10,7 @@
 
 Terracotta is a pure Python tile server that runs as a WSGI app on a
 dedicated webserver or as a serverless app on AWS Lambda. It is built on a
-modern Python stack, powered by awesome open-source software such as
+modern Python 3.6 stack, powered by awesome open-source software such as
 [Flask](http://flask.pocoo.org), [Zappa](https://github.com/Miserlou/Zappa),
 and [Rasterio](https://github.com/mapbox/rasterio).
 

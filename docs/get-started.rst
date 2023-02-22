@@ -15,7 +15,8 @@ to create a new environment containing all dependencies and Terracotta:
 
    $ conda env create -f environment.yml
 
-If you already have Python 3.8 (or above) installed, you can just run
+If you already have a Python 3.6 installation that you want to use, you
+can just run
 
 .. code-block:: bash
 
@@ -140,32 +141,8 @@ different times:
 3. On demand when a dataset is requested for the first time (this is
    what we want to avoid through ingestion).
 
-
-A first ingestion script using the Python API
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The following script first defines three variables that we need to work with a
-terracotta database:
-
-- the database filename
-- the metadata keys that we will use
-- the metadata key-values and paths to raster files that we want to insert
-
-Then it uses the Python API to connect to the database and insert the metadata.
-
-.. literalinclude:: _static/example-first-ingestion-script.py
-   :language: python
-   :caption: example-first-ingestion-script.py
-
-:download:`Download the script <_static/example-first-ingestion-script.py>`
-
-You could start adapting this script by changing the variable definitions to
-match the data you want to ingest. A next step could be to read the metadata
-from a CSV or parse it from the filenames of the raster data.
-
-
-A more advanced ingestion script using the Python API
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+An example ingestion script using the Python API
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following script populates a database with raster files located in a
 local directory. It extracts the appropriate keys from the file name,
@@ -180,7 +157,7 @@ database into an S3 bucket.
 
 .. note::
 
-   The above scripts are just examples to show you some
+   The above script is just a simple example to show you some
    capabilities of the Terracotta Python API. More sophisticated solutions
    could e.g. attach additional metadata to database entries, process
    many rasters in parallel, or accept parameters from the command line.

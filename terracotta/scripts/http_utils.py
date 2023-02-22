@@ -24,7 +24,7 @@ def check_socket(host: str, port: int) -> bool:
 def find_open_port(port_range: Sequence[int]) -> Optional[int]:
     """Return first open port in port_range, or None if no open port is found"""
     for port_candidate in port_range:
-        if check_socket("localhost", port_candidate):
+        if check_socket('localhost', port_candidate):
             return port_candidate
 
     return None

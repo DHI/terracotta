@@ -8,6 +8,12 @@ from terracotta.server import create_app
 
 settings = get_settings()
 
-logs.set_logger(settings.LOGLEVEL, catch_warnings=True)
+logs.set_logger(
+    settings.LOGLEVEL,
+    catch_warnings=True
+)
 
-app = create_app(debug=settings.DEBUG, profile=settings.FLASK_PROFILE)
+app = create_app(
+    debug=settings.DEBUG,
+    profile=settings.FLASK_PROFILE
+)

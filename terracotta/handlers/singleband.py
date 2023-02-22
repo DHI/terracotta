@@ -11,19 +11,16 @@ import collections
 from terracotta import get_settings, get_driver, image, xyz
 from terracotta.profile import trace
 
-Number = TypeVar("Number", int, float)
+Number = TypeVar('Number', int, float)
 RGBA = Tuple[Number, Number, Number, Number]
 
 
-@trace("singleband_handler")
-def singleband(
-    keys: Union[Sequence[str], Mapping[str, str]],
-    tile_xyz: Optional[Tuple[int, int, int]] = None,
-    *,
-    colormap: Union[str, Mapping[Number, RGBA], None] = None,
-    stretch_range: Optional[Tuple[Number, Number]] = None,
-    tile_size: Optional[Tuple[int, int]] = None
-) -> BinaryIO:
+@trace('singleband_handler')
+def singleband(keys: Union[Sequence[str], Mapping[str, str]],
+               tile_xyz: Tuple[int, int, int] = None, *,
+               colormap: Union[str, Mapping[Number, RGBA], None] = None,
+               stretch_range: Tuple[Number, Number] = None,
+               tile_size: Tuple[int, int] = None) -> BinaryIO:
     """Return singleband image as PNG"""
 
     cmap_or_palette: Union[str, Sequence[RGBA], None]
@@ -44,7 +41,8 @@ def singleband(
     with driver.connect():
         metadata = driver.get_metadata(keys)
         tile_data = xyz.get_tile_data(
-            driver, keys, tile_xyz, tile_size=tile_size, preserve_values=preserve_values
+            driver, keys, tile_xyz,
+            tile_size=tile_size, preserve_values=preserve_values
         )
 
     if preserve_values:
@@ -57,7 +55,7 @@ def singleband(
         out = image.label(tile_data, labels)
     else:
         # determine stretch range from metadata and arguments
-        stretch_range_ = list(metadata["range"])
+        stretch_range_ = list(metadata['range'])
 
         if stretch_min is not None:
             stretch_range_[0] = stretch_min
