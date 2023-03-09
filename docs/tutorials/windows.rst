@@ -1,7 +1,7 @@
-Setting up a Terracotta environment on Windows 10
+Setting up a Terracotta environment on Windows
 =================================================
 
-Terracotta comes with full support for Windows 10, even though setup
+Terracotta comes with full support for Windows, even though setup
 might be more complicated compared to Unix systems.
 
 
