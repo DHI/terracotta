@@ -126,6 +126,12 @@ def serve(
         FLASK_PROFILE=profile,
     )
 
+    # ensure database can be connected to
+    driver = get_driver(database, provider=database_provider)
+    with driver.connect():
+        print(driver.db_version)
+        pass
+
     # find suitable port
     port_range = [port] if port is not None else range(5000, 5100)
     port = find_open_port(port_range)

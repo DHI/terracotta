@@ -1,13 +1,8 @@
-
-
 up_version = (0, 8)
 down_version = (0, 7)
 
 upgrade_sql = [
-    # "CREATE TABLE",
-    # "ALTER TABLE keys ADD COLUMN index INTEGER UNIQUE",
-    # "ALTER TABLE keys RENAME TO key_names",
-    "UPDATE terracotta SET version='v0.8.0'",
+    "CREATE TABLE key_names (key_name TEXT PRIMARY KEY, description TEXT, idx INTEGER UNIQUE)",
+    "INSERT INTO key_names (key_name, description, idx) SELECT key, description, row_number() over (order by (select NULL)) FROM keys",
+    "UPDATE terracotta SET version='0.8.0'",
 ]
-
-downgrade_sql = []

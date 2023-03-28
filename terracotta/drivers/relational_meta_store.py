@@ -258,7 +258,7 @@ class RelationalMetaStore(MetaStore, ABC):
                 "key_name", self.SQLA_STRING(self.SQL_KEY_SIZE), primary_key=True
             ),
             sqla.Column("description", self.SQLA_STRING(8000)),
-            sqla.Column("index", sqla.types.Integer, unique=True),
+            sqla.Column("idx", sqla.types.Integer, unique=True),
         )
         _ = sqla.Table(
             "datasets",
@@ -290,9 +290,7 @@ class RelationalMetaStore(MetaStore, ABC):
             conn.execute(
                 key_names_table.insert(),
                 [
-                    dict(
-                        key_name=key, description=key_descriptions.get(key, ""), index=i
-                    )
+                    dict(key_name=key, description=key_descriptions.get(key, ""), idx=i)
                     for i, key in enumerate(keys)
                 ],
             )
@@ -307,7 +305,7 @@ class RelationalMetaStore(MetaStore, ABC):
             result = conn.execute(
                 sqla.select(
                     keys_table.c["key_name"], keys_table.c["description"]
-                ).order_by(keys_table.c["index"])
+                ).order_by(keys_table.c["idx"])
             )
         return OrderedDict((row.key_name, row.description) for row in result.all())
 

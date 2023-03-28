@@ -359,6 +359,19 @@ def testdb(raster_file, tmpdir_factory):
     return dbpath
 
 
+@pytest.fixture(scope="session")
+def v07_db(tmpdir_factory):
+    """A read-only, pre-populated test database"""
+    import shutil
+
+    dbpath = tmpdir_factory.mktemp("db").join("db-outdated.sqlite")
+    shutil.copyfile(
+        os.path.join(os.path.dirname(__file__), "data", "db-v075.sqlite"), dbpath
+    )
+
+    return dbpath
+
+
 @pytest.fixture()
 def use_testdb(testdb, monkeypatch):
     import terracotta
