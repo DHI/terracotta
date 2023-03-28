@@ -85,4 +85,4 @@ def migrate(database: str, to_version: str, from_version: str, yes: bool):
     with driver.connect(verify=False):
         for migration in migration_chain:
             for cmd in migration.upgrade_sql:
-                driver.meta_store.connection.execute(sqla.text(cmd))
+                driver.meta_store._connection.execute(sqla.text(cmd))

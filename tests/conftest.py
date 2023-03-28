@@ -500,3 +500,22 @@ def driver_path(provider, tmpdir, mysql_server, postgresql_server):
 
     else:
         return NotImplementedError(f"unknown provider {provider}")
+
+
+@pytest.fixture()
+def force_reload():
+    """Force a reload of the Terracotta module"""
+    import sys
+
+    def purge_module(modname):
+        for mod in list(sys.modules.values()):
+            if mod is None:
+                continue
+            if mod.__name__ == modname or mod.__name__.startswith(f"{modname}."):
+                del sys.modules[mod.__name__]
+
+    purge_module("terracotta")
+    try:
+        yield
+    finally:
+        purge_module("terracotta")

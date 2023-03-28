@@ -8,10 +8,10 @@ def parse_version(verstr):
     return tuple(int(c) for c in components[:3])
 
 
-def test_migrate(v07_db, testdb, monkeypatch):
+def test_migrate(v07_db, monkeypatch, force_reload):
     """Test database migration to next major version if one is available."""
     with monkeypatch.context() as m:
-        # pretend we are at next major version
+        # pretend we are at the next major version
         import terracotta
 
         current_version = parse_version(terracotta.__version__)
@@ -36,5 +36,4 @@ def test_migrate(v07_db, testdb, monkeypatch):
         assert "Upgrade path found" in result.output
 
         driver_updated = get_driver(str(v07_db), provider="sqlite")
-        driver_orig = get_driver(str(testdb), provider="sqlite")
-        assert driver_updated.key_names == driver_orig.key_names
+        assert driver_updated.key_names == ("key1", "akey", "key2")
