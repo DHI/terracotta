@@ -10,8 +10,11 @@ import importlib
 
 MIGRATIONS = {}
 
-for modname in glob.glob("v*_*.py", root_dir=os.path.dirname(__file__)):
-    mod = importlib.import_module(f"{__name__}.{modname[:-3]}")
+glob_pattern = os.path.join(os.path.dirname(__file__), "v*_*.py")
+
+for modpath in glob.glob(glob_pattern):
+    modname = os.path.basename(modpath)[: -len(".py")]
+    mod = importlib.import_module(f"{__name__}.{modname}")
     assert all(
         hasattr(mod, attr) for attr in ("up_version", "down_version", "upgrade_sql")
     )
