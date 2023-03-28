@@ -16,8 +16,9 @@ from terracotta import exceptions
 
 class TerracottaSettings(NamedTuple):
     """Contains all settings for the current Terracotta instance."""
+
     #: Path to database
-    DRIVER_PATH: str = ''
+    DRIVER_PATH: str = ""
 
     #: Driver provider to use (sqlite, sqlite-remote, mysql, postgresql; auto-detected by default)
     DRIVER_PROVIDER: Optional[str] = None
@@ -32,7 +33,7 @@ class TerracottaSettings(NamedTuple):
     XRAY_PROFILE: bool = False
 
     #: Default log level (debug, info, warning, error, critical)
-    LOGLEVEL: str = 'warning'
+    LOGLEVEL: str = "warning"
 
     #: Size of raster file in-memory cache in bytes
     RASTER_CACHE_SIZE: int = 1024 * 1024 * 490  # 490 MB
@@ -53,22 +54,22 @@ class TerracottaSettings(NamedTuple):
     DB_CONNECTION_TIMEOUT: int = 10
 
     #: Path where cached remote SQLite databases are stored (when using sqlite-remote provider)
-    REMOTE_DB_CACHE_DIR: str = os.path.join(tempfile.gettempdir(), 'terracotta')
+    REMOTE_DB_CACHE_DIR: str = os.path.join(tempfile.gettempdir(), "terracotta")
 
     #: Time-to-live of remote database cache in seconds
     REMOTE_DB_CACHE_TTL: int = 10 * 60  # 10 min
 
     #: Resampling method to use when reading reprojected data
-    RESAMPLING_METHOD: str = 'average'
+    RESAMPLING_METHOD: str = "average"
 
     #: Resampling method to use when reprojecting data to Web Mercator
-    REPROJECTION_METHOD: str = 'linear'
+    REPROJECTION_METHOD: str = "linear"
 
     #: CORS allowed origins for metadata endpoint
-    ALLOWED_ORIGINS_METADATA: List[str] = ['*']
+    ALLOWED_ORIGINS_METADATA: List[str] = ["*"]
 
     #: CORS allowed origins for tiles endpoints
-    ALLOWED_ORIGINS_TILES: List[str] = [r'http[s]?://(localhost|127\.0\.0\.1):*']
+    ALLOWED_ORIGINS_TILES: List[str] = [r"http[s]?://(localhost|127\.0\.0\.1):*"]
 
     #: SQL database username (if not given in driver path)
     SQL_USER: Optional[str] = None
@@ -96,10 +97,10 @@ AVAILABLE_SETTINGS: Tuple[str, ...] = TerracottaSettings._fields
 
 DEPRECATION_MAP: Dict[str, str] = {
     # TODO: Remove in v0.8.0
-    'MYSQL_USER': 'SQL_USER',
-    'MYSQL_PASSWORD': 'SQL_PASSWORD',
-    'POSTGRESQL_USER': 'SQL_USER',
-    'POSTGRESQL_PASSWORD': 'SQL_PASSWORD',
+    "MYSQL_USER": "SQL_USER",
+    "MYSQL_PASSWORD": "SQL_PASSWORD",
+    "POSTGRESQL_USER": "SQL_USER",
+    "POSTGRESQL_PASSWORD": "SQL_PASSWORD",
 }
 
 
@@ -109,6 +110,7 @@ def _is_writable(path: str) -> bool:
 
 class SettingSchema(Schema):
     """Schema used to create and validate TerracottaSettings objects"""
+
     DRIVER_PATH = fields.String()
     DRIVER_PROVIDER = fields.String(allow_none=True)
 
@@ -117,7 +119,7 @@ class SettingSchema(Schema):
     XRAY_PROFILE = fields.Boolean()
 
     LOGLEVEL = fields.String(
-        validate=validate.OneOf(['debug', 'info', 'warning', 'error', 'critical'])
+        validate=validate.OneOf(["debug", "info", "warning", "error", "critical"])
     )
 
     RASTER_CACHE_SIZE = fields.Integer(validate=validate.Range(min=0))
@@ -127,7 +129,7 @@ class SettingSchema(Schema):
 
     LAZY_LOADING_MAX_SHAPE = fields.List(
         fields.Integer(validate=validate.Range(min=0)),
-        validate=validate.Length(equal=2)
+        validate=validate.Length(equal=2),
     )
 
     PNG_COMPRESS_LEVEL = fields.Integer(validate=validate.Range(min=0, max=9))
@@ -137,10 +139,10 @@ class SettingSchema(Schema):
     REMOTE_DB_CACHE_TTL = fields.Integer(validate=validate.Range(min=0))
 
     RESAMPLING_METHOD = fields.String(
-        validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
+        validate=validate.OneOf(["nearest", "linear", "cubic", "average"])
     )
     REPROJECTION_METHOD = fields.String(
-        validate=validate.OneOf(['nearest', 'linear', 'cubic', 'average'])
+        validate=validate.OneOf(["nearest", "linear", "cubic", "average"])
     )
 
     ALLOWED_ORIGINS_METADATA = fields.List(fields.String())
@@ -158,8 +160,12 @@ class SettingSchema(Schema):
 
     @pre_load
     def decode_lists(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
-        for var in ('DEFAULT_TILE_SIZE', 'LAZY_LOADING_MAX_SHAPE',
-                    'ALLOWED_ORIGINS_METADATA', 'ALLOWED_ORIGINS_TILES'):
+        for var in (
+            "DEFAULT_TILE_SIZE",
+            "LAZY_LOADING_MAX_SHAPE",
+            "ALLOWED_ORIGINS_METADATA",
+            "ALLOWED_ORIGINS_TILES",
+        ):
             val = data.get(var)
             if val and isinstance(val, str):
                 try:
@@ -171,14 +177,16 @@ class SettingSchema(Schema):
         return data
 
     @pre_load
-    def handle_deprecated_fields(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def handle_deprecated_fields(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> Dict[str, Any]:
         for deprecated_field, new_field in DEPRECATION_MAP.items():
             if data.get(deprecated_field):
                 warnings.warn(
-                    f'Setting TC_{deprecated_field} is deprecated '
-                    'and will be removed in the next major release. '
-                    f'Please use TC_{new_field} instead.',
-                    exceptions.DeprecationWarning
+                    f"Setting TC_{deprecated_field} is deprecated "
+                    "and will be removed in the next major release. "
+                    f"Please use TC_{new_field} instead.",
+                    exceptions.DeprecationWarning,
                 )
 
                 # Only use the mapping if the new field has not been set
@@ -190,8 +198,12 @@ class SettingSchema(Schema):
     @post_load
     def make_settings(self, data: Dict[str, Any], **kwargs: Any) -> TerracottaSettings:
         # encode tuples
-        for var in ('DEFAULT_TILE_SIZE', 'LAZY_LOADING_MAX_SHAPE',
-                    'ALLOWED_ORIGINS_METADATA', 'ALLOWED_ORIGINS_TILES'):
+        for var in (
+            "DEFAULT_TILE_SIZE",
+            "LAZY_LOADING_MAX_SHAPE",
+            "ALLOWED_ORIGINS_METADATA",
+            "ALLOWED_ORIGINS_TILES",
+        ):
             val = data.get(var)
             if val:
                 data[var] = tuple(val)
@@ -199,12 +211,12 @@ class SettingSchema(Schema):
         return TerracottaSettings(**data)
 
 
-def parse_config(config: Mapping[str, Any] = None) -> TerracottaSettings:
+def parse_config(config: Optional[Mapping[str, Any]] = None) -> TerracottaSettings:
     """Parse given config dict and return new TerracottaSettings object"""
     config_dict = dict(config or {})
 
     for setting in AVAILABLE_SETTINGS:
-        env_setting = f'TC_{setting}'
+        env_setting = f"TC_{setting}"
         if setting not in config_dict and env_setting in os.environ:
             config_dict[setting] = os.environ[env_setting]
 
@@ -212,6 +224,6 @@ def parse_config(config: Mapping[str, Any] = None) -> TerracottaSettings:
     try:
         new_settings = schema.load(config_dict)
     except ValidationError as exc:
-        raise ValueError('Could not parse configuration') from exc
+        raise ValueError("Could not parse configuration") from exc
 
     return new_settings

@@ -3,7 +3,7 @@
 Entry point for CLI.
 """
 
-from typing import Any, Mapping
+from typing import Optional, Any, Mapping
 import sys
 
 import click
@@ -12,16 +12,27 @@ from terracotta.scripts.click_types import TOMLFile
 from terracotta import get_settings, update_settings, logs, __version__
 
 
-@click.group('terracotta', invoke_without_command=True)
-@click.option('-c', '--config', type=TOMLFile(), default=None,
-              help='Update global settings from this TOML file.')
-@click.option('--loglevel', help='Set level for log messages', default=None,
-              type=click.Choice(['debug', 'info', 'warning', 'error', 'critical']))
+@click.group("terracotta", invoke_without_command=True)
+@click.option(
+    "-c",
+    "--config",
+    type=TOMLFile(),
+    default=None,
+    help="Update global settings from this TOML file.",
+)
+@click.option(
+    "--loglevel",
+    help="Set level for log messages",
+    default=None,
+    type=click.Choice(["debug", "info", "warning", "error", "critical"]),
+)
 @click.version_option(version=__version__)
 @click.pass_context
-def cli(ctx: click.Context,
-        config: Mapping[str, Any] = None,
-        loglevel: str = None) -> None:
+def cli(
+    ctx: click.Context,
+    config: Optional[Mapping[str, Any]] = None,
+    loglevel: Optional[str] = None,
+) -> None:
     """The command line interface for the Terracotta tile server.
 
     All flags must be passed before specifying a subcommand.
@@ -52,25 +63,30 @@ def entrypoint() -> None:
         cli(obj={})
     except Exception:
         import logging
+
         logger = logging.getLogger(__name__)
-        logger.exception('Uncaught exception!', exc_info=True)
+        logger.exception("Uncaught exception!", exc_info=True)
         sys.exit(1)
 
 
 from terracotta.scripts.connect import connect
+
 cli.add_command(connect)
 
 from terracotta.scripts.ingest import ingest
+
 cli.add_command(ingest)
 
 from terracotta.scripts.optimize_rasters import optimize_rasters
+
 cli.add_command(optimize_rasters)
 
 from terracotta.scripts.serve import serve
+
 cli.add_command(serve)
 
 from terracotta.scripts.migrate import migrate
 cli.add_command(migrate)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     entrypoint()

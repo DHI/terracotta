@@ -40,10 +40,11 @@ class SQLiteMetaStore(RelationalMetaStore):
         outside the main thread.
 
     """
-    SQL_DIALECT = 'sqlite'
-    SQL_DRIVER = 'pysqlite'
+
+    SQL_DIALECT = "sqlite"
+    SQL_DRIVER = "pysqlite"
     SQL_KEY_SIZE = 256
-    SQL_TIMEOUT_KEY = 'timeout'
+    SQL_TIMEOUT_KEY = "timeout"
 
     def __init__(self, path: Union[str, Path]) -> None:
         """Initialize the SQLiteDriver.
@@ -55,12 +56,12 @@ class SQLiteMetaStore(RelationalMetaStore):
             path: File path to target SQLite database (may or may not exist yet)
 
         """
-        super().__init__(f'{self.SQL_DIALECT}:///{path}')
+        super().__init__(f"{self.SQL_DIALECT}:///{path}")
 
     @classmethod
     def _normalize_path(cls, path: str) -> str:
-        if path.startswith(f'{cls.SQL_DIALECT}:///'):
-            path = path.replace(f'{cls.SQL_DIALECT}:///', '')
+        if path.startswith(f"{cls.SQL_DIALECT}:///"):
+            path = path.replace(f"{cls.SQL_DIALECT}:///", "")
 
         return os.path.normpath(os.path.realpath(path))
 

@@ -3,7 +3,7 @@
 Base class for drivers operating on physical raster files.
 """
 
-from typing import Any, Callable, Sequence, Dict, TypeVar
+from typing import Optional, Any, Callable, Sequence, Dict, TypeVar
 from concurrent.futures import Future, Executor, ProcessPoolExecutor, ThreadPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 
@@ -19,12 +19,11 @@ from terracotta import raster
 from terracotta.cache import CompressedLFUCache
 from terracotta.drivers.base_classes import RasterStore
 
-Number = TypeVar('Number', int, float)
+Number = TypeVar("Number", int, float)
 
 logger = logging.getLogger(__name__)
 
-context = threading.local()
-context.executor = None
+_executor = None
 
 
 def create_executor() -> Executor:
@@ -41,8 +40,8 @@ def create_executor() -> Executor:
     except OSError:
         # fall back to serial evaluation
         warnings.warn(
-            'Multiprocessing is not available on this system. '
-            'Falling back to serial execution.'
+            "Multiprocessing is not available on this system. "
+            "Falling back to serial execution."
         )
         executor = ThreadPoolExecutor(max_workers=1)
 
@@ -50,16 +49,18 @@ def create_executor() -> Executor:
 
 
 def submit_to_executor(task: Callable[..., Any]) -> Future:
-    if context.executor is None:
-        context.executor = create_executor()
+    global _executor
+
+    if _executor is None:
+        _executor = create_executor()
 
     try:
-        future = context.executor.submit(task)
+        future = _executor.submit(task)
     except BrokenProcessPool:
         # re-create executor and try again
-        logger.warn('Re-creating broken process pool')
-        context.executor = create_executor()
-        future = context.executor.submit(task)
+        logger.warn("Re-creating broken process pool")
+        _executor = create_executor()
+        future = _executor.submit(task)
 
     return future
 
@@ -79,37 +80,48 @@ class GeoTiffRasterStore(RasterStore):
 
     Path arguments are expected to be file paths.
     """
-    _TARGET_CRS: str = 'epsg:3857'
+
+    _TARGET_CRS: str = "epsg:3857"
     _LARGE_RASTER_THRESHOLD: int = 10980 * 10980
     _RIO_ENV_OPTIONS = dict(
-        GDAL_TIFF_INTERNAL_MASK=True,
-        GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR'
+        GDAL_TIFF_INTERNAL_MASK=True, GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR"
     )
 
     def __init__(self) -> None:
         settings = get_settings()
         self._raster_cache = CompressedLFUCache(
             settings.RASTER_CACHE_SIZE,
-            compression_level=settings.RASTER_CACHE_COMPRESS_LEVEL
+            compression_level=settings.RASTER_CACHE_COMPRESS_LEVEL,
         )
         self._cache_lock = threading.RLock()
 
-    def compute_metadata(self, path: str, *,
-                         extra_metadata: Any = None,
-                         use_chunks: bool = None,
-                         max_shape: Sequence[int] = None) -> Dict[str, Any]:
-        return raster.compute_metadata(path, extra_metadata=extra_metadata,
-                                       use_chunks=use_chunks, max_shape=max_shape,
-                                       large_raster_threshold=self._LARGE_RASTER_THRESHOLD,
-                                       rio_env_options=self._RIO_ENV_OPTIONS)
+    def compute_metadata(
+        self,
+        path: str,
+        *,
+        extra_metadata: Optional[Any] = None,
+        use_chunks: Optional[bool] = None,
+        max_shape: Optional[Sequence[int]] = None
+    ) -> Dict[str, Any]:
+        return raster.compute_metadata(
+            path,
+            extra_metadata=extra_metadata,
+            use_chunks=use_chunks,
+            max_shape=max_shape,
+            large_raster_threshold=self._LARGE_RASTER_THRESHOLD,
+            rio_env_options=self._RIO_ENV_OPTIONS,
+        )
 
     # return type has to be Any until mypy supports conditional return types
-    def get_raster_tile(self,
-                        path: str, *,
-                        tile_bounds: Sequence[float] = None,
-                        tile_size: Sequence[int] = None,
-                        preserve_values: bool = False,
-                        asynchronous: bool = False) -> Any:
+    def get_raster_tile(
+        self,
+        path: str,
+        *,
+        tile_bounds: Optional[Sequence[float]] = None,
+        tile_size: Optional[Sequence[int]] = None,
+        preserve_values: bool = False,
+        asynchronous: bool = False
+    ) -> Any:
         future: Future[np.ma.MaskedArray]
         result: np.ma.MaskedArray
 
