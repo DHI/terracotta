@@ -13,7 +13,6 @@ except ImportError:  # pragma: no cover
         "`python setup.py develop` in the Terracotta package folder."
     ) from None
 
-
 # initialize settings, define settings API
 from typing import Mapping, Any, Set
 from terracotta.config import parse_config, TerracottaSettings
