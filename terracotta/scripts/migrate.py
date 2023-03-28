@@ -48,7 +48,7 @@ def migrate(database: str, to_version: str, from_version: str, yes: bool):
         except Exception as e:
             raise RuntimeError("Cannot determine database version.") from e
 
-    if tc_version == to_version:
+    if from_version == to_version:
         click.echo("Already at target version, nothing to do.")
         return
 
