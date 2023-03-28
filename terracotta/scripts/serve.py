@@ -129,7 +129,6 @@ def serve(
     # ensure database can be connected to
     driver = get_driver(database, provider=database_provider)
     with driver.connect():
-        print(driver.db_version)
         pass
 
     # find suitable port
