@@ -3,7 +3,7 @@
 Use Flask development server to serve up raster files or database locally.
 """
 
-from typing import Optional, Any, Tuple, Sequence
+from typing import Optional, Any, Tuple, Sequence, cast
 import os
 import tempfile
 import logging
@@ -118,6 +118,8 @@ def serve(
             click.echo("")
 
         database = dbfile.name
+
+    database = cast(str, database)
 
     update_settings(
         DRIVER_PATH=database,
