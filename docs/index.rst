@@ -56,7 +56,7 @@ respectively. This is the best way to find out which API *your*
 deployment of Terracotta uses.
 
 To catch a first glance,
-`feel free to explore the API of our demo server <https://2truhxo59g.execute-api.eu-central-1.amazonaws.com/production/apidoc>`__.
+:doc:`feel free to explore the API of this Terracotta version <apidoc>`.
 
 
 Contents
