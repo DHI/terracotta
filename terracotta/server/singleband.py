@@ -52,7 +52,7 @@ class SinglebandOptionSchema(Schema):
     explicit_color_map = fields.Dict(
         keys=fields.Number(),
         values=fields.List(fields.Number, validate=validate.Length(min=3, max=4)),
-        example="{0: (255, 255, 255)}",
+        example='{"0": [255, 255, 255]}',
         description="Explicit value-color mapping to use, encoded as JSON object. "
         "Must be given together with `colormap=explicit`. Color values can be "
         "specified either as RGB or RGBA tuple (in the range of [0, 255]), or as "

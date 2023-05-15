@@ -359,9 +359,9 @@ def testdb(raster_file, tmpdir_factory):
     return dbpath
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def v07_db(tmpdir_factory):
-    """A read-only, pre-populated test database"""
+    """A read-only, pre-populated test database at terracotta v0.7"""
     import shutil
 
     dbpath = tmpdir_factory.mktemp("db").join("db-outdated.sqlite")
