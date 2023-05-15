@@ -1,7 +1,6 @@
 from io import BytesIO
 import json
 import urllib.parse
-from collections import OrderedDict
 
 from PIL import Image
 import numpy as np
@@ -94,40 +93,34 @@ def test_get_metadata_nonexisting(client, use_testdb):
 def test_get_datasets(client, use_testdb):
     rv = client.get("/datasets")
     assert rv.status_code == 200
-    datasets = json.loads(rv.data, object_pairs_hook=OrderedDict)["datasets"]
+    datasets = json.loads(rv.data)["datasets"]
     assert len(datasets) == 4
-    assert (
-        OrderedDict([("key1", "val11"), ("akey", "x"), ("key2", "val12")]) in datasets
-    )
+    assert dict([("key1", "val11"), ("akey", "x"), ("key2", "val12")]) in datasets
 
 
 def test_get_datasets_pagination(client, use_testdb):
     # no page (implicit 0)
     rv = client.get("/datasets?limit=2")
     assert rv.status_code == 200
-    response = json.loads(rv.data, object_pairs_hook=OrderedDict)
+    response = json.loads(rv.data)
     assert response["limit"] == 2
     assert response["page"] == 0
 
     first_datasets = response["datasets"]
     assert len(first_datasets) == 2
-    assert (
-        OrderedDict([("key1", "val11"), ("akey", "x"), ("key2", "val12")])
-        in first_datasets
-    )
+    assert dict([("key1", "val11"), ("akey", "x"), ("key2", "val12")]) in first_datasets
 
     # second page
     rv = client.get("/datasets?limit=2&page=1")
     assert rv.status_code == 200
-    response = json.loads(rv.data, object_pairs_hook=OrderedDict)
+    response = json.loads(rv.data)
     assert response["limit"] == 2
     assert response["page"] == 1
 
     last_datasets = response["datasets"]
     assert len(last_datasets) == 2
     assert (
-        OrderedDict([("key1", "val11"), ("akey", "x"), ("key2", "val12")])
-        not in last_datasets
+        dict([("key1", "val11"), ("akey", "x"), ("key2", "val12")]) not in last_datasets
     )
 
     # page out of range
