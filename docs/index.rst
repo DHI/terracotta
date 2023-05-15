@@ -70,6 +70,7 @@ Contents
    settings
    cli
    api
+   apidoc
    tutorial
    reference
    issues

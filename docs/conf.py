@@ -63,7 +63,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -80,6 +80,40 @@ templates_path = ['_templates']
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# -- Render apidoc -------------------------------------------------------------
+
+# Get swagger.json from terracotta server
+from terracotta.server.app import app as terracotta_app
+
+with terracotta_app.test_client() as client:
+    swagger_json = client.get('/swagger.json').data.decode('utf-8')
+
+with open('_static/generated/swagger.json', 'w') as f:
+    f.write(swagger_json)
+
+templates_path.append('../terracotta/server/templates')
+html_static_path.append('../terracotta/server/static')
+
+html_additional_pages = {
+    'apidoc': 'apidoc.html',
+}
+
+
+def _url_for(endpoint, filename=None):
+    if filename is not None:
+        assert endpoint == 'static'
+        return f'_static/{filename}'
+    
+    assert endpoint == '.specification'
+    return '_static/generated/swagger.json'
+
+
+# Inject Jinja variables defined by Flask
+html_context = {
+    'url_for': _url_for
+}
+
 
 # -- Extension settings --------------------------------------------------------
 
@@ -108,12 +142,12 @@ html_theme_options = {
     'body_text': '#000',
     'sidebar_header': '#4B4032',
     'sidebar_text': '#49443E',
-    'github_banner': 'true',
+    'github_banner': 'false',
     'github_user': 'DHI-GRAS',
     'github_repo': 'terracotta',
     'github_button': 'true',
     'github_type': 'star',
-    'travis_button': 'true',
+    'travis_button': 'false',
     'codecov_button': 'true',
     'logo': 'logo.svg'
 }
