@@ -2,9 +2,14 @@ def test_metadata_handler(use_testdb):
     from terracotta.handlers import metadata, datasets
 
     ds = datasets.datasets()[0]
-    md = metadata.metadata(ds)
+    md = metadata.metadata(None, ds)
     assert md
     assert md["metadata"] == ["extra_data"]
+
+    md = metadata.metadata(["metadata", "bounds"], ds)
+    assert md
+    assert len(md.keys()) == 3
+    assert all(k in md.keys() for k in ("metadata", "bounds", "keys"))
 
 
 def test_multiple_metadata_handler(use_testdb):
