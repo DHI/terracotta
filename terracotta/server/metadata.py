@@ -58,15 +58,13 @@ class CommaSeparatedListField(fields.Field):
             if value == "[]":
                 return []
 
-            return value[1:-1].split(', ')
+            return value[1:-1].split(", ")
         except ValueError:
             raise ValidationError("Invalid input for a list of values.")
 
 
 class MetadataColumnsSchema(Schema):
-    columns = CommaSeparatedListField(
-        description="Columns of dataset to be returned"
-    )
+    columns = CommaSeparatedListField(description="Columns of dataset to be returned")
 
 
 class MultipleMetadataDatasetsSchema(Schema):

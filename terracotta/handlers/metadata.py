@@ -10,9 +10,13 @@ from terracotta import get_settings, get_driver
 from terracotta.profile import trace
 
 
-def filter_metadata(metadata: Dict[str, Any], columns: Optional[List[str]]) -> Dict[str, Any]:
+def filter_metadata(
+    metadata: Dict[str, Any], columns: Optional[List[str]]
+) -> Dict[str, Any]:
     """Filter metadata by columns, if given"""
-    assert columns is None or len(columns) > 0, "columns must either be a non-empty list or None"
+    assert (
+        columns is None or len(columns) > 0
+    ), "columns must either be a non-empty list or None"
 
     if columns:
         metadata = {c: metadata[c] for c in columns}
@@ -21,7 +25,9 @@ def filter_metadata(metadata: Dict[str, Any], columns: Optional[List[str]]) -> D
 
 
 @trace("metadata_handler")
-def metadata(columns: Optional[List[str]], keys: Union[Sequence[str], Mapping[str, str]]) -> Dict[str, Any]:
+def metadata(
+    columns: Optional[List[str]], keys: Union[Sequence[str], Mapping[str, str]]
+) -> Dict[str, Any]:
     """Returns all metadata for a single dataset"""
     settings = get_settings()
     driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
@@ -31,7 +37,9 @@ def metadata(columns: Optional[List[str]], keys: Union[Sequence[str], Mapping[st
 
 
 @trace("multiple_metadata_handler")
-def multiple_metadata(columns: Optional[List[str]], datasets: List[List[str]]) -> List[Dict[str, Any]]:
+def multiple_metadata(
+    columns: Optional[List[str]], datasets: List[List[str]]
+) -> List[Dict[str, Any]]:
     """Returns all metadata for multiple datasets"""
     settings = get_settings()
     driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
