@@ -46,9 +46,10 @@ def multiple_metadata(
     key_names = driver.key_names
 
     out = []
-    for dataset in datasets:
-        metadata = filter_metadata(driver.get_metadata(dataset), columns)
-        metadata["keys"] = OrderedDict(zip(key_names, dataset))
-        out.append(metadata)
+    with driver.connect():
+        for dataset in datasets:
+            metadata = filter_metadata(driver.get_metadata(dataset), columns)
+            metadata["keys"] = OrderedDict(zip(key_names, dataset))
+            out.append(metadata)
 
     return out
