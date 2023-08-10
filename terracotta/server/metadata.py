@@ -63,7 +63,7 @@ class MetadataColumnsSchema(Schema):
     @pre_load
     def validate_columns(
         self, data: Mapping[str, Any], **kwargs: Any
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, Any] | Mapping[str, Any]:
         columns = data.get("columns")
 
         if columns:
@@ -148,7 +148,7 @@ def get_multiple_metadata() -> Response:
     from terracotta.handlers.metadata import multiple_metadata
 
     datasets_schema = MultipleMetadataDatasetsSchema()
-    datasets = datasets_schema.load(request.json).get("keys")
+    datasets = datasets_schema.load(request.json or {}).get("keys")
 
     columns_schema = MetadataColumnsSchema()
     columns = columns_schema.load(request.args).get("columns")
