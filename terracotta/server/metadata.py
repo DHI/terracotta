@@ -61,7 +61,9 @@ class MetadataColumnsSchema(Schema):
     )
 
     @pre_load
-    def validate_columns(self, data: Mapping[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def validate_columns(
+        self, data: Mapping[str, Any], **kwargs: Any
+    ) -> Dict[str, Any]:
         columns = data.get("columns")
 
         if columns:
@@ -70,9 +72,7 @@ class MetadataColumnsSchema(Schema):
             try:
                 data["columns"] = json.loads(columns)
             except json.decoder.JSONDecodeError as exc:
-                raise ValidationError(
-                    "columns must be a JSON list"
-                ) from exc
+                raise ValidationError("columns must be a JSON list") from exc
 
         return data
 
