@@ -3,7 +3,10 @@
 Flask route to handle /metadata calls.
 """
 
-from marshmallow import Schema, fields, validate, ValidationError
+from typing import Any, Mapping, Dict
+import json
+
+from marshmallow import Schema, fields, validate, pre_load, ValidationError
 from flask import jsonify, Response, request
 
 from terracotta.server.flask_api import METADATA_API
@@ -50,21 +53,28 @@ class MetadataSchema(Schema):
     )
 
 
-class CommaSeparatedListField(fields.Field):
-    def _deserialize(self, value, attr, data, **kwargs):
-        try:
-            assert value[0] == "[" and value[-1] == "]"
-
-            if value == "[]":
-                return []
-
-            return value[1:-1].split(", ")
-        except ValueError:
-            raise ValidationError("Invalid input for a list of values.")
-
-
 class MetadataColumnsSchema(Schema):
-    columns = CommaSeparatedListField(description="Columns of dataset to be returned")
+    columns = fields.List(
+        fields.String(),
+        description="List of columns to return",
+        required=False,
+    )
+
+    @pre_load
+    def validate_columns(self, data: Mapping[str, Any], **kwargs: Any) -> Dict[str, Any]:
+        columns = data.get("columns")
+
+        if columns:
+            data = dict(data.items())
+
+            try:
+                data["columns"] = json.loads(columns)
+            except json.decoder.JSONDecodeError as exc:
+                raise ValidationError(
+                    "columns must be a JSON list"
+                ) from exc
+
+        return data
 
 
 class MultipleMetadataDatasetsSchema(Schema):
