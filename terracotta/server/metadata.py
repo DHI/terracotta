@@ -10,6 +10,7 @@ from marshmallow import Schema, fields, validate, pre_load, ValidationError
 from flask import jsonify, Response, request
 
 from terracotta.server.flask_api import METADATA_API
+from terracotta.exceptions import InvalidArgumentsError
 
 
 class MetadataSchema(Schema):
@@ -63,17 +64,17 @@ class MetadataColumnsSchema(Schema):
     @pre_load
     def validate_columns(
         self, data: Mapping[str, Any], **kwargs: Any
-    ) -> Dict[str, Any] | Mapping[str, Any]:
-        columns = data.get("columns")
-
-        if columns:
-            data = dict(data.items())
-
+    ) -> Dict[str, Any]:
+        data = dict(data.items())
+        var = "columns"
+        val = data.get(var)
+        if val:
             try:
-                data["columns"] = json.loads(columns)
+                data[var] = json.loads(val)
             except json.decoder.JSONDecodeError as exc:
-                raise ValidationError("columns must be a JSON list") from exc
-
+                raise ValidationError(
+                    f"Could not decode value for {var} as JSON"
+                ) from exc
         return data
 
 
@@ -147,11 +148,16 @@ def get_multiple_metadata() -> Response:
     """
     from terracotta.handlers.metadata import multiple_metadata
 
+    request_body = request.json
+    if not isinstance(request_body, dict):
+        raise InvalidArgumentsError("Request body must be a JSON object")
+
     datasets_schema = MultipleMetadataDatasetsSchema()
-    datasets = datasets_schema.load(request.json or {}).get("keys")
+    datasets = datasets_schema.load(request_body).get("keys")
 
     columns_schema = MetadataColumnsSchema()
     columns = columns_schema.load(request.args).get("columns")
 
+    payload = multiple_metadata(columns, datasets)
     schema = MetadataSchema(many=True, partial=columns is not None)
-    return jsonify(schema.load(multiple_metadata(columns, datasets)))
+    return jsonify(schema.load(payload))

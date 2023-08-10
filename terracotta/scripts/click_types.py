@@ -26,7 +26,7 @@ class PathlibPath(click.Path):
     """Converts a string to a pathlib.Path object"""
 
     def convert(self, *args: Any) -> pathlib.Path:
-        return pathlib.Path(super().convert(*args))
+        return pathlib.Path(str(super().convert(*args)))
 
 
 RasterPatternType = Tuple[List[str], Dict[Tuple[str, ...], str]]
