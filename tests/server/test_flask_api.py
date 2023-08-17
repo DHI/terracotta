@@ -117,7 +117,7 @@ def test_post_metadata_errors(debug_client, use_non_writable_testdb):
     with pytest.raises(marshmallow.ValidationError):
         debug_client.post(
             '/metadata?columns=["range]',
-            json={"keys": [["val11", "x", "val12"], ["val21", "x", "val22"]], },
+            json={"keys": [["val11", "x", "val12"], ["val21", "x", "val22"]]},
         )
 
     with pytest.raises(KeyError):
