@@ -161,6 +161,8 @@ class SettingSchema(Schema):
 
     USE_MULTIPROCESSING = fields.Boolean()
 
+    MAX_POST_METADATA_KEYS = fields.Integer(validate=validate.Range(min=1))
+
     @pre_load
     def decode_lists(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         for var in (
