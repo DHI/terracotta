@@ -93,9 +93,7 @@ def test_get_metadata_nonexisting(client, use_testdb):
 def test_post_metadata(client, use_testdb):
     rv = client.post(
         "/metadata",
-        json={
-            "keys": [["val11", "x", "val12"], ["val21", "x", "val22"]]
-        },
+        json={"keys": [["val11", "x", "val12"], ["val21", "x", "val22"]]},
     )
 
     assert rv.status_code == 200
@@ -105,9 +103,7 @@ def test_post_metadata(client, use_testdb):
 def test_post_metadata_specific_columns(client, use_testdb):
     rv = client.post(
         '/metadata?columns=["bounds", "range"]',
-        json={
-            "keys": [["val11", "x", "val12"], ["val21", "x", "val22"]]
-        },
+        json={"keys": [["val11", "x", "val12"], ["val21", "x", "val22"]]},
     )
 
     assert rv.status_code == 200
