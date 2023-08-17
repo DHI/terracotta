@@ -143,6 +143,9 @@ def get_multiple_metadata() -> Response:
             200:
                 description: All metadata for given dataset
                 schema: MetadataSchema
+            400:
+                description:
+                    If the MAX_POST_METADATA_KEYS (100 by default) limit is exceeded
             404:
                 description: No dataset found for given key combination
     """

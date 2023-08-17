@@ -7,6 +7,7 @@ from typing import Mapping, Sequence, Dict, Any, Union, List, Optional
 from collections import OrderedDict
 
 from terracotta import get_settings, get_driver
+from terracotta.exceptions import InvalidArgumentsError
 from terracotta.profile import trace
 
 
@@ -45,9 +46,15 @@ def multiple_metadata(
     driver = get_driver(settings.DRIVER_PATH, provider=settings.DRIVER_PROVIDER)
     key_names = driver.key_names
 
+    if len(datasets) > settings.MAX_POST_METADATA_KEYS:
+        raise InvalidArgumentsError(
+            f"Maximum number of keys exceeded ({settings.MAX_POST_METADATA_KEYS}). "
+            f"This limit can be configured in the server settings."
+        )
+
     out = []
     with driver.connect():
-        for dataset in datasets[: settings.MAX_POST_METADATA_KEYS]:
+        for dataset in datasets:
             metadata = filter_metadata(driver.get_metadata(dataset), columns)
             metadata["keys"] = OrderedDict(zip(key_names, dataset))
             out.append(metadata)
