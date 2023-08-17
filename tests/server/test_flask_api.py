@@ -111,6 +111,22 @@ def test_post_metadata_specific_columns(client, use_testdb):
     assert set(json.loads(rv.data)[0].keys()) == {"bounds", "range", "keys"}
 
 
+def test_post_metadata_errors(debug_client, use_non_writable_testdb):
+    import marshmallow
+
+    with pytest.raises(marshmallow.ValidationError):
+        debug_client.post(
+            '/metadata?columns=["range]',
+            json={"keys": [["val11", "x", "val12"], ["val21", "x", "val22"]], },
+        )
+
+    with pytest.raises(KeyError):
+        debug_client.post(
+            '/metadata?columns=["invalid"]',
+            json={"keys": [["val11", "x", "val12"], ["val21", "x", "val22"]]},
+        )
+
+
 def test_get_datasets(client, use_testdb):
     rv = client.get("/datasets")
     assert rv.status_code == 200
