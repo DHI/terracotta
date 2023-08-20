@@ -112,12 +112,25 @@ def test_post_metadata_specific_columns(client, use_testdb):
 
 
 def test_post_metadata_errors(debug_client, use_non_writable_testdb):
+    from terracotta import exceptions
     import marshmallow
 
     with pytest.raises(marshmallow.ValidationError):
         debug_client.post(
             '/metadata?columns=["range]',
             json={"keys": [["val11", "x", "val12"], ["val21", "x", "val22"]]},
+        )
+
+    with pytest.raises(exceptions.InvalidArgumentsError):
+        debug_client.post(
+            '/metadata?columns=["range"]',
+            json={"keys": [["val11", "x", "val12"] for _ in range(101)]},
+        )
+
+    with pytest.raises(exceptions.InvalidArgumentsError):
+        debug_client.post(
+            '/metadata?columns=["range"]',
+            json="Invalid JSON",
         )
 
     with pytest.raises(KeyError):
