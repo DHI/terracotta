@@ -90,6 +90,56 @@ def test_get_metadata_nonexisting(client, use_testdb):
     assert rv.status_code == 404
 
 
+def test_post_metadata(client, use_testdb):
+    rv = client.post(
+        "/metadata",
+        json={"keys": [["val11", "x", "val12"], ["val21", "x", "val22"]]},
+    )
+
+    assert rv.status_code == 200
+    assert len(json.loads(rv.data)) == 2
+
+
+def test_post_metadata_specific_columns(client, use_testdb):
+    rv = client.post(
+        '/metadata?columns=["bounds", "range"]',
+        json={"keys": [["val11", "x", "val12"], ["val21", "x", "val22"]]},
+    )
+
+    assert rv.status_code == 200
+    assert len(json.loads(rv.data)) == 2
+    assert set(json.loads(rv.data)[0].keys()) == {"bounds", "range", "keys"}
+
+
+def test_post_metadata_errors(debug_client, use_non_writable_testdb):
+    from terracotta import exceptions
+    import marshmallow
+
+    with pytest.raises(marshmallow.ValidationError):
+        debug_client.post(
+            '/metadata?columns=["range]',
+            json={"keys": [["val11", "x", "val12"], ["val21", "x", "val22"]]},
+        )
+
+    with pytest.raises(exceptions.InvalidArgumentsError):
+        debug_client.post(
+            '/metadata?columns=["range"]',
+            json={"keys": [["val11", "x", "val12"] for _ in range(101)]},
+        )
+
+    with pytest.raises(exceptions.InvalidArgumentsError):
+        debug_client.post(
+            '/metadata?columns=["range"]',
+            json="Invalid JSON",
+        )
+
+    with pytest.raises(KeyError):
+        debug_client.post(
+            '/metadata?columns=["invalid"]',
+            json={"keys": [["val11", "x", "val12"], ["val21", "x", "val22"]]},
+        )
+
+
 def test_get_datasets(client, use_testdb):
     rv = client.get("/datasets")
     assert rv.status_code == 200

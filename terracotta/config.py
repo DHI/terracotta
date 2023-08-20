@@ -92,6 +92,9 @@ class TerracottaSettings(NamedTuple):
     #: Use a process pool for band retrieval in parallel
     USE_MULTIPROCESSING: bool = True
 
+    #: Maximum number of metadata keys per POST /metadata request
+    MAX_POST_METADATA_KEYS: int = 100
+
 
 AVAILABLE_SETTINGS: Tuple[str, ...] = TerracottaSettings._fields
 
@@ -157,6 +160,8 @@ class SettingSchema(Schema):
     POSTGRESQL_PASSWORD = fields.String(allow_none=True)
 
     USE_MULTIPROCESSING = fields.Boolean()
+
+    MAX_POST_METADATA_KEYS = fields.Integer(validate=validate.Range(min=1))
 
     @pre_load
     def decode_lists(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
