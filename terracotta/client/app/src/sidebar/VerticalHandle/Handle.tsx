@@ -1,10 +1,8 @@
 import React, { MouseEventHandler, FC } from 'react'
-import clsx from 'clsx'
-import { Box } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
-import { DragHandle as DragHandleIcon, ExpandLess as ExpandLessIcon } from '@material-ui/icons'
+import { Box, Theme } from '@mui/material'
+import { DragHandle as DragHandleIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material'
 
-const useStyles = makeStyles(theme => ({
+const styles = {
 	root: {
 		height: '100%',
 		width: 2,
@@ -18,12 +16,12 @@ const useStyles = makeStyles(theme => ({
 		cursor: 'pointer',
 	},
 	icon: {
-		color: theme.palette.primary.main,
+		color: "primary.main",
 		transform: 'translate(0, -2px)',
 	},
 	iconBox: {
 		zIndex: 10,
-		padding: theme.spacing(1, 1, 0.1, 1),
+		padding: (theme: Theme) => theme.spacing(1, 1, 0.1, 1),
 		transform: 'translate(-40%, 0) rotate(-90deg)',
 		width: 20,
 		height: 15,
@@ -34,7 +32,7 @@ const useStyles = makeStyles(theme => ({
 		position: 'relative',
 		borderRadius: '20px 20px 0 0',
 	},
-}))
+}
 
 interface Props {
 	onMouseUp: MouseEventHandler<HTMLElement> | undefined,
@@ -50,20 +48,21 @@ const Handle: FC<Props> = ({
 	onClickExpand
 }) => {
 
-	const classes = useStyles()
-
 	return (
 		<Box
 			draggable={false}
 			onMouseDown={onMouseDown}
 			onMouseUp={onMouseUp}
-			className={clsx(classes.root, isCollapsed && classes.collapsedRoot)}
+			sx={{
+				...styles.root,
+				...(!isCollapsed && { cursor: styles.collapsedRoot }),
+			}}
 			onClick={() => isCollapsed && onClickExpand()}
 		>
-			<Box draggable={false} className={classes.iconBox}>
+			<Box draggable={false} sx={styles.iconBox}>
 				{!isCollapsed ?
-					<DragHandleIcon className={classes.icon}/> :
-					<ExpandLessIcon className={classes.icon} />
+					<DragHandleIcon sx={styles.icon}/> :
+					<ExpandLessIcon sx={styles.icon} />
 			}
 			</Box>
 		</Box>

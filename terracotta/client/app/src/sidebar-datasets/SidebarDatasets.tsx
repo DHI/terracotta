@@ -8,9 +8,9 @@ import {
     TableRow as MuiTableRow,
     Typography,
     Box,
-} from '@material-ui/core'
+} from '@mui/material'
 import AppContext, { activeRGBSelectorRange } from "../AppContext"
-import { makeStyles } from '@material-ui/core/styles'
+import { makeStyles } from '@mui/material/styles'
 import
     getData,
     {

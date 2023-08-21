@@ -1,6 +1,6 @@
 import React, { FC, useState, useEffect, FormEvent } from 'react'
-import { Box, TextField, Button  } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
+import { Box, TextField, Button  } from '@mui/material'
+import { makeStyles } from '@mui/material/styles'
 import { KeyItem } from "../common/data/getData"
 
 type FormValues = Record<string, string | number> | undefined
@@ -33,7 +33,7 @@ const DatasetsForm: FC<Props> = ({
         if(formValues){
 
             const queryString = Object.keys(formValues).map(
-                (keyItem: string) => 
+                (keyItem: string) =>
                     formValues[keyItem] !== '' ? `&${keyItem}=${formValues[keyItem]}` : ''
                 ).join('')
 
@@ -43,7 +43,7 @@ const DatasetsForm: FC<Props> = ({
 
     useEffect(() => {
         const reduceKeys = keys.reduce((acc:Record<string, string> , keyItem: KeyItem) => {
-           
+
             acc[keyItem.key.toLowerCase()] = ''
             return acc
 
@@ -59,11 +59,11 @@ const DatasetsForm: FC<Props> = ({
                 keys.map((keyItem: KeyItem, i: number) => {
                     const isLastUneven = keys.length % 2 === 1 && i === keys.length - 1 ? true : false
                 return(
-                    <TextField 
-                        key={`textfield-${keyItem.key}`} 
-                        id={keyItem.key.toLocaleLowerCase()} 
+                    <TextField
+                        key={`textfield-${keyItem.key}`}
+                        id={keyItem.key.toLocaleLowerCase()}
                         label={keyItem.key}
-                        className={`${isLastUneven ? '' : classes.input} ${classes.inputLabel}`} 
+                        className={`${isLastUneven ? '' : classes.input} ${classes.inputLabel}`}
                         fullWidth={isLastUneven}
                         onChange={(e) => setFormValues((val) => ({ ...val, [keyItem.key.toLowerCase()]: e.target.value }))}
                         value={formValues?.[ keyItem.key ]}

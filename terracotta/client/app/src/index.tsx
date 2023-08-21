@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import App from './App'
-import { ThemeProvider } from "@material-ui/core"
+import { ThemeProvider } from "@mui/material"
 import DhiTheme from "./theme/theme"
 
 require('dotenv').config()

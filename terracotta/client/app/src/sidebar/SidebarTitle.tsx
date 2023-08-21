@@ -1,9 +1,9 @@
 import React, { CSSProperties, FC } from 'react'
-import { Box, Typography, Link, Tooltip } from '@material-ui/core'
+import { Box, Typography, Link, Tooltip } from '@mui/material'
 import HeaderImage from "./../common/images/header.svg"
-import { makeStyles } from "@material-ui/core/styles"
 import { KeyItem } from "./../common/data/getData"
-const useStyles = makeStyles(() => ({
+
+const styles = {
 	wrapper: {
 		margin: 16,
 		backgroundColor: '#FFFFFF',
@@ -42,7 +42,7 @@ const useStyles = makeStyles(() => ({
 	noDescription: {
 		cursor: 'default',
 	}
-}))
+}
 
 interface Props {
 	host?: string,
@@ -56,12 +56,10 @@ const SidebarTitle: FC<Props> = ({
 	keys
 }) => {
 
-	const classes = useStyles()
-
 	return (
 		<Box
 			style={{ ...style }}
-			className={classes.wrapper}
+			sx={styles.wrapper}
 		>
 			<Box display={'flex'} flexWrap={'nowrap'} justifyContent={'space-between'} alignItems={'center'}>
 				<img src={HeaderImage} alt={'Teracotta preview app'} />
@@ -69,13 +67,13 @@ const SidebarTitle: FC<Props> = ({
 			{
 				host && keys && (
 					<Box my={1} mt={2}>
-						<Typography variant={'body1'} className={classes.hostText}>
+						<Typography variant={'body1'} sx={styles.hostText}>
 							<b>Host: </b>
 							<span>
-								{host}	
+								{host}
 							</span>
 						</Typography>
-						<Typography variant={'body1'} className={classes.hostText}>
+						<Typography variant={'body1'} sx={styles.hostText}>
 							<b>Docs: </b>
 							<Link href={`${host}/apidoc`} target={'_blank'}>
 								<span>
@@ -83,32 +81,32 @@ const SidebarTitle: FC<Props> = ({
 								</span>
 							</Link>
 						</Typography>
-						<Typography variant={'body1'} className={classes.hostText}>
+						<Typography variant={'body1'} sx={styles.hostText}>
 							<b>{'Keys: '}</b>
 							<span>
-								{keys.map((keyItem: KeyItem) => 
-									keyItem.description ? 
-										<Tooltip 
+								{keys.map((keyItem: KeyItem) =>
+									keyItem.description ?
+										<Tooltip
 											title={keyItem.description || false}
 											key={`tooltip-${keyItem.key}`}
 										>
-											<span>
+											<Typography>
 												{'/'}
-												<span className={classes.hasDescription}>{`{${keyItem.key.toLowerCase()}}`}</span>
-											</span>
+												<Typography sx={styles.hasDescription}>{`{${keyItem.key.toLowerCase()}}`}</Typography>
+											</Typography>
 										</Tooltip>
 									:
-										<span key={`tooltip-${keyItem.key}`}>
+										<Typography key={`tooltip-${keyItem.key}`}>
 											{'/'}
-											<span className={classes.noDescription}>{`{${keyItem.key.toLowerCase()}}`}</span>
-										</span>
-								)}	
+											<Typography sx={styles.noDescription}>{`{${keyItem.key.toLowerCase()}}`}</Typography>
+										</Typography>
+								)}
 							</span>
 						</Typography>
 					</Box>
 				)
 			}
-			
+
 		</Box>
 	)
 }

@@ -1,6 +1,6 @@
 import React, { FC } from 'react'
-import { Box, TableRow, TableCell, Grid, Collapse, Typography, Link } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
+import { Box, TableRow, TableCell, Grid, Collapse, Typography, Link } from '@mui/material'
+import { makeStyles } from '@mui/material/styles'
 import { ResponseMetadata200 } from "../common/data/getData"
 import CopyToClipboard from "../common/components/CopyToClipboard"
 
@@ -10,9 +10,9 @@ const useStyles = makeStyles(() => ({
         width: 'auto'
     },
     codeContainer: {
-        backgroundColor: '#F8F8F8', 
-        overflowX: 'auto', 
-        width: 'fit-content', 
+        backgroundColor: '#F8F8F8',
+        overflowX: 'auto',
+        width: 'fit-content',
         maxWidth: '100%'
     },
     codeContainerText: {
@@ -53,7 +53,7 @@ const DatasetPreview: FC<Props> = ({
     const classes = useStyles()
 
     const returnJson = (dataset: ResponseMetadata200) => Object.keys(dataset).reduce(
-        (acc: string[], keyItem: string, j: number) => 
+        (acc: string[], keyItem: string, j: number) =>
            {
                 const neededKeys = ['mean', 'range', 'stdev', 'valid_percentage'];
                 if(neededKeys.includes(keyItem)){
@@ -64,7 +64,7 @@ const DatasetPreview: FC<Props> = ({
                         const buildStr = `  ${keyItem}: ${dataset[keyItem]},\n`
                         acc = [...acc, buildStr]
                     }
-                
+
                 }
 
             return acc
@@ -101,7 +101,7 @@ const DatasetPreview: FC<Props> = ({
                                 <Typography className={classes.codeContainerText}>
                                     <code>
                                         {'Metadata'}
-                                        
+
                                     </code>
                                 </Typography>
                                     <code style={{ whiteSpace: 'pre' }}>
@@ -109,26 +109,26 @@ const DatasetPreview: FC<Props> = ({
                                         {returnJson(dataset)}
                                         {'}\n'}
                                     </code>
-                                    <Link 
-                                        target={'_blank'} 
+                                    <Link
+                                        target={'_blank'}
                                         href={`${host}/metadata${Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('')}`}
                                         className={classes.metadataLink}
                                     >
                                         {'View full metadata\n'}
                                     </Link>
                                 </Box>
-                                
+
                             </Grid>
-                            <Grid 
-                                item 
-                                xs={6} 
+                            <Grid
+                                item
+                                xs={6}
                                 container
                                 justify={'center'}
                                 alignItems={'center'}
                             >
                                 <Box p={1}>
                                     <img
-                                        src={`${host}/singleband/${Object.keys(dataset.keys).map((datasetKey: string) => `${dataset.keys[datasetKey]}/`).join('')}preview.png?tile_size=[128,128]`} 
+                                        src={`${host}/singleband/${Object.keys(dataset.keys).map((datasetKey: string) => `${dataset.keys[datasetKey]}/`).join('')}preview.png?tile_size=[128,128]`}
                                         alt={'TC-preview'}
                                         className={classes.imagePreview}
                                         loading={'eager'}

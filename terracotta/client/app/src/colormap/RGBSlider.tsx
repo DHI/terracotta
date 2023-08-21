@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useState } from 'react'
-import { Box, Grid, FormControl, Select, MenuItem, InputLabel } from '@material-ui/core'
+import { Box, Grid, FormControl, Select, MenuItem, InputLabel } from '@mui/material'
 import Slider from "../common/components/Slider"
 
 interface Props {
@@ -52,13 +52,13 @@ const RGBSlider: FC<Props> = ({
             </Grid>
             <Grid container item xs={10} alignItems={'center'}>
                 <Box ml={2} mt={2} width={1}>
-                    <Slider 
-                        getValueCommitted={value => Array.isArray(value) && onGetSliderValue(value)} 
+                    <Slider
+                        getValueCommitted={value => Array.isArray(value) && onGetSliderValue(value)}
                         getValue={(value: number | number[]) => Array.isArray(value) && setLocalRange(value)}
-                        defaultValue={localRange} 
-                        min={min} 
-                        max={max} 
-                        step={step} 
+                        defaultValue={localRange}
+                        min={min}
+                        max={max}
+                        step={step}
                         title={title}
                     />
                 </Box>

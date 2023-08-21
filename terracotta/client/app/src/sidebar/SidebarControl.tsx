@@ -2,17 +2,17 @@ import React, { FC, MouseEvent } from 'react'
 import {
 	Box,
 	IconButton,
-} from '@material-ui/core'
+} from '@mui/material'
 import {
 	ChevronLeft,
 	ChevronRight,
 	ExpandLess,
 	ExpandMore,
-} from '@material-ui/icons'
-import { makeStyles } from '@material-ui/core/styles'
+} from '@mui/icons-material'
+import { makeStyles } from '@mui/material/styles'
 import useIsMobileWidth from '../common/hooks/useIsMobileWidth'
 
-const iconStyle = makeStyles({
+const iconStyles = {
 	icon: {
 		backgroundColor: '#fff',
 		height: 22,
@@ -23,9 +23,9 @@ const iconStyle = makeStyles({
 			fill: '#fff',
 		},
 	},
-})
+}
 
-const useStyles = makeStyles(theme => ({
+const styles = {
 	leftBorder: {
 		borderLeft: '1px solid #DBE4E9',
 	},
@@ -46,11 +46,12 @@ const useStyles = makeStyles(theme => ({
 		},
 	},
 	tooltipStyle: {
-		[ theme.breakpoints.down('sm') ]: {
-			display: 'none',
+		display: {
+			xs: 'none',
+			sm: 'block',
 		},
 	},
-}))
+}
 
 interface Props {
 	toggleSidebarOpen: (event: MouseEvent<HTMLElement>) => void,
@@ -62,17 +63,13 @@ const SidebarControl: FC<Props> = ({
 	isSidebarOpen,
 }) => {
 
-	const {
-		leftBorder, topBorder
-	} = useStyles()
-	const { icon } = iconStyle()
 	const isMobile = useIsMobileWidth()
 
-	const rootClass = isMobile ? topBorder : leftBorder
+	const rootClass = isMobile ? styles.topBorder : styles.leftBorder
 
 	return (
 		<Box
-			className={rootClass}
+			sx={rootClass}
 			display={'flex'}
 			height={1}
 			flexDirection={isMobile ? 'row' : 'column'}
@@ -83,16 +80,16 @@ const SidebarControl: FC<Props> = ({
 					style={{ backgroundColor: '#fff' }}
 				>
 					{isSidebarOpen && !isMobile && (
-					<ChevronRight className={icon} color={'primary'} />
+					<ChevronRight sx={iconStyles.icon} color={'primary'} />
 					)}
 					{!isSidebarOpen && !isMobile && (
-					<ChevronLeft className={icon} color={'primary'} />
+					<ChevronLeft sx={iconStyles.icon} color={'primary'} />
 					)}
 					{isSidebarOpen && isMobile && (
-					<ExpandMore className={icon} color={'primary'} />
+					<ExpandMore sx={iconStyles.icon} color={'primary'} />
 					)}
 					{!isSidebarOpen && isMobile && (
-					<ExpandLess className={icon} color={'primary'} />
+					<ExpandLess sx={iconStyles.icon} color={'primary'} />
 					)}
 				</IconButton>
 			</Box>

@@ -1,13 +1,13 @@
 import React, { FC, useContext, useEffect } from 'react'
-import { 
-    Box, 
-} from '@material-ui/core'
+import {
+    Box,
+} from '@mui/material'
 import AppContext, { activeRGBSelectorRange } from "./../AppContext"
 import RGBSlider from "./RGBSlider"
 
 const RGBSelector: FC = () => {
     const {
-        state: { 
+        state: {
             datasetBands,
             activeRGB,
             activeDataset,
@@ -27,7 +27,7 @@ const RGBSelector: FC = () => {
     const datasetPageRange = activeDataset !== undefined && datasets?.[activeDataset - page * limit]?.range
     const minRange = datasetPageRange && datasetPageRange[0]
     const maxRange = datasetPageRange && datasetPageRange[1]
-    
+
     const onGetBandValue = (val: string, bandKey: string) => {
         setActiveRGB((activeRGB: activeRGBSelectorRange) => activeRGB && {
             ...activeRGB,
@@ -47,7 +47,7 @@ const RGBSelector: FC = () => {
             {
                 datasetBands && activeRGB && (
                     Object.keys(activeRGB).map((color: string) => (
-                        <RGBSlider 
+                        <RGBSlider
                             key={`rgb-slider-${color}`}
                             options={datasetBands}
                             max={Number(maxRange)}

@@ -1,10 +1,10 @@
 import React, { FC, CSSProperties, useContext } from 'react';
-import AddIcon from '@material-ui/icons/Add';
-import RemoveIcon from '@material-ui/icons/Remove';
-import PublicIcon from '@material-ui/icons/Public';
-import StreetviewIcon from '@material-ui/icons/Streetview';
-import { IconButton, Grid, Tooltip } from '@material-ui/core';
-import { makeStyles } from "@material-ui/core/styles"
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+import PublicIcon from '@mui/icons-material/Public';
+import StreetviewIcon from '@mui/icons-material/Streetview';
+import { IconButton, Grid, Tooltip } from '@mui/material';
+import { makeStyles } from "@mui/material/styles"
 import AppContext from '../AppContext';
 import { Viewport } from "./types"
 

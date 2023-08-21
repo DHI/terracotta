@@ -4,7 +4,6 @@ import React, {
 import ReactMapGL, { FlyToInterpolator, Source, Layer, WebMercatorViewport } from 'react-map-gl'
 import ZoomControl from './MapZoomControl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import { easeCubicInOut } from 'd3-ease'
 import useIsMobileWidth from '../common/hooks/useIsMobileWidth'
 import AppContext from "../AppContext"
 import { Viewport } from "./types"
@@ -20,11 +19,11 @@ const Map: FC<Props> = ({ host }) => {
 
 	const isMobile = useIsMobileWidth()
 	const {
-		state: { 
-			isOpticalBasemap, 
-			viewport, 
-			hoveredDataset, 
-			datasets, 
+		state: {
+			isOpticalBasemap,
+			viewport,
+			hoveredDataset,
+			datasets,
 			activeDataset,
 			selectedDatasetRasterUrl,
 			page,
@@ -53,7 +52,6 @@ const Map: FC<Props> = ({ host }) => {
 				zoom,
 				transitionDuration: 2000,
 				transitionInterpolator: new FlyToInterpolator(),
-				transitionEasing: easeCubicInOut,
 			},
 		})
 
@@ -61,7 +59,7 @@ const Map: FC<Props> = ({ host }) => {
 	}, [ viewport ])
 
 	useEffect(() => {
-		
+
 		setLocalRasterUrl(undefined)
 		setTimeout(() => {
 			setLocalRasterUrl(selectedDatasetRasterUrl)
@@ -71,7 +69,7 @@ const Map: FC<Props> = ({ host }) => {
 
 	useEffect(() => {
 		if(activeDataset !== undefined && datasets){
-			
+
 			const pageIndex = activeDataset - page * limit
 			const currentBounds = datasets[pageIndex].bounds
 

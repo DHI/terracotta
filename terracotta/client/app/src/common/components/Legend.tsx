@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Box, TextField } from '@material-ui/core';
-import { makeStyles } from "@material-ui/core/styles"
+import { Box, TextField } from '@mui/material';
+import { makeStyles } from "@mui/material/styles"
 
 const useStyles = makeStyles(() => ({
   inputBox: {
@@ -42,7 +42,7 @@ const Legend: React.FC<LegendProps> = ({ src, range, onGetRange }) => {
         range?.[1] !== undefined && (
           <Box display="flex" justifyContent="space-between">
             <Box className={classes.inputBox}>
-              <TextField 
+              <TextField
                 fullWidth
                 type={'number'}
                 variant={'standard'}
@@ -51,7 +51,7 @@ const Legend: React.FC<LegendProps> = ({ src, range, onGetRange }) => {
               />
             </Box>
             <Box className={classes.inputBox}>
-              <TextField 
+              <TextField
                 fullWidth
                 type={'number'}
                 variant={'standard'}

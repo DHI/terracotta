@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, FC } from 'react'
 import Handle from './Handle'
 
-
 interface Props{
 	boxWidth: number,
 	onDrag: (w: number) => void,

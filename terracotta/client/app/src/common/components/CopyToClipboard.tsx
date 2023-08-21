@@ -1,6 +1,6 @@
 import React, { CSSProperties, useState, FC } from 'react';
-import { Grid, Tooltip } from '@material-ui/core';
-import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
+import { Grid, Tooltip } from '@mui/material';
+import FileCopyOutlinedIcon from '@mui/icons-material/FileCopyOutlined';
 import Clipboard from 'react-clipboard.js';
 
 const disabledStyle = {
@@ -63,26 +63,19 @@ const CopyToClipboard: FC<CopyToClipboardProps> = ({
     <Grid
       container
       spacing={0}
-      justify="space-between"
+      justifyContent="space-between"
       alignItems="flex-end"
-      
-      style={disabled === true ? { ...style, ...disabledStyle } : { ...style, ...enabledStyle }}
+      sx={disabled === true ? { ...style, ...disabledStyle } : { ...style, ...enabledStyle }}
       onClick={() => copy()}
     >
       <Grid item>
-        <Grid container alignItems="center" justify="center">
-          <Clipboard
-            data-clipboard-text={message ? message : copyUrl}
-            className="copy-clipboard"
-            style={{ background: 'none', border: '0px', outline: 'none' }}
-          >
+        <Grid container alignItems="center" justifyContent="center">
             <Tooltip title={tooltip}>
               <FileCopyOutlinedIcon
                 color="primary"
-                className={className}
+                sx={{cursor: 'pointer'}}
               />
             </Tooltip>
-          </Clipboard>
         </Grid>
       </Grid>
     </Grid>

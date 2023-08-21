@@ -1,4 +1,4 @@
-import { createMuiTheme } from '@material-ui/core/styles'
+import { createMuiTheme } from '@mui/material/styles'
 
 const DHITheme = createMuiTheme({
 	palette: {

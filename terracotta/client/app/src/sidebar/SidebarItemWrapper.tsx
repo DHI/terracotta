@@ -1,8 +1,7 @@
 import React, { FC, ReactNode } from 'react'
-import { Box, Typography, CircularProgress } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
+import { Box, Typography, CircularProgress } from '@mui/material'
 
-const useStyles = makeStyles(() => ({
+const styles = {
     wrapper: {
 		margin: 16,
         paddingBottom: 16,
@@ -14,7 +13,7 @@ const useStyles = makeStyles(() => ({
         height: "16px !important",
         marginLeft: 6
     }
-}))
+}
 
 interface Props {
     isLoading?: boolean,
@@ -27,16 +26,14 @@ const SidebarItemWrapper: FC<Props> = ({
     children
 }) => {
 
-    const classes = useStyles()
-
     return (
-        <Box className={classes.wrapper}>
+        <Box sx={styles.wrapper}>
             <Box display={'flex'} alignItems={'center'} mb={1}>
                 <Typography variant={'body1'}>
                     {title}
                 </Typography>
                 {
-                    isLoading && <CircularProgress color={'primary'} className={classes.spinner}/>
+                    isLoading && <CircularProgress color={'primary'} sx={styles.spinner}/>
                 }
             </Box>
             {children}

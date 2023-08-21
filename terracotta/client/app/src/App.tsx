@@ -1,6 +1,6 @@
 import React, { FC, useState, useEffect } from 'react';
-import { Box } from "@material-ui/core"
-import { makeStyles } from "@material-ui/core/styles"
+import { Box } from "@mui/material"
+import { makeStyles } from "@mui/material/styles"
 import SidebarContent from "./sidebar/SidebarContent"
 import SidebarTitle from "./sidebar/SidebarTitle"
 import SidebarDatasetsItem from "./sidebar-datasets/SidebarDatasets"
@@ -78,7 +78,7 @@ const App: FC<Props> = ({ hostnameProp }) => {
   const [ activeRGB, setActiveRGB ] = useState<activeRGBSelectorRange | undefined>(defaultRGB)
   const [ datasetBands, setDatasetBands ] = useState<string[] | undefined>(undefined)
 
-  const classes = useStyles(); 
+  const classes = useStyles();
 
   const initializeApp = (hostname: string | undefined) => {
     // sanitize hostname
@@ -90,7 +90,7 @@ const App: FC<Props> = ({ hostnameProp }) => {
     if(isEnvDev && TC_URL){
       hostname = TC_URL
     }
-    
+
     if(hostname){
 
       if (hostname.charAt(hostname.length - 1) === '/') {
@@ -98,9 +98,9 @@ const App: FC<Props> = ({ hostnameProp }) => {
       }
 
       setHostname(hostname)
-    
+
     }
-    
+
 }
 
   useEffect(() => {
@@ -163,7 +163,7 @@ const App: FC<Props> = ({ hostnameProp }) => {
                     <SidebarDatasetsItem host={hostname} />
                 )
               }
-              
+
             </SidebarContent>
         </Box>
       </AppContext.Provider>

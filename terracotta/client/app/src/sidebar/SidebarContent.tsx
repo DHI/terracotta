@@ -1,6 +1,6 @@
 import React, { FC, ReactNode, useState } from 'react'
-import { Paper, Box } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
+import { Paper, Box } from '@mui/material'
+import { makeStyles } from '@mui/material/styles'
 import VerticalHandle from "./VerticalHandle/VerticalHandle"
 
 const useStyles = makeStyles(({ breakpoints }) => ({

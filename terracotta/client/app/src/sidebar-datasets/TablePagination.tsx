@@ -1,15 +1,15 @@
 import React, { FC, ChangeEvent } from 'react'
-import { 
+import {
     Box,
     FormControl,
     MenuItem,
     Select,
     IconButton,
     Typography
- } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
-import NavigateNextIcon from '@material-ui/icons/NavigateNext';
-import NavigateBeforeIcon from '@material-ui/icons/NavigateBefore';
+ } from '@mui/material'
+import { makeStyles } from '@mui/material/styles'
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 
 const useStyles = makeStyles(() => ({
     formControl: {
@@ -32,8 +32,8 @@ interface Props {
     disableNext: boolean
 }
 const TablePagination: FC<Props> = ({
-    value, 
-    options, 
+    value,
+    options,
     onGetValue,
     onGetPage,
     page,

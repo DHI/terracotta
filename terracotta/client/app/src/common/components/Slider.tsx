@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Slider as MSlider, Box, Grid, Typography, TextField } from '@material-ui/core';
+import { Slider as MSlider, Box, Grid, Typography, TextField } from '@mui/material';
 
 type SliderProps = {
   /**
@@ -53,7 +53,7 @@ const Slider: React.FC<SliderProps> = ({
   };
 
   useEffect(() => {
-    
+
     setValue(defaultValue)
 
   }, [defaultValue])
@@ -92,7 +92,7 @@ const Slider: React.FC<SliderProps> = ({
             justify="center"
             style={{ height: '100%', maxWidth: '8rem' }}
           >
-            <TextField 
+            <TextField
               fullWidth
               type={'number'}
               variant={'standard'}
@@ -125,7 +125,7 @@ const Slider: React.FC<SliderProps> = ({
             justify="center"
             style={{ height: '100%', maxWidth: '8rem' }}
           >
-            <TextField 
+            <TextField
               fullWidth
               type={'number'}
               variant={'standard'}

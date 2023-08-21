@@ -1,9 +1,9 @@
 import React, { FC } from 'react'
-import { TableRow as MuiTableRow, TableCell, Box, IconButton } from '@material-ui/core'
-import { makeStyles } from "@material-ui/core/styles"
+import { TableRow as MuiTableRow, TableCell, Box, IconButton } from '@mui/material'
+import { makeStyles } from "@mui/material/styles"
 import { DatasetItem } from "../common/data/getData"
-import RadioButtonUncheckedIcon from '@material-ui/icons/RadioButtonUnchecked';
-import CheckCircleIcon from '@material-ui/icons/CheckCircle';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const useStyles = makeStyles(() => ({
     tableCell: {
@@ -34,21 +34,21 @@ interface Props {
     onMouseLeave?: () => void
 }
 
-const TableRow: FC<Props> = ({ 
-    dataset, 
-    keyVal, 
-    checked, 
+const TableRow: FC<Props> = ({
+    dataset,
+    keyVal,
+    checked,
     onClick,
     onMouseEnter,
-    onMouseLeave 
+    onMouseLeave
 }) => {
 
     const classes = useStyles()
-    
+
     return (
-            <MuiTableRow 
-                hover 
-                onClick={onClick} 
+            <MuiTableRow
+                hover
+                onClick={onClick}
                 className={classes.tableRow}
                 onMouseEnter={onMouseEnter}
                 onMouseLeave={onMouseLeave}
@@ -56,10 +56,10 @@ const TableRow: FC<Props> = ({
                 <TableCell className={classes.tableCell} >
                     <Box display={'flex'} alignItems={'center'}>
                         {
-                            checked ? 
+                            checked ?
                             <IconButton classes={{root: classes.noPadding}}>
                                 <CheckCircleIcon className={`${classes.iconChecked} ${classes.icon}`}/>
-                            </IconButton> : 
+                            </IconButton> :
                             <IconButton classes={{root: classes.noPadding}}>
                                 <RadioButtonUncheckedIcon className={classes.icon}/>
                             </IconButton>

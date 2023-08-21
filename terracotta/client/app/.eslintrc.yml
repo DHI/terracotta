@@ -1,0 +1,13 @@
+root: true
+extends:
+  - 'airbnb-typescript'
+  - 'eslint:recommended'
+  - 'plugin:react/recommended'
+  - 'plugin:prettier/recommended'
+  - 'prettier'
+  - 'prettier/react'
+  - 'prettier/@typescript-eslint'
+plugins:
+  - '@typescript-eslint'
+  - 'prettier'
+  - 'eslint-plugin-import'

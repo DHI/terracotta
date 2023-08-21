@@ -1,12 +1,12 @@
 import React, { FC, useContext } from 'react'
-import { Box, Typography, Collapse, FormControl, Select, MenuItem } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles'
+import { Box, Typography, Collapse, FormControl, Select, MenuItem } from '@mui/material'
+import { makeStyles } from '@mui/material/styles'
 import SinglebandSelector from "./SinglebandSelector"
 import RGBSelector from "./RGBSelector"
 import AppContext from "./../AppContext"
 import endpoints, { Endpoint } from "./endpoints"
 
-const useStyles = makeStyles(() => ({
+const styles = {
     wrapper: {
 		margin: 16,
         paddingBottom: 16,
@@ -17,12 +17,12 @@ const useStyles = makeStyles(() => ({
         fontSize: 12,
         marginRight: 6
     }
-}))
+}
 
 const DatasetsColormap: FC = () => {
 
     const {
-        state: { 
+        state: {
             activeDataset,
             activeEndpoint
         },
@@ -31,14 +31,12 @@ const DatasetsColormap: FC = () => {
         }
     } = useContext(AppContext)
 
-    const classes = useStyles()
-
     return (
             <Collapse in={activeDataset !== undefined} timeout="auto" unmountOnExit>
-                <Box className={classes.wrapper}>
-                    <Box 
-                        display={'flex'} 
-                        alignItems={'center'} 
+                <Box sx={styles.wrapper}>
+                    <Box
+                        display={'flex'}
+                        alignItems={'center'}
                         mb={1}
                         justifyContent={'space-between'}
                     >
