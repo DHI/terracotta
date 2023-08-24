@@ -1,85 +1,88 @@
-import React, { CSSProperties, useState, FC } from 'react';
-import { Grid, Tooltip } from '@mui/material';
-import FileCopyOutlinedIcon from '@mui/icons-material/FileCopyOutlined';
-import Clipboard from 'react-clipboard.js';
+import React, { CSSProperties, useState, FC } from "react";
+import { Grid, SxProps, Tooltip } from "@mui/material";
+import FileCopyOutlinedIcon from "@mui/icons-material/FileCopyOutlined";
+import Clipboard from "react-clipboard.js";
 
 const disabledStyle = {
-  // borderBottom: '1px solid #cfdbe2',
-  color: '#cfdbe2',
-  cursor: 'no-drop',
+	// borderBottom: '1px solid #cfdbe2',
+	color: "#cfdbe2",
+	cursor: "no-drop",
 };
 
 const enabledStyle = {
-  // borderBottom: '1px solid #0b4566',
-  color: '#0b4566',
-  cursor: 'pointer',
+	// borderBottom: '1px solid #0b4566',
+	color: "#0b4566",
+	cursor: "pointer",
 };
 
 export type CopyToClipboardProps = {
-  disabled?: boolean;
-  helperText?: string;
-  url?: boolean;
-  message?: string;
-  style?: CSSProperties,
-  className?: string | undefined
+	disabled?: boolean;
+	helperText?: string;
+	url?: boolean;
+	message?: string;
+	sx?: SxProps;
+	className?: string | undefined;
 };
 
 export const mockCopy: VoidFunction = () => {
-  // call this function
+	// call this function
 };
 
 const CopyToClipboard: FC<CopyToClipboardProps> = ({
-  disabled = false,
-  helperText = '',
-  message = '',
-  style = {},
-  className
+	disabled = false,
+	helperText = "",
+	message = "",
+	sx = {},
+	className,
 }) => {
-  const [copyUrl] = useState(window.location.href);
-  const [tooltip, setTooltip] = useState(
-    helperText ? helperText : message ? 'Copy text' : 'Copy URL'
-  );
+	const [copyUrl] = useState(window.location.href);
+	const [tooltip, setTooltip] = useState(
+		helperText ? helperText : message ? "Copy text" : "Copy URL",
+	);
 
-  const copyAction = () => {
-    // mockCopy();
-    if (message) {
-      setTooltip('Text copied to Clipboard.');
-      setTimeout(() => {
-        setTooltip(helperText ? helperText : 'Copy text');
-      }, 5000);
-    } else {
-      setTooltip('URL copied to Clipboard.');
-      setTimeout(() => {
-        setTooltip(helperText ? helperText : 'Copy URL');
-      }, 5000);
-    }
-  };
+	const copyAction = () => {
+		// mockCopy();
+		if (message) {
+			setTooltip("Text copied to Clipboard.");
+			setTimeout(() => {
+				setTooltip(helperText ? helperText : "Copy text");
+			}, 5000);
+		} else {
+			setTooltip("URL copied to Clipboard.");
+			setTimeout(() => {
+				setTooltip(helperText ? helperText : "Copy URL");
+			}, 5000);
+		}
+	};
 
-  const copy = () => {
-    if (disabled !== true) copyAction();
-  };
+	const copy = () => {
+		if (disabled !== true) {
+			copyAction();
+		}
+	};
 
-  return (
-    <Grid
-      container
-      spacing={0}
-      justifyContent="space-between"
-      alignItems="flex-end"
-      sx={disabled === true ? { ...style, ...disabledStyle } : { ...style, ...enabledStyle }}
-      onClick={() => copy()}
-    >
-      <Grid item>
-        <Grid container alignItems="center" justifyContent="center">
-            <Tooltip title={tooltip}>
-              <FileCopyOutlinedIcon
-                color="primary"
-                sx={{cursor: 'pointer'}}
-              />
-            </Tooltip>
-        </Grid>
-      </Grid>
-    </Grid>
-  );
+	return (
+		<Grid
+			container
+			spacing={0}
+			justifyContent="space-between"
+			alignItems="flex-end"
+			sx={
+				disabled === true
+					? { ...sx, ...disabledStyle }
+					: { ...sx, ...enabledStyle }
+			}
+			onClick={() => copy()}
+		>
+			<Grid item>
+				<Grid container alignItems="center" justifyContent="center">
+					<Tooltip title={tooltip}>
+						<FileCopyOutlinedIcon color="primary" sx={{ cursor: "pointer" }} />
+					</Tooltip>
+				</Grid>
+			</Grid>
+		</Grid>
+	);
 };
 
 export default CopyToClipboard;
