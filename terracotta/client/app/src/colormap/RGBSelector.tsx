@@ -42,21 +42,23 @@ const RGBSelector: FC = () => {
 			{datasetBands &&
 				activeRGB &&
 				Object.keys(activeRGB).map((color: string) => (
-					<RGBSlider
-						key={`rgb-slider-${color}`}
-						max={Number(maxRange)}
-						min={Number(minRange)}
-						options={datasetBands}
-						selectValue={activeRGB[color].band}
-						sliderValue={[
-							Number(activeRGB[color].range?.[0]),
-							Number(activeRGB[color].range?.[1]),
-						]}
-						step={0.01}
-						title={`${color}:`}
-						onGetSelectValue={(val) => onGetBandValue(val, color)}
-						onGetSliderValue={(val) => onGetSliderValue(val, color)}
-					/>
+					<Box key={color} mb={1}>
+						<RGBSlider
+							key={`rgb-slider-${color}`}
+							max={Number(maxRange)}
+							min={Number(minRange)}
+							options={datasetBands}
+							selectValue={activeRGB[color].band}
+							sliderValue={[
+								Number(activeRGB[color].range?.[0]),
+								Number(activeRGB[color].range?.[1]),
+							]}
+							step={0.01}
+							title={`${color}:`}
+							onGetSelectValue={(val) => onGetBandValue(val, color)}
+							onGetSliderValue={(val) => onGetSliderValue(val, color)}
+						/>
+					</Box>
 				))}
 		</Box>
 	)

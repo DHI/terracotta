@@ -40,9 +40,10 @@ const RGBSlider: FC<Props> = ({
 		<Grid alignItems="center" container>
 			<Grid alignItems="center" xs={2} container item>
 				<FormControl sx={{ display: 'flex', alignItems: 'center' }} fullWidth>
-					<InputLabel sx={{ fontSize: 10 }}>Band</InputLabel>
+					<InputLabel>Band</InputLabel>
 					<Select
 						id="demo-simple-select-outlined"
+						size="small"
 						value={selectValue || ''}
 						fullWidth
 						onChange={(e) => onGetSelectValue(String(e.target.value))}

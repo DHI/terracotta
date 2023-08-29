@@ -21,7 +21,6 @@ const styles = {
 		borderBottom: '1px solid #86A2B3',
 	},
 	rgbText: {
-		fontSize: 12,
 		mr: 1,
 	},
 }
@@ -42,10 +41,11 @@ const DatasetsColormap: FC = () => {
 					mb={1}
 				>
 					<Typography variant="body1">Customize layer</Typography>
-					<Box alignItems="center" display="flex" sx={{ minWidth: 100 }}>
+					<Box alignItems="center" display="flex" sx={{ minWidth: 120 }}>
 						<FormControl fullWidth>
 							<Select
 								id="demo-simple-select-outlined"
+								size="small"
 								value={activeEndpoint}
 								fullWidth
 								onChange={(e) => setActiveEndpoint(String(e.target.value))}

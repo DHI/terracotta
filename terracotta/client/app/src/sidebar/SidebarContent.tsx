@@ -1,4 +1,4 @@
-import React, { FC, ReactNode, useState } from 'react'
+import React, { Dispatch, FC, ReactNode, SetStateAction, useState } from 'react'
 import { Paper, Box } from '@mui/material'
 import VerticalHandle from './VerticalHandle/VerticalHandle'
 
@@ -14,9 +14,6 @@ const styles = {
 	root: {
 		overflowY: 'auto',
 		height: '100%',
-		xs: {
-			width: '100%',
-		},
 	},
 	leftBorder: {
 		borderLeft: '1px solid #DBE4E9',
@@ -28,23 +25,22 @@ const styles = {
 
 interface Props {
 	children?: ReactNode
+	width: number
+	setWidth: Dispatch<SetStateAction<number>>
 }
-const SidebarContent: FC<Props> = ({ children }) => {
-	const [width, setWidth] = useState((30 / 100) * window.innerWidth)
 
-	return (
-		<>
-			<VerticalHandle
-				boxWidth={width}
-				minMapSize={(40 / 100) * window.innerWidth}
-				minSize={200}
-				onDrag={setWidth}
-			/>
-			<Box sx={styles.rooterThanRoot}>
-				<Paper sx={{ ...styles.root, width }}>{children}</Paper>
-			</Box>
-		</>
-	)
-}
+const SidebarContent: FC<Props> = ({ width, setWidth, children }) => (
+	<>
+		<VerticalHandle
+			boxWidth={width}
+			minMapSize={(40 / 100) * window.innerWidth}
+			minSize={200}
+			onDrag={setWidth}
+		/>
+		<Box sx={styles.rooterThanRoot}>
+			<Paper sx={{ ...styles.root, width }}>{children}</Paper>
+		</Box>
+	</>
+)
 
 export default SidebarContent

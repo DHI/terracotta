@@ -1,7 +1,7 @@
 /* eslint-disable radar/no-duplicate-string */
-import { createMuiTheme } from '@mui/material/styles'
+import { createTheme } from '@mui/material/styles'
 
-const DHITheme = createMuiTheme({
+const DHITheme = createTheme({
 	palette: {
 		primary: {
 			main: '#0B4566', // DHI Primary color

@@ -24,10 +24,11 @@ const styles = {
 	},
 	iconBox: {
 		zIndex: 10,
-		padding: (theme: Theme) => theme.spacing(1, 1, 0.1, 1),
+		p: 2,
+		pb: 1,
 		transform: 'translate(-40%, 0) rotate(-90deg)',
 		width: 20,
-		height: 15,
+		height: 20,
 		display: 'flex',
 		alignItems: 'center',
 		justifyContent: 'space-around',
@@ -52,10 +53,9 @@ const Handle: FC<Props> = ({
 }) => (
 	<Box
 		component="div"
-		draggable={false}
 		sx={{
 			...styles.root,
-			...(!isCollapsed && { cursor: styles.collapsedRoot }),
+			...(isCollapsed ? { cursor: styles.collapsedRoot } : {}),
 		}}
 		onClick={() => isCollapsed && onClickExpand()}
 		onMouseDown={onMouseDown}

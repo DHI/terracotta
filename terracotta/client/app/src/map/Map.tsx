@@ -1,3 +1,4 @@
+/* eslint-disable radar/cognitive-complexity */
 import React, {
 	useEffect,
 	useState,
@@ -7,7 +8,8 @@ import React, {
 	RefObject,
 	ReactNode,
 } from 'react'
-import { Map, Source, Layer } from 'react-map-gl'
+import { Map as ReactMapGL, Source, Layer } from 'react-map-gl'
+import { Map } from 'mapbox-gl'
 import ZoomControl from './MapZoomControl'
 import useIsMobileWidth from '../common/hooks/useIsMobileWidth'
 import AppContext from '../AppContext'
@@ -19,9 +21,10 @@ const accessToken =
 
 interface Props {
 	host?: string
+	width: number
 }
 
-const LocalMap: FC<Props> = ({ host }) => {
+const LocalMap: FC<Props> = ({ host, width }) => {
 	const isMobile = useIsMobileWidth()
 	const {
 		state: {
@@ -43,11 +46,12 @@ const LocalMap: FC<Props> = ({ host }) => {
 	const [localRasterUrl, setLocalRasterUrl] = useState<undefined | string>(
 		undefined,
 	)
+
+	const [mapRef, setMapRef] = useState<Map | undefined>(undefined)
+
 	const basemap = isOpticalBasemap
 		? 'mapbox://styles/mapbox/satellite-v9'
 		: 'mapbox://styles/mapbox/light-v10'
-
-	const mapRef: RefObject<HTMLDivElement> | null = useRef(null)
 
 	useEffect(() => {
 		const { latitude, longitude, zoom } = viewport
@@ -69,57 +73,56 @@ const LocalMap: FC<Props> = ({ host }) => {
 	}, [selectedDatasetRasterUrl])
 
 	useEffect(() => {
-		if (activeDataset !== undefined && datasets) {
-			const pageIndex = activeDataset - page * limit
-			const currentBounds = datasets[pageIndex].bounds
-
-			const formattedBounds: [[number, number], [number, number]] = [
-				[currentBounds[0], currentBounds[1]],
-				[currentBounds[2], currentBounds[3]],
-			]
-
-			if (formattedBounds[0][0] >= 89) {
-				formattedBounds[0][0] = 89
-			}
-			if (formattedBounds[0][1] <= -89) {
-				formattedBounds[0][1] = -89
-			}
-			if (formattedBounds[1][0] >= 179) {
-				formattedBounds[1][0] = 179
-			}
-			if (formattedBounds[1][1] >= 89) {
-				formattedBounds[0][0] = 89
-			}
-
-			if (mapRef.current !== null) {
-				const mapHeight = mapRef.current?.scrollHeight
-				const currentMapWidth = mapRef.current?.scrollWidth
-
-				if (mapHeight && currentMapWidth) {
-					/* TODO
-					const viewportBounds = new WebMercatorViewport({
-						width: currentMapWidth,
-						height: mapHeight,
-					}).fitBounds(formattedBounds, { padding: 40 });
-
-					const boundsViewportToPass = {
-						zoom: viewportBounds.zoom,
-						latitude: viewportBounds.latitude,
-						longitude: viewportBounds.longitude,
-					};
-
-					setViewport((newViewport: Viewport) => ({
-						...newViewport,
-						...boundsViewportToPass,
-					}));
-					*/
-				}
-			}
+		if (activeDataset === undefined || datasets === undefined) {
+			return
 		}
+
+		const pageIndex = activeDataset - page * limit
+		const currentBounds = datasets[pageIndex].bounds
+
+		mapRef?.fitBounds(currentBounds as [number, number], {
+			padding: 40,
+			duration: 4000,
+		})
 	}, [activeDataset])
 
+	useEffect(() => {
+		mapRef?.resize()
+	}, [width])
+
+	useEffect(() => {
+		const handleResize = () => {
+			mapRef?.resize()
+		}
+
+		window.addEventListener('resize', handleResize)
+
+		return () => {
+			window.removeEventListener('resize', handleResize)
+		}
+	}, [])
+
 	return (
-		<Map mapStyle={basemap} mapboxAccessToken={accessToken}>
+		<ReactMapGL
+			attributionControl={false}
+			initialViewState={{
+				latitude: 30.62136584218745,
+				longitude: 13.840430671501323,
+				zoom: 0,
+				bearing: 0,
+				pitch: 0,
+				padding: {
+					top: 0,
+					bottom: 0,
+					left: 0,
+					right: 0,
+				},
+			}}
+			mapStyle={basemap}
+			mapboxAccessToken={accessToken}
+			ref={(ref) => ref && setMapRef(ref as any)}
+			style={{ width: window.innerWidth - width, height: '100%' }}
+		>
 			{!isMobile && <ZoomControl />}
 			{hoveredDataset && (
 				<Source data={hoveredDataset} type="geojson">
@@ -150,7 +153,7 @@ const LocalMap: FC<Props> = ({ host }) => {
 					/>
 				</Source>
 			)}
-		</Map>
+		</ReactMapGL>
 	)
 }
 

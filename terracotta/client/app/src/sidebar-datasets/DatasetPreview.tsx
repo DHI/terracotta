@@ -7,6 +7,7 @@ import {
 	Collapse,
 	Typography,
 	Link,
+	Stack,
 } from '@mui/material'
 import { makeStyles } from '@mui/material/styles'
 import { ResponseMetadata200 } from '../common/data/getData'
@@ -25,7 +26,6 @@ const styles = {
 	},
 	codeContainerText: {
 		color: '#557A8F',
-		fontSize: 11,
 	},
 	copyTooltip: {
 		cursor: 'pointer',
@@ -34,7 +34,6 @@ const styles = {
 		padding: 0,
 	},
 	metadataLink: {
-		fontSize: 10,
 		color: '#86A2B3',
 	},
 }
@@ -57,26 +56,23 @@ const DatasetPreview: FC<Props> = ({
 	dataset,
 	datasetUrl,
 }) => {
-	const returnJson = () =>
-		Object.keys(dataset)
-			.reduce((acc: string[], keyItem: string) => {
-				const neededKeys = ['mean', 'range', 'stdev', 'valid_percentage']
-				if (neededKeys.includes(keyItem)) {
-					if (keyItem === 'range') {
-						const buildStr = `  ${keyItem}: [${dataset[keyItem]}],\n`
-						acc = [...acc, buildStr]
-					} else {
-						const buildStr = `  ${keyItem}: ${dataset[keyItem]},\n`
-						acc = [...acc, buildStr]
-					}
-				}
-
-				return acc
-			}, [])
-			.join('')
+	const returnJson = JSON.stringify(
+		{
+			mean: dataset.mean,
+			range: dataset.range,
+			stdev: dataset.stdev,
+			valid_percentage: dataset.valid_percentage,
+		},
+		null,
+		2,
+	)
 
 	return (
-		<TableRow>
+		<TableRow
+			sx={{
+				display: page * limit + i === activeDataset ? 'table-row' : 'none',
+			}}
+		>
 			<TableCell colSpan={8} sx={styles.tableCell}>
 				<Collapse
 					in={page * limit + i === activeDataset}
@@ -85,18 +81,17 @@ const DatasetPreview: FC<Props> = ({
 				>
 					{datasetUrl && (
 						<Box p={1} sx={styles.codeContainer}>
-							<Box alignItems="center" display="flex" width={1}>
+							<Stack alignItems="center" direction="row" gap={1} width={1}>
 								<Typography sx={styles.codeContainerText}>
 									<code>{'Raster url\n'}</code>
 								</Typography>
-								<Box>
-									<CopyToClipboard
-										helperText="Copy to clipboard"
-										message={datasetUrl}
-										sx={styles.copyTooltip}
-									/>
-								</Box>
-							</Box>
+
+								<CopyToClipboard
+									helperText="Copy to clipboard"
+									message={datasetUrl}
+									url
+								/>
+							</Stack>
 							<code style={{ wordBreak: 'break-all' }}>{datasetUrl}</code>
 						</Box>
 					)}
@@ -107,11 +102,7 @@ const DatasetPreview: FC<Props> = ({
 									<Typography sx={styles.codeContainerText}>
 										<code>Metadata</code>
 									</Typography>
-									<code style={{ whiteSpace: 'pre' }}>
-										{'{\n'}
-										{returnJson()}
-										{'}\n'}
-									</code>
+									<code style={{ whiteSpace: 'pre' }}>{`${returnJson}\n`}</code>
 									<Link
 										href={`${host}/metadata${Object.keys(dataset.keys)
 											.map((keyItem: string) => `/${dataset.keys[keyItem]}`)

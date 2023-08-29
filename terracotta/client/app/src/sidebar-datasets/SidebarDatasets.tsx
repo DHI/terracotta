@@ -1,4 +1,11 @@
-import React, { FC, useState, useEffect, useContext, Fragment } from 'react'
+import React, {
+	FC,
+	useCallback,
+	useState,
+	useEffect,
+	useContext,
+	Fragment,
+} from 'react'
 import {
 	Table,
 	TableBody,
@@ -85,50 +92,55 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 	const [queryFields, setQueryFields] = useState<string | undefined>(undefined)
 	const [isLoading, setIsLoading] = useState<boolean>(true)
 
-	const getDatasets = async (
-		theHost: string,
-		pageRef: number,
-		limitRef: number,
-		queryString = '',
-	) => {
-		const response = await getData(
-			`${theHost}/datasets?limit=${limitRef}&page=${pageRef}${queryString}`,
-		)
-		const datasetsResponse = response as ResponseDatasets | undefined
+	console.log('ks', keys)
 
-		if (
-			datasetsResponse &&
-			datasetsResponse.datasets &&
-			Array.isArray(datasetsResponse.datasets)
-		) {
-			if (datasetsResponse.datasets[0]) {
-				const metadataResponsesPreFetch: unknown =
-					datasetsResponse.datasets.map(async (dataset: DatasetItem) => {
-						const buildMetadataUrl = Object.keys(dataset)
-							.map((keyItem: string) => `/${dataset[keyItem]}`)
-							.join('')
-						const preFetchData = await fetch(
-							`${host}/metadata${buildMetadataUrl}`,
-						)
-						return preFetchData.json()
-					})
+	const getDatasets = useCallback(
+		async (pageRef: number, limitRef: number, queryString = '') => {
+			const response = await getData(
+				`${host}/datasets?limit=${limit}&page=${page}${queryFields || ''}`,
+			)
 
-				const metadataResponses = await Promise.all(
-					metadataResponsesPreFetch as Iterable<unknown>,
-				)
-				const typedMetadataResponses =
-					metadataResponses as ResponseMetadata200[]
-				setDatasets(typedMetadataResponses)
-			} else {
-				setDatasets(datasetsResponse.datasets)
+			const datasetsResponse = response as ResponseDatasets | undefined
+
+			if (
+				!datasetsResponse ||
+				!datasetsResponse.datasets ||
+				!Array.isArray(datasetsResponse.datasets)
+			) {
+				return
 			}
-		}
 
-		setIsLoading(false)
-	}
+			if (datasetsResponse.datasets.length === 0) {
+				setDatasets([])
+				return
+			}
 
-	const getKeys = async (theHost: string) => {
-		const response = await getData(`${theHost}/keys`)
+			const metadataResponsesPreFetch: unknown = datasetsResponse.datasets.map(
+				async (dataset: DatasetItem) => {
+					console.log('KEYS', keys)
+
+					const buildMetadataUrl = keys
+						?.map((key, index) => `/${dataset[key.key.toLowerCase()]}`)
+						.join('')
+
+					const preFetchData = await fetch(
+						`${host}/metadata${buildMetadataUrl}`,
+					)
+					return preFetchData.json()
+				},
+			)
+
+			const metadataResponses = await Promise.all(
+				metadataResponsesPreFetch as Iterable<unknown>,
+			)
+			const typedMetadataResponses = metadataResponses as ResponseMetadata200[]
+			setDatasets(typedMetadataResponses)
+		},
+		[host, keys, limit, page, queryFields, setDatasets],
+	)
+
+	const getKeys = async () => {
+		const response = await getData(`${host}/keys`)
 		const keysReponse = response as ResponseKeys | undefined
 
 		if (keysReponse && keysReponse.keys && Array.isArray(keysReponse.keys)) {
@@ -168,8 +180,13 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 
 	useEffect(() => {
 		setIsLoading(true)
-		void getKeys(host)
-		void getDatasets(host, page, limit, queryFields)
+
+		const fetcher = async () => {
+			await getKeys()
+			await getDatasets(keys, page, limit, queryFields)
+		}
+
+		void fetcher().finally(() => setIsLoading(false))
 	}, [host, page, limit, queryFields])
 
 	const onGetRGBBands = async (dataset: ResponseMetadata200) => {
@@ -284,9 +301,8 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 											sx={styles.tableCell}
 										>
 											<Typography
-												color="primary"
 												sx={styles.tableHeadTypography}
-												variant="body2"
+												variant="body1"
 											>
 												{datasetKey.key}
 											</Typography>

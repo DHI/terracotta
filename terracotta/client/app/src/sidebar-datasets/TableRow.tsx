@@ -4,6 +4,7 @@ import {
 	TableCell,
 	Box,
 	IconButton,
+	Typography,
 } from '@mui/material'
 import { makeStyles } from '@mui/material/styles'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
@@ -69,7 +70,7 @@ const TableRow: FC<Props> = ({
 		</TableCell>
 		{Object.keys(dataset).map((item: string, i: number) => (
 			<TableCell key={`${keyVal}-cell-${i}`} sx={styles.tableCell}>
-				{dataset[item]}
+				<Typography variant="body1">{dataset[item]}</Typography>
 			</TableCell>
 		))}
 	</MuiTableRow>

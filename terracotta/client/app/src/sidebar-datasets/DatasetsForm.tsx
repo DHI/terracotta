@@ -1,20 +1,8 @@
 import React, { FC, useState, useEffect, FormEvent } from 'react'
-import { Box, TextField, Button } from '@mui/material'
-import { makeStyles } from '@mui/material/styles'
+import { Box, TextField, Button, Grid } from '@mui/material'
 import { KeyItem } from '../common/data/getData'
 
 type FormValues = Record<string, string | number> | undefined
-
-const styles = {
-	input: {
-		width: '50%',
-	},
-	inputLabel: {
-		'& label': {
-			fontSize: 12,
-		},
-	},
-}
 
 interface Props {
 	keys: KeyItem[]
@@ -55,29 +43,28 @@ const DatasetsForm: FC<Props> = ({ keys, onSubmitFields }) => {
 	}, [])
 
 	return (
-		<form onSubmit={(e) => onSubmitForm(e)}>
-			{keys.map((keyItem: KeyItem, i: number) => {
-				const isLastUneven = !!(keys.length % 2 === 1 && i === keys.length - 1)
-				return (
-					<TextField
-						fullWidth={isLastUneven}
-						id={keyItem.key.toLocaleLowerCase()}
-						key={`textfield-${keyItem.key}`}
-						label={keyItem.key}
-						sx={isLastUneven ? {} : { ...styles.input, ...styles.inputLabel }}
-						value={formValues?.[keyItem.key]}
-						onChange={(e) =>
-							setFormValues((val) => ({
-								...val,
-								[keyItem.key.toLowerCase()]: e.target.value,
-							}))
-						}
-					/>
-				)
-			})}
+		<>
+			<Grid direction="row" spacing={1} width="100%" container>
+				{keys.map((keyItem: KeyItem, i: number) => (
+					<Grid key={keyItem.key} xs={6} item>
+						<TextField
+							id={keyItem.key.toLocaleLowerCase()}
+							label={keyItem.key}
+							size="small"
+							value={formValues?.[keyItem.key]}
+							fullWidth
+							onChange={(e) =>
+								setFormValues((val) => ({
+									...val,
+									[keyItem.key.toLocaleLowerCase()]: e.target.value,
+								}))
+							}
+						/>
+					</Grid>
+				))}
+			</Grid>
 			<Box display="flex" justifyContent="flex-end" mt={2} width={1}>
 				<Button
-					color="secondary"
 					type="submit"
 					variant="contained"
 					fullWidth
@@ -86,7 +73,7 @@ const DatasetsForm: FC<Props> = ({ keys, onSubmitFields }) => {
 					Search
 				</Button>
 			</Box>
-		</form>
+		</>
 	)
 }
 

@@ -30,7 +30,6 @@ const styles = {
 		mt: 1,
 	},
 	hostText: {
-		fontSize: 12,
 		wordBreak: 'break-all',
 	},
 	hasDescription: {
@@ -46,11 +45,10 @@ const styles = {
 
 interface Props {
 	host?: string
-	style?: CSSProperties
 	keys?: KeyItem[]
 }
-const SidebarTitle: FC<Props> = ({ style, host, keys }) => (
-	<Box style={{ ...style, ...styles.wrapper }}>
+const SidebarTitle: FC<Props> = ({ host, keys }) => (
+	<Box sx={{ ...styles.wrapper }}>
 		<Box
 			alignItems="center"
 			display="flex"
@@ -61,17 +59,17 @@ const SidebarTitle: FC<Props> = ({ style, host, keys }) => (
 		</Box>
 		{host && keys && (
 			<Box mt={2} my={1}>
-				<Typography sx={styles.hostText} variant="body1">
+				<Typography sx={styles.hostText} variant="body2">
 					<b>Host: </b>
 					<span>{host}</span>
 				</Typography>
-				<Typography sx={styles.hostText} variant="body1">
+				<Typography sx={styles.hostText} variant="body2">
 					<b>Docs: </b>
 					<Link href={`${host}/apidoc`} target="_blank">
 						<span>{`${host}/apidoc`}</span>
 					</Link>
 				</Typography>
-				<Typography sx={styles.hostText} variant="body1">
+				<Typography display="inline-block" sx={styles.hostText} variant="body2">
 					<b>{'Keys: '}</b>
 					<span>
 						{keys.map((keyItem: KeyItem) =>
@@ -80,18 +78,26 @@ const SidebarTitle: FC<Props> = ({ style, host, keys }) => (
 									key={`tooltip-${keyItem.key}`}
 									title={keyItem.description || false}
 								>
-									<Typography>
+									<Typography display="inline-block" variant="body2">
 										/
 										<Typography
+											display="inline-block"
 											sx={styles.hasDescription}
+											variant="body2"
 										>{`{${keyItem.key.toLowerCase()}}`}</Typography>
 									</Typography>
 								</Tooltip>
 							) : (
-								<Typography key={`tooltip-${keyItem.key}`}>
+								<Typography
+									display="inline-block"
+									key={`tooltip-${keyItem.key}`}
+									variant="body2"
+								>
 									/
 									<Typography
+										display="inline-block"
 										sx={styles.noDescription}
+										variant="body2"
 									>{`{${keyItem.key.toLowerCase()}}`}</Typography>
 								</Typography>
 							),

@@ -82,7 +82,7 @@ const Slider: React.FC<SliderProps> = ({
 						}}
 						container
 					>
-						<Typography variant="h5">{title}</Typography>
+						<Typography variant="body2">{title}</Typography>
 					</Grid>
 				</Box>
 			)}
@@ -95,6 +95,7 @@ const Slider: React.FC<SliderProps> = ({
 						container
 					>
 						<TextField
+							size="small"
 							type="number"
 							value={Number(value[0].toFixed(3))}
 							variant="standard"
@@ -109,10 +110,12 @@ const Slider: React.FC<SliderProps> = ({
 			)}
 
 			<MSlider
+				color="secondary"
 				disabled={disabled}
 				max={max}
 				min={min}
 				scale={(x) => x / 10}
+				size="small"
 				step={step}
 				sx={{ m: '0rem .6rem', width: '100%' }}
 				value={value}
@@ -131,6 +134,7 @@ const Slider: React.FC<SliderProps> = ({
 						container
 					>
 						<TextField
+							size="small"
 							type="number"
 							value={
 								Number(value[1].toFixed(3)) ||

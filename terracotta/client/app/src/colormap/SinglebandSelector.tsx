@@ -54,9 +54,11 @@ const SinglebandSelector: FC = () => {
 		<Grid alignItems="center" container>
 			<Grid xs={4} item>
 				<FormControl fullWidth>
-					<InputLabel>Colormap</InputLabel>
+					<InputLabel id="colormap-select">Colormap</InputLabel>
 					<Select
-						id="demo-simple-select-outlined"
+						label="Colormap"
+						labelId="colormap-select"
+						size="small"
 						value={colormap.id}
 						fullWidth
 						onChange={(e) => onSetColormap(String(e.target.value))}
@@ -91,11 +93,10 @@ const SinglebandSelector: FC = () => {
 									max={maxRange || 0}
 									min={minRange || 0}
 									step={0.01}
-									title="Contrast "
+									title="Contrast"
 									noNumbers
 								/>
 								<Legend
-									length={2}
 									range={localRange}
 									src={colormap.img_url}
 									onGetRange={(val) => setActiveSinglebandRange(val)}

@@ -1,13 +1,11 @@
+/* eslint-disable no-param-reassign */
 import React, { FC, useState, useEffect } from 'react'
 import { Box } from '@mui/material'
-import SidebarContent from './sidebar/SidebarContent'
-import SidebarTitle from './sidebar/SidebarTitle'
-import SidebarDatasetsItem from './sidebar-datasets/SidebarDatasets'
-import LocalMap from './map/Map'
 import AppContext, { ActiveRGBSelectorRange } from './AppContext'
 import { Viewport, FeatureDataset } from './map/types'
 import { ResponseMetadata200, KeyItem } from './common/data/getData'
 import COLORMAPS, { Colormap } from './colormap/colormaps'
+import AppScreen from './AppScreen'
 
 const styles = {
 	root: {
@@ -149,13 +147,7 @@ const App: FC<Props> = ({ hostnameProp }) => {
 					},
 				}}
 			>
-				<Box display="flex" height={1} width={1}>
-					<LocalMap host={hostname} />
-					<SidebarContent>
-						<SidebarTitle host={hostname} keys={keys} />
-						{hostname && <SidebarDatasetsItem host={hostname} />}
-					</SidebarContent>
-				</Box>
+				<AppScreen host={hostname} keys={keys} />
 			</AppContext.Provider>
 		</Box>
 	)

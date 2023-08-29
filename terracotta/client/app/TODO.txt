@@ -1,0 +1,5 @@
+1. fix eslint warnings
+2. fix copy Button -> DONE
+3. fix infinite scorll -> DONE
+4. fix keyorder
+5. clean up structure
