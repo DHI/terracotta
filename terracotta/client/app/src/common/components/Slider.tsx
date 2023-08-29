@@ -1,40 +1,40 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react'
 import {
 	Slider as MSlider,
 	Box,
 	Grid,
 	Typography,
 	TextField,
-} from "@mui/material";
+} from '@mui/material'
 
 type SliderProps = {
 	/**
 	 * Default values of the slider in format `[min, max]` or `number`.
 	 */
-	defaultValue: number[] | number;
-	title?: string | undefined;
-	min?: number | undefined;
-	max?: number | undefined;
-	step?: number | undefined;
+	defaultValue: number[] | number
+	title?: string | undefined
+	min?: number | undefined
+	max?: number | undefined
+	step?: number | undefined
 	/**
 	 * Get the value while using the slider thumb.
 	 */
-	getValue?: (val: number | number[]) => void;
+	getValue?: (val: number | number[]) => void
 	/**
 	 * Get the value once you release the slider thumb.
 	 */
-	getValueCommitted?: (val: number | number[]) => void;
+	getValueCommitted?: (val: number | number[]) => void
 	/**
 	 * *Requires `title` prop. Counted in `rem` units.
 	 */
-	sliderMarginLeft?: number | undefined;
-	noNumbers?: boolean | undefined;
+	sliderMarginLeft?: number | undefined
+	noNumbers?: boolean | undefined
 	/**
 	 * Append a unit at the end of the values. (%, /10, £, $)
 	 */
-	unit?: string | undefined;
-	disabled?: boolean;
-};
+	unit?: string | undefined
+	disabled?: boolean
+}
 
 const Slider: React.FC<SliderProps> = ({
 	defaultValue = [0, 1],
@@ -46,59 +46,59 @@ const Slider: React.FC<SliderProps> = ({
 	getValueCommitted,
 	sliderMarginLeft = 1,
 	noNumbers = false,
-	unit = "",
+	unit = '',
 	disabled,
 }) => {
-	const [value, setValue] = useState(defaultValue);
+	const [value, setValue] = useState(defaultValue)
 
 	const handleChange = (newValue: number | number[]) => {
-		setValue(newValue);
+		setValue(newValue)
 		if (getValue) {
-			getValue(newValue);
+			getValue(newValue)
 		}
-	};
+	}
 
 	useEffect(() => {
-		setValue(defaultValue);
-	}, [defaultValue]);
+		setValue(defaultValue)
+	}, [defaultValue])
 
-	useEffect(() => {}, [min, max]);
+	useEffect(() => {}, [min, max])
 
 	return (
 		<Grid
-			container
-			direction="row"
 			alignItems="center"
+			direction="row"
 			justifyContent="center"
 			wrap="nowrap"
+			container
 		>
 			{title && (
 				<Box>
 					<Grid
-						container
 						alignItems="center"
-						style={{
-							height: "100%",
-							marginRight: noNumbers ? "1rem" : "0rem",
+						sx={{
+							height: '100%',
+							mr: noNumbers ? '1rem' : '0rem',
 						}}
+						container
 					>
 						<Typography variant="h5">{title}</Typography>
 					</Grid>
 				</Box>
 			)}
-			{!noNumbers && Array.isArray(value) && typeof value[0] === "number" && (
-				<Box style={{ marginLeft: title ? `${sliderMarginLeft}rem` : "0rem" }}>
+			{!noNumbers && Array.isArray(value) && typeof value[0] === 'number' && (
+				<Box sx={{ ml: title ? `${sliderMarginLeft}rem` : '0rem' }}>
 					<Grid
-						container
 						alignItems="center"
 						justifyContent="center"
-						style={{ height: "100%", maxWidth: "8rem" }}
+						sx={{ height: '100%', maxWidth: '8rem' }}
+						container
 					>
 						<TextField
-							fullWidth
-							type={"number"}
-							variant={"standard"}
+							type="number"
 							value={Number(value[0].toFixed(3))}
+							variant="standard"
+							fullWidth
 							onChange={(e) =>
 								getValueCommitted &&
 								getValueCommitted([Number(e.target.value), value[1]])
@@ -109,35 +109,35 @@ const Slider: React.FC<SliderProps> = ({
 			)}
 
 			<MSlider
-				style={{ margin: "0rem .6rem", width: "100%" }}
-				value={value}
-				min={min}
-				step={step}
+				disabled={disabled}
 				max={max}
+				min={min}
 				scale={(x) => x / 10}
+				step={step}
+				sx={{ m: '0rem .6rem', width: '100%' }}
+				value={value}
+				valueLabelDisplay="off"
 				onChange={(e, val) => handleChange(val)}
 				onChangeCommitted={(e, val) =>
 					getValueCommitted && getValueCommitted(val)
 				}
-				valueLabelDisplay="off"
-				disabled={disabled}
 			/>
 			{!noNumbers && Array.isArray(value) && (
 				<Box>
 					<Grid
-						container
 						alignItems="center"
 						justifyContent="center"
-						style={{ height: "100%", maxWidth: "8rem" }}
+						sx={{ height: '100%', maxWidth: '8rem' }}
+						container
 					>
 						<TextField
-							fullWidth
-							type={"number"}
-							variant={"standard"}
+							type="number"
 							value={
 								Number(value[1].toFixed(3)) ||
 								(!Array.isArray(value) && Number((value as number).toFixed(3)))
 							}
+							variant="standard"
+							fullWidth
 							onChange={(e) =>
 								getValueCommitted &&
 								getValueCommitted([value[0], Number(e.target.value)])
@@ -147,7 +147,7 @@ const Slider: React.FC<SliderProps> = ({
 				</Box>
 			)}
 		</Grid>
-	);
-};
+	)
+}
 
-export default Slider;
+export default Slider

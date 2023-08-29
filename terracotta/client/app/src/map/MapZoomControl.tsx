@@ -1,63 +1,63 @@
-import React, { FC, CSSProperties, useContext } from "react";
-import AddIcon from "@mui/icons-material/Add";
-import RemoveIcon from "@mui/icons-material/Remove";
-import PublicIcon from "@mui/icons-material/Public";
-import StreetviewIcon from "@mui/icons-material/Streetview";
-import { IconButton, Grid, Tooltip } from "@mui/material";
-import { makeStyles } from "@mui/material/styles";
-import AppContext from "../AppContext";
-import { Viewport } from "./types";
+import React, { FC, CSSProperties, useContext } from 'react'
+import AddIcon from '@mui/icons-material/Add'
+import RemoveIcon from '@mui/icons-material/Remove'
+import PublicIcon from '@mui/icons-material/Public'
+import StreetviewIcon from '@mui/icons-material/Streetview'
+import { IconButton, Grid, Tooltip } from '@mui/material'
+import { makeStyles } from '@mui/material/styles'
+import AppContext from '../AppContext'
+import { Viewport } from './types'
 
 const styles = {
 	iconButton: {
-		padding: 0,
+		p: 0,
 	},
 	icon: {
-		backgroundColor: "#fff",
+		backgroundColor: '#fff',
 		height: 36,
 		width: 36,
-		fill: "#0B4566",
-		padding: 6,
-		boxSizing: "border-box",
-		"&:hover": {
-			backgroundColor: "primary.main",
+		fill: '#0B4566',
+		p: 1,
+		boxSizing: 'border-box',
+		'&:hover': {
+			backgroundColor: 'primary.main',
 		},
 	},
 	activeIcon: {
-		backgroundColor: "#0b4566",
-		"& path": {
-			fill: "#fff",
+		backgroundColor: '#0b4566',
+		'& path': {
+			fill: '#fff',
 		},
 		height: 36,
 		width: 36,
-		padding: 6,
-		boxSizing: "border-box",
+		p: 1,
+		boxSizing: 'border-box',
 	},
-};
+}
 
 const gridStyle = {
-	position: "fixed",
+	position: 'fixed',
 	left: 0,
-	top: "50%",
+	top: '50%',
 	width: 36,
-	boxShadow: "rgba(0, 0, 0, 0.16) 4px 0px 4px",
+	boxShadow: 'rgba(0, 0, 0, 0.16) 4px 0px 4px',
 	zIndex: 100,
-	transform: "translate(0, -50%)",
-};
+	transform: 'translate(0, -50%)',
+}
 
 const ZoomControl: FC = () => {
 	const {
 		state: { isOpticalBasemap },
 		actions: { setIsOpticalBasemap, setViewport },
-	} = useContext(AppContext);
+	} = useContext(AppContext)
 
 	return (
-		<Grid container sx={gridStyle}>
+		<Grid sx={gridStyle} container>
 			<Grid container>
-				<Tooltip placement="right" title={"Change base map"}>
+				<Tooltip placement="right" title="Change base map">
 					<IconButton
-						onClick={() => setIsOpticalBasemap(!isOpticalBasemap)}
 						sx={styles.iconButton}
+						onClick={() => setIsOpticalBasemap(!isOpticalBasemap)}
 					>
 						{!isOpticalBasemap ? (
 							<StreetviewIcon sx={styles.icon} />
@@ -72,26 +72,26 @@ const ZoomControl: FC = () => {
 			</Grid>
 			<Grid container>
 				<IconButton
+					sx={styles.iconButton}
 					onClick={() =>
 						setViewport((v: Viewport) => ({ ...v, zoom: Number(v.zoom) + 1 }))
 					}
-					sx={styles.iconButton}
 				>
 					<AddIcon sx={styles.icon} />
 				</IconButton>
 			</Grid>
 			<Grid container>
 				<IconButton
+					sx={styles.iconButton}
 					onClick={() =>
 						setViewport((v: Viewport) => ({ ...v, zoom: Number(v.zoom) - 1 }))
 					}
-					sx={styles.iconButton}
 				>
 					<RemoveIcon sx={styles.icon} />
 				</IconButton>
 			</Grid>
 		</Grid>
-	);
-};
+	)
+}
 
-export default ZoomControl;
+export default ZoomControl

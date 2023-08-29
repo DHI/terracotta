@@ -1,109 +1,106 @@
-import React, { CSSProperties, FC } from "react";
-import { Box, Typography, Link, Tooltip } from "@mui/material";
-import HeaderImage from "./../common/images/header.svg";
-import { KeyItem } from "./../common/data/getData";
+import React, { CSSProperties, FC } from 'react'
+import { Box, Typography, Link, Tooltip } from '@mui/material'
+import HeaderImage from '../common/images/header.png'
+import { KeyItem } from '../common/data/getData'
 
 const styles = {
 	wrapper: {
-		margin: 16,
-		backgroundColor: "#FFFFFF",
-		borderBottom: "1px solid #86A2B3",
+		m: 2,
+		backgroundColor: '#FFFFFF',
+		borderBottom: '1px solid #86A2B3',
 	},
 	icon: {
 		width: 20,
 		height: 22,
-		"&:hover": {
+		'&:hover': {
 			opacity: 0.7,
 		},
 	},
 	infoIcon: {
-		marginLeft: 4,
+		ml: 1,
 	},
 	detailsBox: {
-		marginTop: 8,
-		marginBottom: 8,
-		"&:hover": {
-			cursor: "pointer",
+		mt: 1,
+		mb: 1,
+		'&:hover': {
+			cursor: 'pointer',
 		},
 	},
 	detailsText: {
-		marginTop: 6,
+		mt: 1,
 	},
 	hostText: {
 		fontSize: 12,
-		wordBreak: "break-all",
+		wordBreak: 'break-all',
 	},
 	hasDescription: {
-		cursor: "pointer",
-		"&:hover": {
-			textDecoration: "underline",
+		cursor: 'pointer',
+		'&:hover': {
+			textDecoration: 'underline',
 		},
 	},
 	noDescription: {
-		cursor: "default",
+		cursor: 'default',
 	},
-};
+}
 
 interface Props {
-	host?: string;
-	style?: CSSProperties;
-	details?: string;
-	keys?: KeyItem[];
+	host?: string
+	style?: CSSProperties
+	keys?: KeyItem[]
 }
-const SidebarTitle: FC<Props> = ({ style, host, keys }) => {
-	return (
-		<Box style={{ ...style }} sx={styles.wrapper}>
-			<Box
-				display={"flex"}
-				flexWrap={"nowrap"}
-				justifyContent={"space-between"}
-				alignItems={"center"}
-			>
-				{/** <img src={HeaderImage} alt={"Teracotta preview app"} /> */}
-			</Box>
-			{host && keys && (
-				<Box my={1} mt={2}>
-					<Typography variant={"body1"} sx={styles.hostText}>
-						<b>Host: </b>
-						<span>{host}</span>
-					</Typography>
-					<Typography variant={"body1"} sx={styles.hostText}>
-						<b>Docs: </b>
-						<Link href={`${host}/apidoc`} target={"_blank"}>
-							<span>{`${host}/apidoc`}</span>
-						</Link>
-					</Typography>
-					<Typography variant={"body1"} sx={styles.hostText}>
-						<b>{"Keys: "}</b>
-						<span>
-							{keys.map((keyItem: KeyItem) =>
-								keyItem.description ? (
-									<Tooltip
-										title={keyItem.description || false}
-										key={`tooltip-${keyItem.key}`}
-									>
-										<Typography>
-											{"/"}
-											<Typography
-												sx={styles.hasDescription}
-											>{`{${keyItem.key.toLowerCase()}}`}</Typography>
-										</Typography>
-									</Tooltip>
-								) : (
-									<Typography key={`tooltip-${keyItem.key}`}>
-										{"/"}
+const SidebarTitle: FC<Props> = ({ style, host, keys }) => (
+	<Box style={{ ...style, ...styles.wrapper }}>
+		<Box
+			alignItems="center"
+			display="flex"
+			flexWrap="nowrap"
+			justifyContent="space-between"
+		>
+			<img alt="Teracotta preview app" src={HeaderImage} />
+		</Box>
+		{host && keys && (
+			<Box mt={2} my={1}>
+				<Typography sx={styles.hostText} variant="body1">
+					<b>Host: </b>
+					<span>{host}</span>
+				</Typography>
+				<Typography sx={styles.hostText} variant="body1">
+					<b>Docs: </b>
+					<Link href={`${host}/apidoc`} target="_blank">
+						<span>{`${host}/apidoc`}</span>
+					</Link>
+				</Typography>
+				<Typography sx={styles.hostText} variant="body1">
+					<b>{'Keys: '}</b>
+					<span>
+						{keys.map((keyItem: KeyItem) =>
+							keyItem.description ? (
+								<Tooltip
+									key={`tooltip-${keyItem.key}`}
+									title={keyItem.description || false}
+								>
+									<Typography>
+										/
 										<Typography
-											sx={styles.noDescription}
+											sx={styles.hasDescription}
 										>{`{${keyItem.key.toLowerCase()}}`}</Typography>
 									</Typography>
-								),
-							)}
-						</span>
-					</Typography>
-				</Box>
-			)}
-		</Box>
-	);
-};
+								</Tooltip>
+							) : (
+								<Typography key={`tooltip-${keyItem.key}`}>
+									/
+									<Typography
+										sx={styles.noDescription}
+									>{`{${keyItem.key.toLowerCase()}}`}</Typography>
+								</Typography>
+							),
+						)}
+					</span>
+				</Typography>
+			</Box>
+		)}
+	</Box>
+)
 
-export default SidebarTitle;
+export default SidebarTitle

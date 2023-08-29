@@ -1,3 +1,4 @@
+/* eslint-disable radar/no-duplicate-string */
 import { createMuiTheme } from '@mui/material/styles'
 
 const DHITheme = createMuiTheme({
@@ -156,7 +157,7 @@ const DHITheme = createMuiTheme({
 		},
 		MuiIconButton: {
 			root: {
-				padding: 8,
+				padding: '8px',
 			},
 		},
 		MuiInputBase: {

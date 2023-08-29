@@ -6,23 +6,23 @@ import React, {
 	useRef,
 	RefObject,
 	ReactNode,
-} from "react";
-import { Map, Source, Layer } from "react-map-gl";
-import ZoomControl from "./MapZoomControl";
-import useIsMobileWidth from "../common/hooks/useIsMobileWidth";
-import AppContext from "../AppContext";
-import { Viewport } from "./types";
-import { regionPaintFill, regionPaintLine } from "./geojsonStyles";
+} from 'react'
+import { Map, Source, Layer } from 'react-map-gl'
+import ZoomControl from './MapZoomControl'
+import useIsMobileWidth from '../common/hooks/useIsMobileWidth'
+import AppContext from '../AppContext'
+import { Viewport } from './types'
+import { regionPaintFill, regionPaintLine } from './geojsonStyles'
 
 const accessToken =
-	"pk.eyJ1Ijoiam9zbGRoaSIsImEiOiJja2d0ZjdzbXAwMXdxMnNwN2Jkb2NvbXJ3In0.SayFfMYF2huWsZckbqNqEw";
+	'pk.eyJ1Ijoiam9zbGRoaSIsImEiOiJja2d0ZjdzbXAwMXdxMnNwN2Jkb2NvbXJ3In0.SayFfMYF2huWsZckbqNqEw'
 
 interface Props {
-	host?: string;
+	host?: string
 }
 
 const LocalMap: FC<Props> = ({ host }) => {
-	const isMobile = useIsMobileWidth();
+	const isMobile = useIsMobileWidth()
 	const {
 		state: {
 			isOpticalBasemap,
@@ -35,22 +35,22 @@ const LocalMap: FC<Props> = ({ host }) => {
 			limit,
 		},
 		actions: { setViewport },
-	} = useContext(AppContext);
+	} = useContext(AppContext)
 
 	const [localViewport, setLocalViewport] = useState<Viewport | undefined>(
 		undefined,
-	);
+	)
 	const [localRasterUrl, setLocalRasterUrl] = useState<undefined | string>(
 		undefined,
-	);
+	)
 	const basemap = isOpticalBasemap
-		? "mapbox://styles/mapbox/satellite-v9"
-		: "mapbox://styles/mapbox/light-v10";
+		? 'mapbox://styles/mapbox/satellite-v9'
+		: 'mapbox://styles/mapbox/light-v10'
 
-	const mapRef: RefObject<HTMLDivElement> | null = useRef(null);
+	const mapRef: RefObject<HTMLDivElement> | null = useRef(null)
 
 	useEffect(() => {
-		const { latitude, longitude, zoom } = viewport;
+		const { latitude, longitude, zoom } = viewport
 		setLocalViewport({
 			...{
 				longitude,
@@ -58,34 +58,42 @@ const LocalMap: FC<Props> = ({ host }) => {
 				zoom,
 				transitionDuration: 2000,
 			},
-		});
-	}, [viewport]);
+		})
+	}, [viewport])
 
 	useEffect(() => {
-		setLocalRasterUrl(undefined);
+		setLocalRasterUrl(undefined)
 		setTimeout(() => {
-			setLocalRasterUrl(selectedDatasetRasterUrl);
-		}, 200);
-	}, [selectedDatasetRasterUrl]);
+			setLocalRasterUrl(selectedDatasetRasterUrl)
+		}, 200)
+	}, [selectedDatasetRasterUrl])
 
 	useEffect(() => {
 		if (activeDataset !== undefined && datasets) {
-			const pageIndex = activeDataset - page * limit;
-			const currentBounds = datasets[pageIndex].bounds;
+			const pageIndex = activeDataset - page * limit
+			const currentBounds = datasets[pageIndex].bounds
 
 			const formattedBounds: [[number, number], [number, number]] = [
 				[currentBounds[0], currentBounds[1]],
 				[currentBounds[2], currentBounds[3]],
-			];
+			]
 
-			if (formattedBounds[0][0] >= 89) formattedBounds[0][0] = 89;
-			if (formattedBounds[0][1] <= -89) formattedBounds[0][1] = -89;
-			if (formattedBounds[1][0] >= 179) formattedBounds[1][0] = 179;
-			if (formattedBounds[1][1] >= 89) formattedBounds[0][0] = 89;
+			if (formattedBounds[0][0] >= 89) {
+				formattedBounds[0][0] = 89
+			}
+			if (formattedBounds[0][1] <= -89) {
+				formattedBounds[0][1] = -89
+			}
+			if (formattedBounds[1][0] >= 179) {
+				formattedBounds[1][0] = 179
+			}
+			if (formattedBounds[1][1] >= 89) {
+				formattedBounds[0][0] = 89
+			}
 
 			if (mapRef.current !== null) {
-				const mapHeight = mapRef.current?.scrollHeight;
-				const currentMapWidth = mapRef.current?.scrollWidth;
+				const mapHeight = mapRef.current?.scrollHeight
+				const currentMapWidth = mapRef.current?.scrollWidth
 
 				if (mapHeight && currentMapWidth) {
 					/* TODO
@@ -108,42 +116,42 @@ const LocalMap: FC<Props> = ({ host }) => {
 				}
 			}
 		}
-	}, [activeDataset]);
+	}, [activeDataset])
 
 	return (
-		<Map mapboxAccessToken={accessToken} mapStyle={basemap}>
+		<Map mapStyle={basemap} mapboxAccessToken={accessToken}>
 			{!isMobile && <ZoomControl />}
 			{hoveredDataset && (
-				<Source type={"geojson"} data={hoveredDataset}>
+				<Source data={hoveredDataset} type="geojson">
 					<Layer
-						type={"fill"}
-						id={"hovered-dataset-fill"}
+						id="hovered-dataset-fill"
 						paint={regionPaintFill}
+						type="fill"
 					/>
 					<Layer
-						type={"line"}
-						id={"hovered-dataset-line"}
+						id="hovered-dataset-line"
 						paint={regionPaintLine}
+						type="line"
 					/>
 				</Source>
 			)}
 			{localRasterUrl && (
 				<Source
-					type="raster"
 					id="dataset_raster"
 					tileSize={256}
 					tiles={[localRasterUrl]}
+					type="raster"
 				>
 					<Layer
-						type="raster"
 						id="selected-dataset-raster"
-						source="dataset_raster"
 						paint={{}}
+						source="dataset_raster"
+						type="raster"
 					/>
 				</Source>
 			)}
 		</Map>
-	);
-};
+	)
+}
 
-export default LocalMap;
+export default LocalMap

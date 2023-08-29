@@ -1,42 +1,42 @@
-import React, { FC } from "react";
+import React, { FC } from 'react'
 import {
 	TableRow as MuiTableRow,
 	TableCell,
 	Box,
 	IconButton,
-} from "@mui/material";
-import { makeStyles } from "@mui/material/styles";
-import { DatasetItem } from "../common/data/getData";
-import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+} from '@mui/material'
+import { makeStyles } from '@mui/material/styles'
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import { DatasetItem } from '../common/data/getData'
 
 const styles = {
 	tableCell: {
-		padding: 6,
-		borderBottom: "none",
+		p: 1,
+		borderBottom: 'none',
 	},
 	tableRow: {
-		cursor: "pointer",
+		cursor: 'pointer',
 	},
 	icon: {
 		width: 18,
 		height: 18,
 	},
 	iconChecked: {
-		color: "#61C051",
+		color: '#61C051',
 	},
 	noPadding: {
-		padding: 0,
+		p: 0,
 	},
-};
+}
 
 interface Props {
-	dataset: DatasetItem;
-	keyVal: string;
-	checked: boolean;
-	onClick?: () => void;
-	onMouseEnter?: () => void;
-	onMouseLeave?: () => void;
+	dataset: DatasetItem
+	keyVal: string
+	checked: boolean
+	onClick?: () => void
+	onMouseEnter?: () => void
+	onMouseLeave?: () => void
 }
 
 const TableRow: FC<Props> = ({
@@ -46,35 +46,33 @@ const TableRow: FC<Props> = ({
 	onClick,
 	onMouseEnter,
 	onMouseLeave,
-}) => {
-	return (
-		<MuiTableRow
-			hover
-			onClick={onClick}
-			sx={styles.tableRow}
-			onMouseEnter={onMouseEnter}
-			onMouseLeave={onMouseLeave}
-		>
-			<TableCell sx={styles.tableCell}>
-				<Box display={"flex"} alignItems={"center"}>
-					{checked ? (
-						<IconButton sx={{ root: styles.noPadding }}>
-							<CheckCircleIcon sx={{ ...styles.iconChecked, ...styles.icon }} />
-						</IconButton>
-					) : (
-						<IconButton sx={{ root: styles.noPadding }}>
-							<RadioButtonUncheckedIcon sx={styles.icon} />
-						</IconButton>
-					)}
-				</Box>
+}) => (
+	<MuiTableRow
+		sx={styles.tableRow}
+		hover
+		onClick={onClick}
+		onMouseEnter={onMouseEnter}
+		onMouseLeave={onMouseLeave}
+	>
+		<TableCell sx={styles.tableCell}>
+			<Box alignItems="center" display="flex">
+				{checked ? (
+					<IconButton sx={{ root: styles.noPadding }}>
+						<CheckCircleIcon sx={{ ...styles.iconChecked, ...styles.icon }} />
+					</IconButton>
+				) : (
+					<IconButton sx={{ root: styles.noPadding }}>
+						<RadioButtonUncheckedIcon sx={styles.icon} />
+					</IconButton>
+				)}
+			</Box>
+		</TableCell>
+		{Object.keys(dataset).map((item: string, i: number) => (
+			<TableCell key={`${keyVal}-cell-${i}`} sx={styles.tableCell}>
+				{dataset[item]}
 			</TableCell>
-			{Object.keys(dataset).map((item: string, i: number) => (
-				<TableCell sx={styles.tableCell} key={`${keyVal}-cell-${i}`}>
-					{dataset[item]}
-				</TableCell>
-			))}
-		</MuiTableRow>
-	);
-};
+		))}
+	</MuiTableRow>
+)
 
-export default TableRow;
+export default TableRow

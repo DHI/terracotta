@@ -1,4 +1,4 @@
-import React, { FC, ChangeEvent } from "react";
+import React, { FC, ChangeEvent } from 'react'
 import {
 	Box,
 	FormControl,
@@ -7,30 +7,30 @@ import {
 	IconButton,
 	Typography,
 	SelectChangeEvent,
-} from "@mui/material";
-import { makeStyles } from "@mui/material/styles";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+} from '@mui/material'
+import { makeStyles } from '@mui/material/styles'
+import NavigateNextIcon from '@mui/icons-material/NavigateNext'
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore'
 
 const styles = {
 	formControl: {
-		border: "none",
-		marginLeft: 6,
+		border: 'none',
+		ml: 6,
 	},
 	icon: {
 		width: 20,
 		height: 20,
-		cursor: "pointer",
+		cursor: 'pointer',
 	},
-};
+}
 
 interface Props {
-	value: number;
-	options: number[];
-	onGetValue: (val: number) => void;
-	page: number;
-	onGetPage: (page: number) => void;
-	disableNext: boolean;
+	value: number
+	options: number[]
+	onGetValue: (val: number) => void
+	page: number
+	onGetPage: (page: number) => void
+	disableNext: boolean
 }
 const TablePagination: FC<Props> = ({
 	value,
@@ -41,34 +41,30 @@ const TablePagination: FC<Props> = ({
 	disableNext,
 }) => {
 	const handleChange = (e: SelectChangeEvent<number>) => {
-		onGetValue(Number(e.target.value));
-	};
+		onGetValue(Number(e.target.value))
+	}
 
 	const onNextPage = () => {
-		onGetPage(page + 1);
-	};
+		onGetPage(page + 1)
+	}
 
 	const onPreviousPage = () => {
-		onGetPage(page - 1);
-	};
+		onGetPage(page - 1)
+	}
 
 	return (
-		<Box
-			display={"flex"}
-			justifyContent={"space-between"}
-			alignItems={"center"}
-		>
-			<Box display={"flex"} alignItems={"center"}>
+		<Box alignItems="center" display="flex" justifyContent="space-between">
+			<Box alignItems="center" display="flex">
 				<IconButton disabled={page === 0} onClick={onPreviousPage}>
 					<NavigateBeforeIcon sx={styles.icon} />
 				</IconButton>
-				<Typography variant={"body2"}>{`Page ${page}`}</Typography>
-				<IconButton onClick={onNextPage} disabled={disableNext}>
+				<Typography variant="body2">{`Page ${page}`}</Typography>
+				<IconButton disabled={disableNext} onClick={onNextPage}>
 					<NavigateNextIcon sx={styles.icon} />
 				</IconButton>
 			</Box>
-			<Box display={"flex"} alignItems={"center"}>
-				<Typography variant={"body2"}>{"Rows per page:"}</Typography>
+			<Box alignItems="center" display="flex">
+				<Typography variant="body2">Rows per page:</Typography>
 				<FormControl sx={styles.formControl}>
 					<Select
 						id="demo-simple-select-outlined"
@@ -84,7 +80,7 @@ const TablePagination: FC<Props> = ({
 				</FormControl>
 			</Box>
 		</Box>
-	);
-};
+	)
+}
 
-export default TablePagination;
+export default TablePagination

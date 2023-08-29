@@ -1,21 +1,10 @@
 root: true
 extends:
-  - 'airbnb-typescript'
-  - 'eslint:recommended'
-  - 'plugin:react/recommended'
-  - 'plugin:prettier/recommended'
-  - 'prettier'
-plugins:
-  - '@typescript-eslint'
-  - 'prettier'
-  - 'eslint-plugin-import'
-parser: '@typescript-eslint/parser'
-parserOptions:
-  project: './tsconfig.json'
-  tsconfigRootDir: '.'
-env:
-  browser: true
-  node: true
+  - "@dhi-gras/ts"
+  - "@dhi-gras/react"
 rules:
-  no-unused-vars: 'off'
-  '@typescript-eslint/no-unused-vars': 'warn'
+  "@typescript-eslint/unbound-method": 0 # Doesn't appear to read MUI component prop correctly, where the underlying DOM element can be changed, which is the point of the rule
+  "@typescript-eslint/no-unsafe-argument": 0
+  "react/require-default-props": 0
+  "@typescript-eslint/dot-notation": 0
+  "import/no-cycle": 0

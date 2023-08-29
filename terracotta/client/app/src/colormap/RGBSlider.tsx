@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useState } from "react";
+import React, { FC, useEffect, useState } from 'react'
 import {
 	Box,
 	Grid,
@@ -6,19 +6,19 @@ import {
 	Select,
 	MenuItem,
 	InputLabel,
-} from "@mui/material";
-import Slider from "../common/components/Slider";
+} from '@mui/material'
+import Slider from '../common/components/Slider'
 
 interface Props {
-	options?: string[];
-	selectValue?: string;
-	onGetSelectValue: (val: string) => void;
-	sliderValue: number[];
-	onGetSliderValue: (val: number[]) => void;
-	min: number;
-	max: number;
-	title: string;
-	step: number;
+	options?: string[]
+	selectValue?: string
+	onGetSelectValue: (val: string) => void
+	sliderValue: number[]
+	onGetSliderValue: (val: number[]) => void
+	min: number
+	max: number
+	title: string
+	step: number
 }
 
 const RGBSlider: FC<Props> = ({
@@ -32,23 +32,20 @@ const RGBSlider: FC<Props> = ({
 	title,
 	step,
 }) => {
-	const [localRange, setLocalRange] = useState(sliderValue);
+	const [localRange, setLocalRange] = useState(sliderValue)
 	useEffect(() => {
-		setLocalRange(sliderValue);
-	}, [sliderValue]);
+		setLocalRange(sliderValue)
+	}, [sliderValue])
 	return (
-		<Grid container alignItems={"center"}>
-			<Grid container item xs={2} alignItems={"center"}>
-				<FormControl
-					fullWidth
-					style={{ display: "flex", alignItems: "center" }}
-				>
-					<InputLabel style={{ fontSize: 10 }}>{"Band"}</InputLabel>
+		<Grid alignItems="center" container>
+			<Grid alignItems="center" xs={2} container item>
+				<FormControl sx={{ display: 'flex', alignItems: 'center' }} fullWidth>
+					<InputLabel sx={{ fontSize: 10 }}>Band</InputLabel>
 					<Select
 						id="demo-simple-select-outlined"
-						value={selectValue || ""}
-						onChange={(e) => onGetSelectValue(String(e.target.value))}
+						value={selectValue || ''}
 						fullWidth
+						onChange={(e) => onGetSelectValue(String(e.target.value))}
 					>
 						{options?.map((option: string) => (
 							<MenuItem key={`limit-${option}`} value={option}>
@@ -58,25 +55,25 @@ const RGBSlider: FC<Props> = ({
 					</Select>
 				</FormControl>
 			</Grid>
-			<Grid container item xs={10} alignItems={"center"}>
+			<Grid alignItems="center" xs={10} container item>
 				<Box ml={2} mt={2} width={1}>
 					<Slider
-						getValueCommitted={(value) =>
-							Array.isArray(value) && onGetSliderValue(value)
-						}
+						defaultValue={localRange}
 						getValue={(value: number | number[]) =>
 							Array.isArray(value) && setLocalRange(value)
 						}
-						defaultValue={localRange}
-						min={min}
+						getValueCommitted={(value) =>
+							Array.isArray(value) && onGetSliderValue(value)
+						}
 						max={max}
+						min={min}
 						step={step}
 						title={title}
 					/>
 				</Box>
 			</Grid>
 		</Grid>
-	);
-};
+	)
+}
 
-export default RGBSlider;
+export default RGBSlider

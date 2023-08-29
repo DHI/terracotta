@@ -1,8 +1,5 @@
 import React, { FC, MouseEvent } from 'react'
-import {
-	Box,
-	IconButton,
-} from '@mui/material'
+import { Box, IconButton } from '@mui/material'
 import {
 	ChevronLeft,
 	ChevronRight,
@@ -54,48 +51,43 @@ const styles = {
 }
 
 interface Props {
-	toggleSidebarOpen: (event: MouseEvent<HTMLElement>) => void,
-	isSidebarOpen: boolean,
+	toggleSidebarOpen: (event: MouseEvent<HTMLElement>) => void
+	isSidebarOpen: boolean
 }
 
-const SidebarControl: FC<Props> = ({
-	toggleSidebarOpen,
-	isSidebarOpen,
-}) => {
-
+const SidebarControl: FC<Props> = ({ toggleSidebarOpen, isSidebarOpen }) => {
 	const isMobile = useIsMobileWidth()
 
 	const rootClass = isMobile ? styles.topBorder : styles.leftBorder
 
 	return (
 		<Box
-			sx={rootClass}
-			display={'flex'}
-			height={1}
+			display="flex"
 			flexDirection={isMobile ? 'row' : 'column'}
+			height={1}
+			sx={rootClass}
 		>
-			<Box display={'flex'} justifyContent={'center'}>
+			<Box display="flex" justifyContent="center">
 				<IconButton
+					sx={{ backgroundColor: '#fff' }}
 					onClick={toggleSidebarOpen}
-					style={{ backgroundColor: '#fff' }}
 				>
 					{isSidebarOpen && !isMobile && (
-					<ChevronRight sx={iconStyles.icon} color={'primary'} />
+						<ChevronRight color="primary" sx={iconStyles.icon} />
 					)}
 					{!isSidebarOpen && !isMobile && (
-					<ChevronLeft sx={iconStyles.icon} color={'primary'} />
+						<ChevronLeft color="primary" sx={iconStyles.icon} />
 					)}
 					{isSidebarOpen && isMobile && (
-					<ExpandMore sx={iconStyles.icon} color={'primary'} />
+						<ExpandMore color="primary" sx={iconStyles.icon} />
 					)}
 					{!isSidebarOpen && isMobile && (
-					<ExpandLess sx={iconStyles.icon} color={'primary'} />
+						<ExpandLess color="primary" sx={iconStyles.icon} />
 					)}
 				</IconButton>
 			</Box>
 		</Box>
 	)
-
 }
 
 export default SidebarControl
