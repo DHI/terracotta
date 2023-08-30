@@ -1,4 +1,4 @@
-import React, { CSSProperties, FC } from 'react'
+import React, { CSSProperties, FC, Fragment } from 'react'
 import { Box, Typography, Link, Tooltip } from '@mui/material'
 import HeaderImage from '../common/images/header.png'
 import { KeyItem } from '../common/data/getData'
@@ -48,7 +48,7 @@ interface Props {
 	keys?: KeyItem[]
 }
 const SidebarTitle: FC<Props> = ({ host, keys }) => (
-	<Box sx={{ ...styles.wrapper }}>
+	<Box sx={styles.wrapper}>
 		<Box
 			alignItems="center"
 			display="flex"
@@ -61,49 +61,42 @@ const SidebarTitle: FC<Props> = ({ host, keys }) => (
 			<Box mt={2} my={1}>
 				<Typography sx={styles.hostText} variant="body2">
 					<b>Host: </b>
-					<span>{host}</span>
+					{host}
 				</Typography>
 				<Typography sx={styles.hostText} variant="body2">
 					<b>Docs: </b>
 					<Link href={`${host}/apidoc`} target="_blank">
-						<span>{`${host}/apidoc`}</span>
+						{`${host}/apidoc`}
 					</Link>
 				</Typography>
-				<Typography display="inline-block" sx={styles.hostText} variant="body2">
-					<b>{'Keys: '}</b>
-					<span>
-						{keys.map((keyItem: KeyItem) =>
-							keyItem.description ? (
-								<Tooltip
-									key={`tooltip-${keyItem.key}`}
-									title={keyItem.description || false}
-								>
-									<Typography display="inline-block" variant="body2">
-										/
-										<Typography
-											display="inline-block"
-											sx={styles.hasDescription}
-											variant="body2"
-										>{`{${keyItem.key.toLowerCase()}}`}</Typography>
-									</Typography>
-								</Tooltip>
-							) : (
-								<Typography
-									display="inline-block"
-									key={`tooltip-${keyItem.key}`}
-									variant="body2"
-								>
-									/
-									<Typography
-										display="inline-block"
-										sx={styles.noDescription}
-										variant="body2"
-									>{`{${keyItem.key.toLowerCase()}}`}</Typography>
-								</Typography>
-							),
-						)}
-					</span>
+				<Typography
+					display="inline-block"
+					fontWeight="bold"
+					sx={styles.hostText}
+					variant="body2"
+				>
+					Keys:&nbsp;
 				</Typography>
+
+				{keys.map((key) => (
+					<Fragment key={key.original}>
+						<Typography display="inline-block" variant="body2">
+							/
+						</Typography>
+						<Tooltip
+							key={`tooltip-${key.original}`}
+							title={key.description || false}
+						>
+							<Typography
+								display="inline-block"
+								sx={
+									key.description ? styles.hasDescription : styles.noDescription
+								}
+								variant="body2"
+							>{`{${key.original}}`}</Typography>
+						</Tooltip>
+					</Fragment>
+				))}
 			</Box>
 		)}
 	</Box>

@@ -7,7 +7,6 @@ import {
 	Select,
 	MenuItem,
 } from '@mui/material'
-import { makeStyles } from '@mui/material/styles'
 import SinglebandSelector from './SinglebandSelector'
 import RGBSelector from './RGBSelector'
 import AppContext from '../AppContext'

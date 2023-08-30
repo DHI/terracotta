@@ -1,8 +1,9 @@
 /* eslint-disable no-param-reassign */
 import React, { FC, useState, useEffect } from 'react'
 import { Box } from '@mui/material'
+import { Map } from 'mapbox-gl'
 import AppContext, { ActiveRGBSelectorRange } from './AppContext'
-import { Viewport, FeatureDataset } from './map/types'
+import { FeatureDataset } from './map/types'
 import { ResponseMetadata200, KeyItem } from './common/data/getData'
 import COLORMAPS, { Colormap } from './colormap/colormaps'
 import AppScreen from './AppScreen'
@@ -16,19 +17,7 @@ const styles = {
 	},
 }
 
-const details =
-	'This applet lets you explore the data on any running Terracotta server. Just search for a dataset to get started!'
-
 const defaultColormap = COLORMAPS[0]
-
-const defaultViewport = {
-	latitude: 30.62136584218745,
-	longitude: 13.840430671501323,
-	zoom: 1,
-	bearing: 0,
-	pitch: 0,
-	transitionDuration: 2000,
-}
 
 const isEnvDev = process.env.REACT_APP_NODE_ENV === 'development'
 const TC_URL = process.env.REACT_APP_TC_URL
@@ -53,7 +42,6 @@ interface Props {
 }
 
 const App: FC<Props> = ({ hostnameProp }) => {
-	const [viewport, setViewport] = useState<Viewport>(defaultViewport)
 	const [isOpticalBasemap, setIsOpticalBasemap] = useState<boolean>(false)
 
 	const [page, setPage] = useState<number>(0)
@@ -83,6 +71,7 @@ const App: FC<Props> = ({ hostnameProp }) => {
 	const [datasetBands, setDatasetBands] = useState<string[] | undefined>(
 		undefined,
 	)
+	const [mapRef, setMapRef] = useState<Map | undefined>(undefined)
 
 	const initializeApp = (theHostname: string | undefined) => {
 		// sanitize hostname
@@ -114,7 +103,6 @@ const App: FC<Props> = ({ hostnameProp }) => {
 				value={{
 					state: {
 						isOpticalBasemap,
-						viewport,
 						hostname,
 						keys,
 						hoveredDataset,
@@ -128,10 +116,10 @@ const App: FC<Props> = ({ hostnameProp }) => {
 						activeEndpoint,
 						activeRGB,
 						datasetBands,
+						mapRef,
 					},
 					actions: {
 						setIsOpticalBasemap,
-						setViewport,
 						setKeys,
 						setHoveredDataset,
 						setDatasets,
@@ -144,6 +132,7 @@ const App: FC<Props> = ({ hostnameProp }) => {
 						setActiveEndpoint,
 						setActiveRGB,
 						setDatasetBands,
+						setMapRef,
 					},
 				}}
 			>

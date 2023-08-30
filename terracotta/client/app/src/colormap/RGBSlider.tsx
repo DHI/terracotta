@@ -33,16 +33,19 @@ const RGBSlider: FC<Props> = ({
 	step,
 }) => {
 	const [localRange, setLocalRange] = useState(sliderValue)
+
 	useEffect(() => {
 		setLocalRange(sliderValue)
 	}, [sliderValue])
+
 	return (
 		<Grid alignItems="center" container>
 			<Grid alignItems="center" xs={2} container item>
-				<FormControl sx={{ display: 'flex', alignItems: 'center' }} fullWidth>
-					<InputLabel>Band</InputLabel>
+				<FormControl fullWidth>
+					<InputLabel id="band-select">Band</InputLabel>
 					<Select
-						id="demo-simple-select-outlined"
+						label="Band"
+						labelId="band-select"
 						size="small"
 						value={selectValue || ''}
 						fullWidth

@@ -1,5 +1,5 @@
 import React, { MouseEventHandler, FC } from 'react'
-import { Box, Theme } from '@mui/material'
+import { Box } from '@mui/material'
 import {
 	DragHandle as DragHandleIcon,
 	ExpandLess as ExpandLessIcon,
@@ -19,7 +19,7 @@ const styles = {
 		cursor: 'pointer',
 	},
 	icon: {
-		color: 'primary.main',
+		color: 'secondary.main',
 		transform: 'translate(0, -2px)',
 	},
 	iconBox: {

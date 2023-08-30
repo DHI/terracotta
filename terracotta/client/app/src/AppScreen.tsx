@@ -1,4 +1,4 @@
-import { Box, Stack } from '@mui/material'
+import { Stack } from '@mui/material'
 import React, { FC, useState } from 'react'
 import LocalMap from './map/Map'
 import SidebarContent from './sidebar/SidebarContent'

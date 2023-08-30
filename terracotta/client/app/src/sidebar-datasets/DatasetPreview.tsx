@@ -10,7 +10,7 @@ import {
 	Stack,
 } from '@mui/material'
 import { makeStyles } from '@mui/material/styles'
-import { ResponseMetadata200 } from '../common/data/getData'
+import { KeyItem, ResponseMetadata200 } from '../common/data/getData'
 import CopyToClipboard from '../common/components/CopyToClipboard'
 
 const styles = {
@@ -39,6 +39,7 @@ const styles = {
 }
 
 interface Props {
+	keys: KeyItem[]
 	host: string
 	page: number
 	limit: number
@@ -47,7 +48,9 @@ interface Props {
 	dataset: ResponseMetadata200
 	datasetUrl?: string
 }
+
 const DatasetPreview: FC<Props> = ({
+	keys,
 	host,
 	page,
 	limit,
@@ -104,8 +107,8 @@ const DatasetPreview: FC<Props> = ({
 									</Typography>
 									<code style={{ whiteSpace: 'pre' }}>{`${returnJson}\n`}</code>
 									<Link
-										href={`${host}/metadata${Object.keys(dataset.keys)
-											.map((keyItem: string) => `/${dataset.keys[keyItem]}`)
+										href={`${host}/metadata${keys
+											.map((keyItem) => `/${dataset.keys[keyItem.original]}`)
 											.join('')}`}
 										sx={styles.metadataLink}
 										target="_blank"
@@ -126,10 +129,8 @@ const DatasetPreview: FC<Props> = ({
 										alt="TC-preview"
 										component="img"
 										loading="eager"
-										src={`${host}/singleband/${Object.keys(dataset.keys)
-											.map(
-												(datasetKey: string) => `${dataset.keys[datasetKey]}/`,
-											)
+										src={`${host}/singleband/${keys
+											.map((key) => `${dataset.keys[key.original]}/`)
 											.join('')}preview.png?tile_size=[128,128]`}
 										sx={styles.imagePreview}
 									/>

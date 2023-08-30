@@ -1,5 +1,6 @@
 import { Dispatch, SetStateAction, createContext } from 'react'
-import { Viewport, FeatureDataset } from './map/types'
+import { Map } from 'mapbox-gl'
+import { FeatureDataset } from './map/types'
 import { ResponseMetadata200, KeyItem } from './common/data/getData'
 import { Colormap } from './colormap/colormaps'
 
@@ -17,7 +18,6 @@ export type ActiveRGBSelectorRange = {
 
 interface AppContextValues {
 	state: {
-		viewport: Viewport
 		isOpticalBasemap: boolean
 		hostname: string | undefined
 		keys: KeyItem[] | undefined
@@ -32,22 +32,25 @@ interface AppContextValues {
 		activeRGB: ActiveRGBSelectorRange | undefined
 		activeEndpoint: string
 		datasetBands: string[] | undefined
+		mapRef: Map | undefined
 	}
 	actions: {
-		setIsOpticalBasemap: any // Dispatch<SetStateAction<boolean>>
-		setViewport: any // Dispatch<SetStateAction<Viewport>>
-		setKeys: any // Dispatch<SetStateAction<KeyItem[] | undefined>>
-		setHoveredDataset: any // Dispatch<SetStateAction<FeatureDataset | undefined>>
-		setDatasets: any // Dispatch<SetStateAction<any>>
-		setActiveDataset: any // Dispatch<SetStateAction<undefined | number>>
-		setSelectedDatasetRasterUrl: any // Dispatch<SetStateAction<string | undefined>>
-		setPage: any // Dispatch<SetStateAction<number>>
-		setLimit: any // Dispatch<SetStateAction<number>>
-		setColormap: any // Dispatch<SetStateAction<Colormap>>
-		setActiveSinglebandRange: any // Dispatch<SetStateAction<[number, number] | undefined>>
-		setActiveEndpoint: any // Dispatch<SetStateAction<string>>
-		setActiveRGB: any // Dispatch<SetStateAction<ActiveRGBSelectorRange | undefined>>
-		setDatasetBands: any // Dispatch<SetStateAction<string[] | undefined>>
+		setIsOpticalBasemap: Dispatch<SetStateAction<boolean>>
+		setKeys: Dispatch<SetStateAction<KeyItem[] | undefined>>
+		setHoveredDataset: Dispatch<SetStateAction<FeatureDataset | undefined>>
+		setDatasets: Dispatch<SetStateAction<ResponseMetadata200[] | undefined>>
+		setActiveDataset: Dispatch<SetStateAction<undefined | number>>
+		setSelectedDatasetRasterUrl: Dispatch<SetStateAction<string | undefined>>
+		setPage: Dispatch<SetStateAction<number>>
+		setLimit: Dispatch<SetStateAction<number>>
+		setColormap: Dispatch<SetStateAction<Colormap>>
+		setActiveSinglebandRange: Dispatch<
+			SetStateAction<[number, number] | undefined>
+		>
+		setActiveEndpoint: Dispatch<SetStateAction<string>>
+		setActiveRGB: Dispatch<SetStateAction<ActiveRGBSelectorRange | undefined>>
+		setDatasetBands: Dispatch<SetStateAction<string[] | undefined>>
+		setMapRef: Dispatch<SetStateAction<mapboxgl.Map | undefined>>
 	}
 }
 

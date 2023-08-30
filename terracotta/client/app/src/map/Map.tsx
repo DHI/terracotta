@@ -1,19 +1,10 @@
 /* eslint-disable radar/cognitive-complexity */
-import React, {
-	useEffect,
-	useState,
-	FC,
-	useContext,
-	useRef,
-	RefObject,
-	ReactNode,
-} from 'react'
+import React, { useEffect, useState, FC, useContext } from 'react'
 import { Map as ReactMapGL, Source, Layer } from 'react-map-gl'
 import { Map } from 'mapbox-gl'
 import ZoomControl from './MapZoomControl'
 import useIsMobileWidth from '../common/hooks/useIsMobileWidth'
 import AppContext from '../AppContext'
-import { Viewport } from './types'
 import { regionPaintFill, regionPaintLine } from './geojsonStyles'
 
 const accessToken =
@@ -29,41 +20,24 @@ const LocalMap: FC<Props> = ({ host, width }) => {
 	const {
 		state: {
 			isOpticalBasemap,
-			viewport,
 			hoveredDataset,
 			datasets,
 			activeDataset,
 			selectedDatasetRasterUrl,
 			page,
 			limit,
+			mapRef,
 		},
-		actions: { setViewport },
+		actions: { setMapRef },
 	} = useContext(AppContext)
 
-	const [localViewport, setLocalViewport] = useState<Viewport | undefined>(
-		undefined,
-	)
 	const [localRasterUrl, setLocalRasterUrl] = useState<undefined | string>(
 		undefined,
 	)
 
-	const [mapRef, setMapRef] = useState<Map | undefined>(undefined)
-
 	const basemap = isOpticalBasemap
 		? 'mapbox://styles/mapbox/satellite-v9'
 		: 'mapbox://styles/mapbox/light-v10'
-
-	useEffect(() => {
-		const { latitude, longitude, zoom } = viewport
-		setLocalViewport({
-			...{
-				longitude,
-				latitude,
-				zoom,
-				transitionDuration: 2000,
-			},
-		})
-	}, [viewport])
 
 	useEffect(() => {
 		setLocalRasterUrl(undefined)

@@ -3,6 +3,7 @@ import { FeatureDataset } from '../../map/types'
 export type KeyItem = {
 	key: string
 	description?: string
+	original: string
 }
 
 export type ResponseKeys = {

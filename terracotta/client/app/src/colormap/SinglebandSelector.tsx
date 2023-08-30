@@ -40,7 +40,7 @@ const SinglebandSelector: FC = () => {
 		}
 	}
 
-	const onSetRangeValue = (range: number[]) => {
+	const onSetRangeValue = (range: [number, number]) => {
 		setActiveSinglebandRange(range)
 	}
 
@@ -63,7 +63,7 @@ const SinglebandSelector: FC = () => {
 						fullWidth
 						onChange={(e) => onSetColormap(String(e.target.value))}
 					>
-						{COLORMAPS.map((option: Colormap, i: number) => (
+						{COLORMAPS.map((option: Colormap) => (
 							<MenuItem key={`limit-${option.id}`} value={option.id}>
 								{option.displayName}
 							</MenuItem>
@@ -87,7 +87,7 @@ const SinglebandSelector: FC = () => {
 									}}
 									getValueCommitted={(value) => {
 										if (Array.isArray(value)) {
-											onSetRangeValue(value)
+											onSetRangeValue(value as [number, number])
 										}
 									}}
 									max={maxRange || 0}
@@ -99,7 +99,9 @@ const SinglebandSelector: FC = () => {
 								<Legend
 									range={localRange}
 									src={colormap.img_url}
-									onGetRange={(val) => setActiveSinglebandRange(val)}
+									onGetRange={(val) =>
+										setActiveSinglebandRange(val as [number, number])
+									}
 								/>
 							</>
 						)}

@@ -6,7 +6,6 @@ import StreetviewIcon from '@mui/icons-material/Streetview'
 import { IconButton, Grid, Tooltip } from '@mui/material'
 import { makeStyles } from '@mui/material/styles'
 import AppContext from '../AppContext'
-import { Viewport } from './types'
 
 const styles = {
 	iconButton: {
@@ -47,8 +46,8 @@ const gridStyle = {
 
 const ZoomControl: FC = () => {
 	const {
-		state: { isOpticalBasemap },
-		actions: { setIsOpticalBasemap, setViewport },
+		state: { isOpticalBasemap, mapRef },
+		actions: { setIsOpticalBasemap },
 	} = useContext(AppContext)
 
 	return (
@@ -73,9 +72,7 @@ const ZoomControl: FC = () => {
 			<Grid container>
 				<IconButton
 					sx={styles.iconButton}
-					onClick={() =>
-						setViewport((v: Viewport) => ({ ...v, zoom: Number(v.zoom) + 1 }))
-					}
+					onClick={() => mapRef?.flyTo({ zoom: Number(mapRef?.getZoom()) + 1 })}
 				>
 					<AddIcon sx={styles.icon} />
 				</IconButton>
@@ -83,9 +80,7 @@ const ZoomControl: FC = () => {
 			<Grid container>
 				<IconButton
 					sx={styles.iconButton}
-					onClick={() =>
-						setViewport((v: Viewport) => ({ ...v, zoom: Number(v.zoom) - 1 }))
-					}
+					onClick={() => mapRef?.flyTo({ zoom: Number(mapRef?.getZoom()) - 1 })}
 				>
 					<RemoveIcon sx={styles.icon} />
 				</IconButton>

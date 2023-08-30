@@ -1,11 +1,4 @@
-import React, {
-	FC,
-	useCallback,
-	useState,
-	useEffect,
-	useContext,
-	Fragment,
-} from 'react'
+import React, { FC, useState, useEffect, useContext, Fragment } from 'react'
 import {
 	Table,
 	TableBody,
@@ -16,8 +9,7 @@ import {
 	Typography,
 	Box,
 } from '@mui/material'
-import { makeStyles } from '@mui/material/styles'
-import AppContext, { ActiveRGBSelectorRange } from '../AppContext'
+import AppContext from '../AppContext'
 import getData, {
 	ResponseDatasets,
 	DatasetItem,
@@ -49,9 +41,6 @@ const styles = {
 	},
 	tableHeadTypography: {
 		fontWeight: 'bold',
-	},
-	tableCell: {
-		p: 1,
 	},
 }
 
@@ -92,52 +81,48 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 	const [queryFields, setQueryFields] = useState<string | undefined>(undefined)
 	const [isLoading, setIsLoading] = useState<boolean>(true)
 
-	console.log('ks', keys)
+	const getDatasets = async (
+		fetchedKeys: KeyItem[],
+		pageRef: number,
+		limitRef: number,
+		queryString = '',
+	) => {
+		const response = await getData(
+			`${host}/datasets?limit=${limit}&page=${page}${queryFields || ''}`,
+		)
 
-	const getDatasets = useCallback(
-		async (pageRef: number, limitRef: number, queryString = '') => {
-			const response = await getData(
-				`${host}/datasets?limit=${limit}&page=${page}${queryFields || ''}`,
-			)
+		const datasetsResponse = response as ResponseDatasets | undefined
 
-			const datasetsResponse = response as ResponseDatasets | undefined
+		if (
+			!datasetsResponse ||
+			!datasetsResponse.datasets ||
+			!Array.isArray(datasetsResponse.datasets)
+		) {
+			return
+		}
 
-			if (
-				!datasetsResponse ||
-				!datasetsResponse.datasets ||
-				!Array.isArray(datasetsResponse.datasets)
-			) {
-				return
-			}
+		if (datasetsResponse.datasets.length === 0) {
+			setDatasets([])
+			return
+		}
 
-			if (datasetsResponse.datasets.length === 0) {
-				setDatasets([])
-				return
-			}
+		const metadataResponsesPreFetch: unknown = datasetsResponse.datasets.map(
+			async (dataset: DatasetItem) => {
+				const buildMetadataUrl = fetchedKeys
+					?.map((key, index) => `/${dataset[key.original]}`)
+					.join('')
 
-			const metadataResponsesPreFetch: unknown = datasetsResponse.datasets.map(
-				async (dataset: DatasetItem) => {
-					console.log('KEYS', keys)
+				const preFetchData = await fetch(`${host}/metadata${buildMetadataUrl}`)
+				return preFetchData.json()
+			},
+		)
 
-					const buildMetadataUrl = keys
-						?.map((key, index) => `/${dataset[key.key.toLowerCase()]}`)
-						.join('')
-
-					const preFetchData = await fetch(
-						`${host}/metadata${buildMetadataUrl}`,
-					)
-					return preFetchData.json()
-				},
-			)
-
-			const metadataResponses = await Promise.all(
-				metadataResponsesPreFetch as Iterable<unknown>,
-			)
-			const typedMetadataResponses = metadataResponses as ResponseMetadata200[]
-			setDatasets(typedMetadataResponses)
-		},
-		[host, keys, limit, page, queryFields, setDatasets],
-	)
+		const metadataResponses = await Promise.all(
+			metadataResponsesPreFetch as Iterable<unknown>,
+		)
+		const typedMetadataResponses = metadataResponses as ResponseMetadata200[]
+		setDatasets(typedMetadataResponses)
+	}
 
 	const getKeys = async () => {
 		const response = await getData(`${host}/keys`)
@@ -147,9 +132,12 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 			keysReponse.keys = keysReponse.keys.map((item: KeyItem) => ({
 				...item,
 				key: item.key[0].toUpperCase() + item.key.substring(1, item.key.length),
+				original: item.key,
 			}))
 			setKeys(keysReponse.keys)
 		}
+
+		return keysReponse
 	}
 
 	const onHandleRow = (index: number) => {
@@ -165,7 +153,7 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 
 			if (dataset) {
 				const { percentiles } = dataset
-				const validRange = [percentiles[4], percentiles[94]]
+				const validRange = [percentiles[4], percentiles[94]] as [number, number]
 				setActiveSinglebandRange(validRange)
 			}
 		}
@@ -182,17 +170,24 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 		setIsLoading(true)
 
 		const fetcher = async () => {
-			await getKeys()
-			await getDatasets(keys, page, limit, queryFields)
+			const keyResponse = await getKeys()
+
+			if (!keyResponse) {
+				return
+			}
+
+			await getDatasets(keyResponse.keys, page, limit, queryFields)
 		}
 
 		void fetcher().finally(() => setIsLoading(false))
 	}, [host, page, limit, queryFields])
 
 	const onGetRGBBands = async (dataset: ResponseMetadata200) => {
-		const noBandKeysURL = `${host}/datasets?${Object.keys(dataset.keys)
-			.map((item: string) =>
-				item !== 'band' ? `${item}=${dataset.keys[item]}&` : '',
+		const noBandKeysURL = `${host}/datasets?${keys
+			?.map((key) =>
+				key.original.toLowerCase() !== 'band'
+					? `${key.original}=${dataset.keys[key.original]}&`
+					: '',
 			)
 			.join('')}`
 
@@ -202,19 +197,23 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 			const { datasets: theDatasets } = response
 			const bands = theDatasets.map((ds: DatasetItem) => ds.band)
 
-			setActiveRGB((activeRGBLocal: ActiveRGBSelectorRange) =>
-				Object.keys(activeRGBLocal).reduce((acc: any, colorString: string) => {
+			setActiveRGB((prev) => {
+				if (!prev) {
+					return prev
+				}
+
+				return Object.keys(prev).reduce((acc: any, colorString: string) => {
 					const { percentiles } = dataset
 					const validRange = [percentiles[4], percentiles[94]]
 
 					acc[colorString] = {
-						...activeRGBLocal[colorString],
+						...prev[colorString],
 						range: validRange,
 					}
 
 					return acc
-				}, {}),
-			)
+				}, {})
+			})
 
 			setDatasetBands(bands)
 		}
@@ -224,8 +223,8 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 		if (activeDataset !== undefined && datasets && activeSinglebandRange) {
 			setSelectedDatasetRasterUrl(undefined)
 			const dataset = datasets[activeDataset - page * limit]
-			const keysRasterUrl = `${Object.keys(dataset.keys)
-				.map((keyItem: string) => `/${dataset.keys[keyItem]}`)
+			const keysRasterUrl = `${keys
+				?.map((key) => `/${dataset.keys[key.original]}`)
 				.join('')}/{z}/{x}/{y}.png`
 
 			if (activeEndpoint === 'singleband') {
@@ -256,14 +255,14 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 			)
 
 			if (hasValueForBand && hasValueForRange && dataset !== undefined) {
-				const lastKey = Object.keys(dataset.keys)[
-					Object.keys(dataset.keys).length - 1
-				]
-				const keysRasterUrl = `${Object.keys(dataset.keys)
-					.map((keyItem: string) =>
-						keyItem !== lastKey ? `/${dataset.keys[keyItem]}` : '',
+				const lastKey = keys?.[keys.length - 1].original
+
+				const keysRasterUrl = `${keys
+					?.map((key) =>
+						key.original !== lastKey ? `/${dataset.keys[key.original]}` : '',
 					)
 					.join('')}/{z}/{x}/{y}.png`
+
 				const rgbParams = Object.keys(activeRGB)
 					.map(
 						(keyItem: string) =>
@@ -293,16 +292,13 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 					>
 						<TableHead>
 							<MuiTableRow>
-								<TableCell sx={styles.tableCell} />
+								<TableCell />
 								{keys &&
 									keys.map((datasetKey: KeyItem, i: number) => (
-										<TableCell
-											key={`dataset-key-head-${i}`}
-											sx={styles.tableCell}
-										>
+										<TableCell key={`dataset-key-head-${i}`}>
 											<Typography
 												sx={styles.tableHeadTypography}
-												variant="body1"
+												variant="body2"
 											>
 												{datasetKey.key}
 											</Typography>
@@ -312,12 +308,14 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 						</TableHead>
 						<TableBody>
 							{datasets &&
+								keys &&
 								datasets.map((dataset: ResponseMetadata200, i: number) => (
 									<Fragment key={`dataset-${i}`}>
 										<TableRow
 											checked={page * limit + i === activeDataset}
 											dataset={dataset.keys}
 											keyVal={`dataset-${i}`}
+											keys={keys}
 											onClick={() => onHandleRow(i)}
 											onMouseEnter={() =>
 												setHoveredDataset(dataset.convex_hull)
@@ -329,6 +327,7 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 											datasetUrl={selectedDatasetRasterUrl}
 											host={host}
 											i={i}
+											keys={keys}
 											limit={limit}
 											page={page}
 										/>

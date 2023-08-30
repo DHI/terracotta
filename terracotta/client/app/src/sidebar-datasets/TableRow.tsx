@@ -9,11 +9,10 @@ import {
 import { makeStyles } from '@mui/material/styles'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import { DatasetItem } from '../common/data/getData'
+import { DatasetItem, KeyItem } from '../common/data/getData'
 
 const styles = {
 	tableCell: {
-		p: 1,
 		borderBottom: 'none',
 	},
 	tableRow: {
@@ -27,11 +26,12 @@ const styles = {
 		color: '#61C051',
 	},
 	noPadding: {
-		p: 0,
+		p: '0px',
 	},
 }
 
 interface Props {
+	keys: KeyItem[]
 	dataset: DatasetItem
 	keyVal: string
 	checked: boolean
@@ -41,6 +41,7 @@ interface Props {
 }
 
 const TableRow: FC<Props> = ({
+	keys,
 	dataset,
 	keyVal,
 	checked,
@@ -56,21 +57,19 @@ const TableRow: FC<Props> = ({
 		onMouseLeave={onMouseLeave}
 	>
 		<TableCell sx={styles.tableCell}>
-			<Box alignItems="center" display="flex">
-				{checked ? (
-					<IconButton sx={{ root: styles.noPadding }}>
-						<CheckCircleIcon sx={{ ...styles.iconChecked, ...styles.icon }} />
-					</IconButton>
-				) : (
-					<IconButton sx={{ root: styles.noPadding }}>
-						<RadioButtonUncheckedIcon sx={styles.icon} />
-					</IconButton>
-				)}
-			</Box>
+			{checked ? (
+				<IconButton sx={styles.noPadding}>
+					<CheckCircleIcon sx={{ ...styles.iconChecked, ...styles.icon }} />
+				</IconButton>
+			) : (
+				<IconButton sx={styles.noPadding}>
+					<RadioButtonUncheckedIcon sx={styles.icon} />
+				</IconButton>
+			)}
 		</TableCell>
-		{Object.keys(dataset).map((item: string, i: number) => (
+		{keys.map((key, i: number) => (
 			<TableCell key={`${keyVal}-cell-${i}`} sx={styles.tableCell}>
-				<Typography variant="body1">{dataset[item]}</Typography>
+				<Typography variant="body2">{dataset[key.original]}</Typography>
 			</TableCell>
 		))}
 	</MuiTableRow>

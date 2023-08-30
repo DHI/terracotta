@@ -19,20 +19,20 @@ const RGBSelector: FC = () => {
 
 	const onGetBandValue = (val: string, bandKey: string) => {
 		setActiveRGB(
-			(activeRGB: ActiveRGBSelectorRange) =>
-				activeRGB && {
-					...activeRGB,
-					[bandKey]: { band: val, range: activeRGB[bandKey].range },
+			(prev) =>
+				prev && {
+					...prev,
+					[bandKey]: { band: val, range: prev[bandKey].range },
 				},
 		)
 	}
 
 	const onGetSliderValue = (val: number[], sliderKey: string) => {
 		setActiveRGB(
-			(activeRGB: ActiveRGBSelectorRange) =>
-				activeRGB && {
-					...activeRGB,
-					[sliderKey]: { range: val, band: activeRGB[sliderKey].band },
+			(prev) =>
+				prev && {
+					...prev,
+					[sliderKey]: { range: val, band: prev[sliderKey].band },
 				},
 		)
 	}
