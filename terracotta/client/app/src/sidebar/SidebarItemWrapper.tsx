@@ -23,7 +23,7 @@ interface Props {
 const SidebarItemWrapper: FC<Props> = ({ isLoading, title, children }) => (
 	<Box sx={styles.wrapper}>
 		<Box alignItems="center" display="flex" mb={1}>
-			<Typography fontWeight="bold" variant="body1">
+			<Typography fontWeight="normal" variant="h4">
 				{title}
 			</Typography>
 			{isLoading && <CircularProgress color="primary" sx={styles.spinner} />}

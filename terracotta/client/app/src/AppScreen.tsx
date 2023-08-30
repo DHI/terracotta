@@ -16,7 +16,7 @@ const AppScreen: FC<Props> = ({ host, keys }) => {
 
 	return (
 		<Stack direction="row" height="100vh" width={1}>
-			<LocalMap host={host} width={width} />
+			<LocalMap width={width} />
 			<Stack direction="row" width={width}>
 				<SidebarContent setWidth={setWidth} width={width}>
 					<SidebarTitle host={host} keys={keys} />

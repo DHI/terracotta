@@ -41,12 +41,11 @@ const RGBSlider: FC<Props> = ({
 	return (
 		<Grid alignItems="center" container>
 			<Grid alignItems="center" xs={2} container item>
-				<FormControl fullWidth>
+				<FormControl size="small" fullWidth>
 					<InputLabel id="band-select">Band</InputLabel>
 					<Select
 						label="Band"
 						labelId="band-select"
-						size="small"
 						value={selectValue || ''}
 						fullWidth
 						onChange={(e) => onGetSelectValue(String(e.target.value))}
@@ -60,7 +59,7 @@ const RGBSlider: FC<Props> = ({
 				</FormControl>
 			</Grid>
 			<Grid alignItems="center" xs={10} container item>
-				<Box ml={2} mt={2} width={1}>
+				<Box ml={2} width={1}>
 					<Slider
 						defaultValue={localRange}
 						getValue={(value: number | number[]) =>

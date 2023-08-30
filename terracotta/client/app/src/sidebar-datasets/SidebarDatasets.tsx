@@ -42,6 +42,10 @@ const styles = {
 	tableHeadTypography: {
 		fontWeight: 'bold',
 	},
+	tableCell: {
+		height: 'fit-content',
+		py: 0.5,
+	},
 }
 
 interface Props {
@@ -292,10 +296,13 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 					>
 						<TableHead>
 							<MuiTableRow>
-								<TableCell />
+								<TableCell sx={styles.tableCell} />
 								{keys &&
-									keys.map((datasetKey: KeyItem, i: number) => (
-										<TableCell key={`dataset-key-head-${i}`}>
+									keys.map((datasetKey) => (
+										<TableCell
+											key={`dataset-key-head-${datasetKey.original}`}
+											sx={styles.tableCell}
+										>
 											<Typography
 												sx={styles.tableHeadTypography}
 												variant="body2"

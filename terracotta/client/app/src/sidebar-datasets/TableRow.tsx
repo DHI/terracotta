@@ -13,7 +13,10 @@ import { DatasetItem, KeyItem } from '../common/data/getData'
 
 const styles = {
 	tableCell: {
-		borderBottom: 'none',
+		borderBottom: '1px solid',
+		borderBottomColor: 'divider',
+		height: 'fit-content',
+		py: '6px',
 	},
 	tableRow: {
 		cursor: 'pointer',

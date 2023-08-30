@@ -5,6 +5,7 @@ import {
 	Grid,
 	Typography,
 	TextField,
+	Stack,
 } from '@mui/material'
 
 type SliderProps = {
@@ -62,50 +63,36 @@ const Slider: React.FC<SliderProps> = ({
 		setValue(defaultValue)
 	}, [defaultValue])
 
-	useEffect(() => {}, [min, max])
-
 	return (
-		<Grid
-			alignItems="center"
-			direction="row"
-			justifyContent="center"
-			wrap="nowrap"
-			container
-		>
+		<Stack alignItems="center" direction="row" gap={1} justifyContent="center">
 			{title && (
-				<Box>
-					<Grid
-						alignItems="center"
-						sx={{
-							height: '100%',
-							mr: noNumbers ? '1rem' : '0rem',
-						}}
-						container
-					>
-						<Typography variant="body2">{title}</Typography>
-					</Grid>
-				</Box>
+				<Typography
+					minWidth="5%"
+					mr={title ? 1 : 0}
+					variant="body2"
+					width="fit-content"
+				>
+					{title}
+				</Typography>
 			)}
 			{!noNumbers && Array.isArray(value) && typeof value[0] === 'number' && (
-				<Box sx={{ ml: title ? `${sliderMarginLeft}rem` : '0rem' }}>
-					<Grid
-						alignItems="center"
-						justifyContent="center"
-						sx={{ height: '100%', maxWidth: '8rem' }}
-						container
-					>
-						<TextField
-							size="small"
-							type="number"
-							value={Number(value[0].toFixed(3))}
-							variant="standard"
-							fullWidth
-							onChange={(e) =>
-								getValueCommitted &&
-								getValueCommitted([Number(e.target.value), value[1]])
-							}
-						/>
-					</Grid>
+				<Box maxWidth="5rem">
+					<TextField
+						inputProps={{
+							style: {
+								textAlign: 'center',
+							},
+						}}
+						size="small"
+						type="number"
+						value={Number(value[0].toFixed(3))}
+						variant="outlined"
+						fullWidth
+						onChange={(e) =>
+							getValueCommitted &&
+							getValueCommitted([Number(e.target.value), value[1]])
+						}
+					/>
 				</Box>
 			)}
 
@@ -126,31 +113,29 @@ const Slider: React.FC<SliderProps> = ({
 				}
 			/>
 			{!noNumbers && Array.isArray(value) && (
-				<Box>
-					<Grid
-						alignItems="center"
-						justifyContent="center"
-						sx={{ height: '100%', maxWidth: '8rem' }}
-						container
-					>
-						<TextField
-							size="small"
-							type="number"
-							value={
-								Number(value[1].toFixed(3)) ||
-								(!Array.isArray(value) && Number((value as number).toFixed(3)))
-							}
-							variant="standard"
-							fullWidth
-							onChange={(e) =>
-								getValueCommitted &&
-								getValueCommitted([value[0], Number(e.target.value)])
-							}
-						/>
-					</Grid>
+				<Box maxWidth="5rem">
+					<TextField
+						inputProps={{
+							style: {
+								textAlign: 'center',
+							},
+						}}
+						size="small"
+						type="number"
+						value={
+							Number(value[1].toFixed(3)) ||
+							(!Array.isArray(value) && Number((value as number).toFixed(3)))
+						}
+						variant="outlined"
+						fullWidth
+						onChange={(e) =>
+							getValueCommitted &&
+							getValueCommitted([value[0], Number(e.target.value)])
+						}
+					/>
 				</Box>
 			)}
-		</Grid>
+		</Stack>
 	)
 }
 
