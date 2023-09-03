@@ -1,7 +1,7 @@
-import React, { CSSProperties, FC, Fragment } from 'react'
+import React, { FC, Fragment } from 'react'
 import { Box, Typography, Link, Tooltip } from '@mui/material'
-import HeaderImage from '../common/images/header.png'
 import { KeyItem } from '../common/data/getData'
+import HeaderImage from '../common/images/header.svg'
 
 const styles = {
 	wrapper: {
