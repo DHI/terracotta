@@ -17,8 +17,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.head_ref }}
 
       - uses: actions/setup-node@v1
         with:
@@ -26,10 +24,9 @@ jobs:
 
       - name: Build app
         run: |
-          pushd terracotta/client/app
           yarn install --frozen-lockfile
           yarn build
-          popd
+        working-directory: terracotta/client/app
 
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v4.9.0
