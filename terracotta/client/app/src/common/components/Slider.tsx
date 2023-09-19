@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import {
 	Slider as MSlider,
 	Box,
-	Grid,
 	Typography,
 	TextField,
 	Stack,
@@ -25,15 +24,7 @@ type SliderProps = {
 	 * Get the value once you release the slider thumb.
 	 */
 	getValueCommitted?: (val: number | number[]) => void
-	/**
-	 * *Requires `title` prop. Counted in `rem` units.
-	 */
-	sliderMarginLeft?: number | undefined
 	noNumbers?: boolean | undefined
-	/**
-	 * Append a unit at the end of the values. (%, /10, £, $)
-	 */
-	unit?: string | undefined
 	disabled?: boolean
 }
 
@@ -45,9 +36,7 @@ const Slider: React.FC<SliderProps> = ({
 	step = 0.01,
 	getValue,
 	getValueCommitted,
-	sliderMarginLeft = 1,
 	noNumbers = false,
-	unit = '',
 	disabled,
 }) => {
 	const [value, setValue] = useState(defaultValue)

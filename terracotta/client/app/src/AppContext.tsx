@@ -56,6 +56,6 @@ interface AppContextValues {
 
 type Context = AppContextValues
 
-const AppContext = createContext<Context>(null as any)
+const AppContext = createContext<Context>({} as Context)
 
 export default AppContext

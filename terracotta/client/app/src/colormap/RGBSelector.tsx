@@ -1,6 +1,6 @@
 import React, { FC, useContext, useEffect } from 'react'
 import { Box } from '@mui/material'
-import AppContext, { ActiveRGBSelectorRange } from '../AppContext'
+import AppContext from '../AppContext'
 import RGBSlider from './RGBSlider'
 
 const RGBSelector: FC = () => {

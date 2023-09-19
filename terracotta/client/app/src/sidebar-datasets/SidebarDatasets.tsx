@@ -85,12 +85,7 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 	const [queryFields, setQueryFields] = useState<string | undefined>(undefined)
 	const [isLoading, setIsLoading] = useState<boolean>(true)
 
-	const getDatasets = async (
-		fetchedKeys: KeyItem[],
-		pageRef: number,
-		limitRef: number,
-		queryString = '',
-	) => {
+	const getDatasets = async (fetchedKeys: KeyItem[]) => {
 		const response = await getData(
 			`${host}/datasets?limit=${limit}&page=${page}${queryFields || ''}`,
 		)
@@ -113,7 +108,7 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 		const metadataResponsesPreFetch: unknown = datasetsResponse.datasets.map(
 			async (dataset: DatasetItem) => {
 				const buildMetadataUrl = fetchedKeys
-					?.map((key, index) => `/${dataset[key.original]}`)
+					?.map((key) => `/${dataset[key.original]}`)
 					.join('')
 
 				const preFetchData = await fetch(`${host}/metadata${buildMetadataUrl}`)
@@ -180,11 +175,11 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 				return
 			}
 
-			await getDatasets(keyResponse.keys, page, limit, queryFields)
+			await getDatasets(keyResponse.keys)
 		}
 
 		void fetcher().finally(() => setIsLoading(false))
-	}, [host, page, limit, queryFields])
+	}, [host, page, limit, queryFields]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	const onGetRGBBands = async (dataset: ResponseMetadata200) => {
 		const noBandKeysURL = `${host}/datasets?${keys
@@ -206,6 +201,7 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 					return prev
 				}
 
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				return Object.keys(prev).reduce((acc: any, colorString: string) => {
 					const { percentiles } = dataset
 					const validRange = [percentiles[4], percentiles[94]]
@@ -241,7 +237,7 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 				void onGetRGBBands(dataset)
 			}
 		}
-	}, [activeSinglebandRange, colormap, activeDataset, activeEndpoint])
+	}, [activeSinglebandRange, colormap, activeDataset, activeEndpoint]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	useEffect(() => {
 		if (
@@ -279,7 +275,7 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 				setSelectedDatasetRasterUrl(buildRasterUrl)
 			}
 		}
-	}, [activeRGB, activeEndpoint, activeDataset, datasets])
+	}, [activeRGB, activeEndpoint, activeDataset, datasets]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	return (
 		<SidebarItemWrapper isLoading={isLoading} title="Search for datasets">
@@ -316,7 +312,8 @@ const SidebarDatasetsItem: FC<Props> = ({ host }) => {
 						<TableBody>
 							{datasets &&
 								keys &&
-								datasets.map((dataset: ResponseMetadata200, i: number) => (
+								datasets.map((dataset: ResponseMetadata200, i) => (
+									// eslint-disable-next-line react/no-array-index-key
 									<Fragment key={`dataset-${i}`}>
 										<TableRow
 											checked={page * limit + i === activeDataset}

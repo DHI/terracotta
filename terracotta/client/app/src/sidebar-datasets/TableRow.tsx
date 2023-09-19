@@ -2,11 +2,9 @@ import React, { FC } from 'react'
 import {
 	TableRow as MuiTableRow,
 	TableCell,
-	Box,
 	IconButton,
 	Typography,
 } from '@mui/material'
-import { makeStyles } from '@mui/material/styles'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import { DatasetItem, KeyItem } from '../common/data/getData'
@@ -71,6 +69,7 @@ const TableRow: FC<Props> = ({
 			)}
 		</TableCell>
 		{keys.map((key, i: number) => (
+			// eslint-disable-next-line react/no-array-index-key
 			<TableCell key={`${keyVal}-cell-${i}`} sx={styles.tableCell}>
 				<Typography variant="body2">{dataset[key.original]}</Typography>
 			</TableCell>

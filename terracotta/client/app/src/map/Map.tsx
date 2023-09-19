@@ -1,7 +1,6 @@
 /* eslint-disable radar/cognitive-complexity */
 import React, { useEffect, useState, FC, useContext } from 'react'
 import { Map as ReactMapGL, Source, Layer } from 'react-map-gl'
-import { Map } from 'mapbox-gl'
 import ZoomControl from './MapZoomControl'
 import useIsMobileWidth from '../common/hooks/useIsMobileWidth'
 import AppContext from '../AppContext'
@@ -11,11 +10,10 @@ const accessToken =
 	'pk.eyJ1Ijoiam9zbGRoaSIsImEiOiJja2d0ZjdzbXAwMXdxMnNwN2Jkb2NvbXJ3In0.SayFfMYF2huWsZckbqNqEw'
 
 interface Props {
-	host?: string
 	width: number
 }
 
-const LocalMap: FC<Props> = ({ host, width }) => {
+const LocalMap: FC<Props> = ({ width }) => {
 	const isMobile = useIsMobileWidth()
 	const {
 		state: {
@@ -58,11 +56,11 @@ const LocalMap: FC<Props> = ({ host, width }) => {
 			padding: 40,
 			duration: 4000,
 		})
-	}, [activeDataset])
+	}, [activeDataset]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	useEffect(() => {
 		mapRef?.resize()
-	}, [width])
+	}, [width]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	useEffect(() => {
 		const handleResize = () => {
@@ -74,7 +72,7 @@ const LocalMap: FC<Props> = ({ host, width }) => {
 		return () => {
 			window.removeEventListener('resize', handleResize)
 		}
-	}, [])
+	}, []) // eslint-disable-line react-hooks/exhaustive-deps
 
 	return (
 		<ReactMapGL
@@ -94,7 +92,7 @@ const LocalMap: FC<Props> = ({ host, width }) => {
 			}}
 			mapStyle={basemap}
 			mapboxAccessToken={accessToken}
-			ref={(ref) => ref && setMapRef(ref as any)}
+			ref={(ref) => ref && setMapRef(ref.getMap())}
 			style={{ width: window.innerWidth - width, height: '100%' }}
 		>
 			{!isMobile && <ZoomControl />}

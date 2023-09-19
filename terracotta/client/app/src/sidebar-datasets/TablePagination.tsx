@@ -1,4 +1,4 @@
-import React, { FC, ChangeEvent } from 'react'
+import React, { FC } from 'react'
 import {
 	Box,
 	FormControl,
@@ -8,7 +8,6 @@ import {
 	Typography,
 	SelectChangeEvent,
 } from '@mui/material'
-import { makeStyles } from '@mui/material/styles'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore'
 
@@ -71,7 +70,7 @@ const TablePagination: FC<Props> = ({
 						value={value}
 						onChange={handleChange}
 					>
-						{options.map((option: number, i: number) => (
+						{options.map((option: number) => (
 							<MenuItem key={`limit-${option}`} value={option}>
 								{option}
 							</MenuItem>

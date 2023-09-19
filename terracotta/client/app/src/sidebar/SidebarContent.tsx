@@ -1,4 +1,4 @@
-import React, { Dispatch, FC, ReactNode, SetStateAction, useState } from 'react'
+import React, { Dispatch, FC, ReactNode, SetStateAction } from 'react'
 import { Paper, Box } from '@mui/material'
 import VerticalHandle from './VerticalHandle/VerticalHandle'
 

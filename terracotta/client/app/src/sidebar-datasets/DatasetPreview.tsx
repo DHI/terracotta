@@ -9,7 +9,6 @@ import {
 	Link,
 	Stack,
 } from '@mui/material'
-import { makeStyles } from '@mui/material/styles'
 import { KeyItem, ResponseMetadata200 } from '../common/data/getData'
 import CopyToClipboard from '../common/components/CopyToClipboard'
 

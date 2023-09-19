@@ -44,6 +44,7 @@ const getData = async (
 		const data = await fetch(url)
 		return await data.json()
 	} catch (err) {
+		// eslint-disable-next-line no-console
 		console.error(err)
 		return undefined
 	}

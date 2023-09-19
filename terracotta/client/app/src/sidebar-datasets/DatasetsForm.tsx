@@ -40,12 +40,12 @@ const DatasetsForm: FC<Props> = ({ keys, onSubmitFields }) => {
 		)
 
 		setFormValues(reduceKeys)
-	}, [])
+	}, []) // eslint-disable-line react-hooks/exhaustive-deps
 
 	return (
 		<>
 			<Grid direction="row" spacing={1} width="100%" container>
-				{keys.map((keyItem: KeyItem, i: number) => (
+				{keys.map((keyItem: KeyItem) => (
 					<Grid key={keyItem.key} xs={6} item>
 						<TextField
 							id={keyItem.key.toLocaleLowerCase()}

@@ -6,7 +6,6 @@ import {
 	ExpandLess,
 	ExpandMore,
 } from '@mui/icons-material'
-import { makeStyles } from '@mui/material/styles'
 import useIsMobileWidth from '../common/hooks/useIsMobileWidth'
 
 const iconStyles = {

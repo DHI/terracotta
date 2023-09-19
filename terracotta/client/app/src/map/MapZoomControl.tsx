@@ -1,10 +1,9 @@
-import React, { FC, CSSProperties, useContext } from 'react'
+import React, { FC, useContext } from 'react'
 import AddIcon from '@mui/icons-material/Add'
 import RemoveIcon from '@mui/icons-material/Remove'
 import PublicIcon from '@mui/icons-material/Public'
 import StreetviewIcon from '@mui/icons-material/Streetview'
 import { IconButton, Grid, Tooltip } from '@mui/material'
-import { makeStyles } from '@mui/material/styles'
 import AppContext from '../AppContext'
 
 const styles = {

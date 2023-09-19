@@ -11,10 +11,10 @@ const getDhiTheme = (
 	createTheme(
 		{
 			typography: dhiTypography,
-			palette: getDhiPalette(mode) as any as PaletteOptions,
+			palette: getDhiPalette(mode) as PaletteOptions,
 			components: getDhiOverrides(mode),
 		},
-		overrides as any,
+		overrides as object,
 	)
 
 export default getDhiTheme

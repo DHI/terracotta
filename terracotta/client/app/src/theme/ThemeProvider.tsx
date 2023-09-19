@@ -20,8 +20,9 @@ const DHIThemeProvider: FC<ThemeProviderProps> = ({
 			getDhiSharedTheme(mode, {
 				...overrides,
 			}),
-		[overrides],
+		[mode, overrides],
 	)
+
 	return (
 		<>
 			<ThemeProvider theme={theme}>
