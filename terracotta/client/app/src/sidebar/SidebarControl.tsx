@@ -1,18 +1,14 @@
 import React, { FC, MouseEvent } from 'react'
-import {
-	Box,
-	IconButton,
-} from '@material-ui/core'
+import { Box, IconButton } from '@mui/material'
 import {
 	ChevronLeft,
 	ChevronRight,
 	ExpandLess,
 	ExpandMore,
-} from '@material-ui/icons'
-import { makeStyles } from '@material-ui/core/styles'
+} from '@mui/icons-material'
 import useIsMobileWidth from '../common/hooks/useIsMobileWidth'
 
-const iconStyle = makeStyles({
+const iconStyles = {
 	icon: {
 		backgroundColor: '#fff',
 		height: 22,
@@ -23,9 +19,9 @@ const iconStyle = makeStyles({
 			fill: '#fff',
 		},
 	},
-})
+}
 
-const useStyles = makeStyles(theme => ({
+const styles = {
 	leftBorder: {
 		borderLeft: '1px solid #DBE4E9',
 	},
@@ -46,59 +42,51 @@ const useStyles = makeStyles(theme => ({
 		},
 	},
 	tooltipStyle: {
-		[ theme.breakpoints.down('sm') ]: {
-			display: 'none',
+		display: {
+			xs: 'none',
+			sm: 'block',
 		},
 	},
-}))
-
-interface Props {
-	toggleSidebarOpen: (event: MouseEvent<HTMLElement>) => void,
-	isSidebarOpen: boolean,
 }
 
-const SidebarControl: FC<Props> = ({
-	toggleSidebarOpen,
-	isSidebarOpen,
-}) => {
+interface Props {
+	toggleSidebarOpen: (event: MouseEvent<HTMLElement>) => void
+	isSidebarOpen: boolean
+}
 
-	const {
-		leftBorder, topBorder
-	} = useStyles()
-	const { icon } = iconStyle()
+const SidebarControl: FC<Props> = ({ toggleSidebarOpen, isSidebarOpen }) => {
 	const isMobile = useIsMobileWidth()
 
-	const rootClass = isMobile ? topBorder : leftBorder
+	const rootClass = isMobile ? styles.topBorder : styles.leftBorder
 
 	return (
 		<Box
-			className={rootClass}
-			display={'flex'}
-			height={1}
+			display="flex"
 			flexDirection={isMobile ? 'row' : 'column'}
+			height={1}
+			sx={rootClass}
 		>
-			<Box display={'flex'} justifyContent={'center'}>
+			<Box display="flex" justifyContent="center">
 				<IconButton
+					sx={{ backgroundColor: '#fff' }}
 					onClick={toggleSidebarOpen}
-					style={{ backgroundColor: '#fff' }}
 				>
 					{isSidebarOpen && !isMobile && (
-					<ChevronRight className={icon} color={'primary'} />
+						<ChevronRight color="primary" sx={iconStyles.icon} />
 					)}
 					{!isSidebarOpen && !isMobile && (
-					<ChevronLeft className={icon} color={'primary'} />
+						<ChevronLeft color="primary" sx={iconStyles.icon} />
 					)}
 					{isSidebarOpen && isMobile && (
-					<ExpandMore className={icon} color={'primary'} />
+						<ExpandMore color="primary" sx={iconStyles.icon} />
 					)}
 					{!isSidebarOpen && isMobile && (
-					<ExpandLess className={icon} color={'primary'} />
+						<ExpandLess color="primary" sx={iconStyles.icon} />
 					)}
 				</IconButton>
 			</Box>
 		</Box>
 	)
-
 }
 
 export default SidebarControl

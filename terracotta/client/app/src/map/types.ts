@@ -1,14 +1,3 @@
-import { Feature, Geometry, GeoJsonProperties } from "geojson"
-
-export interface Viewport {
-    longitude: number,
-    latitude: number,
-    zoom?: number,
-    bearing?: number,
-    pitch?: number,
-    transitionDuration?: number,
-    transitionInterpolator?: any,
-    transitionEasing?: Function
-}
+import { Feature, Geometry, GeoJsonProperties } from 'geojson'
 
 export type FeatureDataset = Feature<Geometry, GeoJsonProperties>

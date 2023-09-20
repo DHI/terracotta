@@ -1,6 +1,7 @@
-import { createMuiTheme } from '@material-ui/core/styles'
+/* eslint-disable radar/no-duplicate-string */
+import { createTheme } from '@mui/material/styles'
 
-const DHITheme = createMuiTheme({
+const DHITheme = createTheme({
 	palette: {
 		primary: {
 			main: '#0B4566', // DHI Primary color
@@ -156,7 +157,7 @@ const DHITheme = createMuiTheme({
 		},
 		MuiIconButton: {
 			root: {
-				padding: 8,
+				padding: '8px',
 			},
 		},
 		MuiInputBase: {

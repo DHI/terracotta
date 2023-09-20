@@ -1,0 +1,10 @@
+root: true
+extends:
+  - "@dhi-gras/ts"
+  - "@dhi-gras/react"
+rules:
+  "@typescript-eslint/unbound-method": 0 # Doesn't appear to read MUI component prop correctly, where the underlying DOM element can be changed, which is the point of the rule
+  "@typescript-eslint/no-unsafe-argument": 0
+  "react/require-default-props": 0
+  "@typescript-eslint/dot-notation": 0
+  "import/no-cycle": 0

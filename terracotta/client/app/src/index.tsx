@@ -1,16 +1,17 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import App from './App'
-import { ThemeProvider } from "@material-ui/core"
-import DhiTheme from "./theme/theme"
+import DHIThemeProvider from './theme/ThemeProvider'
 
-require('dotenv').config()
+const container = document.getElementById('root')
+const root = container && createRoot(container)
 
-ReactDOM.render(
+const hostname = document.getElementById('hostname-id')?.innerText
+
+root?.render(
 	<React.StrictMode>
-		<ThemeProvider theme={DhiTheme}>
-			<App hostnameProp={document.getElementById('hostname-id')?.innerText}/>
-		</ThemeProvider>
+		<DHIThemeProvider>
+			<App hostnameProp={hostname} />
+		</DHIThemeProvider>
 	</React.StrictMode>,
-	document.getElementById('root')
 )

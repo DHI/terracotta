@@ -1,158 +1,132 @@
-import React, {
-	useEffect, useState, FC, useContext, useRef, RefObject
-} from 'react'
-import ReactMapGL, { FlyToInterpolator, Source, Layer, WebMercatorViewport } from 'react-map-gl'
+/* eslint-disable radar/cognitive-complexity */
+import React, { useEffect, useState, FC, useContext } from 'react'
+import { Map as ReactMapGL, Source, Layer } from 'react-map-gl'
 import ZoomControl from './MapZoomControl'
-import 'mapbox-gl/dist/mapbox-gl.css'
-import { easeCubicInOut } from 'd3-ease'
 import useIsMobileWidth from '../common/hooks/useIsMobileWidth'
-import AppContext from "../AppContext"
-import { Viewport } from "./types"
-import { regionPaintFill, regionPaintLine } from "./geojsonStyles"
+import AppContext from '../AppContext'
+import { regionPaintFill, regionPaintLine } from './geojsonStyles'
 
-const accessToken = 'pk.eyJ1Ijoiam9zbGRoaSIsImEiOiJja2d0ZjdzbXAwMXdxMnNwN2Jkb2NvbXJ3In0.SayFfMYF2huWsZckbqNqEw'
+const accessToken =
+	'pk.eyJ1Ijoiam9zbGRoaSIsImEiOiJja2d0ZjdzbXAwMXdxMnNwN2Jkb2NvbXJ3In0.SayFfMYF2huWsZckbqNqEw'
 
 interface Props {
-	host?: string
+	width: number
 }
 
-const Map: FC<Props> = ({ host }) => {
-
+const LocalMap: FC<Props> = ({ width }) => {
 	const isMobile = useIsMobileWidth()
 	const {
-		state: { 
-			isOpticalBasemap, 
-			viewport, 
-			hoveredDataset, 
-			datasets, 
+		state: {
+			isOpticalBasemap,
+			hoveredDataset,
+			datasets,
 			activeDataset,
 			selectedDatasetRasterUrl,
 			page,
-			limit
+			limit,
+			mapRef,
 		},
-		actions: {
-			setViewport
-		}
+		actions: { setMapRef },
 	} = useContext(AppContext)
 
-	const [ localViewport, setLocalViewport ] = useState<Viewport | undefined>(
+	const [localRasterUrl, setLocalRasterUrl] = useState<undefined | string>(
 		undefined,
 	)
-	const [ localRasterUrl, setLocalRasterUrl ] = useState<undefined | string>(undefined)
-	const basemap = isOpticalBasemap ? 'mapbox://styles/mapbox/satellite-v9' : 'mapbox://styles/mapbox/light-v10'
 
-	const mapRef: RefObject<HTMLDivElement> | null = useRef(null)
-
-	useEffect(() => {
-
-		const { latitude, longitude, zoom } = viewport
-		setLocalViewport({
-			...{
-				longitude,
-				latitude,
-				zoom,
-				transitionDuration: 2000,
-				transitionInterpolator: new FlyToInterpolator(),
-				transitionEasing: easeCubicInOut,
-			},
-		})
-
-
-	}, [ viewport ])
+	const basemap = isOpticalBasemap
+		? 'mapbox://styles/mapbox/satellite-v9'
+		: 'mapbox://styles/mapbox/light-v10'
 
 	useEffect(() => {
-		
 		setLocalRasterUrl(undefined)
 		setTimeout(() => {
 			setLocalRasterUrl(selectedDatasetRasterUrl)
 		}, 200)
-
 	}, [selectedDatasetRasterUrl])
 
 	useEffect(() => {
-		if(activeDataset !== undefined && datasets){
-			
-			const pageIndex = activeDataset - page * limit
-			const currentBounds = datasets[pageIndex].bounds
-
-			const formattedBounds: [[number, number], [number, number]] = [
-				[ currentBounds[ 0 ], currentBounds[ 1 ] ],
-				[ currentBounds[ 2 ], currentBounds[ 3 ] ],
-			]
-
-			if (formattedBounds[ 0 ][ 0 ] >= 89) formattedBounds[ 0 ][ 0 ] = 89
-			if (formattedBounds[ 0 ][ 1 ] <= -89) formattedBounds[ 0 ][ 1 ] = -89
-			if (formattedBounds[ 1 ][ 0 ] >= 179) formattedBounds[ 1 ][ 0 ] = 179
-			if (formattedBounds[ 1 ][ 1 ] >= 89) formattedBounds[ 0 ][ 0 ] = 89
-
-			if(mapRef.current !== null){
-				const mapHeight = mapRef.current?.scrollHeight
-				const currentMapWidth = mapRef.current?.scrollWidth
-
-				if (mapHeight && currentMapWidth) {
-
-					const viewportBounds = new WebMercatorViewport(
-						{
-							width: currentMapWidth,
-							height: mapHeight,
-						}
-					).fitBounds(formattedBounds, { padding: 40 })
-
-					const boundsViewportToPass = {
-						zoom: viewportBounds.zoom,
-						latitude: viewportBounds.latitude,
-						longitude: viewportBounds.longitude,
-					}
-
-					setViewport((localViewport: Viewport) => (
-						{
-							...localViewport,
-							...boundsViewportToPass,
-						}
-					))
-
-				}
-			}
+		if (activeDataset === undefined || datasets === undefined) {
+			return
 		}
 
-	}, [ activeDataset ]) // eslint-disable-line react-hooks/exhaustive-deps
+		const pageIndex = activeDataset - page * limit
+		const currentBounds = datasets[pageIndex].bounds
+
+		mapRef?.fitBounds(currentBounds as [number, number], {
+			padding: 40,
+			duration: 4000,
+		})
+	}, [activeDataset]) // eslint-disable-line react-hooks/exhaustive-deps
+
+	useEffect(() => {
+		mapRef?.resize()
+	}, [width]) // eslint-disable-line react-hooks/exhaustive-deps
+
+	useEffect(() => {
+		const handleResize = () => {
+			mapRef?.resize()
+		}
+
+		window.addEventListener('resize', handleResize)
+
+		return () => {
+			window.removeEventListener('resize', handleResize)
+		}
+	}, []) // eslint-disable-line react-hooks/exhaustive-deps
 
 	return (
 		<ReactMapGL
-			{...localViewport}
-			width={'100%'}
-			height={'100%'}
-			mapboxApiAccessToken={accessToken}
+			attributionControl={false}
+			initialViewState={{
+				latitude: 30.62136584218745,
+				longitude: 13.840430671501323,
+				zoom: 0,
+				bearing: 0,
+				pitch: 0,
+				padding: {
+					top: 0,
+					bottom: 0,
+					left: 0,
+					right: 0,
+				},
+			}}
 			mapStyle={basemap}
-			onViewportChange={setLocalViewport}
+			mapboxAccessToken={accessToken}
+			ref={(ref) => ref && setMapRef(ref.getMap())}
+			style={{ width: window.innerWidth - width, height: '100%' }}
 		>
-			{!isMobile && (
-				<ZoomControl />
+			{!isMobile && <ZoomControl />}
+			{hoveredDataset && (
+				<Source data={hoveredDataset} type="geojson">
+					<Layer
+						id="hovered-dataset-fill"
+						paint={regionPaintFill}
+						type="fill"
+					/>
+					<Layer
+						id="hovered-dataset-line"
+						paint={regionPaintLine}
+						type="line"
+					/>
+				</Source>
 			)}
-			{
-				hoveredDataset && (
-					<Source
-						type={'geojson'}
-						data={hoveredDataset}
-					>
-						<Layer type={'fill'} id={'hovered-dataset-fill'} paint={regionPaintFill}/>
-						<Layer type={'line'} id={'hovered-dataset-line'} paint={regionPaintLine}/>
-					</Source>
-				)
-			}
-			{
-				localRasterUrl && (
-					<>
-						<Source type="raster" id="dataset_raster" tileSize={256} tiles={[localRasterUrl]}>
-							<Layer type="raster" id="selected-dataset-raster" source="dataset_raster" paint={{}}/>
-						</Source>
-					 </>
-				)
-			}
-			<div style={{ width: '100%', height: '100%', zIndex: -1 }} ref={mapRef}></div>
+			{localRasterUrl && (
+				<Source
+					id="dataset_raster"
+					tileSize={256}
+					tiles={[localRasterUrl]}
+					type="raster"
+				>
+					<Layer
+						id="selected-dataset-raster"
+						paint={{}}
+						source="dataset_raster"
+						type="raster"
+					/>
+				</Source>
+			)}
 		</ReactMapGL>
 	)
-
 }
 
-export default Map
+export default LocalMap

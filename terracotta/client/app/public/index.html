@@ -19,9 +19,17 @@
       padding: 0;
     }
 
+
+    html {
+      overflow: hidden;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     ::-webkit-scrollbar {
-      width: 5px !important;
-      height: 5px !important;
+      width: 5px;
     }
 
     ::-webkit-scrollbar-track {
@@ -30,6 +38,26 @@
 
     ::-webkit-scrollbar-thumb {
       background: #cfdbe2;
+    }
+
+    .mapboxgl-marker {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      border: 1px solid #f8f8f8;
+      background-color: #000;
+    }
+
+    .marker-sav {
+      background-color: rgb(38, 115, 0);
+    }
+
+    .marker-rock {
+      background-color: rgb(115, 76, 0);
+    }
+
+    .marker-sand {
+      background-color: rgb(168, 168, 0);
     }
 
     #hostname-id {
