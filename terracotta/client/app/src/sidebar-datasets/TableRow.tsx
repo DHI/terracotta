@@ -1,7 +1,7 @@
 import React, { FC } from 'react'
 import { TableRow as MuiTableRow, TableCell, Box, IconButton } from '@material-ui/core'
 import { makeStyles } from "@material-ui/core/styles"
-import { DatasetItem } from "../common/data/getData"
+import { DatasetItem, KeyItem } from "../common/data/getData"
 import RadioButtonUncheckedIcon from '@material-ui/icons/RadioButtonUnchecked';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 
@@ -26,6 +26,7 @@ const useStyles = makeStyles(() => ({
 }))
 
 interface Props {
+    keys: KeyItem[],
     dataset: DatasetItem,
     keyVal: string,
     checked: boolean,
@@ -34,21 +35,22 @@ interface Props {
     onMouseLeave?: () => void
 }
 
-const TableRow: FC<Props> = ({ 
-    dataset, 
-    keyVal, 
-    checked, 
+const TableRow: FC<Props> = ({
+    keys,
+    dataset,
+    keyVal,
+    checked,
     onClick,
     onMouseEnter,
-    onMouseLeave 
+    onMouseLeave
 }) => {
 
     const classes = useStyles()
-    
+
     return (
-            <MuiTableRow 
-                hover 
-                onClick={onClick} 
+            <MuiTableRow
+                hover
+                onClick={onClick}
                 className={classes.tableRow}
                 onMouseEnter={onMouseEnter}
                 onMouseLeave={onMouseLeave}
@@ -56,10 +58,10 @@ const TableRow: FC<Props> = ({
                 <TableCell className={classes.tableCell} >
                     <Box display={'flex'} alignItems={'center'}>
                         {
-                            checked ? 
+                            checked ?
                             <IconButton classes={{root: classes.noPadding}}>
                                 <CheckCircleIcon className={`${classes.iconChecked} ${classes.icon}`}/>
-                            </IconButton> : 
+                            </IconButton> :
                             <IconButton classes={{root: classes.noPadding}}>
                                 <RadioButtonUncheckedIcon className={classes.icon}/>
                             </IconButton>
@@ -67,9 +69,9 @@ const TableRow: FC<Props> = ({
                     </Box>
                 </TableCell>
                 {
-                    Object.keys(dataset).map((item: string, i: number) => (
+                    keys.map((key, i: number) => (
                         <TableCell className={classes.tableCell} key={`${keyVal}-cell-${i}`}>
-                            {dataset[item]}
+                            {dataset[key.original]}
                         </TableCell>
                     ))
                 }

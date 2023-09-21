@@ -4,6 +4,7 @@ import { FeatureDataset } from "../../map/types"
 
 export type KeyItem = {
     key: string,
+    original: string,
     description?: string
 }
 
@@ -38,16 +39,16 @@ export type ResponseMetadata404 = {
 
 export type ResponseMetadata = ResponseMetadata200 | ResponseMetadata404
 
-const getData = async (url: string): Promise< ResponseKeys | ResponseDatasets | ResponseMetadata | undefined> => {
+const getData = async (url: string): Promise<ResponseKeys | ResponseDatasets | ResponseMetadata | undefined> => {
 
-    try{
+    try {
 
         const data = await fetch(url);
         const json = await data.json();
-        
+
         return json
 
-    }catch(err){
+    } catch (err) {
 
         console.error(err)
         return undefined
