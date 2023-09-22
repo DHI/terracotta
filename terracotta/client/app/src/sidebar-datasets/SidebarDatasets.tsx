@@ -92,7 +92,7 @@ const SidebarDatasetsItem: FC<Props> = ({
     const [ queryFields, setQueryFields ] = useState<string | undefined>(undefined)
     const [ isLoading, setIsLoading ] = useState<boolean>(true)
 
-    const getDatasets = async (host: string, pageRef: number, limitRef: number, queryString: string = '') => {
+    const getDatasets = async (host: string, pageRef: number, limitRef: number, queryString: string = '', fetchedKeys: KeyItem[]) => {
 
         const response = await getData(`${host}/datasets?limit=${limitRef}&page=${pageRef}${queryString}`)
         const datasetsResponse = response as ResponseDatasets | undefined
@@ -102,7 +102,7 @@ const SidebarDatasetsItem: FC<Props> = ({
 
                 const metadataResponsesPreFetch: unknown = datasetsResponse.datasets.map(
                     async (dataset: DatasetItem) => {
-                        const buildMetadataUrl = Object.keys(dataset).map((keyItem: string) => `/${dataset[keyItem]}`).join('')
+                        const buildMetadataUrl = fetchedKeys.map((keyItem) => `/${dataset[keyItem.original]}`).join('')
                         const preFetchData = await fetch(`${host}/metadata${buildMetadataUrl}`)
                         return preFetchData.json()
                     })
@@ -129,12 +129,12 @@ const SidebarDatasetsItem: FC<Props> = ({
 
         if(keysReponse && keysReponse.hasOwnProperty('keys') && Array.isArray(keysReponse.keys)){
 
-            keysReponse.keys = keysReponse.keys.map((item: KeyItem) => ({ ...item, key: item.key[0].toUpperCase() + item.key.substring(1, item.key.length ) }))
+            keysReponse.keys = keysReponse.keys.map((item: KeyItem) => ({ ...item, key: item.key[0].toUpperCase() + item.key.substring(1, item.key.length ), original: item.key }))
             setKeys(keysReponse.keys)
 
         }
 
-
+        return keysReponse
     }
 
     const onHandleRow = (index: number) => {
@@ -174,13 +174,16 @@ const SidebarDatasetsItem: FC<Props> = ({
     useEffect(() => {
 
         setIsLoading(true)
-        void getKeys(host)
-        void getDatasets(host, page, limit, queryFields)
+        getKeys(host).then(res => {
+            if (res) {
+                void getDatasets(host, page, limit, queryFields, res.keys)
+            }
+        })
 
     }, [host, page, limit, queryFields]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const onGetRGBBands = async (dataset: ResponseMetadata200) => {
-        const noBandKeysURL = `${host}/datasets?` + Object.keys(dataset.keys).map((item: string) => item !== 'band' ? `${item}=${dataset.keys[item]}&` : '' ).join('')
+        const noBandKeysURL = `${host}/datasets?` + keys?.map((key) => key.original.toLowerCase() !== 'band' ? `${key.original}=${dataset.keys[key.original]}&` : '' ).join('')
         const response = await getData(noBandKeysURL) as ResponseDatasets
 
         if(response?.datasets && activeRGB){
@@ -212,7 +215,7 @@ const SidebarDatasetsItem: FC<Props> = ({
 
             setSelectedDatasetRasterUrl(undefined)
             const dataset = datasets[activeDataset - page * limit]
-            const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => `/${dataset.keys[keyItem]}`).join('') + '/{z}/{x}/{y}.png'
+            const keysRasterUrl = keys?.map((key) => `/${dataset.keys[key.original]}`).join('') + '/{z}/{x}/{y}.png'
 
             if(activeEndpoint === 'singleband'){
 
@@ -239,8 +242,8 @@ const SidebarDatasetsItem: FC<Props> = ({
 
             if(hasValueForBand && hasValueForRange && dataset !== undefined){
 
-                const lastKey = Object.keys(dataset.keys)[Object.keys(dataset.keys).length - 1]
-                const keysRasterUrl = Object.keys(dataset.keys).map((keyItem: string) => keyItem !== lastKey ? `/${dataset.keys[keyItem]}` : '').join('') + '/{z}/{x}/{y}.png'
+                const lastKey = keys?.[keys.length - 1].original
+                const keysRasterUrl = keys?.map((key) => key.original !== lastKey ? `/${dataset.keys[key.original]}` : '').join('') + '/{z}/{x}/{y}.png'
                 const rgbParams = Object.keys(activeRGB).map((keyItem: string) => `${keyItem.toLowerCase()}=${activeRGB[keyItem].band}&${keyItem.toLowerCase()}_range=[${activeRGB[keyItem].range}]&`).join('')
                 const buildRasterUrl = `${host}/${activeEndpoint}${keysRasterUrl}?${rgbParams}`
                 setSelectedDatasetRasterUrl(buildRasterUrl)
@@ -274,8 +277,8 @@ const SidebarDatasetsItem: FC<Props> = ({
                             <MuiTableRow>
                                 <TableCell className={classes.tableCell} />
                                 {keys && (
-                                    keys.map((datasetKey: KeyItem, i: number) => (
-                                        <TableCell className={classes.tableCell} key={`dataset-key-head-${i}`}>
+                                    keys.map((datasetKey: KeyItem) => (
+                                        <TableCell className={classes.tableCell} key={`dataset-key-head-${datasetKey.original}`}>
                                             <Typography color={'primary'} className={classes.tableHeadTypography} variant={'body2'}>
                                                 {datasetKey.key}
                                             </Typography>
@@ -286,9 +289,10 @@ const SidebarDatasetsItem: FC<Props> = ({
                         </TableHead>
                         <TableBody>
                             {
-                                datasets && datasets.map((dataset: ResponseMetadata200, i: number) => (
+                                datasets && keys && datasets.map((dataset: ResponseMetadata200, i: number) => (
                                     <Fragment key={`dataset-${i}`}>
                                         <TableRow
+                                            keys={keys}
                                             dataset={dataset.keys}
                                             keyVal={`dataset-${i}`}
                                             checked={page * limit + i === activeDataset}
@@ -296,6 +300,7 @@ const SidebarDatasetsItem: FC<Props> = ({
                                             onMouseEnter={() => setHoveredDataset(dataset.convex_hull)}
                                         />
                                         <DatasetPreview
+                                            keys={keys}
                                             activeDataset={activeDataset}
                                             dataset={dataset}
                                             host={host}
