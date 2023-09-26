@@ -14,10 +14,10 @@ from terracotta.drivers.relational_meta_store import RelationalMetaStore
 
 
 def parse_version(verstr: str) -> Tuple[int, ...]:
-    """Convert 'v<major>.<minor>.<patch>' to (major, minor, patch)"""
+    """Convert 'v<major>.<minor>.<patch>' to (major, minor)"""
     components = verstr.split(".")
     components[0] = components[0].lstrip("v")
-    return tuple(int(c) for c in components[:3])
+    return tuple(int(c) for c in components[:2])
 
 
 def join_version(vertuple: Tuple[int, ...]) -> str:
@@ -30,26 +30,27 @@ def join_version(vertuple: Tuple[int, ...]) -> str:
 @click.option("-y", "--yes", is_flag=True, help="Do not ask for confirmation.")
 @click.command("migrate")
 def migrate(database: str, to_version: str, from_version: str, yes: bool) -> None:
-    from_version_tuple, to_version_tuple, tc_version_tuple = (
-        parse_version(v)[:2] if v is not None else None
-        for v in (from_version, to_version, __version__)
-    )
-
+    """Migrate databases between Terracotta versions."""
     driver = get_driver(database)
     meta_store = driver.meta_store
     assert isinstance(meta_store, RelationalMetaStore)
+
+    to_version_tuple = parse_version(to_version)
+    tc_version_tuple = parse_version(__version__)
 
     if to_version_tuple > tc_version_tuple:
         raise ValueError(
             f"Unknown target version {join_version(to_version_tuple)} (this is {join_version(tc_version_tuple)}). Try upgrading terracotta."
         )
 
-    if from_version_tuple is None:
+    if from_version is None:
         try:  # type: ignore
             with meta_store.connect(verify=False):
-                from_version_tuple = parse_version(driver.db_version)[:2]
+                from_version_tuple = parse_version(driver.db_version)
         except Exception as e:
             raise RuntimeError("Cannot determine database version.") from e
+    else:
+        from_version_tuple = parse_version(from_version)
 
     if from_version_tuple == to_version_tuple:
         click.echo("Already at target version, nothing to do.")

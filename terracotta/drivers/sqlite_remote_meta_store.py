@@ -141,4 +141,7 @@ class RemoteSQLiteMetaStore(SQLiteMetaStore):
 
     def __del__(self) -> None:
         """Clean up temporary database upon exit"""
-        self.__rm(self._local_path)
+        try:
+            self.__rm(self._local_path)
+        except OSError:  # pragma: no cover
+            pass

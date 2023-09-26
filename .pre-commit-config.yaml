@@ -9,6 +9,19 @@ repos:
     hooks:
     - id: flake8
       args: ['--config=setup.cfg']
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.5.1
+    hooks:
+    - id: mypy
+      additional_dependencies:
+        - types-cachetools==5.3.0.6
+        - types-click-spinner==0.1.13.5
+        - types-docutils==0.20.0.3
+        - types-setuptools==68.2.0.0
+        - types-toml==0.10.8.7
+
+default_language_version:
+  python: python3.11
 
 exclude: "
   ^$\

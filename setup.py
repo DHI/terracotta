@@ -37,6 +37,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Framework :: Flask",
         "Operating System :: Microsoft :: Windows :: Windows 10",
         "Operating System :: MacOS :: MacOS X",
@@ -80,7 +81,6 @@ setup(
         "test": [
             "pytest",
             "pytest-cov",
-            "pytest-mypy",
             "pytest-benchmark",
             "attrs>=17.4.0",
             "codecov",
