@@ -4,6 +4,7 @@ Migrate databases between Terracotta versions.
 """
 
 from typing import Tuple
+from functools import partial
 
 import click
 import sqlalchemy as sqla
@@ -13,11 +14,14 @@ from terracotta.migrations import MIGRATIONS
 from terracotta.drivers.relational_meta_store import RelationalMetaStore
 
 
-def parse_version(verstr: str) -> Tuple[int, ...]:
+def parse_version(verstr: str, include_patch: bool = True) -> Tuple[int, ...]:
     """Convert 'v<major>.<minor>.<patch>' to (major, minor, patch)"""
     components = verstr.split(".")
     components[0] = components[0].lstrip("v")
-    return tuple(int(c) for c in components[:3])
+    out = tuple(int(c) for c in components[:3])
+    if not include_patch:
+        return out[:2]
+    return out
 
 
 def join_version(vertuple: Tuple[int, ...]) -> str:
@@ -30,26 +34,29 @@ def join_version(vertuple: Tuple[int, ...]) -> str:
 @click.option("-y", "--yes", is_flag=True, help="Do not ask for confirmation.")
 @click.command("migrate")
 def migrate(database: str, to_version: str, from_version: str, yes: bool) -> None:
-    from_version_tuple, to_version_tuple, tc_version_tuple = (
-        parse_version(v)[:2] if v is not None else None
-        for v in (from_version, to_version, __version__)
-    )
-
+    """Migrate databases between Terracotta versions."""
     driver = get_driver(database)
     meta_store = driver.meta_store
     assert isinstance(meta_store, RelationalMetaStore)
+
+    versiontuple = partial(parse_version, include_patch=False)
+
+    to_version_tuple = versiontuple(to_version)
+    tc_version_tuple = versiontuple(__version__)
 
     if to_version_tuple > tc_version_tuple:
         raise ValueError(
             f"Unknown target version {join_version(to_version_tuple)} (this is {join_version(tc_version_tuple)}). Try upgrading terracotta."
         )
 
-    if from_version_tuple is None:
+    if from_version is None:
         try:  # type: ignore
             with meta_store.connect(verify=False):
-                from_version_tuple = parse_version(driver.db_version)[:2]
+                from_version_tuple = versiontuple(driver.db_version)
         except Exception as e:
             raise RuntimeError("Cannot determine database version.") from e
+    else:
+        from_version_tuple = versiontuple(from_version)
 
     if from_version_tuple == to_version_tuple:
         click.echo("Already at target version, nothing to do.")
