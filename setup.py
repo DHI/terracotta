@@ -80,7 +80,6 @@ setup(
         "test": [
             "pytest",
             "pytest-cov",
-            "pytest-mypy",
             "pytest-benchmark",
             "attrs>=17.4.0",
             "codecov",

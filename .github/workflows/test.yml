@@ -83,10 +83,6 @@ jobs:
           pip install -e .[test]
           pip freeze
 
-      - name: Initialize mypy
-        run: |
-          mypy --install-types --non-interactive . || true
-
       - name: Run tests
         run: |
           MYSQL_SRV="${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:${{ env.MYSQL_PORT }}"
@@ -158,11 +154,6 @@ jobs:
         run: |
           pip install -e .[test]
           conda list
-
-      - name: Initialize mypy
-        run: |
-          mypy . > /dev/null || true
-          mypy --install-types --non-interactive
 
       - name: Run tests
         run: |
