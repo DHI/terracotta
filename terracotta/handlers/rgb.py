@@ -11,7 +11,8 @@ from terracotta import get_settings, get_driver, image, xyz, exceptions
 from terracotta.profile import trace
 
 Number = TypeVar("Number", int, float)
-ListOfRanges = Sequence[Optional[Tuple[Optional[Number], Optional[Number]]]]
+NumberOrString = TypeVar("NumberOrString", int, float, str)
+ListOfRanges = Sequence[Optional[Tuple[Optional[NumberOrString], Optional[NumberOrString]]]]
 
 
 @trace("rgb_handler")
@@ -90,10 +91,10 @@ def rgb(
             scale_min, scale_max = band_stretch_override
 
             if scale_min is not None:
-                band_stretch_range[0] = scale_min
+                band_stretch_range[0] = get_scale(scale_min, metadata)
 
             if scale_max is not None:
-                band_stretch_range[1] = scale_max
+                band_stretch_range[1] = get_scale(scale_max, metadata)
 
             if band_stretch_range[1] < band_stretch_range[0]:
                 raise exceptions.InvalidArgumentsError(
@@ -105,3 +106,20 @@ def rgb(
 
     out = np.ma.stack(out_arrays, axis=-1)
     return image.array_to_png(out)
+
+
+def get_scale(scale: NumberOrString, metadata) -> Number:
+    if isinstance(scale, (int, float)):
+        return scale
+    if isinstance(scale, str):
+        # can be a percentile
+        if scale.startswith("p"):
+            # TODO check if percentile is in range
+            percentile = int(scale[1:]) - 1
+            return metadata["percentiles"][percentile]
+
+        # can be a number
+        return float(scale)
+    raise exceptions.InvalidArgumentsError(
+        "Invalid scale value: %s" % scale
+    )

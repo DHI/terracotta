@@ -29,25 +29,34 @@ class RGBOptionSchema(Schema):
     g = fields.String(required=True, description="Key value for green band")
     b = fields.String(required=True, description="Key value for blue band")
     r_range = fields.List(
-        fields.Number(allow_none=True),
+        fields.String(allow_none=True, validate=validate.Regexp("^p?(\d*\.)?\d+$")),
         validate=validate.Length(equal=2),
         example="[0,1]",
         missing=None,
-        description="Stretch range [min, max] to use for red band as JSON array",
+        description=(
+            "Stretch range [min, max] to use for red band as JSON array, "
+            "prefix with `p` for percentile"
+        ),
     )
     g_range = fields.List(
-        fields.Number(allow_none=True),
+        fields.String(allow_none=True, validate=validate.Regexp("^p?(\d*\.)?\d+$")),
         validate=validate.Length(equal=2),
         example="[0,1]",
         missing=None,
-        description="Stretch range [min, max] to use for green band as JSON array",
+        description=(
+            "Stretch range [min, max] to use for red band as JSON array, "
+            "prefix with `p` for percentile"
+        ),
     )
     b_range = fields.List(
-        fields.Number(allow_none=True),
+        fields.String(allow_none=True, validate=validate.Regexp("^p?(\d*\.)?\d+$")),
         validate=validate.Length(equal=2),
         example="[0,1]",
         missing=None,
-        description="Stretch range [min, max] to use for blue band as JSON array",
+        description=(
+            "Stretch range [min, max] to use for red band as JSON array, "
+            "prefix with `p` for percentile"
+        ),
     )
     tile_size = fields.List(
         fields.Integer(),
