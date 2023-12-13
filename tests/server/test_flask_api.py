@@ -410,6 +410,8 @@ def test_get_rgb_stretch(client, use_testdb, raster_file_xyz):
 
     for stretch_range in (
         "[0,10000]",
+        "[\"1.0e%2B01\",\"1.0e%2B04\"]",
+        "[\"p2\",\"p98\"]",
         "[0,null]",
         "[null, 10000]",
         "[null,null]",
