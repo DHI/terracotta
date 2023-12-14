@@ -156,6 +156,8 @@ def to_uint8(data: Array, lower_bound: Number, upper_bound: Number) -> Array:
     """Re-scale an array to [1, 255] and cast to uint8 (0 is used for transparency)"""
     rescaled = contrast_stretch(data, (lower_bound, upper_bound), (1, 255), clip=True)
     rescaled = np.rint(rescaled)
+    # explicitly set NaNs to 0 to avoid warnings
+    rescaled[~np.isfinite(rescaled)] = 0
     return rescaled.astype(np.uint8)
 
 
