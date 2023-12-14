@@ -17,9 +17,6 @@ long_description = re.sub(
 
 numpy_version = ">=1.15,!=1.17.0"
 
-# TODO: remove when crick is updated
-numpy_version += ",<1.24"
-
 setup(
     # metadata
     name="terracotta",
