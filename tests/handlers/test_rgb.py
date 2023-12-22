@@ -3,6 +3,8 @@ import numpy as np
 
 import pytest
 
+from terracotta import exceptions
+
 
 def test_rgb_handler(use_testdb, raster_file, raster_file_xyz):
     import terracotta
@@ -182,6 +184,35 @@ def test_rgb_percentile_stretch(use_testdb, testdb, raster_file_xyz):
     assert np.all(valid_img[stretch_range_mask] >= 1)
     assert np.all(valid_img[stretch_range_mask] <= 255)
     assert np.all(valid_img[valid_data > stretch_range[1]] == 255)
+
+
+@pytest.mark.parametrize(
+    "stretch_range_params",
+    [
+        ["s2", "p98", "Invalid scale value"],
+        ["pp2", "p98", "Invalid percentile value"],
+        ["p", "p98", "Invalid percentile value"],
+        ["2", "p8", "Invalid scale value"],
+        [{}, "p98", "Invalid scale value"],
+        ["p-2", "p98", "Invalid percentile, out of range"],
+        ["p2", "p298", "Invalid percentile, out of range"],
+    ],
+)
+def test_rgb_invalid_percentiles(use_testdb, raster_file_xyz, stretch_range_params):
+    from terracotta.handlers import rgb
+
+    ds_keys = ["val21", "x", "val22"]
+    bands = ["val22", "val23", "val24"]
+
+    stretch_range = stretch_range_params[:2]
+    with pytest.raises(exceptions.InvalidArgumentsError) as err:
+        rgb.rgb(
+            ds_keys[:2],
+            bands,
+            raster_file_xyz,
+            stretch_ranges=[stretch_range] * 3,
+        )
+    assert stretch_range_params[2] in str(err.value)
 
 
 def test_rgb_preview(use_testdb):

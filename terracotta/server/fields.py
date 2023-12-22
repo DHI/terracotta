@@ -27,11 +27,8 @@ class StringOrNumber(fields.Field):
 
 
 def validate_stretch_range(data: Any) -> None:
-    if isinstance(data, str) and data.startswith("p"):
+    if isinstance(data, str):
         if not re.match("^p\\d+$", data):
             raise ValidationError("Percentile format is `p<digits>`")
-    else:
-        try:
-            float(data)
-        except ValueError:
-            raise ValidationError("Must be a number")
+    elif not isinstance(data, (int, float)):
+        raise ValidationError("Must be a number or string like `p<digits>`")
