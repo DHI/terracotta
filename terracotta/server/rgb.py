@@ -35,9 +35,11 @@ class RGBOptionSchema(Schema):
         example="[0,1]",
         missing=None,
         description=(
-            "Stretch range [min, max] to use for red band as JSON array. Min and max may be "
-            "numbers to use as absolute range, or strings of the format p<int> "
-            "with an integer between 0 and 100 to use percentiles of the image instead."
+            "Stretch range [min, max] to use for the red band as JSON array. "
+            "Min and max may be numbers to use as absolute range, or strings "
+            "of the format p<int> with an integer between 0 and 100 to use "
+            "percentiles of the image instead. "
+            "Null values indicate global minimum / maximum."
         ),
     )
     g_range = fields.List(
@@ -46,8 +48,11 @@ class RGBOptionSchema(Schema):
         example="[0,1]",
         missing=None,
         description=(
-            "Stretch range [min, max] to use for red band as JSON array, "
-            "prefix with `p` for percentile"
+            "Stretch range [min, max] to use for the gren band as JSON array. "
+            "Min and max may be numbers to use as absolute range, or strings "
+            "of the format p<int> with an integer between 0 and 100 to use "
+            "percentiles of the image instead. "
+            "Null values indicate global minimum / maximum."
         ),
     )
     b_range = fields.List(
@@ -56,8 +61,11 @@ class RGBOptionSchema(Schema):
         example="[0,1]",
         missing=None,
         description=(
-            "Stretch range [min, max] to use for red band as JSON array, "
-            "prefix with `p` for percentile"
+            "Stretch range [min, max] to use for the blue band as JSON array. "
+            "Min and max may be numbers to use as absolute range, or strings "
+            "of the format p<int> with an integer between 0 and 100 to use "
+            "percentiles of the image instead. "
+            "Null values indicate global minimum / maximum."
         ),
     )
     tile_size = fields.List(
