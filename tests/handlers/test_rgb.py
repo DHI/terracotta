@@ -74,10 +74,13 @@ def test_rgb_lowzoom(use_testdb, raster_file, raster_file_xyz_lowzoom):
 
 
 @pytest.mark.parametrize(
-    "stretch_range", [
-        [0, 20000], [10000, 20000], [-50000, 50000], [100, 100],
-        ["0", "20000"], ["10000", "20000"], ["-50000", "50000"], ["100", "100"],
-    ]
+    "stretch_range",
+    [
+        [0, 20000],
+        [10000, 20000],
+        [-50000, 50000],
+        [100, 100],
+    ],
 )
 def test_rgb_stretch(stretch_range, use_testdb, testdb, raster_file_xyz):
     import terracotta
@@ -109,7 +112,6 @@ def test_rgb_stretch(stretch_range, use_testdb, testdb, raster_file_xyz):
     valid_img = img_data[valid_mask]
     valid_data = tile_data.compressed()
 
-    stretch_range = [float(stretch_range[0]), float(stretch_range[1])]
     assert np.all(valid_img[valid_data < stretch_range[0]] == 1)
     stretch_range_mask = (valid_data > stretch_range[0]) & (
         valid_data < stretch_range[1]
@@ -161,7 +163,10 @@ def test_rgb_percentile_stretch(use_testdb, testdb, raster_file_xyz):
         )
         band_metadata = driver.get_metadata(ds_keys)
 
-        stretch_range = [band_metadata["percentiles"][1], band_metadata["percentiles"][97]]
+        stretch_range = [
+            band_metadata["percentiles"][1],
+            band_metadata["percentiles"][97],
+        ]
 
     # filter transparent values
     valid_mask = ~tile_data.mask

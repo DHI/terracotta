@@ -331,7 +331,14 @@ def test_get_singleband_stretch(client, use_testdb, raster_file_xyz):
 
     x, y, z = raster_file_xyz
 
-    for stretch_range in ("[0,1]", "[0,null]", "[null, 1]", "[null,null]", "null"):
+    for stretch_range in (
+        "[0,1]",
+        "[0,null]",
+        "[null, 1]",
+        "[null,null]",
+        "null",
+        '["p2","p98"]',
+    ):
         rv = client.get(
             f"/singleband/val11/x/val12/{z}/{x}/{y}.png?stretch_range={stretch_range}"
         )
@@ -410,8 +417,8 @@ def test_get_rgb_stretch(client, use_testdb, raster_file_xyz):
 
     for stretch_range in (
         "[0,10000]",
-        "[\"1.0e%2B01\",\"1.0e%2B04\"]",
-        "[\"p2\",\"p98\"]",
+        "[1.0e%2B01,1.0e%2B04]",
+        '["p2","p98"]',
         "[0,null]",
         "[null, 10000]",
         "[null,null]",

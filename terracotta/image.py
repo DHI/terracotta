@@ -3,7 +3,7 @@
 Utilities to create and manipulate images.
 """
 
-from typing import Sequence, Tuple, TypeVar, Union
+from typing import Any, Dict, Sequence, Tuple, TypeVar, Union
 from typing.io import BinaryIO
 
 from io import BytesIO
@@ -15,6 +15,7 @@ from terracotta.profile import trace
 from terracotta import exceptions, get_settings
 
 Number = TypeVar("Number", int, float)
+NumberOrString = TypeVar("NumberOrString", int, float, str)
 RGBA = Tuple[Number, Number, Number, Number]
 Palette = Sequence[RGBA]
 Array = Union[np.ndarray, np.ma.MaskedArray]
@@ -179,3 +180,26 @@ def label(data: Array, labels: Sequence[Number]) -> Array:
         out_data[data == label] = i
 
     return out_data
+
+
+def get_stretch_scale(scale: NumberOrString, metadata: Dict[str, Any]) -> int | float:
+    if isinstance(scale, (int, float)):
+        return scale
+    if isinstance(scale, str):
+        # can be a percentile
+        if scale.startswith("p"):
+            try:
+                percentile = int(scale[1:]) - 1
+            except ValueError:
+                raise exceptions.InvalidArgumentsError(
+                    f"Invalid percentile value: {scale}"
+                )
+
+            if 0 <= percentile < len(metadata["percentiles"]):
+                return metadata["percentiles"][percentile]
+
+            raise exceptions.InvalidArgumentsError(
+                f"Invalid percentile, out of range: {scale}"
+            )
+
+    raise exceptions.InvalidArgumentsError(f"Invalid scale value: {scale}")

@@ -5,11 +5,11 @@ Flask route to handle /rgb calls.
 
 from typing import Optional, Any, Mapping, Dict, Tuple
 import json
-import re
 
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 from flask import request, send_file, Response
 
+from terracotta.server.fields import StringOrNumber, validate_stretch_range
 from terracotta.server.flask_api import TILE_API
 
 
@@ -22,36 +22,6 @@ class RGBQuerySchema(Schema):
     tile_x = fields.Int(required=True, description="x coordinate")
 
 
-def validate_range(data):
-    if isinstance(data, str) and data.startswith("p"):
-        if not re.match("^p\d+$", data):
-            raise ValidationError("Percentile format is `p<digits>`")
-    else:
-        try:
-            float(data)
-        except ValueError:
-            raise ValidationError("Must be a number")
-
-
-
-class StringOrNumber(fields.Field):
-    def _serialize(self, value, attr, obj, **kwargs):
-        if isinstance(value, (str, bytes)):
-            return fields.String()._serialize(value, attr, obj, **kwargs)
-        elif isinstance(value, (int, float)):
-            return fields.Float()._serialize(value, attr, obj, **kwargs)
-        else:
-            raise ValidationError("Must be a string or a number")
-
-    def _deserialize(self, value, attr, data, **kwargs):
-        if isinstance(value, (str, bytes)):
-            return fields.String()._deserialize(value, attr, data, **kwargs)
-        elif isinstance(value, (int, float)):
-            return fields.Float()._deserialize(value, attr, data, **kwargs)
-        else:
-            raise ValidationError("Must be a string or a number")
-
-
 class RGBOptionSchema(Schema):
     class Meta:
         unknown = EXCLUDE
@@ -60,17 +30,18 @@ class RGBOptionSchema(Schema):
     g = fields.String(required=True, description="Key value for green band")
     b = fields.String(required=True, description="Key value for blue band")
     r_range = fields.List(
-        StringOrNumber(allow_none=True, validate=validate_range),
+        StringOrNumber(allow_none=True, validate=validate_stretch_range),
         validate=validate.Length(equal=2),
         example="[0,1]",
         missing=None,
         description=(
-            "Stretch range [min, max] to use for red band as JSON array, "
-            "prefix with `p` for percentile"
+            "Stretch range [min, max] to use for red band as JSON array. Min and max may be "
+            "numbers to use as absolute range, or strings of the format p<int> "
+            "with an integer between 0 and 100 to use percentiles of the image instead."
         ),
     )
     g_range = fields.List(
-        StringOrNumber(allow_none=True, validate=validate_range),
+        StringOrNumber(allow_none=True, validate=validate_stretch_range),
         validate=validate.Length(equal=2),
         example="[0,1]",
         missing=None,
@@ -80,7 +51,7 @@ class RGBOptionSchema(Schema):
         ),
     )
     b_range = fields.List(
-        StringOrNumber(allow_none=True, validate=validate_range),
+        StringOrNumber(allow_none=True, validate=validate_stretch_range),
         validate=validate.Length(equal=2),
         example="[0,1]",
         missing=None,

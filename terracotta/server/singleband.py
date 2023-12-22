@@ -17,6 +17,7 @@ from marshmallow import (
 )
 from flask import request, send_file, Response
 
+from terracotta.server.fields import StringOrNumber, validate_stretch_range
 from terracotta.server.flask_api import TILE_API
 from terracotta.cmaps import AVAILABLE_CMAPS
 
@@ -35,7 +36,7 @@ class SinglebandOptionSchema(Schema):
         unknown = EXCLUDE
 
     stretch_range = fields.List(
-        fields.Number(allow_none=True),
+        StringOrNumber(allow_none=True, validate=validate_stretch_range),
         validate=validate.Length(equal=2),
         example="[0,1]",
         description="Stretch range to use as JSON array, uses full range by default. "
