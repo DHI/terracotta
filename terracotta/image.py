@@ -189,7 +189,7 @@ def get_stretch_scale(scale: NumberOrString, metadata: Dict[str, Any]) -> int | 
         # can be a percentile
         if scale.startswith("p"):
             try:
-                percentile = int(scale[1:]) - 1
+                percentile = int(scale[1:])
             except ValueError:
                 raise exceptions.InvalidArgumentsError(
                     f"Invalid percentile value: {scale}"
