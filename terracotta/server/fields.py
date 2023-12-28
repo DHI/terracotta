@@ -30,5 +30,3 @@ def validate_stretch_range(data: Any) -> None:
     if isinstance(data, str):
         if not re.match("^p\\d+$", data):
             raise ValidationError("Percentile format is `p<digits>`")
-    elif not isinstance(data, (int, float)):
-        raise ValidationError("Must be a number or string like `p<digits>`")
