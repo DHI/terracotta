@@ -122,7 +122,7 @@ Nginx
 
 The Gunicorn server is now running and the we can configure Nginx to
 forward requests to it. Create a file
-``/etc/ngix/sites-available/terrcotta`` with the contents:
+``/etc/nginx/sites-available/terracotta`` with the contents:
 
 ::
 
