@@ -182,7 +182,9 @@ def label(data: Array, labels: Sequence[Number]) -> Array:
     return out_data
 
 
-def get_stretch_scale(scale: NumberOrString, metadata: Dict[str, Any]) -> int | float:
+def get_stretch_scale(
+    scale: NumberOrString, metadata: Dict[str, Any]
+) -> Union[int, float]:
     if isinstance(scale, (int, float)):
         return scale
     if isinstance(scale, str):

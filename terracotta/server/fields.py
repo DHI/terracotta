@@ -1,13 +1,18 @@
+"""server/fields.py
+
+Custom marshmallow fields for the server API.
+"""
+
 import re
 from marshmallow import ValidationError, fields
 
-from typing import Any
+from typing import Any, Union
 
 
 class StringOrNumber(fields.Field):
     def _serialize(
         self, value: Any, attr: Any, obj: Any, **kwargs: Any
-    ) -> str | float | None:
+    ) -> Union[str, float, None]:
         if isinstance(value, (str, bytes)):
             return fields.String()._serialize(value, attr, obj, **kwargs)
         elif isinstance(value, (int, float)):
@@ -17,7 +22,7 @@ class StringOrNumber(fields.Field):
 
     def _deserialize(
         self, value: Any, attr: Any, data: Any, **kwargs: Any
-    ) -> str | float | None:
+    ) -> Union[str, float, None]:
         if isinstance(value, (str, bytes)):
             return fields.String()._deserialize(value, attr, data, **kwargs)
         elif isinstance(value, (int, float)):
