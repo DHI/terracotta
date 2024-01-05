@@ -581,9 +581,9 @@ def test_get_rgb_invalid_stretch_percentile(
 
     x, y, z = raster_file_xyz
     stretch_range = stretch_range_params[0]
-    with pytest.raises(marshmallow.ValidationError) as ve:
+    with pytest.raises(marshmallow.ValidationError) as exc:
         debug_client.get(
             f"/rgb/val21/x/{z}/{x}/{y}.png?r=val22&g=val23&b=val24&"
             f"r_range={stretch_range}&b_range={stretch_range}&g_range={stretch_range}"
         )
-    assert stretch_range_params[1] in str(ve.value)
+    assert stretch_range_params[1] in str(exc.value)
