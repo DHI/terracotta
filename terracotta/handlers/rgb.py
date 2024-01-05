@@ -12,7 +12,7 @@ from terracotta.profile import trace
 
 NumberOrString = TypeVar("NumberOrString", int, float, str)
 ListOfRanges = Sequence[
-    Optional[Tuple[Optional[image.NumberOrString], Optional[image.NumberOrString]]]
+    Optional[Tuple[Optional[NumberOrString], Optional[NumberOrString]]]
 ]
 
 
