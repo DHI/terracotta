@@ -40,7 +40,7 @@ class SinglebandOptionSchema(Schema):
         validate=validate.Length(equal=2),
         example="[0,1]",
         description=(
-            "Stretch range [min, max] to use for the band as JSON array. "
+            "Stretch range [min, max] to use as JSON array. "
             "Min and max may be numbers to use as absolute range, or strings "
             "of the format p<int> with an integer between 0 and 100 to use "
             "percentiles of the image instead. "
