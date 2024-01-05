@@ -14,7 +14,7 @@ from terracotta.profile import trace
 Number = TypeVar("Number", int, float)
 NumberOrString = TypeVar("NumberOrString", int, float, str)
 ListOfRanges = Sequence[
-    Optional[Tuple[Optional[image.NumberOrString], Optional[image.NumberOrString]]]
+    Optional[Tuple[Optional[NumberOrString], Optional[NumberOrString]]]
 ]
 RGBA = Tuple[Number, Number, Number, Number]
 
