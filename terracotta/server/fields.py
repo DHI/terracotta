@@ -10,8 +10,14 @@ from typing import Any, Union
 
 
 class StringOrNumber(fields.Field):
+    """
+    Marshmallow type that can be either a string or a number.
+    Uses marshmallow's default serialization/deserialization
+    for `String` or a `Float` depending on the value type.
+    """
+
     def _serialize(
-        self, value: Any, attr: Any, obj: Any, **kwargs: Any
+        self, value: Union[str, bytes, int, float], attr: Any, obj: Any, **kwargs: Any
     ) -> Union[str, float, None]:
         if isinstance(value, (str, bytes)):
             return fields.String()._serialize(value, attr, obj, **kwargs)
@@ -21,7 +27,7 @@ class StringOrNumber(fields.Field):
             raise ValidationError("Must be a string or a number")
 
     def _deserialize(
-        self, value: Any, attr: Any, data: Any, **kwargs: Any
+        self, value: Union[str, bytes, int, float], attr: Any, data: Any, **kwargs: Any
     ) -> Union[str, float, None]:
         if isinstance(value, (str, bytes)):
             return fields.String()._deserialize(value, attr, data, **kwargs)
@@ -32,6 +38,10 @@ class StringOrNumber(fields.Field):
 
 
 def validate_stretch_range(data: Any) -> None:
+    """
+    Validates that the stretch range is in the format `p&lt;digits&gt;`
+    when a string is used.
+    """
     if isinstance(data, str):
         if not re.match("^p\\d+$", data):
             raise ValidationError("Percentile format is `p<digits>`")

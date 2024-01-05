@@ -91,11 +91,12 @@ def rgb(
             band_stretch_range = list(metadata["range"])
             scale_min, scale_max = band_stretch_override
 
+            percentiles = metadata.get("percentiles", [])
             if scale_min is not None:
-                band_stretch_range[0] = image.get_stretch_scale(scale_min, metadata)
+                band_stretch_range[0] = image.get_stretch_scale(scale_min, percentiles)
 
             if scale_max is not None:
-                band_stretch_range[1] = image.get_stretch_scale(scale_max, metadata)
+                band_stretch_range[1] = image.get_stretch_scale(scale_max, percentiles)
 
             if band_stretch_range[1] < band_stretch_range[0]:
                 raise exceptions.InvalidArgumentsError(

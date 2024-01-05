@@ -63,11 +63,12 @@ def singleband(
         # determine stretch range from metadata and arguments
         stretch_range_ = list(metadata["range"])
 
+        percentiles = metadata.get("percentiles", [])
         if stretch_min is not None:
-            stretch_range_[0] = image.get_stretch_scale(stretch_min, metadata)
+            stretch_range_[0] = image.get_stretch_scale(stretch_min, percentiles)
 
         if stretch_max is not None:
-            stretch_range_[1] = image.get_stretch_scale(stretch_max, metadata)
+            stretch_range_[1] = image.get_stretch_scale(stretch_max, percentiles)
 
         cmap_or_palette = cast(Optional[str], colormap)
         out = image.to_uint8(tile_data, *stretch_range_)

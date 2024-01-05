@@ -3,7 +3,7 @@
 Utilities to create and manipulate images.
 """
 
-from typing import Any, Dict, Sequence, Tuple, TypeVar, Union
+from typing import List, Sequence, Tuple, TypeVar, Union
 from typing.io import BinaryIO
 
 from io import BytesIO
@@ -183,7 +183,7 @@ def label(data: Array, labels: Sequence[Number]) -> Array:
 
 
 def get_stretch_scale(
-    scale: NumberOrString, metadata: Dict[str, Any]
+    scale: NumberOrString, percentiles: List[int]
 ) -> Union[int, float]:
     if isinstance(scale, (int, float)):
         return scale
@@ -197,8 +197,8 @@ def get_stretch_scale(
                     f"Invalid percentile value: {scale}"
                 )
 
-            if 0 <= percentile < len(metadata["percentiles"]):
-                return metadata["percentiles"][percentile]
+            if 0 <= percentile < len(percentiles):
+                return percentiles[percentile]
 
             raise exceptions.InvalidArgumentsError(
                 f"Invalid percentile, out of range: {scale}"

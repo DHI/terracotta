@@ -339,6 +339,7 @@ def test_get_singleband_stretch(client, use_testdb, raster_file_xyz):
         "[null,null]",
         "null",
         '["p2","p98"]',
+        '[0, "p98"]',
     ):
         rv = client.get(
             f"/singleband/val11/x/val12/{z}/{x}/{y}.png?stretch_range={stretch_range}"
