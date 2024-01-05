@@ -42,8 +42,8 @@ class SinglebandOptionSchema(Schema):
         description=(
             "Stretch range [min, max] to use as JSON array. "
             "Min and max may be numbers to use as absolute range, or strings "
-            "of the format p<int> with an integer between 0 and 100 to use "
-            "percentiles of the image instead. "
+            "of the format `p&lt;digits&gt;` with an integer between 0 and 100 "
+            "to use percentiles of the image instead. "
             "Null values indicate global minimum / maximum."
         ),
         missing=None,
