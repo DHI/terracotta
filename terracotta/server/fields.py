@@ -39,7 +39,7 @@ class StringOrNumber(fields.Field):
 
 def validate_stretch_range(data: Any) -> None:
     """
-    Validates that the stretch range is in the format `p&lt;digits&gt;`
+    Validates that the stretch range is in the format `p<digits>`
     when a string is used.
     """
     if isinstance(data, str):
