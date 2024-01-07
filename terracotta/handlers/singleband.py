@@ -12,6 +12,10 @@ from terracotta import get_settings, get_driver, image, xyz
 from terracotta.profile import trace
 
 Number = TypeVar("Number", int, float)
+NumberOrString = TypeVar("NumberOrString", int, float, str)
+ListOfRanges = Sequence[
+    Optional[Tuple[Optional[NumberOrString], Optional[NumberOrString]]]
+]
 RGBA = Tuple[Number, Number, Number, Number]
 
 
@@ -21,7 +25,7 @@ def singleband(
     tile_xyz: Optional[Tuple[int, int, int]] = None,
     *,
     colormap: Union[str, Mapping[Number, RGBA], None] = None,
-    stretch_range: Optional[Tuple[Number, Number]] = None,
+    stretch_range: Optional[Tuple[NumberOrString, NumberOrString]] = None,
     tile_size: Optional[Tuple[int, int]] = None
 ) -> BinaryIO:
     """Return singleband image as PNG"""
@@ -59,11 +63,12 @@ def singleband(
         # determine stretch range from metadata and arguments
         stretch_range_ = list(metadata["range"])
 
+        percentiles = metadata.get("percentiles", [])
         if stretch_min is not None:
-            stretch_range_[0] = stretch_min
+            stretch_range_[0] = image.get_stretch_scale(stretch_min, percentiles)
 
         if stretch_max is not None:
-            stretch_range_[1] = stretch_max
+            stretch_range_[1] = image.get_stretch_scale(stretch_max, percentiles)
 
         cmap_or_palette = cast(Optional[str], colormap)
         out = image.to_uint8(tile_data, *stretch_range_)

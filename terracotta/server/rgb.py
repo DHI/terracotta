@@ -9,6 +9,7 @@ import json
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 from flask import request, send_file, Response
 
+from terracotta.server.fields import StringOrNumber, validate_stretch_range
 from terracotta.server.flask_api import TILE_API
 
 
@@ -29,25 +30,43 @@ class RGBOptionSchema(Schema):
     g = fields.String(required=True, description="Key value for green band")
     b = fields.String(required=True, description="Key value for blue band")
     r_range = fields.List(
-        fields.Number(allow_none=True),
+        StringOrNumber(allow_none=True, validate=validate_stretch_range),
         validate=validate.Length(equal=2),
         example="[0,1]",
         missing=None,
-        description="Stretch range [min, max] to use for red band as JSON array",
+        description=(
+            "Stretch range [min, max] to use for the red band as JSON array. "
+            "Min and max may be numbers to use as absolute range, or strings "
+            "of the format `p<digits>` with an integer between 0 and 100 "
+            "to use percentiles of the image instead. "
+            "Null values indicate global minimum / maximum."
+        ),
     )
     g_range = fields.List(
-        fields.Number(allow_none=True),
+        StringOrNumber(allow_none=True, validate=validate_stretch_range),
         validate=validate.Length(equal=2),
         example="[0,1]",
         missing=None,
-        description="Stretch range [min, max] to use for green band as JSON array",
+        description=(
+            "Stretch range [min, max] to use for the gren band as JSON array. "
+            "Min and max may be numbers to use as absolute range, or strings "
+            "of the format `p<digits>` with an integer between 0 and 100 "
+            "to use percentiles of the image instead. "
+            "Null values indicate global minimum / maximum."
+        ),
     )
     b_range = fields.List(
-        fields.Number(allow_none=True),
+        StringOrNumber(allow_none=True, validate=validate_stretch_range),
         validate=validate.Length(equal=2),
         example="[0,1]",
         missing=None,
-        description="Stretch range [min, max] to use for blue band as JSON array",
+        description=(
+            "Stretch range [min, max] to use for the blue band as JSON array. "
+            "Min and max may be numbers to use as absolute range, or strings "
+            "of the format `p<digits>` with an integer between 0 and 100 "
+            "to use percentiles of the image instead. "
+            "Null values indicate global minimum / maximum."
+        ),
     )
     tile_size = fields.List(
         fields.Integer(),

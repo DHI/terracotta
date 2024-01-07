@@ -3,6 +3,7 @@ import json
 import urllib.parse
 
 from PIL import Image
+import marshmallow
 import numpy as np
 
 import pytest
@@ -331,7 +332,15 @@ def test_get_singleband_stretch(client, use_testdb, raster_file_xyz):
 
     x, y, z = raster_file_xyz
 
-    for stretch_range in ("[0,1]", "[0,null]", "[null, 1]", "[null,null]", "null"):
+    for stretch_range in (
+        "[0,1]",
+        "[0,null]",
+        "[null, 1]",
+        "[null,null]",
+        "null",
+        '["p2","p98"]',
+        '[0, "p98"]',
+    ):
         rv = client.get(
             f"/singleband/val11/x/val12/{z}/{x}/{y}.png?stretch_range={stretch_range}"
         )
@@ -410,6 +419,8 @@ def test_get_rgb_stretch(client, use_testdb, raster_file_xyz):
 
     for stretch_range in (
         "[0,10000]",
+        "[1.0e%2B01,1.0e%2B04]",
+        '["p2","p98"]',
         "[0,null]",
         "[null, 10000]",
         "[null,null]",
@@ -553,3 +564,27 @@ def test_get_spec(client):
     rv = client.get("/apidoc")
     assert rv.status_code == 200
     assert b"Terracotta" in rv.data
+
+
+@pytest.mark.parametrize(
+    "stretch_range_params",
+    [
+        ['["s2", "p98"]', "Percentile format is"],
+        ['["pp2", "p98"]', "Percentile format is"],
+        ['["p", "p98"]', "Percentile format is"],
+        ['["2", "p98"]', "Percentile format is"],
+        ['["[]", "p98"]', "Percentile format is"],
+    ],
+)
+def test_get_rgb_invalid_stretch_percentile(
+    debug_client, use_testdb, raster_file_xyz, stretch_range_params
+):
+
+    x, y, z = raster_file_xyz
+    stretch_range = stretch_range_params[0]
+    with pytest.raises(marshmallow.ValidationError) as exc:
+        debug_client.get(
+            f"/rgb/val21/x/{z}/{x}/{y}.png?r=val22&g=val23&b=val24&"
+            f"r_range={stretch_range}&b_range={stretch_range}&g_range={stretch_range}"
+        )
+    assert stretch_range_params[1] in str(exc.value)

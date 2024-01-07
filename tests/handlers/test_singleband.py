@@ -3,6 +3,8 @@ import numpy as np
 
 import pytest
 
+from terracotta import exceptions
+
 
 @pytest.mark.parametrize("resampling_method", ["nearest", "linear", "cubic", "average"])
 def test_singleband_handler(use_testdb, raster_file_xyz, resampling_method):
@@ -112,3 +114,114 @@ def test_singleband_noxyz(use_testdb):
     img_data = np.asarray(Image.open(raw_img))
 
     assert img_data.shape == settings.DEFAULT_TILE_SIZE
+
+
+def test_singleband_stretch(use_testdb, testdb, raster_file_xyz):
+    import terracotta
+    from terracotta.xyz import get_tile_data
+    from terracotta.handlers import singleband
+
+    ds_keys = ["val21", "x", "val22"]
+    stretch_range = [0, 10000]
+
+    raw_img = singleband.singleband(
+        ds_keys,
+        tile_xyz=raster_file_xyz,
+        stretch_range=stretch_range,
+    )
+    img_data = np.asarray(Image.open(raw_img))
+
+    # get unstretched data to compare to
+    driver = terracotta.get_driver(testdb)
+
+    with driver.connect():
+        tile_data = get_tile_data(
+            driver, ds_keys, tile_xyz=raster_file_xyz, tile_size=img_data.shape
+        )
+
+    # filter transparent values
+    valid_mask = ~tile_data.mask
+    assert np.all(img_data[~valid_mask] == 0)
+
+    valid_img = img_data[valid_mask]
+    valid_data = tile_data.compressed()
+
+    assert np.all(valid_img[valid_data < stretch_range[0]] == 1)
+    stretch_range_mask = (valid_data > stretch_range[0]) & (
+        valid_data < stretch_range[1]
+    )
+    assert np.all(valid_img[stretch_range_mask] >= 1)
+    assert np.all(valid_img[stretch_range_mask] <= 255)
+    assert np.all(valid_img[valid_data > stretch_range[1]] == 255)
+
+
+def test_singleband_stretch_percentile(use_testdb, testdb, raster_file_xyz):
+    import terracotta
+    from terracotta.xyz import get_tile_data
+    from terracotta.handlers import singleband
+
+    ds_keys = ["val21", "x", "val22"]
+    pct_stretch_range = ["p2", "p98"]
+
+    raw_img = singleband.singleband(
+        ds_keys,
+        tile_xyz=raster_file_xyz,
+        stretch_range=pct_stretch_range,
+    )
+    img_data = np.asarray(Image.open(raw_img))
+
+    # get unstretched data to compare to
+    driver = terracotta.get_driver(testdb)
+
+    with driver.connect():
+        tile_data = get_tile_data(
+            driver, ds_keys, tile_xyz=raster_file_xyz, tile_size=img_data.shape
+        )
+        band_metadata = driver.get_metadata(ds_keys)
+
+        stretch_range = [
+            band_metadata["percentiles"][1],
+            band_metadata["percentiles"][97],
+        ]
+
+    # filter transparent values
+    valid_mask = ~tile_data.mask
+    assert np.all(img_data[~valid_mask] == 0)
+
+    valid_img = img_data[valid_mask]
+    valid_data = tile_data.compressed()
+
+    assert np.all(valid_img[valid_data < stretch_range[0]] == 1)
+    stretch_range_mask = (valid_data > stretch_range[0]) & (
+        valid_data < stretch_range[1]
+    )
+    assert np.all(valid_img[stretch_range_mask] >= 1)
+    assert np.all(valid_img[stretch_range_mask] <= 255)
+    assert np.all(valid_img[valid_data > stretch_range[1]] == 255)
+
+
+@pytest.mark.parametrize(
+    "stretch_range_params",
+    [
+        ["s2", "p98", "Invalid scale value"],
+        ["pp2", "p98", "Invalid percentile value"],
+        ["p", "p98", "Invalid percentile value"],
+        ["2", "p8", "Invalid scale value"],
+        [{}, "p98", "Invalid scale value"],
+        ["p-2", "p98", "Invalid percentile, out of range"],
+        ["p2", "p298", "Invalid percentile, out of range"],
+    ],
+)
+def test_rgb_invalid_percentiles(use_testdb, stretch_range_params):
+    from terracotta.handlers import singleband
+
+    ds_keys = ["val21", "x", "val22"]
+
+    stretch_range = stretch_range_params[:2]
+
+    with pytest.raises(exceptions.InvalidArgumentsError) as err:
+        singleband.singleband(
+            ds_keys,
+            stretch_range=stretch_range,
+        )
+    assert stretch_range_params[2] in str(err.value)

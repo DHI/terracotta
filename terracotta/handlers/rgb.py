@@ -10,8 +10,10 @@ from concurrent.futures import Future
 from terracotta import get_settings, get_driver, image, xyz, exceptions
 from terracotta.profile import trace
 
-Number = TypeVar("Number", int, float)
-ListOfRanges = Sequence[Optional[Tuple[Optional[Number], Optional[Number]]]]
+NumberOrString = TypeVar("NumberOrString", int, float, str)
+ListOfRanges = Sequence[
+    Optional[Tuple[Optional[NumberOrString], Optional[NumberOrString]]]
+]
 
 
 @trace("rgb_handler")
@@ -89,11 +91,12 @@ def rgb(
             band_stretch_range = list(metadata["range"])
             scale_min, scale_max = band_stretch_override
 
+            percentiles = metadata.get("percentiles", [])
             if scale_min is not None:
-                band_stretch_range[0] = scale_min
+                band_stretch_range[0] = image.get_stretch_scale(scale_min, percentiles)
 
             if scale_max is not None:
-                band_stretch_range[1] = scale_max
+                band_stretch_range[1] = image.get_stretch_scale(scale_max, percentiles)
 
             if band_stretch_range[1] < band_stretch_range[0]:
                 raise exceptions.InvalidArgumentsError(
