@@ -13,3 +13,4 @@ aws_xray_sdk
 boto3
 botocore
 zappa
+pymysql

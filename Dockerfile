@@ -1,6 +1,6 @@
-FROM python:3.10
+FROM python:3.12.1-slim-bookworm
 
-RUN apt-get update && apt install build-essential gdal-bin libgdal-dev -y
+RUN apt-get update && apt-get install git build-essential gdal-bin libgdal-dev -y
 
 COPY . .
 
