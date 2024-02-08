@@ -125,13 +125,9 @@ from the root of the repository.
 
 ## Docker
 
+You can pass all the arguments that `terracotta` supports as those mentioned in the documentation upon building it locally.:
+
 ```bash
 docker build . -t "my-terracotta"
-docker run -d -p5000:5000 my-terracotta
-```
-
-You can pass all the arguments that `terracotta` supports as mentioning in the documentation page:
-
-```bash
-docker run -d -p5000:5000 --rm --name my-terracotta -e DRIVER_PATH="mysql://root:password@mydb.com:3306/terracotta" -e DRIVER_PROVIDER=mysql my-terracotta
+docker run -d -p5000:5000 --rm --name my-terracotta -e DRIVER_PATH="mysql://root:password@mydb.com/terracotta_db" -e DRIVER_PROVIDER=mysql my-terracotta
 ```

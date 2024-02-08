@@ -1,4 +1,4 @@
-FROM python:3.12.1-slim-bookworm
+FROM python:3.10.12-slim-bullseye
 
 WORKDIR /app
 
@@ -8,6 +8,7 @@ COPY . .
 
 RUN pip install cython && \
     pip install -e . && \    
-    pip install gunicorn
+    pip install gunicorn && \
+    pip install terracotta==0.8.2
 
 CMD ["gunicorn", "terracotta.server.app:app", "--bind", "0.0.0.0:5000"]
