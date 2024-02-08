@@ -23,3 +23,6 @@ coverage.xml
 .pytest_cache
 .hypothesis
 build
+.pre-commit-config.yaml
+LICENSE
+.coveragerc
