@@ -1,9 +1,9 @@
-[![Tests](https://github.com/DHI-GRAS/terracotta/actions/workflows/test.yml/badge.svg)](https://github.com/DHI-GRAS/terracotta/actions/workflows/test.yml)
+[![Tests](https://github.com/DHI/terracotta/actions/workflows/test.yml/badge.svg)](https://github.com/DHI/terracotta/actions/workflows/test.yml)
 [![Documentation Status](https://readthedocs.org/projects/terracotta-python/badge/?version=latest)](https://terracotta-python.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/DHI-GRAS/terracotta/branch/main/graph/badge.svg?token=u16QBwwvvn)](https://codecov.io/gh/DHI-GRAS/terracotta)
-[![GitHub release](https://img.shields.io/github/release-pre/dhi-gras/terracotta.svg)](https://github.com/DHI-GRAS/terracotta/releases)
+[![GitHub release](https://img.shields.io/github/release-pre/dhi-gras/terracotta.svg)](https://github.com/DHI/terracotta/releases)
 [![PyPI release](https://img.shields.io/pypi/v/terracotta.svg)](https://pypi.org/project/terracotta)
-[![License](https://img.shields.io/github/license/dhi-gras/terracotta.svg)](https://github.com/DHI-GRAS/terracotta/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/dhi-gras/terracotta.svg)](https://github.com/DHI/terracotta/blob/main/LICENSE)
 [![Python versions](https://img.shields.io/pypi/pyversions/terracotta.svg)](https://pypi.org/project/terracotta)
 
 [![Logo](docs/_figures/logo-banner.svg)](#)
@@ -103,8 +103,8 @@ Then open the client page (http://127.0.0.1:5100/ in this case) in your browser.
 
 ## Development
 
-We gladly accept [bug reports](https://github.com/DHI-GRAS/terracotta/issues)
-and [pull requests](https://github.com/DHI-GRAS/terracotta/pulls) via GitHub.
+We gladly accept [bug reports](https://github.com/DHI/terracotta/issues)
+and [pull requests](https://github.com/DHI/terracotta/pulls) via GitHub.
 For your code to be useful, make sure that it is covered by tests and that
 it satisfies our linting practices (via `mypy` and `flake8`).
 
