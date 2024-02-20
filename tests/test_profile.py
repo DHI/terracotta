@@ -2,11 +2,12 @@ import pytest
 
 import time
 
-from moto import mock_xray_client, XRaySegment
+from moto import mock_aws
+from moto.xray import XRaySegment
 
 
 def test_xray_tracing(caplog):
-    @mock_xray_client
+    @mock_aws
     def run_test():
         from terracotta import update_settings
         import terracotta.profile
@@ -37,7 +38,7 @@ def test_xray_tracing(caplog):
 
 
 def test_xray_exception(caplog):
-    @mock_xray_client
+    @mock_aws
     def run_test():
         from terracotta import update_settings
         import terracotta.profile
