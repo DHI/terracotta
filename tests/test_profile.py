@@ -2,7 +2,8 @@ import pytest
 
 import time
 
-from moto import mock_aws, XRaySegment
+from moto import mock_aws
+from moto.xray import XRaySegment
 
 
 def test_xray_tracing(caplog):
