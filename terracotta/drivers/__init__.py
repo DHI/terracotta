@@ -99,6 +99,8 @@ def get_driver(
 
     """
     url_or_path = str(url_or_path)
+    if not url_or_path:
+        raise ValueError("Database url or path must not be empty")
 
     if provider is None:  # try and auto-detect
         provider = auto_detect_provider(url_or_path)
