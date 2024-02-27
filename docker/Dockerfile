@@ -1,4 +1,4 @@
-FROM python:3.10.12-slim-bullseye as build_tarball
+FROM python:3.12.2-slim-bullseye AS build_wheel
 
 RUN apt-get update \
     && apt-get install \
@@ -8,24 +8,26 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY ./ /terracotta
-COPY ./docker/entrypoint.sh /entrypoint.sh
 
 WORKDIR /terracotta
 
 RUN python -m pip install --upgrade pip \
-    && python setup.py sdist
+    && python setup.py bdist_wheel
 
 
-FROM python:3.10.12-slim-bullseye
+FROM python:3.12.2-slim-bullseye
 
-COPY --from=build_tarball /terracotta/dist/terracotta-*.tar.gz /terracotta/terracotta.tar.gz
+COPY --from=build_wheel /terracotta/dist/*.whl /terracotta/
 
-RUN pip install --upgrade pip \
-    && pip install psycopg2-binary gunicorn \
-    && pip install /terracotta/terracotta.tar.gz \
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir \
+        $(ls /terracotta/*.whl) \
+        pymysql>=1.0.0 \
+        psycopg2-binary \
+        gunicorn \
     && rm -rf /terracotta
 
-COPY --from=build_tarball /entrypoint.sh /entrypoint.sh
+COPY docker/resources /
 
 ENV TC_SERVER_PORT=5000
 EXPOSE $TC_SERVER_PORT
