@@ -88,7 +88,7 @@ def test_get_driver_invalid():
 
     with pytest.raises(ValueError) as exc:
         drivers.get_driver("", provider="foo")
-    assert "Unknown database provider" in str(exc.value)
+    assert "Database url or path must not be empty" in str(exc.value)
 
 
 @pytest.mark.parametrize("provider", TESTABLE_DRIVERS)
