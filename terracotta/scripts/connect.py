@@ -23,6 +23,8 @@ from terracotta.scripts.http_utils import find_open_port
 def build_request(url: str) -> urllib.request.Request:
     """
     Build a request object with headers that mimic a web browser.
+    This is for example needed to bypass cloudflare protection for automated scraping,
+    in the case where terracotta is behind the cloudflare proxy.
     """
     req = urllib.request.Request(url)
     req.add_header(
