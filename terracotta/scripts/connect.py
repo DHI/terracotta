@@ -20,6 +20,20 @@ from terracotta.scripts.click_types import Hostname
 from terracotta.scripts.http_utils import find_open_port
 
 
+def build_request(url: str) -> urllib.request.Request:
+    """
+    Build a request object with headers that mimic a web browser.
+    This is for example needed to bypass cloudflare protection for automated scraping,
+    in the case where terracotta is behind the cloudflare proxy.
+    """
+    req = urllib.request.Request(url)
+    req.add_header(
+        "User-Agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0",
+    )
+    return req
+
+
 @click.command(
     "connect",
     short_help="Connect to a running Terracotta instance and interactively "
@@ -49,9 +63,8 @@ def connect(
 
     # check if remote host is running Terracotta
     test_url = f"{terracotta_hostname}/keys"
-
     try:
-        with urllib.request.urlopen(test_url, timeout=5):
+        with urllib.request.urlopen(build_request(test_url), timeout=5):
             pass
     except (HTTPError, URLError, socket.timeout):
         click.echo(
@@ -63,7 +76,7 @@ def connect(
 
     # catch version incompatibility
     spec_url = f"{terracotta_hostname}/swagger.json"
-    with urllib.request.urlopen(spec_url, timeout=5) as response:
+    with urllib.request.urlopen(build_request(spec_url), timeout=5) as response:
         spec = json.loads(response.read())
 
     def versiontuple(version_string: str) -> Sequence[str]:
