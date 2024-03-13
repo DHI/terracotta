@@ -109,6 +109,13 @@ Currently implemented drivers include:
       excellent candidate for deployments on cloud services, e.g. through
       `AWS Aurora Serverless <https://aws.amazon.com/rds/aurora/serverless/>`__.
 
+   **PostgreSQL + GeoTiff**
+
+      Similar to the SQLite driver, but uses a
+      centralized PostgreSQL database to store metadata. This driver is also an
+      excellent candidate for deployments on cloud services, e.g. through
+      `AWS Aurora Serverless <https://aws.amazon.com/rds/aurora/serverless/>`__.
+
 
 Why serverless?
 ---------------
