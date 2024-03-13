@@ -18,8 +18,11 @@ coverage.xml
 .gitignore
 .github
 .gitattributes
+.pre-commit-config.yaml
 *.egg-info
 .mypy_cache
 .pytest_cache
 .hypothesis
 build
+docker
+!docker/resources
