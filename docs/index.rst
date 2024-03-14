@@ -16,8 +16,8 @@ Use cases
    scale almost infinitely with minimal maintenance!
 
 Demo
----------
-Try out a live demo `here <https://terracotta-demo-frontend.orangebeach-11aa4896.westeurope.azurecontainerapps.io/>`_
+----
+Try out a live demo `here <https://terracotta-demo-frontend.orangebeach-11aa4896.westeurope.azurecontainerapps.io/>`_.
 
 
 Installation

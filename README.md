@@ -15,6 +15,7 @@ modern Python stack, powered by awesome open-source software such as
 and [Rasterio](https://github.com/mapbox/rasterio).
 
 [Read the docs](https://terracotta-python.readthedocs.io/en/latest) |
+[Try the demo](https://terracotta-demo-frontend.orangebeach-11aa4896.westeurope.azurecontainerapps.io/) |
 [Explore the API](https://terracotta-python.readthedocs.io/en/latest/apidoc.html) |
 [Satlas, powered by Terracotta](http://satlas.dk)
 
@@ -33,10 +34,6 @@ and [Rasterio](https://github.com/mapbox/rasterio).
 - Terracotta instances are self-documenting. Everything the frontend
   needs to know about your data is accessible from only a handful of
   API endpoints.
-
-## Demo
-Try out a live demo [here](https://terracotta-demo-frontend.orangebeach-11aa4896.westeurope.azurecontainerapps.io/)
-
 
 ## The Terracotta workflow
 
