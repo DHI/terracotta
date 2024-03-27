@@ -39,3 +39,8 @@ MySQL metadata store
 ++++++++++++++++++++
 
 .. autoclass:: terracotta.drivers.mysql_meta_store.MySQLMetaStore
+
+PostgreSQL metadata store
++++++++++++++++++++++++++
+
+.. autoclass:: terracotta.drivers.postgresql_meta_store.PostgreSQLMetaStore

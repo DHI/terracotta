@@ -15,6 +15,7 @@ modern Python stack, powered by awesome open-source software such as
 and [Rasterio](https://github.com/mapbox/rasterio).
 
 [Read the docs](https://terracotta-python.readthedocs.io/en/latest) |
+[Try the demo](https://terracotta-demo-frontend.orangebeach-11aa4896.westeurope.azurecontainerapps.io/) |
 [Explore the API](https://terracotta-python.readthedocs.io/en/latest/apidoc.html) |
 [Satlas, powered by Terracotta](http://satlas.dk)
 
