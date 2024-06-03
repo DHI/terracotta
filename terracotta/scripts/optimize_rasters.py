@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 IN_MEMORY_THRESHOLD = 10980 * 10980
 
-CACHEMAX = 1024 * 1024 * 512  # 512 MB
+CACHEMAX = os.environ.get("GDAL_CACHEMAX", 1024 * 1024 * 512)  # 512 MB
 
 GDAL_CONFIG = {
     "GDAL_TIFF_INTERNAL_MASK": True,
