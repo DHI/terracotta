@@ -4,7 +4,7 @@ A script to generate color map dumps from matplotlib.
 """
 
 import numpy as np
-import matploblib as mpl
+import matplotlib as mpl
 
 from terracotta.cmaps.get_cmaps import SUFFIX
 
