@@ -9,7 +9,6 @@ import matplotlib as mpl
 from terracotta.cmaps.get_cmaps import SUFFIX
 
 ALL_CMAPS = list(mpl.colormaps)
-ALL_CMAPS.extend([f"{cmap}_r" for cmap in ALL_CMAPS])
 NUM_VALS = 255
 
 
