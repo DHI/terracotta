@@ -15,7 +15,14 @@ long_description = re.sub(
     long_description,
 )
 
-numpy_version = ">=1.15,!=1.17.0"
+numpy_constraints = (
+    ">=1.15",
+    "!=1.17.0",
+    # TODO: drop this once all deps support numpy 2.0
+    # see https://github.com/dask/crick/issues/53
+    "<2",
+)
+numpy_version = ",".join(numpy_constraints)
 
 setup(
     # metadata
