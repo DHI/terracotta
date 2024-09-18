@@ -6,11 +6,12 @@ A convenience tool to create a Terracotta database from some raster files.
 from typing import Optional, Tuple, Sequence, Any
 from pathlib import Path
 import logging
-
+from datetime import datetime, timedelta
 import click
 import tqdm
 
-from terracotta.scripts.click_types import RasterPattern, RasterPatternType, PathlibPath
+from terracotta.scripts.click_types import RasterPattern, RasterPatternType, PathlibPath, TimeDeltaType
+
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,12 @@ logger = logging.getLogger(__name__)
     "--skip-existing", is_flag=True, default=False, help="Skip existing datasets by key"
 )
 @click.option(
+    "--ignore-older-than",
+    type=TimeDeltaType(),
+    default=None,
+    help="Ignore files older than the specified threshold (e.g., 30m, 2h, etc.)",
+)
+@click.option(
     "-q",
     "--quiet",
     is_flag=True,
@@ -55,6 +62,7 @@ def ingest(
     skip_metadata: bool = False,
     rgb_key: Optional[str] = None,
     skip_existing: bool = False,
+    ignore_older_than: Optional[timedelta] = None,
     quiet: bool = False,
 ) -> None:
     """Ingest a collection of raster files into a (new or existing) SQLite database.
@@ -106,7 +114,18 @@ def ingest(
             err=True,
         )
         click.Abort()
+    
+    if ignore_older_than is not None:
+        if isinstance(ignore_older_than, timedelta):
+            cutoff_time = datetime.now() - ignore_older_than
+        elif isinstance(ignore_older_than, datetime):
+            cutoff_time = ignore_older_than
 
+        raster_files = {
+            key: path for key, path in raster_files.items()
+            if datetime.fromtimestamp(Path(path).stat().st_mtime) > cutoff_time
+        }
+    
     with driver.connect():
         progress = tqdm.tqdm(
             raster_files.items(), desc="Ingesting raster files", disable=quiet

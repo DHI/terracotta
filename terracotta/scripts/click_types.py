@@ -2,9 +2,10 @@
 
 Custom click parameter types and utilities.
 """
-
 from typing import List, Any, Tuple, Dict
+from datetime import datetime, timedelta
 import pathlib
+import contextlib
 import glob
 import re
 import os
@@ -151,3 +152,34 @@ class Hostname(click.ParamType):
         return urlunparse(
             [parsed_url.scheme, parsed_url.netloc, parsed_url.path, "", "", ""]
         )
+
+class TimeDeltaType(click.ParamType):
+    """Parses a relative time (like 30m, 2h) or an absolute timestamp (YYYY-MM-DD HH:MM:SS)"""
+
+    name = "time-delta-or-timestamp"
+
+    def convert(self, value: str, param: click.Parameter, ctx: click.Context):
+        # Try to parse the input as a timestamp (YYYY-MM-DD HH:MM:SS)
+        with contextlib.suppress(ValueError):
+            return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+
+        # If the above fails, check if it's a relative time (e.g., 30m, 2h, 45s)
+        try:
+            amount = int(value[:-1])
+            unit = value[-1].lower()
+
+            if unit == "s":
+                return timedelta(seconds=amount)
+            elif unit == "m":
+                return timedelta(minutes=amount)
+            elif unit == "h":
+                return timedelta(hours=amount)
+            elif unit == "d":
+                return timedelta(days=amount)
+            else:
+                self.fail(f"Invalid time unit: {unit}. Expected 's', 'm', 'h', or 'd'.")
+        except (ValueError, IndexError):
+            self.fail(
+                f"Invalid time format: {value}. Expected 'YYYY-MM-DD HH:MM:SS' for timestamp "
+                f"or a relative time like '30m', '2h', '45s'."
+            )

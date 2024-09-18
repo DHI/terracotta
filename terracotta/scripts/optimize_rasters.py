@@ -3,6 +3,7 @@
 Convert some raster files to cloud-optimized GeoTiff for use with Terracotta.
 """
 
+from datetime import datetime, timedelta
 from typing import Any, Sequence, Iterator, Union
 import os
 import sys
@@ -26,7 +27,7 @@ from rasterio.enums import Resampling
 from rasterio.env import GDALVersion
 from rasterio.warp import calculate_default_transform
 
-from terracotta.scripts.click_types import GlobbityGlob, PathlibPath
+from terracotta.scripts.click_types import GlobbityGlob, PathlibPath, TimeDeltaType
 
 logger = logging.getLogger(__name__)
 
@@ -260,6 +261,11 @@ def _optimize_single_raster(
     show_default=True,
     help="Suppress all output to stdout",
 )
+@click.option(
+    "--ignore-older-than",
+    type=TimeDeltaType(),
+    help="Ignore files older than the given relative time (e.g. '30m', '2h') or absolute timestamp ('YYYY-MM-DD HH:MM:SS')."
+)
 def optimize_rasters(
     raster_files: Sequence[Sequence[Path]],
     output_folder: Path,
@@ -271,6 +277,7 @@ def optimize_rasters(
     compression: str = "auto",
     nproc: int = 1,
     quiet: bool = False,
+    ignore_older_than: Union[datetime, timedelta] = None
 ) -> None:
     """Optimize a collection of raster files for use with Terracotta.
 
@@ -305,6 +312,18 @@ def optimize_rasters(
     for f in raster_files_flat:
         if not f.is_file():
             raise click.BadParameter(f"Input raster {f!s} is not a file")
+        
+        if ignore_older_than is not None:
+            file_mod_time = datetime.fromtimestamp(f.stat().st_mtime)
+            if isinstance(ignore_older_than, timedelta):
+                cutoff_time = datetime.now() - ignore_older_than
+            else:
+                cutoff_time = ignore_older_than
+            if file_mod_time < cutoff_time:
+                raster_files_to_skip.add(f)
+                if not quiet:
+                    click.echo(f"Skipping {f!s} because it is older than {ignore_older_than}")
+                continue
 
         output_file = _output_file(output_folder, f)
         if output_file.is_file():
