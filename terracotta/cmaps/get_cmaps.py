@@ -5,18 +5,21 @@ Define an interface to retrieve stored color maps.
 
 from typing import Dict
 import os
-from pkg_resources import resource_filename, Requirement, DistributionNotFound
-
 import numpy as np
+import sys
+
+if sys.version_info >= (3, 9):
+    import importlib.resources as importlib_resources
+else:
+    import importlib_resources
+
 
 SUFFIX = "_rgba.npy"
 EXTRA_CMAP_FOLDER = os.environ.get("TC_EXTRA_CMAP_FOLDER", "")
 
 try:
-    PACKAGE_DIR = resource_filename(
-        Requirement.parse("terracotta"), "terracotta/cmaps/data"
-    )
-except DistributionNotFound:
+    PACKAGE_DIR = str(importlib_resources.files("terracotta") / "cmaps/data")
+except ModuleNotFoundError:
     # terracotta was not installed, fall back to file system
     PACKAGE_DIR = os.path.join(os.path.dirname(__file__), "data")
 

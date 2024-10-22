@@ -51,7 +51,10 @@ def check_raster_file(src_path: str) -> ValidationInfo:  # pragma: no cover
 
             overviews = src.overviews(1)
             if src.width > 512 and src.height > 512:
-                if not src.is_tiled:
+                if not (
+                    src.block_shapes
+                    and all(src.width != w for _, w in src.block_shapes)
+                ):
                     errors.append(
                         "The file is greater than 512xH or 512xW, but is not tiled"
                     )
@@ -166,7 +169,10 @@ def check_raster_file(src_path: str) -> ValidationInfo:  # pragma: no cover
         for ix, dec in enumerate(overviews):
             with rasterio.open(src_path, OVERVIEW_LEVEL=ix) as ovr_dst:
                 if ovr_dst.width > 512 and ovr_dst.height > 512:
-                    if not ovr_dst.is_tiled:
+                    if not (
+                        ovr_dst.block_shapes
+                        and all(ovr_dst.width != w for _, w in ovr_dst.block_shapes)
+                    ):
                         errors.append("Overview of index {} is not tiled".format(ix))
 
     return errors, warnings, details
