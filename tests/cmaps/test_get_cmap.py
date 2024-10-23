@@ -1,12 +1,6 @@
 import pytest
 
 import numpy as np
-import sys
-
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
 
 
 @pytest.fixture(autouse=True)
@@ -31,17 +25,21 @@ def test_get_cmap():
 
 def test_get_cmap_filesystem(monkeypatch):
     import importlib
+    import importlib.resources
 
     import terracotta.cmaps.get_cmaps
 
     def throw_error(*args, **kwargs):
-        raise ModuleNotFoundError
+        raise ModuleNotFoundError("monkeypatched")
 
     with monkeypatch.context() as m:
-        m.setattr(importlib_resources, "files", throw_error)
+        m.setattr(importlib.resources, "files", throw_error)
 
-        with pytest.raises(ModuleNotFoundError):
-            importlib_resources.files("terracotta")
+        with pytest.raises(ModuleNotFoundError) as exc_info:
+            importlib.resources.files("terracotta")
+
+        (msg,) = exc_info.value.args
+        assert msg == "monkeypatched"
 
         importlib.reload(terracotta.cmaps.get_cmaps)
 

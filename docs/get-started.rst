@@ -15,7 +15,7 @@ to create a new environment containing all dependencies and Terracotta:
 
    $ conda env create -f environment.yml
 
-If you already have Python 3.8 (or above) installed, you can just run
+If you already have Python 3.9 (or above) installed, you can just run
 
 .. code-block:: bash
 

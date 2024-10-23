@@ -23,7 +23,7 @@ Try out a live demo `here <https://terracotta-demo-frontend.orangebeach-11aa4896
 Installation
 ------------
 
-If you are using Linux and already have Python 3.8+ installed, all you need to
+If you are using Linux and already have Python 3.9+ installed, all you need to
 do to check out Terracotta is
 
 .. code-block:: bash
