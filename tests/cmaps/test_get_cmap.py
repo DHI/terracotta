@@ -24,19 +24,22 @@ def test_get_cmap():
 
 
 def test_get_cmap_filesystem(monkeypatch):
-    import pkg_resources
     import importlib
+    import importlib.resources
 
     import terracotta.cmaps.get_cmaps
 
     def throw_error(*args, **kwargs):
-        raise pkg_resources.DistributionNotFound("monkeypatched")
+        raise ModuleNotFoundError("monkeypatched")
 
     with monkeypatch.context() as m:
-        m.setattr(pkg_resources.Requirement, "parse", throw_error)
+        m.setattr(importlib.resources, "files", throw_error)
 
-        with pytest.raises(pkg_resources.DistributionNotFound):
-            pkg_resources.Requirement.parse("terracotta")
+        with pytest.raises(ModuleNotFoundError) as exc_info:
+            importlib.resources.files("terracotta")
+
+        (msg,) = exc_info.value.args
+        assert msg == "monkeypatched"
 
         importlib.reload(terracotta.cmaps.get_cmaps)
 

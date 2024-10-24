@@ -38,10 +38,10 @@ setup(
         "Development Status :: 4 - Beta",
         "Intended Audience :: End Users/Desktop",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Framework :: Flask",
         "Operating System :: Microsoft :: Windows :: Windows 10",
         "Operating System :: MacOS :: MacOS X",
@@ -53,7 +53,7 @@ setup(
     ],
     # module
     packages=find_packages(exclude=["docs", "tests"]),
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     use_scm_version={"write_to": "terracotta/_version.py"},
     # dependencies
     setup_requires=[

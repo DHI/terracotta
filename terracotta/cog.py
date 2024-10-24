@@ -9,6 +9,7 @@ import os
 
 import rasterio
 from rasterio.env import GDALVersion
+from rasterio._base import DatasetBase
 
 ValidationInfo = Tuple[List[str], List[str], Dict[str, Any]]
 
@@ -20,6 +21,21 @@ def validate(src_path: str, strict: bool = True) -> bool:
         return not errors and not warnings
     else:
         return not errors
+
+
+def is_tiled(src: DatasetBase) -> bool:
+    """
+    Check if a rasterio dataset is tiled.
+
+    Implementation copied from
+    https://github.com/rasterio/rasterio/blob/74ccaf126d08fc6eca3eacd7cb20ac8bb155ee3b/rasterio/_base.pyx#L1006-L1017
+    Since this was deprecated in rasterio
+
+    :param src: rasterio dataset
+    """
+    # It's rare but possible that a dataset's bands have different block structure.
+    # Therefore we check them all against the width of the dataset.
+    return src.block_shapes and all(src.width != w for _, w in src.block_shapes)
 
 
 def check_raster_file(src_path: str) -> ValidationInfo:  # pragma: no cover
@@ -51,7 +67,7 @@ def check_raster_file(src_path: str) -> ValidationInfo:  # pragma: no cover
 
             overviews = src.overviews(1)
             if src.width > 512 and src.height > 512:
-                if not src.is_tiled:
+                if not is_tiled(src):
                     errors.append(
                         "The file is greater than 512xH or 512xW, but is not tiled"
                     )
@@ -166,7 +182,7 @@ def check_raster_file(src_path: str) -> ValidationInfo:  # pragma: no cover
         for ix, dec in enumerate(overviews):
             with rasterio.open(src_path, OVERVIEW_LEVEL=ix) as ovr_dst:
                 if ovr_dst.width > 512 and ovr_dst.height > 512:
-                    if not ovr_dst.is_tiled:
+                    if not is_tiled(ovr_dst):
                         errors.append("Overview of index {} is not tiled".format(ix))
 
     return errors, warnings, details
