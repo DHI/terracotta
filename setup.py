@@ -79,6 +79,7 @@ setup(
         "tqdm",
     ],
     extras_require={
+        ':python_version == "3.9"': ["numpy<2.0.0"],
         "test": [
             "pytest",
             "pytest-cov",
