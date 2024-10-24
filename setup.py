@@ -18,9 +18,6 @@ long_description = re.sub(
 numpy_constraints = (
     ">=1.15",
     "!=1.17.0",
-    # TODO: drop this once all deps support numpy 2.0
-    # see https://github.com/dask/crick/issues/53
-    "<2",
 )
 numpy_version = ",".join(numpy_constraints)
 
@@ -82,6 +79,7 @@ setup(
         "tqdm",
     ],
     extras_require={
+        ':python_version == "3.9"': ["numpy<2.0.0"],
         "test": [
             "pytest",
             "pytest-cov",
