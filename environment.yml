@@ -10,4 +10,5 @@ dependencies:
   - pip
   - pip:
     - crick
+    - psycopg2-binary
     - -e .[recommended]
