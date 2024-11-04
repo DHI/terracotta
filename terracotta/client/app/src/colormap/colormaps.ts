@@ -6,6 +6,16 @@ export interface Colormap {
 
 const COLORMAPS: Colormap[] = [
     { 
+        displayName: 'Grays', 
+        id: 'grays', 
+        img_url: 'https://terracotta-python.readthedocs.io/en/latest/_images/cmap-grays-bar.png' 
+    },
+    { 
+        displayName: 'Grey', 
+        id: 'grey', 
+        img_url: 'https://terracotta-python.readthedocs.io/en/latest/_images/cmap-grey-bar.png' 
+    },
+    { 
         displayName: 'Greys', 
         id: 'greys', 
         img_url: 'https://terracotta-python.readthedocs.io/en/latest/_images/cmap-greys-bar.png' 
@@ -396,9 +406,19 @@ const COLORMAPS: Colormap[] = [
         img_url: 'https://terracotta-python.readthedocs.io/en/latest/_images/cmap-gist_gray-bar.png' 
     },
     { 
+        displayName: 'Gist_grey', 
+        id: 'gist_grey', 
+        img_url: 'https://terracotta-python.readthedocs.io/en/latest/_images/cmap-gist_grey-bar.png' 
+    },
+    { 
         displayName: 'Gist_yarg', 
         id: 'gist_yarg', 
         img_url: 'https://terracotta-python.readthedocs.io/en/latest/_images/cmap-gist_yarg-bar.png' 
+    },
+    { 
+        displayName: 'Gist_yerg', 
+        id: 'gist_yerg', 
+        img_url: 'https://terracotta-python.readthedocs.io/en/latest/_images/cmap-gist_yerg-bar.png' 
     },
     { 
         displayName: 'Hsv', 
@@ -409,6 +429,11 @@ const COLORMAPS: Colormap[] = [
         displayName: 'Jet', 
         id: 'jet', 
         img_url: 'https://terracotta-python.readthedocs.io/en/latest/_images/cmap-jet-bar.png' 
+    },
+    {
+        displayName: 'Turbo',
+        id: 'turbo',
+        img_url: 'https://terracotta-python.readthedocs.io/en/latest/_images/cmap-turbo-bar.png'
     },
     { 
         displayName: 'Nipy_spectral', 
