@@ -48,7 +48,7 @@ class RGBOptionSchema(Schema):
         example="[0,1]",
         missing=None,
         description=(
-            "Stretch range [min, max] to use for the gren band as JSON array. "
+            "Stretch range [min, max] to use for the green band as JSON array. "
             "Min and max may be numbers to use as absolute range, or strings "
             "of the format `p<digits>` with an integer between 0 and 100 "
             "to use percentiles of the image instead. "
@@ -68,6 +68,7 @@ class RGBOptionSchema(Schema):
             "Null values indicate global minimum / maximum."
         ),
     )
+    gamma_factor = fields.Float(missing=None, description="Gamma factor to perform gamma correction.")
     tile_size = fields.List(
         fields.Integer(),
         validate=validate.Length(equal=2),
@@ -165,11 +166,13 @@ def _get_rgb_image(
 
     rgb_values = (options.pop("r"), options.pop("g"), options.pop("b"))
     stretch_ranges = tuple(options.pop(k) for k in ("r_range", "g_range", "b_range"))
+    gamma_factor = options.pop("gamma_factor")
 
     image = rgb(
         some_keys,
         rgb_values,
         stretch_ranges=stretch_ranges,
+        gamma_factor=gamma_factor,
         tile_xyz=tile_xyz,
         **options,
     )
