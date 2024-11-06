@@ -3,7 +3,7 @@
 Utilities to create and manipulate images.
 """
 
-from typing import List, Sequence, Tuple, TypeVar, Union
+from typing import List, Sequence, Tuple, TypeVar, Union, Optional
 from typing.io import BinaryIO
 
 from io import BytesIO
@@ -160,6 +160,41 @@ def to_uint8(data: Array, lower_bound: Number, upper_bound: Number) -> Array:
     # explicitly set NaNs to 0 to avoid warnings
     rescaled[~np.isfinite(rescaled)] = 0
     return rescaled.astype(np.uint8)
+
+
+def gamma(arr: Array, gamma_factor: float) -> Array:
+    """Applies gamma correction to the input `arr`"""
+    return arr ** (1.0 / gamma_factor)
+
+
+def to_math_type(arr: Array, band_range: Optional[list]) -> Array:
+    """Convert an array from native integer dtype range to 0..1 scaling down linearly"""
+    if band_range:
+        return contrast_stretch(arr, band_range, (0, 1))
+    elif np.issubdtype(arr.dtype, np.integer):
+        max_int = np.iinfo(arr.dtype).max
+        return arr.astype(np.float32) / max_int
+    else:
+        raise exceptions.InvalidArgumentsError("No band range given and array is not of integer type")
+
+
+def scale_dtype(arr: Array, dtype: type) -> Array:
+    """Convert an array from 0..1 to dtype, scaling up linearly"""
+    max_int = np.iinfo(dtype).max
+    return (arr * max_int).astype(dtype)
+
+
+def gamma_correction(
+        masked_data: Array,
+        gamma_factor: float,
+        band_range: list,
+        out_dtype: type = np.uint16,
+) -> Array:
+    """Apply gamma correction to the input array and scale it to the output dtype."""
+    arr = to_math_type(masked_data, band_range)
+    arr = gamma(arr, gamma_factor)
+    arr = scale_dtype(arr, out_dtype)
+    return arr
 
 
 def label(data: Array, labels: Sequence[Number]) -> Array:

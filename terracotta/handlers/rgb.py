@@ -89,7 +89,8 @@ def rgb(
             keys = (*some_keys, band_key)
             metadata = driver.get_metadata(keys)
 
-            band_stretch_range = list(metadata["range"])
+            band_range = list(metadata["range"])
+            band_stretch_range = band_range.copy()
             scale_min, scale_max = band_stretch_override
 
             percentiles = metadata.get("percentiles", [])
@@ -105,6 +106,14 @@ def rgb(
                 )
 
             band_data = band_data_future.result()
+
+            if gamma_factor:
+                # gamma correction is monotonic and preserves percentiles
+                band_stretch_range_arr = np.array(band_stretch_range, dtype=band_data.dtype)
+                band_stretch_range = list(image.gamma_correction(band_stretch_range_arr, gamma_factor, band_range))
+                # gamma correct band data
+                band_data = image.gamma_correction(band_data, gamma_factor, band_range)
+
             out_arrays.append(image.to_uint8(band_data, *band_stretch_range))
 
     out = np.ma.stack(out_arrays, axis=-1)
