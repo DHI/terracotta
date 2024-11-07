@@ -599,7 +599,7 @@ def test_get_rgb_invalid_stretch_percentile(
         ['0', "Must be greater than 0"],
     ],
 )
-def test_get_rgb_invalid_gamma_factor(
+def test_get_singleband_rgb_invalid_gamma_factor(
     debug_client, use_testdb, raster_file_xyz, gamma_factor_params
 ):
     x, y, z = raster_file_xyz
@@ -608,5 +608,11 @@ def test_get_rgb_invalid_gamma_factor(
         debug_client.get(
             f"/rgb/val21/x/{z}/{x}/{y}.png?r=val22&g=val23&b=val24&"
             f"gamma_factor={gamma_factor}"
+        )
+    assert gamma_factor_params[1] in str(exc.value)
+
+    with pytest.raises(marshmallow.ValidationError) as exc:
+        debug_client.get(
+            f"/singleband/val11/x/val21/{z}/{x}/{y}.png?gamma_factor={gamma_factor}"
         )
     assert gamma_factor_params[1] in str(exc.value)
