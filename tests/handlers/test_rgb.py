@@ -222,3 +222,45 @@ def test_rgb_preview(use_testdb):
     raw_img = rgb.rgb(["val21", "x"], ["val22", "val23", "val24"])
     img_data = np.asarray(Image.open(raw_img))
     assert img_data.shape == (*terracotta.get_settings().DEFAULT_TILE_SIZE, 3)
+
+
+def test_rgb_gamma_correction(use_testdb, testdb, raster_file_xyz):
+    import terracotta
+    from terracotta.xyz import get_tile_data
+    from terracotta.handlers import rgb
+    from terracotta import image
+
+    ds_keys = ["val21", "x", "val22"]
+    bands = ["val22", "val23", "val24"]
+    gamma_factor = 2
+
+    raw_img = rgb.rgb(
+        ds_keys[:2],
+        bands,
+        raster_file_xyz,
+        gamma_factor=gamma_factor,
+    )
+    img_data = np.asarray(Image.open(raw_img))[..., 0]
+
+    # get non-gamma corrected data to compare to
+    driver = terracotta.get_driver(testdb)
+
+    with driver.connect():
+        tile_data = get_tile_data(
+            driver, ds_keys, tile_xyz=raster_file_xyz, tile_size=img_data.shape
+        )
+
+        tile_metadata = driver.get_metadata(ds_keys)
+
+    # non-gamma corrected uint8 data
+    tile_uint8 = image.to_uint8(tile_data, *tile_metadata["range"])
+
+    # filter transparent values
+    valid_mask = ~tile_data.mask
+    assert np.all(img_data[~valid_mask] == 0)
+
+    valid_img = img_data[valid_mask]
+    valid_data = tile_uint8.compressed()
+
+    # gamma factor of 2 is sqrt(x) in [0, 1]
+    assert np.all(valid_img > valid_data)
