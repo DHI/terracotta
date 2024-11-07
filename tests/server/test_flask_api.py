@@ -588,3 +588,25 @@ def test_get_rgb_invalid_stretch_percentile(
             f"r_range={stretch_range}&b_range={stretch_range}&g_range={stretch_range}"
         )
     assert stretch_range_params[1] in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "gamma_factor_params",
+    [
+        ['-1', "Must be greater than 0"],
+        ['2,2', "Not a valid number"],
+        ['[1]', "Not a valid number"],
+        ['0', "Must be greater than 0"],
+    ],
+)
+def test_get_rgb_invalid_gamma_factor(
+    debug_client, use_testdb, raster_file_xyz, gamma_factor_params
+):
+    x, y, z = raster_file_xyz
+    gamma_factor = gamma_factor_params[0]
+    with pytest.raises(marshmallow.ValidationError) as exc:
+        debug_client.get(
+            f"/rgb/val21/x/{z}/{x}/{y}.png?r=val22&g=val23&b=val24&"
+            f"gamma_factor={gamma_factor}"
+        )
+    assert gamma_factor_params[1] in str(exc.value)

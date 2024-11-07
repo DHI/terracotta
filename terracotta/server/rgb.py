@@ -68,7 +68,11 @@ class RGBOptionSchema(Schema):
             "Null values indicate global minimum / maximum."
         ),
     )
-    gamma_factor = fields.Float(missing=None, description="Gamma factor to perform gamma correction.")
+    gamma_factor = fields.Float(
+        validate=validate.Range(min=0, min_inclusive=False),
+        missing=None,
+        description="Gamma factor to perform gamma correction."
+    )
     tile_size = fields.List(
         fields.Integer(),
         validate=validate.Length(equal=2),
