@@ -290,3 +290,52 @@ def test_rgb_invalid_gamma_factor(use_testdb, raster_file_xyz, gamma_factor_para
             gamma_factor=gamma_factor,
         )
     assert gamma_factor[1] in str(err.value)
+
+
+def test_rgb_stretch_gamma_correction(use_testdb, testdb, raster_file_xyz):
+    import terracotta
+    from terracotta.xyz import get_tile_data
+    from terracotta.handlers import rgb
+
+    ds_keys = ["val21", "x", "val22"]
+    bands = ["val22", "val23", "val24"]
+    gamma_factor = 2
+    pct_stretch_range = ["p2", "p98"]
+
+    raw_img = rgb.rgb(
+        ds_keys[:2],
+        bands,
+        raster_file_xyz,
+        gamma_factor=gamma_factor,
+        stretch_ranges=[pct_stretch_range] * 3,
+    )
+    img_data = np.asarray(Image.open(raw_img))[..., 0]
+
+    # get unstretched data to compare to
+    driver = terracotta.get_driver(testdb)
+
+    with driver.connect():
+        tile_data = get_tile_data(
+            driver, ds_keys, tile_xyz=raster_file_xyz, tile_size=img_data.shape
+        )
+        band_metadata = driver.get_metadata(ds_keys)
+
+        stretch_range = [
+            band_metadata["percentiles"][1],
+            band_metadata["percentiles"][97],
+        ]
+
+    # filter transparent values
+    valid_mask = ~tile_data.mask
+    assert np.all(img_data[~valid_mask] == 0)
+
+    valid_img = img_data[valid_mask]
+    valid_data = tile_data.compressed()
+
+    assert np.all(valid_img[valid_data < stretch_range[0]] == 1)
+    stretch_range_mask = (valid_data > stretch_range[0]) & (
+        valid_data < stretch_range[1]
+    )
+    assert np.all(valid_img[stretch_range_mask] >= 1)
+    assert np.all(valid_img[stretch_range_mask] <= 255)
+    assert np.all(valid_img[valid_data > stretch_range[1]] == 255)
