@@ -264,3 +264,29 @@ def test_rgb_gamma_correction(use_testdb, testdb, raster_file_xyz):
 
     # gamma factor of 2 is sqrt(x) in [0, 1]
     assert np.all(valid_img > valid_data)
+
+
+@pytest.mark.parametrize(
+    "gamma_factor_params",
+    [
+        ['-1', "Invalid gamma factor"],
+        ['2,2', "Invalid gamma factor"],
+        ['[1]', "Invalid gamma factor"],
+        ['0', "Invalid gamma factor"],
+    ],
+)
+def test_rgb_invalid_gamma_factor(use_testdb, raster_file_xyz, gamma_factor_params):
+    from terracotta.handlers import rgb
+
+    ds_keys = ["val21", "x", "val22"]
+    bands = ["val22", "val23", "val24"]
+
+    gamma_factor = gamma_factor_params[:2]
+    with pytest.raises(exceptions.InvalidArgumentsError) as err:
+        rgb.rgb(
+            ds_keys[:2],
+            bands,
+            raster_file_xyz,
+            gamma_factor=gamma_factor,
+        )
+    assert gamma_factor[1] in str(err.value)

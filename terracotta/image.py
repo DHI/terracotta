@@ -7,6 +7,7 @@ from typing import List, Sequence, Tuple, TypeVar, Union, Optional
 from typing.io import BinaryIO
 
 from io import BytesIO
+import numbers
 
 import numpy as np
 from PIL import Image
@@ -191,6 +192,8 @@ def gamma_correction(
         out_dtype: type = np.uint16,
 ) -> Array:
     """Apply gamma correction to the input array and scale it to the output dtype."""
+    if not isinstance(gamma_factor, numbers.Number) or gamma_factor <= 0:
+        raise exceptions.InvalidArgumentsError("Invalid gamma factor")
     arr = to_math_type(masked_data, band_range)
     arr = gamma(arr, gamma_factor)
     arr = scale_dtype(arr, out_dtype)
