@@ -225,3 +225,67 @@ def test_rgb_invalid_percentiles(use_testdb, stretch_range_params):
             stretch_range=stretch_range,
         )
     assert stretch_range_params[2] in str(err.value)
+
+
+def test_singleband_gamma_correction(use_testdb, testdb, raster_file_xyz):
+    import terracotta
+    from terracotta.xyz import get_tile_data
+    from terracotta.handlers import singleband
+    from terracotta import image
+
+    ds_keys = ["val21", "x", "val22"]
+    gamma_factor = 0.5
+
+    raw_img = singleband.singleband(
+        ds_keys,
+        tile_xyz=raster_file_xyz,
+        gamma_factor=gamma_factor,
+    )
+    img_data = np.asarray(Image.open(raw_img))
+
+    # get unstretched data to compare to
+    driver = terracotta.get_driver(testdb)
+
+    with driver.connect():
+        tile_data = get_tile_data(
+            driver, ds_keys, tile_xyz=raster_file_xyz, tile_size=img_data.shape
+        )
+
+        tile_metadata = driver.get_metadata(ds_keys)
+
+    # non-gamma corrected uint8 data
+    tile_uint8 = image.to_uint8(tile_data, *tile_metadata["range"])
+
+    # filter transparent values
+    valid_mask = ~tile_data.mask
+    assert np.all(img_data[~valid_mask] == 0)
+
+    valid_img = img_data[valid_mask]
+    valid_data = tile_uint8.compressed()
+
+    # gamma factor of 0.5 is x^2 in [0, 1]
+    assert np.all(valid_img < valid_data)
+
+
+@pytest.mark.parametrize(
+    "gamma_factor_params",
+    [
+        ['-1', "Invalid gamma factor"],
+        ['2,2', "Invalid gamma factor"],
+        ['[1]', "Invalid gamma factor"],
+        ['0', "Invalid gamma factor"],
+    ],
+)
+def test_singleband_invalid_gamma_factor(use_testdb, raster_file_xyz, gamma_factor_params):
+    from terracotta.handlers import singleband
+
+    ds_keys = ["val21", "x", "val22"]
+
+    gamma_factor = gamma_factor_params[:2]
+    with pytest.raises(exceptions.InvalidArgumentsError) as err:
+        singleband.singleband(
+            ds_keys,
+            raster_file_xyz,
+            gamma_factor=gamma_factor,
+        )
+    assert gamma_factor[1] in str(err.value)
