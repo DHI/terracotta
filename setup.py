@@ -64,6 +64,7 @@ setup(
         "cachetools>=3.1.0",
         "click",
         "click-spinner",
+        "color-operations",
         "flask",
         "flask_cors",
         "marshmallow>=3.0.0",
