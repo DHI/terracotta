@@ -25,8 +25,8 @@ RUN pip install --no-cache-dir --upgrade pip \
         pymysql>=1.0.0 \
         psycopg2-binary \
         gunicorn \
-        werkzeug==0.16.0 \
-        markupsafe==2.0.1 \
+        werkzeug<=0.16.0 \
+        markupsafe<=2.0.1 \
     && rm -rf /terracotta
 
 COPY docker/resources /
