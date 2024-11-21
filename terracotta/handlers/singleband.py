@@ -8,6 +8,8 @@ from typing.io import BinaryIO
 
 import collections
 
+import numpy as np
+
 from terracotta import get_settings, get_driver, image, xyz
 from terracotta.profile import trace
 
@@ -26,6 +28,7 @@ def singleband(
     *,
     colormap: Union[str, Mapping[Number, RGBA], None] = None,
     stretch_range: Optional[Tuple[NumberOrString, NumberOrString]] = None,
+    gamma_factor: Optional[float] = None,
     tile_size: Optional[Tuple[int, int]] = None
 ) -> BinaryIO:
     """Return singleband image as PNG"""
@@ -61,7 +64,8 @@ def singleband(
         out = image.label(tile_data, labels)
     else:
         # determine stretch range from metadata and arguments
-        stretch_range_ = list(metadata["range"])
+        band_range = list(metadata["range"])
+        stretch_range_ = band_range.copy()
 
         percentiles = metadata.get("percentiles", [])
         if stretch_min is not None:
@@ -71,6 +75,14 @@ def singleband(
             stretch_range_[1] = image.get_stretch_scale(stretch_max, percentiles)
 
         cmap_or_palette = cast(Optional[str], colormap)
+
+        if gamma_factor:
+            # gamma correction is monotonic and preserves percentiles
+            band_stretch_range_arr = np.array(stretch_range_, dtype=tile_data.dtype)
+            stretch_range_ = list(image.gamma_correction(band_stretch_range_arr, gamma_factor, band_range))
+            # gamma correct band data
+            tile_data = image.gamma_correction(tile_data, gamma_factor, band_range)
+
         out = image.to_uint8(tile_data, *stretch_range_)
 
     return image.array_to_png(out, colormap=cmap_or_palette)

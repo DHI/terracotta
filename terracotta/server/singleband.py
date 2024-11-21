@@ -49,6 +49,12 @@ class SinglebandOptionSchema(Schema):
         missing=None,
     )
 
+    gamma_factor = fields.Float(
+        validate=validate.Range(min=0, min_inclusive=False),
+        missing=None,
+        description="Gamma factor to perform gamma correction."
+    )
+
     colormap = fields.String(
         description="Colormap to apply to image (see /colormap)",
         validate=validate.OneOf(("explicit", *AVAILABLE_CMAPS)),
