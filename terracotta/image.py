@@ -11,6 +11,7 @@ import numbers
 
 import numpy as np
 from PIL import Image
+from color_operations import parse_operations
 from color_operations.operations import gamma
 from color_operations.utils import to_math_type, scale_dtype
 
@@ -183,6 +184,21 @@ def gamma_correction(
         raise exceptions.InvalidArgumentsError("No band range given and array is not of integer type")
 
     arr = gamma(arr, gamma_factor)
+    arr = scale_dtype(arr, out_dtype)
+    return arr
+
+
+def apply_color_transform(
+        masked_data: Array,
+        color_transform: str,
+        out_dtype: type = np.uint16,
+) -> Array:
+    """Apply gamma correction to the input array and scale it to the output dtype."""
+    arr = to_math_type(masked_data)
+
+    for func in parse_operations(color_transform):
+        arr = func(arr)
+
     arr = scale_dtype(arr, out_dtype)
     return arr
 

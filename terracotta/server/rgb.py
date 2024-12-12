@@ -73,6 +73,10 @@ class RGBOptionSchema(Schema):
         missing=None,
         description="Gamma factor to perform gamma correction."
     )
+    color_transform = fields.String(
+        missing=None,
+        description="Gamma factor to perform gamma correction."
+    )
     tile_size = fields.List(
         fields.Integer(),
         validate=validate.Length(equal=2),
