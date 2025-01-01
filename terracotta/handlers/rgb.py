@@ -23,7 +23,6 @@ def rgb(
     tile_xyz: Optional[Tuple[int, int, int]] = None,
     *,
     stretch_ranges: Optional[ListOfRanges] = None,
-    gamma_factor: Optional[float] = None,
     color_transform: Optional[str] = None,
     tile_size: Optional[Tuple[int, int]] = None
 ) -> BinaryIO:

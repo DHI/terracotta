@@ -3,17 +3,15 @@
 Utilities to create and manipulate images.
 """
 
-from typing import List, Sequence, Tuple, TypeVar, Union, Optional
+from typing import List, Sequence, Tuple, TypeVar, Union
 from typing.io import BinaryIO
 
 from io import BytesIO
-import numbers
 
 import numpy as np
 from PIL import Image
 from color_operations import parse_operations
-from color_operations.operations import gamma
-from color_operations.utils import to_math_type, scale_dtype
+from color_operations.utils import to_math_type
 
 from terracotta.profile import trace
 from terracotta import exceptions, get_settings
@@ -164,28 +162,6 @@ def to_uint8(data: Array, lower_bound: Number, upper_bound: Number) -> Array:
     # explicitly set NaNs to 0 to avoid warnings
     rescaled[~np.isfinite(rescaled)] = 0
     return rescaled.astype(np.uint8)
-
-
-def gamma_correction(
-        masked_data: Array,
-        gamma_factor: float,
-        band_range: list,
-        out_dtype: type = np.uint16,
-) -> Array:
-    """Apply gamma correction to the input array and scale it to the output dtype."""
-    if not isinstance(gamma_factor, numbers.Number) or gamma_factor <= 0:
-        raise exceptions.InvalidArgumentsError("Invalid gamma factor")
-
-    if band_range:
-        arr = contrast_stretch(masked_data, band_range, (0, 1))
-    elif np.issubdtype(masked_data.dtype, np.integer):
-        arr = to_math_type(masked_data)
-    else:
-        raise exceptions.InvalidArgumentsError("No band range given and array is not of integer type")
-
-    arr = gamma(arr, gamma_factor)
-    arr = scale_dtype(arr, out_dtype)
-    return arr
 
 
 def apply_color_transform(

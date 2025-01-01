@@ -68,11 +68,6 @@ class RGBOptionSchema(Schema):
             "Null values indicate global minimum / maximum."
         ),
     )
-    gamma_factor = fields.Float(
-        validate=validate.Range(min=0, min_inclusive=False),
-        missing=None,
-        description="Gamma factor to perform gamma correction."
-    )
     color_transform = fields.String(
         missing=None,
         description="Gamma factor to perform gamma correction."
@@ -174,13 +169,11 @@ def _get_rgb_image(
 
     rgb_values = (options.pop("r"), options.pop("g"), options.pop("b"))
     stretch_ranges = tuple(options.pop(k) for k in ("r_range", "g_range", "b_range"))
-    gamma_factor = options.pop("gamma_factor")
 
     image = rgb(
         some_keys,
         rgb_values,
         stretch_ranges=stretch_ranges,
-        gamma_factor=gamma_factor,
         tile_xyz=tile_xyz,
         **options,
     )
