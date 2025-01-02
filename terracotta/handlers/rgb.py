@@ -111,18 +111,18 @@ def rgb(
             out_ranges.append(band_stretch_range)
             out_arrays.append(band_data)
 
-    out = np.ma.stack(out_arrays, axis=0)
+    band_data = np.ma.stack(out_arrays, axis=0)
 
     if color_transform:
-        band_stretch_range_arr = [np.array(band_rng, dtype=band_data.dtype) for band_rng in out_ranges]
-        band_stretch_range_arr = np.ma.stack(band_stretch_range_arr, axis=0)
+        out_ranges = [np.array(band_rng, dtype=band_data.dtype) for band_rng in out_ranges]
+        out_ranges = np.ma.stack(out_ranges, axis=0)
 
-        band_stretch_range_arr = image.apply_color_transform(band_stretch_range_arr, color_transform)
-        band_data = image.apply_color_transform(out, color_transform)
+        out_ranges = image.apply_color_transform(out_ranges, color_transform, band_range)
+        band_data = image.apply_color_transform(band_data, color_transform, band_range)
 
     out_arrays = []
     for k in range(band_data.shape[0]):
-        out_arrays.append(image.to_uint8(band_data[k], *band_stretch_range_arr[k]))
+        out_arrays.append(image.to_uint8(band_data[k], *out_ranges[k]))
 
     out = np.ma.stack(out_arrays, axis=-1)
     return image.array_to_png(out)

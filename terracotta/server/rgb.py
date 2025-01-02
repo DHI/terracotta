@@ -9,7 +9,7 @@ import json
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 from flask import request, send_file, Response
 
-from terracotta.server.fields import StringOrNumber, validate_stretch_range
+from terracotta.server.fields import StringOrNumber, validate_stretch_range, validate_color_transform
 from terracotta.server.flask_api import TILE_API
 
 
@@ -69,8 +69,9 @@ class RGBOptionSchema(Schema):
         ),
     )
     color_transform = fields.String(
+        validate=validate_color_transform,
         missing=None,
-        description="Gamma factor to perform gamma correction."
+        description="Color transform DSL string from color-operations.",
     )
     tile_size = fields.List(
         fields.Integer(),

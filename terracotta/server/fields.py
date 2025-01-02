@@ -8,6 +8,8 @@ from marshmallow import ValidationError, fields
 
 from typing import Any, Union
 
+from color_operations import parse_operations
+
 
 class StringOrNumber(fields.Field):
     """
@@ -45,3 +47,19 @@ def validate_stretch_range(data: Any) -> None:
     if isinstance(data, str):
         if not re.match("^p\\d+$", data):
             raise ValidationError("Percentile format is `p<digits>`")
+
+
+def validate_color_transform(data: Any) -> None:
+    """
+    Validate that the color transform is a string and can be parsed by `color_operations`.
+    """
+    if not isinstance(data, str):
+        raise ValidationError("Color transform needs to be a string")
+
+    if "saturation" in data:
+        raise ValidationError("Saturation is currently not supported")
+
+    try:
+        parse_operations(data)
+    except (ValueError, KeyError):
+        raise ValidationError("Invalid color transform")

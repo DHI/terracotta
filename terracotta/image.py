@@ -167,15 +167,21 @@ def to_uint8(data: Array, lower_bound: Number, upper_bound: Number) -> Array:
 def apply_color_transform(
         masked_data: Array,
         color_transform: str,
-        out_dtype: type = np.uint16,
+        band_range: list,
 ) -> Array:
     """Apply gamma correction to the input array and scale it to the output dtype."""
-    arr = to_math_type(masked_data)
+
+    if band_range:
+        arr = contrast_stretch(masked_data, band_range, (0, 1))
+    elif np.issubdtype(masked_data.dtype, np.integer):
+        arr = to_math_type(masked_data)
+    else:
+        raise exceptions.InvalidArgumentsError("No band range given and array is not of integer type")
+
 
     for func in parse_operations(color_transform):
         arr = func(arr)
 
-    arr = scale_dtype(arr, out_dtype)
     return arr
 
 
