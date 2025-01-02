@@ -10,6 +10,8 @@ from io import BytesIO
 
 import numpy as np
 from PIL import Image
+from color_operations import parse_operations
+from color_operations.utils import to_math_type
 
 from terracotta.profile import trace
 from terracotta import exceptions, get_settings
@@ -160,6 +162,27 @@ def to_uint8(data: Array, lower_bound: Number, upper_bound: Number) -> Array:
     # explicitly set NaNs to 0 to avoid warnings
     rescaled[~np.isfinite(rescaled)] = 0
     return rescaled.astype(np.uint8)
+
+
+def apply_color_transform(
+        masked_data: Array,
+        color_transform: str,
+        band_range: list,
+) -> Array:
+    """Apply gamma correction to the input array and scale it to the output dtype."""
+
+    if band_range:
+        arr = contrast_stretch(masked_data, band_range, (0, 1))
+    elif np.issubdtype(masked_data.dtype, np.integer):
+        arr = to_math_type(masked_data)
+    else:
+        raise exceptions.InvalidArgumentsError("No band range given and array is not of integer type")
+
+
+    for func in parse_operations(color_transform):
+        arr = func(arr)
+
+    return arr
 
 
 def label(data: Array, labels: Sequence[Number]) -> Array:

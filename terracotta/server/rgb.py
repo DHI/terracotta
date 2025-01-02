@@ -9,7 +9,7 @@ import json
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 from flask import request, send_file, Response
 
-from terracotta.server.fields import StringOrNumber, validate_stretch_range
+from terracotta.server.fields import StringOrNumber, validate_stretch_range, validate_color_transform
 from terracotta.server.flask_api import TILE_API
 
 
@@ -48,7 +48,7 @@ class RGBOptionSchema(Schema):
         example="[0,1]",
         missing=None,
         description=(
-            "Stretch range [min, max] to use for the gren band as JSON array. "
+            "Stretch range [min, max] to use for the green band as JSON array. "
             "Min and max may be numbers to use as absolute range, or strings "
             "of the format `p<digits>` with an integer between 0 and 100 "
             "to use percentiles of the image instead. "
@@ -67,6 +67,11 @@ class RGBOptionSchema(Schema):
             "to use percentiles of the image instead. "
             "Null values indicate global minimum / maximum."
         ),
+    )
+    color_transform = fields.String(
+        validate=validate_color_transform,
+        missing=None,
+        description="Color transform DSL string from color-operations.",
     )
     tile_size = fields.List(
         fields.Integer(),
