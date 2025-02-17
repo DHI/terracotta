@@ -316,6 +316,30 @@ def get_raster_tile(
     if rio_env_options is None:
         rio_env_options = {}
 
+    if "AWS_SECRET_KEY" in rio_env_options:
+
+        import boto3
+        from rasterio.session import AWSSession
+
+        aws_session = AWSSession(
+            boto3.Session(
+                aws_access_key_id=rio_env_options['AWS_ACCESS_KEY'],
+                aws_secret_access_key=rio_env_options['AWS_SECRET_KEY'],
+        ),
+            endpoint_url=rio_env_options['AWS_S3_ENDPOINT']
+        )
+
+        rio_env_options.update(
+            AWS_VIRTUAL_HOSTING=False,
+            AWS_HTTPS='NO',
+            GDAL_DISABLE_READDIR_ON_OPEN='YES',
+            session=aws_session
+        )
+
+        del rio_env_options['AWS_ACCESS_KEY']
+        del rio_env_options['AWS_SECRET_KEY']
+        del rio_env_options['AWS_S3_ENDPOINT']
+
     if preserve_values:
         reproject_enum = resampling_enum = get_resampling_enum("nearest")
     else:
@@ -323,6 +347,7 @@ def get_raster_tile(
         resampling_enum = get_resampling_enum(resampling_method)
 
     with contextlib.ExitStack() as es:
+
         es.enter_context(rasterio.Env(**rio_env_options))
         try:
             with trace("open_dataset"):

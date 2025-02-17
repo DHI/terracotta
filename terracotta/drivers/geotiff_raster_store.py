@@ -130,15 +130,15 @@ class GeoTiffRasterStore(RasterStore):
         if tile_size is None:
             tile_size = settings.DEFAULT_TILE_SIZE
 
-        if settings.RASTER_AWS_ACCESS_KEY is not None:
-            self._RIO_ENV_OPTIONS = self._RIO_ENV_OPTIONS.update(
-                AWS_VIRTUAL_HOSTING=False,
-                AWS_HTTPS='NO',
-                AWS_S3_ENDPOIN=settings.RASTER_AWS_S3_ENDPOINT,
-                AWS_ACCESS_KEY_ID=settings.RASTER_AWS_ACCESS_KEY,
-                AWS_SECRET_ACCESS_KEY=settings.RASTER_AWS_SECRET_KEY
+        if settings.RASTER_AWS_S3_ENDPOINT is not None:
+            
+            # Have to use this as AWSSession/boto3.Session is not seralizable:
+            self._RIO_ENV_OPTIONS.update(
+                AWS_ACCESS_KEY=settings.RASTER_AWS_ACCESS_KEY,
+                AWS_SECRET_KEY=settings.RASTER_AWS_SECRET_KEY,
+                AWS_S3_ENDPOINT=settings.RASTER_AWS_S3_ENDPOINT
             )
-
+        
         kwargs = dict(
             path=path,
             tile_bounds=tile_bounds,
