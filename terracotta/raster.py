@@ -32,9 +32,8 @@ def get_aws_session() -> Union[AWSSession, None]:
 
     settings = get_settings()
 
-    if hasattr(settings, "RASTER_AWS_S3_ENDPOINT"):
+    try:
         import boto3
-
         aws_session = AWSSession(
             boto3.Session(
                 aws_access_key_id=settings.RASTER_AWS_ACCESS_KEY,
@@ -43,8 +42,8 @@ def get_aws_session() -> Union[AWSSession, None]:
             endpoint_url=settings.RASTER_AWS_S3_ENDPOINT
         )
         return aws_session
-
-    return None
+    except AttributeError:
+        return None
 
 
 def convex_hull_candidate_mask(mask: np.ndarray) -> np.ndarray:
