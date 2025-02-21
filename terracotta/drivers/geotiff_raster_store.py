@@ -140,10 +140,11 @@ class GeoTiffRasterStore(RasterStore):
             rio_env_options=self._RIO_ENV_OPTIONS
         )
         
-        if hasattr(settings, "RASTER_AWS_S3_ENDPOINT"):
-            kwargs.update(
-                aws_s3_endpoint=settings.RASTER_AWS_S3_ENDPOINT
-            ) 
+        try: 
+            kwargs.update(aws_s3_endpoint=settings.RASTER_AWS_S3_ENDPOINT)
+        except AttributeError:
+            pass
+             
 
         cache_key = hash(ensure_hashable(kwargs))
 
