@@ -74,7 +74,6 @@ def ensure_hashable(val: Any) -> Any:
 
     return val
 
-
 class GeoTiffRasterStore(RasterStore):
     """Raster store that operates on GeoTiff raster files from disk.
 
@@ -130,15 +129,6 @@ class GeoTiffRasterStore(RasterStore):
         if tile_size is None:
             tile_size = settings.DEFAULT_TILE_SIZE
 
-        if settings.RASTER_AWS_S3_ENDPOINT is not None:
-            
-            # Have to use this as AWSSession/boto3.Session is not seralizable:
-            self._RIO_ENV_OPTIONS.update(
-                AWS_ACCESS_KEY=settings.RASTER_AWS_ACCESS_KEY,
-                AWS_SECRET_KEY=settings.RASTER_AWS_SECRET_KEY,
-                AWS_S3_ENDPOINT=settings.RASTER_AWS_S3_ENDPOINT
-            )
-        
         kwargs = dict(
             path=path,
             tile_bounds=tile_bounds,
@@ -147,8 +137,13 @@ class GeoTiffRasterStore(RasterStore):
             reprojection_method=settings.REPROJECTION_METHOD,
             resampling_method=settings.RESAMPLING_METHOD,
             target_crs=self._TARGET_CRS,
-            rio_env_options=self._RIO_ENV_OPTIONS,
+            rio_env_options=self._RIO_ENV_OPTIONS
         )
+        
+        if hasattr(settings, "RASTER_AWS_S3_ENDPOINT"):
+            kwargs.update(
+                aws_s3_endpoint=settings.RASTER_AWS_S3_ENDPOINT
+            ) 
 
         cache_key = hash(ensure_hashable(kwargs))
 

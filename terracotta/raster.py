@@ -3,10 +3,12 @@
 Extract information from raster files through rasterio.
 """
 
-from typing import Optional, Any, Dict, Tuple, Sequence, TYPE_CHECKING
+from typing import Optional, Any, Dict, Tuple, Sequence, Union, TYPE_CHECKING
 import contextlib
 import warnings
 import logging
+import functools
+from rasterio.session import AWSSession
 
 import numpy as np
 
@@ -20,10 +22,29 @@ try:
 except ImportError:  # pragma: no cover
     has_crick = False
 
-from terracotta import exceptions
+from terracotta import exceptions, get_settings
 from terracotta.profile import trace
 
 logger = logging.getLogger(__name__)
+
+@functools.cache
+def get_aws_session() -> Union[AWSSession, None]:
+
+    settings = get_settings()
+
+    if hasattr(settings, "RASTER_AWS_S3_ENDPOINT"):
+        import boto3
+
+        aws_session = AWSSession(
+            boto3.Session(
+                aws_access_key_id=settings.RASTER_AWS_ACCESS_KEY,
+                aws_secret_access_key=settings.RASTER_AWS_SECRET_KEY,
+        ),
+            endpoint_url=settings.RASTER_AWS_S3_ENDPOINT
+        )
+        return aws_session
+
+    return None
 
 
 def convex_hull_candidate_mask(mask: np.ndarray) -> np.ndarray:
@@ -300,6 +321,7 @@ def get_raster_tile(
     tile_size: Tuple[int, int] = (256, 256),
     preserve_values: bool = False,
     target_crs: str = "epsg:3857",
+    aws_s3_endpoint: Optional[str] = None,
     rio_env_options: Optional[Dict[str, Any]] = None,
 ) -> np.ma.MaskedArray:
     """Load a raster dataset from a file through rasterio.
@@ -316,29 +338,13 @@ def get_raster_tile(
     if rio_env_options is None:
         rio_env_options = {}
 
-    if "AWS_SECRET_KEY" in rio_env_options:
-
-        import boto3
-        from rasterio.session import AWSSession
-
-        aws_session = AWSSession(
-            boto3.Session(
-                aws_access_key_id=rio_env_options['AWS_ACCESS_KEY'],
-                aws_secret_access_key=rio_env_options['AWS_SECRET_KEY'],
-        ),
-            endpoint_url=rio_env_options['AWS_S3_ENDPOINT']
-        )
-
+    if aws_s3_endpoint:
         rio_env_options.update(
             AWS_VIRTUAL_HOSTING=False,
             AWS_HTTPS='NO',
             GDAL_DISABLE_READDIR_ON_OPEN='YES',
-            session=aws_session
+            session=get_aws_session()
         )
-
-        del rio_env_options['AWS_ACCESS_KEY']
-        del rio_env_options['AWS_SECRET_KEY']
-        del rio_env_options['AWS_S3_ENDPOINT']
 
     if preserve_values:
         reproject_enum = resampling_enum = get_resampling_enum("nearest")
