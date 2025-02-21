@@ -28,7 +28,7 @@ from terracotta.profile import trace
 logger = logging.getLogger(__name__)
 
 @functools.cache
-def get_aws_session() -> Union[AWSSession, None]:
+def get_aws_session(RASTER_AWS_S3_ENDPOINT: str) -> Union[AWSSession, None]:
 
     settings = get_settings()
 
@@ -342,7 +342,7 @@ def get_raster_tile(
             AWS_VIRTUAL_HOSTING=False,
             AWS_HTTPS='NO',
             GDAL_DISABLE_READDIR_ON_OPEN='YES',
-            session=get_aws_session()
+            session=get_aws_session(aws_s3_endpoint)
         )
 
     if preserve_values:
