@@ -3,7 +3,7 @@
 Extract information from raster files through rasterio.
 """
 
-from typing import Optional, Any, Dict, Tuple, Sequence, Union, TYPE_CHECKING
+from typing import Optional, Any, Dict, Tuple, Sequence, TYPE_CHECKING
 import contextlib
 import warnings
 import logging
@@ -22,28 +22,26 @@ try:
 except ImportError:  # pragma: no cover
     has_crick = False
 
-from terracotta import exceptions, get_settings
+from terracotta import exceptions
 from terracotta.profile import trace
 
 logger = logging.getLogger(__name__)
 
+
 @functools.cache
-def get_aws_session(RASTER_AWS_S3_ENDPOINT: str) -> Union[AWSSession, None]:
+def get_aws_session(
+    aws_access_key_id: str, aws_secret_access_key: str, endpoint_url: str
+) -> AWSSession:
+    import boto3
 
-    settings = get_settings()
-
-    try:
-        import boto3
-        aws_session = AWSSession(
-            boto3.Session(
-                aws_access_key_id=settings.RASTER_AWS_ACCESS_KEY,
-                aws_secret_access_key=settings.RASTER_AWS_SECRET_KEY,
+    aws_session = AWSSession(
+        boto3.Session(
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
         ),
-            endpoint_url=settings.RASTER_AWS_S3_ENDPOINT
-        )
-        return aws_session
-    except AttributeError:
-        return None
+        endpoint_url=endpoint_url,
+    )
+    return aws_session
 
 
 def convex_hull_candidate_mask(mask: np.ndarray) -> np.ndarray:
@@ -320,7 +318,7 @@ def get_raster_tile(
     tile_size: Tuple[int, int] = (256, 256),
     preserve_values: bool = False,
     target_crs: str = "epsg:3857",
-    aws_s3_endpoint: Optional[str] = None,
+    aws_s3_config: Optional[dict[str, str]] = None,
     rio_env_options: Optional[Dict[str, Any]] = None,
 ) -> np.ma.MaskedArray:
     """Load a raster dataset from a file through rasterio.
@@ -337,12 +335,12 @@ def get_raster_tile(
     if rio_env_options is None:
         rio_env_options = {}
 
-    if aws_s3_endpoint:
+    if aws_s3_config:
         rio_env_options.update(
             AWS_VIRTUAL_HOSTING=False,
-            AWS_HTTPS='NO',
-            GDAL_DISABLE_READDIR_ON_OPEN='YES',
-            session=get_aws_session(aws_s3_endpoint)
+            AWS_HTTPS="NO",
+            GDAL_DISABLE_READDIR_ON_OPEN="YES",
+            session=get_aws_session(**aws_s3_config),
         )
 
     if preserve_values:

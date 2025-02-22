@@ -74,6 +74,7 @@ def ensure_hashable(val: Any) -> Any:
 
     return val
 
+
 class GeoTiffRasterStore(RasterStore):
     """Raster store that operates on GeoTiff raster files from disk.
 
@@ -137,12 +138,17 @@ class GeoTiffRasterStore(RasterStore):
             reprojection_method=settings.REPROJECTION_METHOD,
             resampling_method=settings.RESAMPLING_METHOD,
             target_crs=self._TARGET_CRS,
-            rio_env_options=self._RIO_ENV_OPTIONS
+            rio_env_options=self._RIO_ENV_OPTIONS,
         )
-        
+
         if settings.RASTER_AWS_S3_ENDPOINT is not None:
-            kwargs.update(aws_s3_endpoint=settings.RASTER_AWS_S3_ENDPOINT)
-             
+            kwargs.update(
+                aws_s3_config=dict(
+                    aws_access_key_id=settings.RASTER_AWS_ACCESS_KEY,
+                    aws_secret_access_key=settings.RASTER_AWS_SECRET_KEY,
+                    endpoint_url=settings.RASTER_AWS_S3_ENDPOINT,
+                )
+            )
 
         cache_key = hash(ensure_hashable(kwargs))
 
