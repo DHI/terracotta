@@ -76,7 +76,7 @@ def singleband(
 
         cmap_or_palette = cast(Optional[str], colormap)
 
-        stretch_range_ = np.array(stretch_range_, dtype=tile_data.dtype)
+        stretch_range_ = np.array(stretch_range_, dtype=np.float64)
         stretch_range_ = np.ma.stack([stretch_range_], axis=0)
         stretch_range_ = image.contrast_stretch(stretch_range_, band_range, (0, 1))
 
@@ -89,6 +89,6 @@ def singleband(
             )
             tile_data = image.apply_color_transform(tile_data, color_transform)
 
-        out = image.to_uint8(tile_data, *stretch_range_[0])
+        out = image.to_uint8(tile_data, *stretch_range_[0])[0]
 
-    return image.array_to_png(out[0], colormap=cmap_or_palette)
+    return image.array_to_png(out, colormap=cmap_or_palette)
