@@ -9,7 +9,11 @@ import json
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
 from flask import request, send_file, Response
 
-from terracotta.server.fields import StringOrNumber, validate_stretch_range, validate_color_transform
+from terracotta.server.fields import (
+    StringOrNumber,
+    validate_stretch_range,
+    validate_color_transform,
+)
 from terracotta.server.flask_api import TILE_API
 
 

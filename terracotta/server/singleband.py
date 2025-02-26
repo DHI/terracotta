@@ -17,7 +17,11 @@ from marshmallow import (
 )
 from flask import request, send_file, Response
 
-from terracotta.server.fields import StringOrNumber, validate_stretch_range, validate_color_transform
+from terracotta.server.fields import (
+    StringOrNumber,
+    validate_stretch_range,
+    validate_color_transform,
+)
 from terracotta.server.flask_api import TILE_API
 from terracotta.cmaps import AVAILABLE_CMAPS
 

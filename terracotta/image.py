@@ -164,8 +164,8 @@ def to_uint8(data: Array, lower_bound: Number, upper_bound: Number) -> Array:
 
 
 def apply_color_transform(
-        masked_data: Array,
-        color_transform: str,
+    masked_data: Array,
+    color_transform: str,
 ) -> Array:
     """Apply color transform to input array. Input array should be normalized to [0,1]."""
     for func in parse_operations(color_transform):

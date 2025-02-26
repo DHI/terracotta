@@ -84,7 +84,9 @@ def singleband(
         tile_data = image.contrast_stretch(tile_data, band_range, (0, 1))
 
         if color_transform:
-            stretch_range_ = image.apply_color_transform(stretch_range_, color_transform)
+            stretch_range_ = image.apply_color_transform(
+                stretch_range_, color_transform
+            )
             tile_data = image.apply_color_transform(tile_data, color_transform)
 
         out = image.to_uint8(tile_data, *stretch_range_[0])

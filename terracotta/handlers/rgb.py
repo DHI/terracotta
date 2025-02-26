@@ -112,7 +112,9 @@ def rgb(
             out_arrays.append(band_data)
 
             band_stretch_range = np.array(band_stretch_range, dtype=band_data.dtype)
-            band_stretch_range = image.contrast_stretch(band_stretch_range, band_range, (0, 1))
+            band_stretch_range = image.contrast_stretch(
+                band_stretch_range, band_range, (0, 1)
+            )
             out_ranges.append(band_stretch_range)
 
     out_ranges = np.ma.stack(out_ranges, axis=0)
