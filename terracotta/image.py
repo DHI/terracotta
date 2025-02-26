@@ -11,7 +11,6 @@ from io import BytesIO
 import numpy as np
 from PIL import Image
 from color_operations import parse_operations
-from color_operations.utils import to_math_type
 
 from terracotta.profile import trace
 from terracotta import exceptions, get_settings
