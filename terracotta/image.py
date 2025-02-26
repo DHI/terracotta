@@ -168,7 +168,7 @@ def apply_color_transform(
         masked_data: Array,
         color_transform: str,
 ) -> Array:
-    """Apply gamma correction to the input array and scale it to the output dtype."""
+    """Apply color transform to input array. Input array should be normalized to [0,1]."""
     for func in parse_operations(color_transform):
         arr = func(masked_data)
 
