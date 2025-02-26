@@ -7,6 +7,8 @@ from typing import Optional, Any, Dict, Tuple, Sequence, TYPE_CHECKING
 import contextlib
 import warnings
 import logging
+import functools
+from rasterio.session import AWSSession
 
 import numpy as np
 
@@ -24,6 +26,22 @@ from terracotta import exceptions
 from terracotta.profile import trace
 
 logger = logging.getLogger(__name__)
+
+
+@functools.cache
+def get_aws_session(
+    aws_access_key_id: str, aws_secret_access_key: str, endpoint_url: str
+) -> AWSSession:
+    import boto3
+
+    aws_session = AWSSession(
+        boto3.Session(
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+        ),
+        endpoint_url=endpoint_url,
+    )
+    return aws_session
 
 
 def convex_hull_candidate_mask(mask: np.ndarray) -> np.ndarray:
@@ -300,6 +318,7 @@ def get_raster_tile(
     tile_size: Tuple[int, int] = (256, 256),
     preserve_values: bool = False,
     target_crs: str = "epsg:3857",
+    aws_s3_config: Optional[dict[str, str]] = None,
     rio_env_options: Optional[Dict[str, Any]] = None,
 ) -> np.ma.MaskedArray:
     """Load a raster dataset from a file through rasterio.
@@ -316,6 +335,14 @@ def get_raster_tile(
     if rio_env_options is None:
         rio_env_options = {}
 
+    if aws_s3_config:
+        rio_env_options.update(
+            AWS_VIRTUAL_HOSTING=False,
+            AWS_HTTPS="NO",
+            GDAL_DISABLE_READDIR_ON_OPEN="YES",
+            session=get_aws_session(**aws_s3_config),
+        )
+
     if preserve_values:
         reproject_enum = resampling_enum = get_resampling_enum("nearest")
     else:
@@ -323,6 +350,7 @@ def get_raster_tile(
         resampling_enum = get_resampling_enum(resampling_method)
 
     with contextlib.ExitStack() as es:
+
         es.enter_context(rasterio.Env(**rio_env_options))
         try:
             with trace("open_dataset"):
