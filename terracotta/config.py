@@ -136,7 +136,7 @@ class SettingSchema(Schema):
 
     RASTER_CACHE_SIZE = fields.Integer(validate=validate.Range(min=0))
     RASTER_CACHE_COMPRESS_LEVEL = fields.Integer(validate=validate.Range(min=0, max=9))
-    
+
     RASTER_AWS_ACCESS_KEY = fields.String(allow_none=True)
     RASTER_AWS_SECRET_KEY = fields.String(allow_none=True)
     RASTER_AWS_S3_ENDPOINT = fields.String(allow_none=True)
