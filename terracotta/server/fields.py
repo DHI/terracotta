@@ -56,9 +56,6 @@ def validate_color_transform(data: Any) -> None:
     if not isinstance(data, str):
         raise ValidationError("Color transform needs to be a string")
 
-    if "saturation" in data:
-        raise ValidationError("Saturation is currently not supported")
-
     try:
         parse_operations(data)
     except (ValueError, KeyError):

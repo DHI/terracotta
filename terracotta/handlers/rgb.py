@@ -81,7 +81,6 @@ def rgb(
         futures = [get_band_future(key) for key in rgb_values]
         band_items = zip(rgb_values, stretch_ranges_, futures)
 
-        out_ranges = []
         out_arrays = []
 
         for i, (band_key, band_stretch_override, band_data_future) in enumerate(
@@ -108,25 +107,18 @@ def rgb(
 
             # normalize to [0, 1] range
             band_data = band_data_future.result()
-            band_data = image.contrast_stretch(band_data, band_range, (0, 1))
+            band_data = image.contrast_stretch(band_data, band_stretch_range, (0, 1))
             out_arrays.append(band_data)
 
-            band_stretch_range = np.array(band_stretch_range, dtype=band_data.dtype)
-            band_stretch_range = image.contrast_stretch(
-                band_stretch_range, band_range, (0, 1)
-            )
-            out_ranges.append(band_stretch_range)
-
-    out_ranges = np.ma.stack(out_ranges, axis=0)
+    # out_ranges = np.ma.stack(out_ranges, axis=0)
     band_data = np.ma.stack(out_arrays, axis=0)
 
     if color_transform:
-        out_ranges = image.apply_color_transform(out_ranges, color_transform)
         band_data = image.apply_color_transform(band_data, color_transform)
 
     out_arrays = []
     for k in range(band_data.shape[0]):
-        out_arrays.append(image.to_uint8(band_data[k], *out_ranges[k]))
+        out_arrays.append(image.to_uint8(band_data[k], lower_bound=0, upper_bound=1))
 
     out = np.ma.stack(out_arrays, axis=-1)
     return image.array_to_png(out)
