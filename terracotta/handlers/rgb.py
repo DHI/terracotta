@@ -23,6 +23,7 @@ def rgb(
     tile_xyz: Optional[Tuple[int, int, int]] = None,
     *,
     stretch_ranges: Optional[ListOfRanges] = None,
+    color_transform: Optional[str] = None,
     tile_size: Optional[Tuple[int, int]] = None
 ) -> BinaryIO:
     """Return RGB image as PNG
@@ -88,7 +89,8 @@ def rgb(
             keys = (*some_keys, band_key)
             metadata = driver.get_metadata(keys)
 
-            band_stretch_range = list(metadata["range"])
+            band_range = list(metadata["range"])
+            band_stretch_range = band_range.copy()
             scale_min, scale_max = band_stretch_override
 
             percentiles = metadata.get("percentiles", [])
@@ -103,8 +105,20 @@ def rgb(
                     "Upper stretch bound must be higher than lower bound"
                 )
 
+            # normalize to [0, 1] range
             band_data = band_data_future.result()
-            out_arrays.append(image.to_uint8(band_data, *band_stretch_range))
+            band_data = image.contrast_stretch(band_data, band_stretch_range, (0, 1))
+            out_arrays.append(band_data)
+
+    # out_ranges = np.ma.stack(out_ranges, axis=0)
+    band_data = np.ma.stack(out_arrays, axis=0)
+
+    if color_transform:
+        band_data = image.apply_color_transform(band_data, color_transform)
+
+    out_arrays = []
+    for k in range(band_data.shape[0]):
+        out_arrays.append(image.to_uint8(band_data[k], lower_bound=0, upper_bound=1))
 
     out = np.ma.stack(out_arrays, axis=-1)
     return image.array_to_png(out)
