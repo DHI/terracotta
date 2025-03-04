@@ -54,7 +54,7 @@ const SinglebandSelector: FC = () => {
             <Grid item xs={4}>
                 <FormControl fullWidth>
                     <InputLabel>
-                        {'Colormap'}
+                        {'Colormaps'}
                     </InputLabel>
                     <Select
                         id="demo-simple-select-outlined"

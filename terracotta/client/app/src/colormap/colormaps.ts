@@ -6,6 +6,16 @@ export interface Colormap {
 
 const COLORMAPS: Colormap[] = [
     { 
+        displayName: 'Gem', 
+        id: 'gem', 
+        img_url: 'https://terracotta-python.readthedocs.io/en/latest/_images/cmap-grays-bar.png'
+    },
+    { 
+        displayName: 'Gems', 
+        id: 'gems', 
+        img_url: 'https://terracotta-python.readthedocs.io/en/latest/_images/cmap-grays-bar.png'
+    },
+    { 
         displayName: 'Grays', 
         id: 'grays', 
         img_url: 'https://terracotta-python.readthedocs.io/en/latest/_images/cmap-grays-bar.png' 
