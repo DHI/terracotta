@@ -89,8 +89,7 @@ def rgb(
             keys = (*some_keys, band_key)
             metadata = driver.get_metadata(keys)
 
-            band_range = list(metadata["range"])
-            band_stretch_range = band_range.copy()
+            band_stretch_range = list(metadata["range"])
             scale_min, scale_max = band_stretch_override
 
             percentiles = metadata.get("percentiles", [])

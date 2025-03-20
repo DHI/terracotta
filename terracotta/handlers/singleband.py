@@ -64,8 +64,7 @@ def singleband(
         out = image.label(tile_data, labels)
     else:
         # determine stretch range from metadata and arguments
-        band_range = list(metadata["range"])
-        stretch_range_ = band_range.copy()
+        stretch_range_ = list(metadata["range"])
 
         percentiles = metadata.get("percentiles", [])
         if stretch_min is not None:
