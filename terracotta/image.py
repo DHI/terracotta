@@ -168,8 +168,9 @@ def apply_color_transform(
     color_transform: str,
 ) -> Array:
     """Apply color transform to input array. Input array should be normalized to [0,1]."""
+    arr = masked_data
     for func in parse_operations(color_transform):
-        arr = func(masked_data)
+        arr = func(arr)
 
     return arr
 
