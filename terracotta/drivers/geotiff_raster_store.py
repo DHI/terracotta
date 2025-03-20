@@ -141,6 +141,15 @@ class GeoTiffRasterStore(RasterStore):
             rio_env_options=self._RIO_ENV_OPTIONS,
         )
 
+        if settings.RASTER_AWS_S3_ENDPOINT is not None:
+            kwargs.update(
+                aws_s3_config=dict(
+                    aws_access_key_id=settings.RASTER_AWS_ACCESS_KEY,
+                    aws_secret_access_key=settings.RASTER_AWS_SECRET_KEY,
+                    endpoint_url=settings.RASTER_AWS_S3_ENDPOINT,
+                )
+            )
+
         cache_key = hash(ensure_hashable(kwargs))
 
         try:

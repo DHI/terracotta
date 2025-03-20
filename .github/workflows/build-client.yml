@@ -16,11 +16,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
 
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v4
         with:
           node-version: 12
 
@@ -32,6 +32,6 @@ jobs:
           popd
 
       - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v4.9.0
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "[skip ci] Commit latest build"
