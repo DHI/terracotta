@@ -4,6 +4,7 @@ Flask route to handle /singleband calls.
 """
 
 from typing import Optional, Any, Mapping, Dict, Tuple
+from functools import partial
 import json
 
 from marshmallow import (
@@ -70,7 +71,7 @@ class SinglebandOptionSchema(Schema):
     )
 
     color_transform = fields.String(
-        validate=validate_color_transform,
+        validate=partial(validate_color_transform, test_array_bands=1),
         missing=None,
         example="gamma 1 1.5, sigmoidal 1 15 0.5",
         description="Color transform DSL string from color-operations."

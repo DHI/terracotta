@@ -4,6 +4,7 @@ Flask route to handle /rgb calls.
 """
 
 from typing import Optional, Any, Mapping, Dict, Tuple
+from functools import partial
 import json
 
 from marshmallow import Schema, fields, validate, pre_load, ValidationError, EXCLUDE
@@ -73,7 +74,7 @@ class RGBOptionSchema(Schema):
         ),
     )
     color_transform = fields.String(
-        validate=validate_color_transform,
+        validate=partial(validate_color_transform, test_array_bands=3),
         missing=None,
         description="Color transform DSL string from color-operations.",
     )

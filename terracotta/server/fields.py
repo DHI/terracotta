@@ -8,6 +8,7 @@ from marshmallow import ValidationError, fields
 
 from typing import Any, Union
 
+import numpy as np
 from color_operations import parse_operations
 
 
@@ -49,7 +50,7 @@ def validate_stretch_range(data: Any) -> None:
             raise ValidationError("Percentile format is `p<digits>`")
 
 
-def validate_color_transform(data: Any) -> None:
+def validate_color_transform(data: Any, test_array_bands: int) -> None:
     """
     Validate that the color transform is a string and can be parsed by `color_operations`.
     """
@@ -57,6 +58,13 @@ def validate_color_transform(data: Any) -> None:
         raise ValidationError("Color transform needs to be a string")
 
     try:
-        parse_operations(data)
+        ops = parse_operations(data)
     except (ValueError, KeyError):
+        raise ValidationError("Invalid color transform")
+
+    test_array = np.ones((test_array_bands, 1, 1))
+    try:
+        for op in ops:
+            test_array = op(test_array)
+    except (ValueError, TypeError):
         raise ValidationError("Invalid color transform")
