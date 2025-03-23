@@ -222,3 +222,20 @@ def test_rgb_preview(use_testdb):
     raw_img = rgb.rgb(["val21", "x"], ["val22", "val23", "val24"])
     img_data = np.asarray(Image.open(raw_img))
     assert img_data.shape == (*terracotta.get_settings().DEFAULT_TILE_SIZE, 3)
+
+
+def test_rgb_color_transform_valid(use_testdb):
+    from terracotta.handlers import rgb
+
+    ds_keys = ["val21", "x", "val22"]
+    bands = ["val22", "val23", "val24"]
+
+    tile_raw_no_transform = rgb.rgb(ds_keys[:2], bands)
+    tile_raw_identity_transform = rgb.rgb(
+        ds_keys[:2], bands, color_transform="gamma rgb 1"
+    )
+
+    tile_no_transform = np.asarray(Image.open(tile_raw_no_transform))
+    tile_identity_transform = np.asarray(Image.open(tile_raw_identity_transform))
+
+    np.testing.assert_array_almost_equal(tile_no_transform, tile_identity_transform)
