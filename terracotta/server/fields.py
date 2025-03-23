@@ -66,5 +66,5 @@ def validate_color_transform(data: Any, test_array_bands: int) -> None:
     try:
         for op in ops:
             test_array = op(test_array)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, IndexError):
         raise ValidationError("Invalid color transform")
