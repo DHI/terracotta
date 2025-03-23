@@ -113,7 +113,9 @@ def rgb(
     band_data = np.ma.stack(out_arrays, axis=0)
 
     if color_transform:
+        msk = band_data.mask
         band_data = image.apply_color_transform(band_data, color_transform)
+        band_data.mask = msk
 
     out_arrays = []
     for k in range(band_data.shape[0]):

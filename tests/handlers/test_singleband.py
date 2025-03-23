@@ -234,7 +234,7 @@ def test_singleband_color_transform_valid(use_testdb):
 
     tile_raw_no_transform = singleband.singleband(ds_keys)
     tile_raw_identity_transform = singleband.singleband(
-        ds_keys, color_transform="gamma 1 1"
+        ds_keys, color_transform="gamma 1 1 sigmoidal 1 0 0"
     )
 
     tile_no_transform = np.asarray(Image.open(tile_raw_no_transform))
