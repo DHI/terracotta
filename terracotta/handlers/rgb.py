@@ -23,6 +23,7 @@ def rgb(
     tile_xyz: Optional[Tuple[int, int, int]] = None,
     *,
     stretch_ranges: Optional[ListOfRanges] = None,
+    color_transform: Optional[str] = None,
     tile_size: Optional[Tuple[int, int]] = None
 ) -> BinaryIO:
     """Return RGB image as PNG
@@ -103,8 +104,18 @@ def rgb(
                     "Upper stretch bound must be higher than lower bound"
                 )
 
+            # normalize to [0, 1] range
             band_data = band_data_future.result()
-            out_arrays.append(image.to_uint8(band_data, *band_stretch_range))
+            band_data = image.contrast_stretch(band_data, band_stretch_range, (0, 1))
+            out_arrays.append(band_data)
+
+    if color_transform:
+        out_arrays = np.ma.stack(out_arrays, axis=0)
+        out_arrays = image.apply_color_transform(out_arrays, color_transform)
+
+    out_arrays = [
+        image.to_uint8(band, lower_bound=0, upper_bound=1) for band in out_arrays
+    ]
 
     out = np.ma.stack(out_arrays, axis=-1)
     return image.array_to_png(out)

@@ -225,3 +225,19 @@ def test_rgb_invalid_percentiles(use_testdb, stretch_range_params):
             stretch_range=stretch_range,
         )
     assert stretch_range_params[2] in str(err.value)
+
+
+def test_singleband_color_transform_valid(use_testdb):
+    from terracotta.handlers import singleband
+
+    ds_keys = ["val21", "x", "val22"]
+
+    tile_raw_no_transform = singleband.singleband(ds_keys)
+    tile_raw_identity_transform = singleband.singleband(
+        ds_keys, color_transform="gamma 1 1 sigmoidal 1 0 0"
+    )
+
+    tile_no_transform = np.asarray(Image.open(tile_raw_no_transform))
+    tile_identity_transform = np.asarray(Image.open(tile_raw_identity_transform))
+
+    np.testing.assert_array_almost_equal(tile_no_transform, tile_identity_transform)

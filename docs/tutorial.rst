@@ -14,6 +14,7 @@ If you run into problems following any of the tutorials, please let us know by
 
    tutorials/aws
    tutorials/wsgi
+   tutorials/color-transforms
    tutorials/categorical
    tutorials/custom-colormaps
    tutorials/windows

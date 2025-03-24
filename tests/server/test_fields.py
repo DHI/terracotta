@@ -1,6 +1,8 @@
 from marshmallow import ValidationError
 import pytest
+
 from terracotta.server.singleband import SinglebandOptionSchema
+from terracotta.server.rgb import RGBOptionSchema
 
 
 @pytest.mark.parametrize(
@@ -40,3 +42,62 @@ def test_serde_bad_type():
         load_args = {"stretch_range": '[0, {"bad": "type"}]'}
         option_schema.load(load_args)
     assert "Must be a string or a number" in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    "args",
+    ["gamma 1 1.5", "sigmoidal r 6 0.5", "gamma r 1.5 sigmoidal 1 8 0.2"],
+)
+def test_color_transform_singleband_validation(args):
+    args = {"color_transform": args}
+    option_schema = SinglebandOptionSchema()
+    loaded = option_schema.load(args)
+
+    assert loaded["color_transform"] == args["color_transform"]
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        "gamma g 1.5",
+        "sigmoidal rg 6 0.5",
+        "gamma r 1.5 sigmoidal rgb 8 0.2",
+        "sigmoidal 1 5",
+        "hue 5",
+    ],
+)
+def test_color_transform_singleband_validation_fail(args):
+    args = {"color_transform": args}
+    option_schema = SinglebandOptionSchema()
+    with pytest.raises(ValidationError):
+        option_schema.load(args)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        "gamma 1 1.5",
+        "saturation 0.5",
+        "gamma r 1.5 sigmoidal 1 8 0.2",
+        "gamma rgb 1.5",
+        "sigmoidal rgb 6 0.5",
+        "gamma gb 1.5 sigmoidal rg 8 0.2",
+    ],
+)
+def test_color_transform_rgb_validation(args):
+    args = {"color_transform": args, "r": "R", "g": "G", "b": "B"}
+    option_schema = RGBOptionSchema()
+    loaded = option_schema.load(args)
+
+    assert loaded["color_transform"] == args["color_transform"]
+
+
+@pytest.mark.parametrize(
+    "args",
+    ["gamma r -1.5", "gamma 1", "gaama rgb 1.5", "sigmoidal 1 5", "hue 5", "gamma 0"],
+)
+def test_color_transform_rgb_validation_fail(args):
+    args = {"color_transform": args, "r": "R", "g": "G", "b": "B"}
+    option_schema = RGBOptionSchema()
+    with pytest.raises(ValidationError):
+        option_schema.load(args)

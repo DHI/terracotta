@@ -4,6 +4,7 @@ Flask route to handle /singleband calls.
 """
 
 from typing import Optional, Any, Mapping, Dict, Tuple
+from functools import partial
 import json
 
 from marshmallow import (
@@ -17,7 +18,11 @@ from marshmallow import (
 )
 from flask import request, send_file, Response
 
-from terracotta.server.fields import StringOrNumber, validate_stretch_range
+from terracotta.server.fields import (
+    StringOrNumber,
+    validate_stretch_range,
+    validate_color_transform,
+)
 from terracotta.server.flask_api import TILE_API
 from terracotta.cmaps import AVAILABLE_CMAPS
 
@@ -63,6 +68,14 @@ class SinglebandOptionSchema(Schema):
         "Must be given together with `colormap=explicit`. Color values can be "
         "specified either as RGB or RGBA tuple (in the range of [0, 255]), or as "
         "hex strings.",
+    )
+
+    color_transform = fields.String(
+        validate=partial(validate_color_transform, test_array_bands=1),
+        missing=None,
+        example="gamma 1 1.5, sigmoidal 1 15 0.5",
+        description="Color transform DSL string from color-operations."
+        "All color operations for singleband should specify band 1.",
     )
 
     tile_size = fields.List(

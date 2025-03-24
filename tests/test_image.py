@@ -106,3 +106,19 @@ def test_label_invalid():
     with pytest.raises(ValueError) as exc:
         image.label(data, list(range(1000)))
     assert "more than 255 labels" in str(exc.value)
+
+
+def test_apply_color_operation():
+    from terracotta import image
+
+    data = np.array([0, 0.2, 0.5, 1])
+    color_transform = "gamma 1 1"
+    np.testing.assert_array_equal(
+        image.apply_color_transform(data, color_transform), data
+    )
+
+    data = np.array([[[0]], [[0.4]], [[1]]])
+    color_transform = "saturation 1"
+    np.testing.assert_array_almost_equal(
+        image.apply_color_transform(data, color_transform), data, decimal=5
+    )
