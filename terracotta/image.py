@@ -168,11 +168,11 @@ def apply_color_transform(
     color_transform: str,
 ) -> Array:
     """Apply color transform to input array. Input array should be normalized to [0,1]."""
+    mask = np.ma.getmaskarray(masked_data)
     arr = masked_data
     for func in parse_operations(color_transform):
         arr = func(arr)
-
-    return arr
+    return np.ma.array(arr, mask=mask)
 
 
 def label(data: Array, labels: Sequence[Number]) -> Array:
