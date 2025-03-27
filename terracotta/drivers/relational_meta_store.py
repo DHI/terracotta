@@ -71,7 +71,7 @@ class RelationalMetaStore(MetaStore, ABC):
 
     SQLA_STRING: Any = sqla.types.String
     SQLA_METADATA_TYPE_LOOKUP: Dict[str, Any] = {
-        "real": functools.partial(sqla.types.Float, precision=8),
+        "real": functools.partial(sqla.types.Float, precision=53),
         "text": sqla.types.Text,
         "blob": sqla.types.LargeBinary,
     }
