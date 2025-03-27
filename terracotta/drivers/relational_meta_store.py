@@ -459,7 +459,7 @@ class RelationalMetaStore(MetaStore, ABC):
             "max": decoded["range"][1],
             "mean": decoded["mean"],
             "stdev": decoded["stdev"],
-            "percentiles": np.array(decoded["percentiles"], dtype="float64").tobytes(),
+            "percentiles": np.array(decoded["percentiles"], dtype="float32").tobytes(),
             "metadata": json.dumps(decoded["metadata"]),
         }
         return encoded
@@ -477,7 +477,7 @@ class RelationalMetaStore(MetaStore, ABC):
             "mean": encoded["mean"],
             "stdev": encoded["stdev"],
             "percentiles": np.frombuffer(
-                encoded["percentiles"], dtype="float64"
+                encoded["percentiles"], dtype="float32"
             ).tolist(),
             "metadata": json.loads(encoded["metadata"]),
         }

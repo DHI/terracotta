@@ -581,6 +581,9 @@ def test_float_precision(driver_path, provider, raster_file):
 
     metadata = db.compute_metadata(str(raster_file))
 
+    # Percentiles are stored in float32
+    metadata["percentiles"] = metadata["percentiles"].astype(np.float32)
+
     db.create(keys)
     db.insert(["some", "value"], str(raster_file), metadata=metadata)
 
