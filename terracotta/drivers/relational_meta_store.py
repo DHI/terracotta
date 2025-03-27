@@ -71,7 +71,7 @@ class RelationalMetaStore(MetaStore, ABC):
 
     SQLA_STRING: Any = sqla.types.String
     SQLA_METADATA_TYPE_LOOKUP: Dict[str, Any] = {
-        "real": functools.partial(sqla.types.Float, precision=53),
+        "real": functools.partial(sqla.types.Float, precision=8),
         "text": sqla.types.Text,
         "blob": sqla.types.LargeBinary,
     }
@@ -459,7 +459,7 @@ class RelationalMetaStore(MetaStore, ABC):
             "max": decoded["range"][1],
             "mean": decoded["mean"],
             "stdev": decoded["stdev"],
-            "percentiles": np.array(decoded["percentiles"], dtype="float32").tobytes(),
+            "percentiles": np.array(decoded["percentiles"], dtype="float64").tobytes(),
             "metadata": json.dumps(decoded["metadata"]),
         }
         return encoded
@@ -477,7 +477,7 @@ class RelationalMetaStore(MetaStore, ABC):
             "mean": encoded["mean"],
             "stdev": encoded["stdev"],
             "percentiles": np.frombuffer(
-                encoded["percentiles"], dtype="float32"
+                encoded["percentiles"], dtype="float64"
             ).tolist(),
             "metadata": json.loads(encoded["metadata"]),
         }
