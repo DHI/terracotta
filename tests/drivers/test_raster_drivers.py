@@ -7,7 +7,7 @@ import numpy as np
 
 from terracotta import exceptions
 
-DRIVERS = ["sqlite"]  # A single MetaStore suffices for testing the RasterStore
+DRIVERS = ["sqlite", "mysql"]  # Some database dialects have issues with float precision
 METADATA_KEYS = ("bounds", "range", "mean", "stdev", "percentiles", "metadata")
 
 
@@ -569,3 +569,31 @@ def test_no_multiprocessing():
 
     executor = create_executor()
     assert isinstance(executor, concurrent.futures.ThreadPoolExecutor)
+
+
+@pytest.mark.parametrize("provider", DRIVERS)
+def test_float_precision(driver_path, provider, raster_file):
+    """Ensure all metadata roundtrips correctly."""
+    from terracotta import drivers
+
+    db = drivers.get_driver(driver_path, provider=provider)
+    keys = ("some", "keynames")
+
+    metadata = db.compute_metadata(str(raster_file))
+
+    # Percentiles are stored in float32
+    metadata["percentiles"] = metadata["percentiles"].astype(np.float32)
+
+    db.create(keys)
+    db.insert(["some", "value"], str(raster_file), metadata=metadata)
+
+    got_metadata = db.get_metadata(["some", "value"])
+    for key in METADATA_KEYS:
+        print(key)
+        if isinstance(metadata[key], dict):
+            for subkey in metadata[key]:
+                np.testing.assert_array_equal(
+                    metadata[key][subkey], got_metadata[key][subkey]
+                ), (key, subkey)
+        else:
+            np.testing.assert_array_equal(metadata[key], got_metadata[key])

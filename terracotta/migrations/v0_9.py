@@ -1,0 +1,35 @@
+up_version = (0, 9)
+down_version = (0, 8)
+
+upgrade_sql = [
+    # SQLite doesn't support changing column types so we have to do it the verbose way
+    "ALTER TABLE metadata ADD COLUMN bounds_north_ FLOAT(53)",
+    "ALTER TABLE metadata ADD COLUMN bounds_east_ FLOAT(53)",
+    "ALTER TABLE metadata ADD COLUMN bounds_south_ FLOAT(53)",
+    "ALTER TABLE metadata ADD COLUMN bounds_west_ FLOAT(53)",
+    "ALTER TABLE metadata ADD COLUMN valid_percentage_ FLOAT(53)",
+    "ALTER TABLE metadata ADD COLUMN min_ FLOAT(53)",
+    "ALTER TABLE metadata ADD COLUMN max_ FLOAT(53)",
+    "ALTER TABLE metadata ADD COLUMN mean_ FLOAT(53)",
+    "ALTER TABLE metadata ADD COLUMN stdev_ FLOAT(53)",
+    "UPDATE metadata SET bounds_north_ = bounds_north, bounds_east_ = bounds_east, bounds_south_ = bounds_south, bounds_west_ = bounds_west, valid_percentage_ = valid_percentage, min_ = min, max_ = max, mean_ = mean, stdev_ = stdev",
+    "ALTER TABLE metadata DROP COLUMN bounds_north",
+    "ALTER TABLE metadata DROP COLUMN bounds_east",
+    "ALTER TABLE metadata DROP COLUMN bounds_south",
+    "ALTER TABLE metadata DROP COLUMN bounds_west",
+    "ALTER TABLE metadata DROP COLUMN valid_percentage",
+    "ALTER TABLE metadata DROP COLUMN min",
+    "ALTER TABLE metadata DROP COLUMN max",
+    "ALTER TABLE metadata DROP COLUMN mean",
+    "ALTER TABLE metadata DROP COLUMN stdev",
+    "ALTER TABLE metadata RENAME COLUMN bounds_north_ TO bounds_north",
+    "ALTER TABLE metadata RENAME COLUMN bounds_east_ TO bounds_east",
+    "ALTER TABLE metadata RENAME COLUMN bounds_south_ TO bounds_south",
+    "ALTER TABLE metadata RENAME COLUMN bounds_west_ TO bounds_west",
+    "ALTER TABLE metadata RENAME COLUMN valid_percentage_ TO valid_percentage",
+    "ALTER TABLE metadata RENAME COLUMN min_ TO min",
+    "ALTER TABLE metadata RENAME COLUMN max_ TO max",
+    "ALTER TABLE metadata RENAME COLUMN mean_ TO mean",
+    "ALTER TABLE metadata RENAME COLUMN stdev_ TO stdev",
+    "UPDATE terracotta SET version='0.9.0'",
+]
