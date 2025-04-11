@@ -3,12 +3,16 @@
 Utilities to work with XYZ Mercator tiles.
 """
 
+import math
+import sys
 from typing import Optional, Sequence, Union, Mapping, Tuple, Any
 
 import mercantile
 
 from terracotta import exceptions
 from terracotta.drivers.terracotta_driver import TerracottaDriver
+
+MAX_ZOOM = int(math.log2(sys.float_info.max)) - 1
 
 
 # TODO: add accurate signature if mypy ever supports conditional return types
@@ -57,6 +61,10 @@ def get_tile_data(
 
 def tile_exists(bounds: Sequence[float], tile_x: int, tile_y: int, tile_z: int) -> bool:
     """Check if an XYZ tile is inside the given physical bounds."""
+    # check the zoom level to avoid integer overflows
+    if tile_z > MAX_ZOOM:
+        return False
+
     mintile = mercantile.tile(bounds[0], bounds[3], tile_z)
     maxtile = mercantile.tile(bounds[2], bounds[1], tile_z)
 
