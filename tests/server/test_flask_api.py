@@ -370,6 +370,12 @@ def test_get_singleband_unknown_cmap(client, use_testdb, raster_file_xyz):
     assert rv.status_code == 400
 
 
+def test_get_singleband_too_high_zoom_level(client, use_testdb, raster_file_xyz):
+    x, y, _ = raster_file_xyz
+    rv = client.get(f"/singleband/val11/x/val12/99999/{x}/{y}.png")
+    assert rv.status_code == 200
+
+
 def test_get_rgb(client, use_testdb, raster_file_xyz):
     import terracotta
 
