@@ -15,15 +15,17 @@ from terracotta.cmaps import AVAILABLE_CMAPS
 
 class ComputeQuerySchema(Schema):
     keys = fields.String(
-        required=True, description="Keys identifying dataset, in order"
+        required=True, metadata={"description": "Keys identifying dataset, in order"}
     )
-    tile_z = fields.Int(required=True, description="Requested zoom level")
-    tile_y = fields.Int(required=True, description="y coordinate")
-    tile_x = fields.Int(required=True, description="x coordinate")
+    tile_z = fields.Int(required=True, metadata={"description": "Requested zoom level"})
+    tile_y = fields.Int(required=True, metadata={"description": "y coordinate"})
+    tile_x = fields.Int(required=True, metadata={"description": "x coordinate"})
 
 
 def _operator_field(i: int) -> fields.String:
-    return fields.String(description=f"Last key of variable v{i} in given expression.")
+    return fields.String(
+        metadata={"description": f"Last key of variable v{i} in given expression."}
+    )
 
 
 class ComputeOptionSchema(Schema):
@@ -31,30 +33,36 @@ class ComputeOptionSchema(Schema):
         unknown = EXCLUDE
 
     expression = fields.String(
-        description="Mathematical expression to execute.",
-        example="(v1 - v2) / (v1 + v2)",
+        metadata={
+            "description": "Mathematical expression to execute.",
+            "example": "(v1 - v2) / (v1 + v2)",
+        },
         required=True,
     )
 
     stretch_range = fields.List(
-        fields.Number(allow_none=True),
+        fields.Float(allow_none=True),
         validate=validate.Length(equal=2),
-        example="[0,1]",
-        description="Stretch range to use as JSON array.",
+        metadata={
+            "description": "Stretch range to use as JSON array.",
+            "example": "[0,1]",
+        },
         required=True,
     )
 
     colormap = fields.String(
-        description="Colormap to apply to image (see /colormap).",
+        metadata={"description": "Colormap to apply to image (see /colormap)."},
         validate=validate.OneOf(("explicit", *AVAILABLE_CMAPS)),
-        missing=None,
+        load_default=None,
     )
 
     tile_size = fields.List(
         fields.Integer(),
         validate=validate.Length(equal=2),
-        example="[256,256]",
-        description="Pixel dimensions of the returned PNG image as JSON list.",
+        metadata={
+            "description": "Pixel dimensions of the returned PNG image as JSON list.",
+            "example": "[256,256]",
+        },
     )
 
     v1 = _operator_field(1)
@@ -111,7 +119,7 @@ def get_compute(tile_z: int, tile_y: int, tile_x: int, keys: str = "") -> Respon
 
 class ComputePreviewSchema(Schema):
     keys = fields.String(
-        required=True, description="Keys identifying dataset, in order"
+        required=True, metadata={"description": "Keys identifying dataset, in order"}
     )
 
 

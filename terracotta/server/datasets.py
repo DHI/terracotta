@@ -16,17 +16,25 @@ class DatasetOptionSchema(Schema):
         unknown = INCLUDE
 
     # placeholder values to document keys
-    key1 = fields.String(example="value1", description="Value of key1", dump_only=True)
-    key2 = fields.String(example="value2", description="Value of key2", dump_only=True)
+    key1 = fields.String(
+        metadata={"description": "Value of key1", "example": "value1"},
+        dump_only=True,
+    )
+    key2 = fields.String(
+        metadata={"description": "Value of key2", "example": "value2"},
+        dump_only=True,
+    )
 
     # real options
     limit = fields.Integer(
-        description="Maximum number of returned datasets per page",
-        missing=100,
+        metadata={"description": "Maximum number of returned datasets per page"},
+        load_default=100,
         validate=validate.Range(min=0),
     )
     page = fields.Integer(
-        missing=0, description="Current dataset page", validate=validate.Range(min=0)
+        metadata={"description": "Current dataset page"},
+        load_default=0,
+        validate=validate.Range(min=0),
     )
 
     @post_load
@@ -41,19 +49,21 @@ class DatasetOptionSchema(Schema):
 
 
 class DatasetSchema(Schema):
-    class Meta:
-        ordered = True
-
-    page = fields.Integer(description="Current page", required=True)
+    page = fields.Integer(
+        metadata={"description": "Current page"},
+        required=True,
+    )
     limit = fields.Integer(
-        description="Maximum number of returned items", required=True
+        metadata={"description": "Maximum number of returned items"},
+        required=True,
     )
     datasets = fields.List(
         fields.Dict(
-            values=fields.String(example="value1"), keys=fields.String(example="key1")
+            values=fields.String(metadata={"example": "value1"}),
+            keys=fields.String(metadata={"example": "key1"}),
         ),
         required=True,
-        description="Array containing all available key combinations",
+        metadata={"description": "Array containing all available key combinations"},
     )
 
 

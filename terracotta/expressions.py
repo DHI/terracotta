@@ -125,8 +125,11 @@ class ExpressionParser(ast.NodeVisitor):
             )
         return func(*map(self.visit, node.args))
 
-    def visit_Num(self, node: ast.Num) -> Any:
-        return node.n
+    def visit_Constant(self, node: ast.Constant) -> Any:
+        if isinstance(node.value, (int, float)):
+            return node.value
+        else:
+            self.generic_visit(node)
 
     def visit_UnaryOp(self, node: ast.UnaryOp) -> Any:
         op_type = type(node.op)
