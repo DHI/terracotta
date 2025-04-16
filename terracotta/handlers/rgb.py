@@ -4,7 +4,7 @@ Handle /rgb API endpoint. Band file retrieval is multi-threaded.
 """
 
 from typing import Sequence, Tuple, Optional, TypeVar
-from typing.io import BinaryIO
+from typing import BinaryIO
 from concurrent.futures import Future
 
 from terracotta import get_settings, get_driver, image, xyz, exceptions
