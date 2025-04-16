@@ -4,7 +4,7 @@ Handle /singleband API endpoint.
 """
 
 from typing import Sequence, Mapping, Union, Tuple, Optional, TypeVar, cast
-from typing.io import BinaryIO
+from typing import BinaryIO
 
 import collections
 
