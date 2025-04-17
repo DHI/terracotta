@@ -14,50 +14,51 @@ from terracotta.exceptions import InvalidArgumentsError
 
 
 class MetadataSchema(Schema):
-    class Meta:
-        ordered = True
-
     keys = fields.Dict(
         keys=fields.String(),
         values=fields.String(),
-        description="Keys identifying dataset",
+        metadata={"description": "Keys identifying dataset"},
         required=True,
     )
     bounds = fields.List(
-        fields.Number(),
+        fields.Float(),
         validate=validate.Length(equal=4),
         required=True,
-        description="Physical bounds of dataset in WGS84 projection",
+        metadata={"description": "Physical bounds of dataset in WGS84 projection"},
     )
     convex_hull = fields.Dict(
-        required=True, description="GeoJSON representation of the dataset's convex hull"
+        required=True,
+        metadata={"description": "GeoJSON representation of the dataset's convex hull"},
     )
-    valid_percentage = fields.Number(
-        description="Percentage of valid data in the dataset"
+    valid_percentage = fields.Float(
+        metadata={"description": "Percentage of valid data in the dataset"}
     )
     range = fields.List(
-        fields.Number(),
+        fields.Float(),
         validate=validate.Length(equal=2),
         required=True,
-        description="Minimum and maximum data value",
+        metadata={"description": "Minimum and maximum data value"},
     )
-    mean = fields.Number(description="Data mean", required=True)
-    stdev = fields.Number(description="Data standard deviation", required=True)
+    mean = fields.Float(metadata={"description": "Data mean"}, required=True)
+    stdev = fields.Float(
+        metadata={"description": "Data standard deviation"}, required=True
+    )
     percentiles = fields.List(
-        fields.Number(),
+        fields.Float(),
         validate=validate.Length(equal=99),
         required=True,
-        description="1st, 2nd, 3rd, ..., 99th data percentile",
+        metadata={"description": "1st, 2nd, 3rd, ..., 99th data percentile"},
     )
     metadata = fields.Raw(
-        description="Any additional (manually added) metadata", required=True
+        metadata={"description": "Any additional (manually added) metadata"},
+        required=True,
     )
 
 
 class MetadataColumnsSchema(Schema):
     columns = fields.List(
         fields.String(),
-        description="List of columns to return",
+        metadata={"description": "List of columns to return"},
         required=False,
     )
 
@@ -82,11 +83,11 @@ class MultipleMetadataDatasetsSchema(Schema):
     keys = fields.List(
         fields.List(
             fields.String(),
-            description="Keys identifying dataset",
+            metadata={"description": "Keys identifying dataset"},
             required=True,
         ),
         required=True,
-        description="Array containing all available key combinations",
+        metadata={"description": "Array containing all available key combinations"},
     )
 
 

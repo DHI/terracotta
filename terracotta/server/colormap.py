@@ -14,10 +14,8 @@ from terracotta.cmaps import AVAILABLE_CMAPS
 
 
 class ColormapEntrySchema(Schema):
-    value = fields.Number(required=True)
-    rgba = fields.List(
-        fields.Number(), required=True, validate=validate.Length(equal=4)
-    )
+    value = fields.Float(required=True)
+    rgba = fields.List(fields.Float(), required=True, validate=validate.Length(equal=4))
 
 
 class ColormapSchema(Schema):
@@ -29,19 +27,29 @@ class ColormapOptionSchema(Schema):
         unknown = EXCLUDE
 
     stretch_range = fields.List(
-        fields.Number(),
+        fields.Float(),
         validate=validate.Length(equal=2),
         required=True,
-        description="Minimum and maximum value of colormap as JSON array "
-        "(same as for /singleband and /rgb)",
+        metadata={
+            "description": (
+                "Minimum and maximum value of colormap as JSON array "
+                "(same as for /singleband and /rgb)",
+            ),
+        },
     )
     colormap = fields.String(
-        description="Name of color map to use (for a preview see "
-        "https://terracotta-python.readthedocs.io/en/latest/reference/colormaps.html)",
-        missing=None,
+        metadata={
+            "description": (
+                "Name of color map to use (for a preview see "
+                "https://terracotta-python.readthedocs.io/en/latest/reference/colormaps.html)",
+            ),
+        },
+        load_default=None,
         validate=validate.OneOf(AVAILABLE_CMAPS),
     )
-    num_values = fields.Int(description="Number of values to return", missing=255)
+    num_values = fields.Int(
+        metadata={"description": "Number of values to return"}, load_default=255
+    )
 
     @pre_load
     def process_ranges(self, data: Mapping[str, Any], **kwargs: Any) -> Dict[str, Any]:

@@ -116,8 +116,9 @@ DEPRECATION_MAP: Dict[str, str] = {
 }
 
 
-def _is_writable(path: str) -> bool:
-    return os.access(os.path.dirname(path) or os.getcwd(), os.W_OK)
+def _is_writable(path: str) -> None:
+    if not os.access(os.path.dirname(path) or os.getcwd(), os.W_OK):
+        raise ValidationError(f"Path {path} is not writable.")
 
 
 class SettingSchema(Schema):
