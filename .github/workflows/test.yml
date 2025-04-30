@@ -107,7 +107,7 @@ jobs:
 
       matrix:
         os: [macos-latest, windows-latest]
-        python-version: ["3.9", "3.12"]
+        python-version: ["3.9", "3.13"]
 
     defaults:
       run:
