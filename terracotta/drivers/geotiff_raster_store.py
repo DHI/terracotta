@@ -58,7 +58,7 @@ def submit_to_executor(task: Callable[..., Any]) -> Future:
         future = _executor.submit(task)
     except BrokenProcessPool:
         # re-create executor and try again
-        logger.warn("Re-creating broken process pool")
+        logger.warning("Re-creating broken process pool")
         _executor = create_executor()
         future = _executor.submit(task)
 

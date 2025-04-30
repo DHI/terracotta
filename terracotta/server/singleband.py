@@ -29,11 +29,11 @@ from terracotta.cmaps import AVAILABLE_CMAPS
 
 class SinglebandQuerySchema(Schema):
     keys = fields.String(
-        required=True, description="Keys identifying dataset, in order"
+        required=True, metadata={"description": "Keys identifying dataset, in order"}
     )
-    tile_z = fields.Int(required=True, description="Requested zoom level")
-    tile_y = fields.Int(required=True, description="y coordinate")
-    tile_x = fields.Int(required=True, description="x coordinate")
+    tile_z = fields.Int(required=True, metadata={"description": "Requested zoom level"})
+    tile_y = fields.Int(required=True, metadata={"description": "y coordinate"})
+    tile_x = fields.Int(required=True, metadata={"description": "x coordinate"})
 
 
 class SinglebandOptionSchema(Schema):
@@ -43,46 +43,59 @@ class SinglebandOptionSchema(Schema):
     stretch_range = fields.List(
         StringOrNumber(allow_none=True, validate=validate_stretch_range),
         validate=validate.Length(equal=2),
-        example="[0,1]",
-        description=(
-            "Stretch range [min, max] to use as JSON array. "
-            "Min and max may be numbers to use as absolute range, or strings "
-            "of the format `p<digits>` with an integer between 0 and 100 "
-            "to use percentiles of the image instead. "
-            "Null values indicate global minimum / maximum."
-        ),
-        missing=None,
+        metadata={
+            "example": "[0,1]",
+            "description": (
+                "Stretch range [min, max] to use as JSON array. "
+                "Min and max may be numbers to use as absolute range, or strings "
+                "of the format `p<digits>` with an integer between 0 and 100 "
+                "to use percentiles of the image instead. "
+                "Null values indicate global minimum / maximum."
+            ),
+        },
+        load_default=None,
     )
 
     colormap = fields.String(
-        description="Colormap to apply to image (see /colormap)",
+        metadata={"description": "Colormap to apply to image (see /colormap)"},
         validate=validate.OneOf(("explicit", *AVAILABLE_CMAPS)),
-        missing=None,
+        load_default=None,
     )
 
     explicit_color_map = fields.Dict(
-        keys=fields.Number(),
-        values=fields.List(fields.Number, validate=validate.Length(min=3, max=4)),
-        example='{"0": [255, 255, 255]}',
-        description="Explicit value-color mapping to use, encoded as JSON object. "
-        "Must be given together with `colormap=explicit`. Color values can be "
-        "specified either as RGB or RGBA tuple (in the range of [0, 255]), or as "
-        "hex strings.",
+        # TODO: that might be wrong?
+        keys=fields.Float(),
+        values=fields.List(fields.Float, validate=validate.Length(min=3, max=4)),
+        metadata={
+            "example": '{"0": [255, 255, 255]}',
+            "description": (
+                "Explicit value-color mapping to use, encoded as JSON object. "
+                "Must be given together with `colormap=explicit`. Color values can be "
+                "specified either as RGB or RGBA tuple (in the range of [0, 255]), or as "
+                "hex strings."
+            ),
+        },
     )
 
     color_transform = fields.String(
         validate=partial(validate_color_transform, test_array_bands=1),
-        missing=None,
-        example="gamma 1 1.5, sigmoidal 1 15 0.5",
-        description="Color transform DSL string from color-operations."
-        "All color operations for singleband should specify band 1.",
+        load_default=None,
+        metadata={
+            "example": "gamma 1 1.5, sigmoidal 1 15 0.5",
+            "description": (
+                "Color transform DSL string from color-operations."
+                "All color operations for singleband should specify band 1."
+            ),
+        },
     )
 
     tile_size = fields.List(
         fields.Integer(),
         validate=validate.Length(equal=2),
-        example="[256,256]",
-        description="Pixel dimensions of the returned PNG image as JSON list.",
+        metadata={
+            "example": "[256,256]",
+            "description": "Pixel dimensions of the returned PNG image as JSON list.",
+        },
     )
 
     @validates_schema
@@ -164,7 +177,7 @@ def get_singleband(tile_z: int, tile_y: int, tile_x: int, keys: str) -> Response
 
 class SinglebandPreviewSchema(Schema):
     keys = fields.String(
-        required=True, description="Keys identifying dataset, in order"
+        required=True, metadata={"description": "Keys identifying dataset, in order"}
     )
 
 

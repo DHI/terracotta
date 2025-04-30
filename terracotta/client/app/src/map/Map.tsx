@@ -80,10 +80,10 @@ const Map: FC<Props> = ({ host }) => {
 				[ currentBounds[ 2 ], currentBounds[ 3 ] ],
 			]
 
-			if (formattedBounds[ 0 ][ 0 ] >= 89) formattedBounds[ 0 ][ 0 ] = 89
+			if (formattedBounds[ 0 ][ 0 ] <= -179) formattedBounds[ 0 ][ 0 ] = -179
 			if (formattedBounds[ 0 ][ 1 ] <= -89) formattedBounds[ 0 ][ 1 ] = -89
 			if (formattedBounds[ 1 ][ 0 ] >= 179) formattedBounds[ 1 ][ 0 ] = 179
-			if (formattedBounds[ 1 ][ 1 ] >= 89) formattedBounds[ 0 ][ 0 ] = 89
+			if (formattedBounds[ 1 ][ 1 ] >= 89) formattedBounds[ 1 ][ 1 ] = 89
 
 			if(mapRef.current !== null){
 				const mapHeight = mapRef.current?.scrollHeight
