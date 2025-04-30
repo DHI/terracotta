@@ -107,6 +107,7 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
     import terracotta.server.rgb
     import terracotta.server.singleband
     import terracotta.server.compute
+    import terracotta.server.wmts
 
     new_app = Flask("terracotta.server")
     new_app.debug = debug
@@ -138,6 +139,7 @@ def create_app(debug: bool = False, profile: bool = False) -> Flask:
         SPEC.path(view=terracotta.server.singleband.get_singleband_preview)
         SPEC.path(view=terracotta.server.compute.get_compute)
         SPEC.path(view=terracotta.server.compute.get_compute_preview)
+        SPEC.path(view=terracotta.server.wmts.get_wmts_capabilities)
 
     import terracotta.server.spec
 
