@@ -68,7 +68,7 @@ setup(
         "color-operations",
         "flask",
         "flask_cors",
-        "marshmallow>=3.0.0",
+        "marshmallow>=3.0.0,<4",
         "mercantile",
         "numpy%s" % numpy_version,
         "pillow",
