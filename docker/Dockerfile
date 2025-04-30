@@ -1,4 +1,4 @@
-FROM python:3.12.2-slim-bullseye AS build_wheel
+FROM python:3.13.3-slim-bullseye AS build_wheel
 
 RUN apt-get update \
     && apt-get install \
@@ -15,7 +15,7 @@ RUN python -m pip install --upgrade pip \
     && python setup.py bdist_wheel
 
 
-FROM python:3.12.2-slim-bullseye
+FROM python:3.13.3-slim-bullseye
 
 COPY --from=build_wheel /terracotta/dist/*.whl /terracotta/
 
