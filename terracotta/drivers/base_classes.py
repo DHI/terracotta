@@ -45,7 +45,7 @@ class MetaStore(ABC):
     Defines a common interface for all metadata backends.
     """
 
-    _RESERVED_KEYS = ("limit", "page")
+    _RESERVED_KEYS = ("limit", "page", "order_by", "ascending")
     _WRITABLE: bool = True
 
     @property
@@ -99,6 +99,8 @@ class MetaStore(ABC):
         where: Optional[MultiValueKeysType] = None,
         page: int = 0,
         limit: Optional[int] = None,
+        order_by: Optional[list[str]] = None,
+        ascending: bool = True,
     ) -> Dict[Tuple[str, ...], Any]:
         """Get all known dataset key combinations matching the given constraints,
         and a path to retrieve the data

@@ -147,7 +147,7 @@ def test_creation_reserved_names(driver_path, provider):
     from terracotta import drivers, exceptions
 
     db = drivers.get_driver(driver_path, provider=provider)
-    keys = ("page", "limit")
+    keys = ("page", "limit", "order_by", "ascending")
 
     with pytest.raises(exceptions.InvalidKeyError) as exc:
         db.create(keys)

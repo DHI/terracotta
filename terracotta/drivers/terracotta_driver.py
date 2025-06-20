@@ -133,6 +133,8 @@ class TerracottaDriver:
         where: Optional[ExtendedMultiValueKeysType] = None,
         page: int = 0,
         limit: Optional[int] = None,
+        order_by: Optional[list[str]] = None,
+        ascending: bool = True,
     ) -> Dict[Tuple[str, ...], Any]:
         """Get all known dataset key combinations matching the given constraints,
         and a path to retrieve the data (dependent on the raster store).
@@ -142,6 +144,8 @@ class TerracottaDriver:
             where: A mapping from key name to key value constraint(s)
             page: A pagination parameter, skips first page * limit results
             limit: A pagination parameter, max number of results to return
+            order_by: A list of key names to order the results by.
+            ascending: Whether to order the results in ascending order (default) or descending.
 
         Returns:
 
@@ -152,6 +156,8 @@ class TerracottaDriver:
             where=self._standardize_multi_value_keys(where, requires_all_keys=False),
             page=page,
             limit=limit,
+            order_by=order_by,
+            ascending=ascending,
         )
 
     def get_metadata(self, keys: ExtendedKeysType) -> Dict[str, Any]:
