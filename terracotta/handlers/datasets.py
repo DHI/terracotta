@@ -15,6 +15,8 @@ def datasets(
     some_keys: Optional[Mapping[str, Union[str, List[str]]]] = None,
     page: int = 0,
     limit: int = 500,
+    order_by: Optional[list[str]] = None,
+    ascending: bool = True,
 ) -> "List[OrderedDict[str, str]]":
     """List all available key combinations"""
     settings = get_settings()
@@ -22,7 +24,11 @@ def datasets(
 
     with driver.connect():
         dataset_keys = driver.get_datasets(
-            where=some_keys, page=page, limit=limit
+            where=some_keys,
+            page=page,
+            limit=limit,
+            order_by=order_by,
+            ascending=ascending,
         ).keys()
         key_names = driver.key_names
 
