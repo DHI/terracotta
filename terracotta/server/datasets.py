@@ -36,6 +36,19 @@ class DatasetOptionSchema(Schema):
         load_default=0,
         validate=validate.Range(min=0),
     )
+    order_by = fields.String(
+        metadata={
+            "description": "Comma-separated list of keys to order datasets by",
+            "example": "[key1,key2]",
+        },
+        load_default=None,
+    )
+    ascending = fields.Boolean(
+        metadata={
+            "description": "Sort order of returned datasets",
+        },
+        load_default=True,
+    )
 
     @post_load
     def list_items(
@@ -97,11 +110,15 @@ def get_datasets() -> Response:
     limit = options.pop("limit")
     page = options.pop("page")
     keys = options or None
+    order_by = options.pop("order_by")
+    ascending = options.pop("ascending")
 
     payload = {
         "limit": limit,
         "page": page,
-        "datasets": datasets(keys, page=page, limit=limit),
+        "datasets": datasets(
+            keys, page=page, limit=limit, order_by=order_by, ascending=ascending
+        ),
     }
 
     schema = DatasetSchema()
