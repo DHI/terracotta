@@ -41,12 +41,10 @@ def array_to_png(
         if colormap is not None:
             raise ValueError("Colormap argument cannot be given for multi-band data")
 
-        mode = "RGB"
         transparency = (0, 0, 0)
         palette = None
 
     elif img_data.ndim == 2:  # encode paletted image
-        mode = "L"
 
         if colormap is None:
             palette = None
@@ -106,7 +104,7 @@ def array_to_png(
     if isinstance(img_data, np.ma.MaskedArray):
         img_data = img_data.filled(0)
 
-    img = Image.fromarray(img_data, mode=mode)
+    img = Image.fromarray(img_data)
 
     if palette is not None:
         img.putpalette(palette)
