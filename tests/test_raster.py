@@ -81,6 +81,8 @@ def test_compute_metadata(
         mtd["valid_percentage"], 100 * valid_data.size / data.size
     )
     np.testing.assert_allclose(mtd["range"], (valid_data.min(), valid_data.max()))
+    # see: https://github.com/numpy/numpy/pull/27883
+    np.testing.assert_allclose(mtd["mean"], valid_data.mean(), rtol=1e-6)
     np.testing.assert_allclose(mtd["mean"], valid_data.mean())
     np.testing.assert_allclose(mtd["stdev"], valid_data.std())
 
