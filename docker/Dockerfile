@@ -1,10 +1,9 @@
-FROM python:3.13.3-slim-bullseye AS build_wheel
+FROM python:3.13.3-slim-bookworm AS build_wheel
 
 RUN apt-get update \
     && apt-get install \
     -y --no-install-recommends \
-    build-essential \
-    git \
+    build-essential git \
     && rm -rf /var/lib/apt/lists/*
 
 COPY ./ /terracotta
@@ -12,10 +11,11 @@ COPY ./ /terracotta
 WORKDIR /terracotta
 
 RUN python -m pip install --upgrade pip \
+    && pip install wheel setuptools \
     && python setup.py bdist_wheel
 
 
-FROM python:3.13.3-slim-bullseye
+FROM python:3.13.3-slim-bookworm
 
 COPY --from=build_wheel /terracotta/dist/*.whl /terracotta/
 
