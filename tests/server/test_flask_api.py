@@ -206,6 +206,38 @@ def test_get_datasets_selective(client, use_testdb):
     assert len(json.loads(rv.data)["datasets"]) == 2
 
 
+def test_get_datasets_selective_order_specified_asc_false(client, use_testdb):
+    rv = client.get("/datasets?key1=val21&order_by=[key2,key1]&ascending=false&limit=1")
+    assert rv.status_code == 200
+    datasets = json.loads(rv.data)["datasets"]
+    assert len(datasets) == 1
+    assert datasets[0]["key2"] == "val24"
+    assert datasets[0]["key1"] == "val21"
+
+
+def test_get_datasets_selective_order_specified_asc_true(client, use_testdb):
+    rv = client.get("/datasets?key1=val21&order_by=[key2,key1]&ascending=true&limit=1")
+    assert rv.status_code == 200
+    datasets = json.loads(rv.data)["datasets"]
+    assert len(datasets) == 1
+    assert datasets[0]["key2"] == "val22"
+    assert datasets[0]["key1"] == "val21"
+
+
+def test_get_datasets_selective_order_specified_key_not_found(client, use_testdb):
+    rv = client.get(
+        "/datasets?key1=val21&order_by=[unknown_key1,unknown_key2,key1]&ascending=false&limit=1"
+    )
+    assert rv.status_code == 400
+    err_msg = json.loads(rv.data)
+    assert err_msg == {
+        "message": (
+            "Encountered unrecognized keys: unknown_key1, unknown_key2 "
+            "(available keys: ('key1', 'akey', 'key2'))"
+        )
+    }
+
+
 def test_get_datasets_unknown_key(client, use_testdb):
     rv = client.get("/datasets?UNKNOWN=val21")
     assert rv.status_code == 400

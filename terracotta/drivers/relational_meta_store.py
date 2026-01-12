@@ -323,6 +323,8 @@ class RelationalMetaStore(MetaStore, ABC):
         where: Optional[MultiValueKeysType] = None,
         page: int = 0,
         limit: Optional[int] = None,
+        order_by: Optional[list[str]] = None,
+        ascending: bool = True,
     ) -> Dict[Tuple[str, ...], str]:
         if where is None:
             where = {}
@@ -335,6 +337,23 @@ class RelationalMetaStore(MetaStore, ABC):
         datasets_table = sqla.Table(
             "datasets", self.sqla_metadata, autoload_with=self.sqla_engine
         )
+
+        if order_by is not None:
+            # check that all order_by keys are valid
+            unknown_keys = set(order_by) - set(datasets_table.c.keys())
+            if unknown_keys:
+                raise exceptions.InvalidKeyError(
+                    f"Encountered unrecognized keys: {', '.join(sorted(unknown_keys))} "
+                    f"(available keys: {self.key_names})"
+                )
+            else:
+                order_by_cols = [datasets_table.c[key] for key in order_by]
+        else:
+            order_by_cols = datasets_table.c.values()
+
+        if ascending is False:
+            order_by_cols = [sqla.desc(col) for col in order_by_cols]
+
         stmt = (
             datasets_table.select()
             .where(
@@ -343,7 +362,7 @@ class RelationalMetaStore(MetaStore, ABC):
                     for column, values in where.items()
                 ]
             )
-            .order_by(*datasets_table.c.values())
+            .order_by(*order_by_cols)
         )
 
         if limit is not None:
