@@ -1,4 +1,3 @@
-import pytest
 from click.testing import CliRunner
 
 
@@ -31,7 +30,7 @@ def migration_testfunc(v07_db, raster_file):
         ],
     )
 
-    assert result.exit_code == 0
+    assert result.exit_code == 0, result.exception
     assert "Upgrade path found" in result.output
 
     driver_updated = get_driver(str(v07_db), provider="sqlite")
@@ -67,10 +66,5 @@ def test_migrate_next(v07_db, raster_file, monkeypatch, force_reload):
         current_version = parse_version(terracotta.__version__)
         next_major_version = (current_version[0], current_version[1] + 1, 0)
         m.setattr(terracotta, "__version__", ".".join(map(str, next_major_version)))
-
-        from terracotta.migrations import MIGRATIONS
-
-        if next_major_version[:2] not in [m.up_version for m in MIGRATIONS.values()]:
-            pytest.skip("No migration available for next major version")
 
         migration_testfunc(v07_db, raster_file)

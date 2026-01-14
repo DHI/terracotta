@@ -61,7 +61,9 @@ def migrate(database: str, to_version: str, from_version: str, yes: bool) -> Non
 
     while current_version != to_version_tuple:
         if current_version not in MIGRATIONS:
-            raise RuntimeError("Unexpected error")
+            raise RuntimeError(
+                f"Unexpected error, missing migration from version: {current_version} to {to_version_tuple}"
+            )
 
         migration = MIGRATIONS[current_version]
         migration_chain.append(migration)
