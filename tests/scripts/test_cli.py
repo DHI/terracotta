@@ -36,6 +36,16 @@ def test_logging_invisible(level):
     assert not result.output
 
 
+def test_config_missing_file(tmp_path):
+    from terracotta.scripts.cli import cli
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-c", str(tmp_path / "missing.toml")])
+    assert result.exit_code == 2
+    assert "missing.toml" in result.output
+    assert "Traceback" not in result.output
+
+
 def test_entrypoint(monkeypatch, capsys):
     import sys
     from terracotta.scripts.cli import entrypoint

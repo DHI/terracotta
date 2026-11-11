@@ -126,7 +126,12 @@ class TOMLFile(click.ParamType):
     def convert(self, value: str, *args: Any) -> Dict[str, Any]:
         import toml
 
-        return dict(toml.load(value))
+        try:
+            return dict(toml.load(value))
+        except OSError as exc:
+            self.fail(f"Could not read config file: {exc}")
+        except ValueError as exc:
+            self.fail(f"Invalid TOML in config file: {exc}")
 
 
 class Hostname(click.ParamType):
